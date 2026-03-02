@@ -272,7 +272,7 @@
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        window.location.href = '/home';
                     }, 1500);
                 } else if (data.need_password) {
                     document.getElementById('step2').style.display = 'none';
