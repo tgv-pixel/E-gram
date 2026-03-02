@@ -315,7 +315,7 @@
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
                     setTimeout(() => {
-                        window.location.href = '/dashboard';
+                        window.location.href = '/home';
                     }, 1500);
                 } else {
                     showMessage(data.error || 'Verification failed', 'error');
