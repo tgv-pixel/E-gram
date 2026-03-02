@@ -88,6 +88,14 @@ def serve_dashboard():
     except FileNotFoundError:
         logger.error("dashboard.html not found!")
         return "dashboard.html not found", 404
+@app.route('/home')
+def serve_dashboard():
+    """Serve the dashboard page"""
+    try:
+        return send_file('dashboard.html')
+    except FileNotFoundError:
+        logger.error("home.html not found!")
+        return "home.html not found", 404
 
 # -------------------- GET ALL ACCOUNTS --------------------
 @app.route('/api/accounts', methods=['GET'])
