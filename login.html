@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(145deg, #0088cc, #006699);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            max-width: 400px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #0088cc;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #01579b;
+            border-left: 4px solid #0088cc;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #0088cc;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #006699;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .code-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .code-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+        }
+        
+        .code-input:focus {
+            border-color: #0088cc;
+            outline: none;
+        }
+        
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .link a {
+            color: #0088cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Telegram Manager</h1>
+        
+        <div class="info">
+            <strong>🔐 Add Telegram Account</strong><br>
+            Enter your phone number to get started
+        </div>
+        
+        <div id="step1">
+            <input type="text" id="phone" placeholder="Phone number (+1234567890)" value="+">
+            <button onclick="sendCode()" id="sendBtn">Send Code</button>
+        </div>
+        
+        <div id="step2" style="display: none;">
+            <div class="code-inputs">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 5)">
+            </div>
+            <button onclick="verifyCode()" id="verifyBtn">Verify Code</button>
+            <button onclick="backToPhone()" style="background: #666;">Back</button>
+        </div>
+        
+        <div id="step3" style="display: none;">
+            <input type="password" id="password" placeholder="2FA Password">
+            <button onclick="verifyPassword()" id="passwordBtn">Submit</button>
+            <button onclick="backToPhone()" style="background: #666;">Cancel</button>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div class="link">
+            <a href="/dashboard">Go to Dashboard →</a>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let phoneNumber = null;
+        
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = type;
+        }
+        
+        function sendCode() {
+            const phone = document.getElementById('phone').value.trim();
+            if (!phone) {
+                showMessage('Please enter phone number', 'error');
+                return;
+            }
+            
+            phoneNumber = phone;
+            document.getElementById('sendBtn').disabled = true;
+            showMessage('Sending code...', 'info');
+            
+            fetch('/api/add-account', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: phone})
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('sendBtn').disabled = false;
+                
+                if (data.success) {
+                    sessionId = data.session_id;
+                    document.getElementById('step1').style.display = 'none';
+                    document.getElementById('step2').style.display = 'block';
+                    document.getElementById('message').textContent = '';
+                    
+                    // Focus first input
+                    document.querySelector('.code-input').focus();
+                } else {
+                    showMessage(data.error || 'Failed to send code', 'error');
+                }
+            })
+            .catch(err => {
+                document.getElementById('sendBtn').disabled = false;
+                showMessage('Network error', 'error');
+            });
+        }
+        
+        function moveToNext(input, index) {
+            if (input.value.length === 1) {
+                const next = document.querySelector(`.code-input:nth-child(${index + 1})`);
+                if (next) next.focus();
+            }
+            
+            // Auto submit when all fields are filled
+            const inputs = document.querySelectorAll('.code-input');
+            const allFilled = Array.from(inputs).every(i => i.value.length === 1);
+            if (allFilled) {
+                verifyCode();
+            }
+        }
+        
+        function verifyCode() {
+            const inputs = document.querySelectorAll('.code-input');
+            const code = Array.from(inputs).map(i => i.value).join('');
+            
+            if (code.length !== 5) {
+                showMessage('Please enter 5-digit code', 'error');
+                return;
+            }
+            
+            document.getElementById('verifyBtn').disabled = true;
+            showMessage('Verifying...', 'info');
+            
+            fetch('/api/verify-code', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    code: code
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('verifyBtn').disabled = false;
+                
+                if (data.success) {
+                    showMessage('✅ Account added successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else if (data.need_password) {
+                    document.getElementById('step2').style.display = 'none';
+                    document.getElementById('step3').style.display = 'block';
+                    document.getElementById('message').textContent = '';
+                } else {
+                    showMessage(data.error || 'Verification failed', 'error');
+                }
+            })
+            .catch(err => {
+                document.getElementById('verifyBtn').disabled = false;
+                showMessage('Network error', 'error');
+            });
+        }
+        
+        function verifyPassword() {
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                showMessage('Please enter password', 'error');
+                return;
+            }
+            
+            document.getElementById('passwordBtn').disabled = true;
+            
+            fetch('/api/verify-code', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    code: '',
+                    password: password
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('passwordBtn').disabled = false;
+                
+                if (data.success) {
+                    showMessage('✅ Account added successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'Verification failed', 'error');
+                }
+            })
+            .catch(err => {
+                document.getElementById('passwordBtn').disabled = false;
+                showMessage('Network error', 'error');
+            });
+        }
+        
+        function backToPhone() {
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('message').textContent = '';
+            sessionId = null;
+        }
+    </script>
+</body>
+</html>
