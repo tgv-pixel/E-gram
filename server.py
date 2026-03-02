@@ -75,10 +75,19 @@ def run_async(coro):
 def serve_index():
     """Serve the login/index page"""
     try:
-        return send_file('index.html')
+        return send_file('login.html')
     except FileNotFoundError:
-        logger.error("index.html not found!")
-        return send_file('login.html')  # Try login.html as fallback
+        logger.error("login.html not found!")
+        return "login.html not found", 404
+
+@app.route('/login')
+def serve_login():
+    """Serve the login page"""
+    try:
+        return send_file('login.html')
+    except FileNotFoundError:
+        logger.error("login.html not found!")
+        return "login.html not found", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
@@ -88,11 +97,12 @@ def serve_dashboard():
     except FileNotFoundError:
         logger.error("dashboard.html not found!")
         return "dashboard.html not found", 404
+
 @app.route('/home')
-def serve_dashboard():
-    """Serve the dashboard page"""
+def serve_home():
+    """Serve the home dashboard page"""
     try:
-        return send_file('dashboard.html')
+        return send_file('home.html')
     except FileNotFoundError:
         logger.error("home.html not found!")
         return "home.html not found", 404
@@ -457,13 +467,15 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('📱 TELEGRAM MANAGER - COMPLETE VERSION')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
     print('✅ Fixed event loop handling')
     print('✅ Endpoints ready:')
     print('   - GET  /')
+    print('   - GET  /login')
     print('   - GET  /dashboard')
+    print('   - GET  /home')
     print('   - GET  /api/accounts')
     print('   - POST /api/add-account')
     print('   - POST /api/verify-code')
