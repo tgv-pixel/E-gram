@@ -5,16 +5,13 @@ from telethon.sessions import StringSession
 import json
 import os
 import asyncio
-import nest_asyncio
 from datetime import datetime
 import logging
+import threading
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
 
 app = Flask(__name__)
 CORS(app)
@@ -29,6 +26,10 @@ temp_data = {}
 # Store accounts persistently
 accounts = []
 ACCOUNTS_FILE = 'accounts.json'
+
+# Create a global event loop for the main thread
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 # Load existing accounts if file exists
 if os.path.exists(ACCOUNTS_FILE):
@@ -50,15 +51,24 @@ def save_accounts():
         logger.error(f"❌ Error saving accounts: {e}")
         return False
 
-# Helper to run async functions - SIMPLE AND RELIABLE
+# Fixed helper to run async functions
 def run_async(coro):
-    """Run async coroutine in a new event loop"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    """Run async coroutine in the existing event loop"""
+    global loop
     try:
+        # If we're in a thread, create a new event loop
+        if threading.current_thread() is not threading.main_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(coro)
+        else:
+            # In main thread, use the existing loop
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        # If no event loop is running, create one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         return loop.run_until_complete(coro)
-    finally:
-        loop.close()
 
 # -------------------- SERVE HTML FILES --------------------
 @app.route('/')
@@ -68,29 +78,11 @@ def serve_index():
         return send_file('index.html')
     except FileNotFoundError:
         logger.error("index.html not found!")
-        return "index.html not found", 404
-
-@app.route('/index.html')
-def serve_index_html():
-    """Serve index.html directly"""
-    try:
-        return send_file('index.html')
-    except FileNotFoundError:
-        logger.error("index.html not found!")
-        return "index.html not found", 404
+        return send_file('login.html')  # Try login.html as fallback
 
 @app.route('/dashboard')
 def serve_dashboard():
     """Serve the dashboard page"""
-    try:
-        return send_file('dashboard.html')
-    except FileNotFoundError:
-        logger.error("dashboard.html not found!")
-        return "dashboard.html not found", 404
-
-@app.route('/dashboard.html')
-def serve_dashboard_html():
-    """Serve dashboard.html directly"""
     try:
         return send_file('dashboard.html')
     except FileNotFoundError:
@@ -122,9 +114,11 @@ def add_account():
         return jsonify({'success': False, 'error': 'Phone number required'})
     
     async def send_code():
-        client = TelegramClient(StringSession(), API_ID, API_HASH)
+        client = TelegramClient(StringSession(), API_ID, API_HASH, timeout=30)
         await client.connect()
         try:
+            # Add a small delay to ensure connection is established
+            await asyncio.sleep(1)
             result = await client.send_code_request(phone)
             session_str = client.session.save()
             return {
@@ -135,6 +129,7 @@ def add_account():
         except errors.FloodWaitError as e:
             return {'success': False, 'error': f'Too many attempts. Wait {e.seconds} seconds'}
         except Exception as e:
+            logger.error(f"Error in send_code: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -169,15 +164,14 @@ def verify_code():
     if not session_id or session_id not in temp_data:
         return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
     
-    if not code and not password:
-        return jsonify({'success': False, 'error': 'Code or password required'})
-    
     session = temp_data[session_id]
     
     async def verify():
-        client = TelegramClient(StringSession(session['session_str']), API_ID, API_HASH)
+        client = TelegramClient(StringSession(session['session_str']), API_ID, API_HASH, timeout=30)
         await client.connect()
         try:
+            await asyncio.sleep(1)  # Small delay for connection
+            
             if password:
                 # 2FA login
                 await client.sign_in(password=password)
@@ -214,6 +208,7 @@ def verify_code():
         except errors.PasswordHashInvalidError:
             return {'success': False, 'error': 'Invalid password'}
         except Exception as e:
+            logger.error(f"Error in verify: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -270,10 +265,12 @@ def get_messages():
     session_string = account.get('session', account.get('string_session', ''))
     
     async def fetch_chats():
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
         await client.connect()
         
         try:
+            await asyncio.sleep(1)  # Small delay for connection
+            
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}
             
@@ -369,10 +366,12 @@ def send_message():
     session_string = account.get('session', account.get('string_session', ''))
     
     async def send():
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
         await client.connect()
         
         try:
+            await asyncio.sleep(1)  # Small delay for connection
+            
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}
             
@@ -453,12 +452,10 @@ if __name__ == '__main__':
     print('📱 TELEGRAM MANAGER - FIXED VERSION')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
-    print('✅ nest_asyncio applied')
+    print('✅ Fixed event loop handling')
     print('✅ Endpoints ready:')
     print('   - GET  /')
-    print('   - GET  /index.html')
     print('   - GET  /dashboard')
-    print('   - GET  /dashboard.html')
     print('   - GET  /api/accounts')
     print('   - POST /api/add-account')
     print('   - POST /api/verify-code')
