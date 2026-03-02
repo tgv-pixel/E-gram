@@ -1,4 +1,4 @@
-from flask import Flask, send_file, jsonify, request
+from flask import Flask, send_file, jsonify, request, abort
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
@@ -7,6 +7,11 @@ import os
 import asyncio
 import nest_asyncio
 from datetime import datetime
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
@@ -30,19 +35,19 @@ if os.path.exists(ACCOUNTS_FILE):
     try:
         with open(ACCOUNTS_FILE, 'r') as f:
             accounts = json.load(f)
-        print(f"✅ Loaded {len(accounts)} accounts")
+        logger.info(f"✅ Loaded {len(accounts)} accounts")
     except Exception as e:
-        print(f"⚠️ Error loading accounts: {e}")
+        logger.error(f"⚠️ Error loading accounts: {e}")
         accounts = []
 
 def save_accounts():
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
-        print(f"💾 Saved {len(accounts)} accounts")
+        logger.info(f"💾 Saved {len(accounts)} accounts")
         return True
     except Exception as e:
-        print(f"❌ Error saving accounts: {e}")
+        logger.error(f"❌ Error saving accounts: {e}")
         return False
 
 # Helper to run async functions - SIMPLE AND RELIABLE
@@ -55,13 +60,42 @@ def run_async(coro):
     finally:
         loop.close()
 
+# -------------------- SERVE HTML FILES --------------------
 @app.route('/')
-def serve_login():
-    return send_file('login.html')
+def serve_index():
+    """Serve the login/index page"""
+    try:
+        return send_file('index.html')
+    except FileNotFoundError:
+        logger.error("index.html not found!")
+        return "index.html not found", 404
+
+@app.route('/index.html')
+def serve_index_html():
+    """Serve index.html directly"""
+    try:
+        return send_file('index.html')
+    except FileNotFoundError:
+        logger.error("index.html not found!")
+        return "index.html not found", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
-    return send_file('dashboard.html')
+    """Serve the dashboard page"""
+    try:
+        return send_file('dashboard.html')
+    except FileNotFoundError:
+        logger.error("dashboard.html not found!")
+        return "dashboard.html not found", 404
+
+@app.route('/dashboard.html')
+def serve_dashboard_html():
+    """Serve dashboard.html directly"""
+    try:
+        return send_file('dashboard.html')
+    except FileNotFoundError:
+        logger.error("dashboard.html not found!")
+        return "dashboard.html not found", 404
 
 # -------------------- GET ALL ACCOUNTS --------------------
 @app.route('/api/accounts', methods=['GET'])
@@ -117,11 +151,11 @@ def add_account():
             'phone_code_hash': result['phone_code_hash'],
             'session_str': result['session_str']
         }
-        print(f"📱 OTP sent to {phone}")
+        logger.info(f"📱 OTP sent to {phone}")
         return jsonify({'success': True, 'session_id': session_id})
         
     except Exception as e:
-        print(f"Error in add-account: {e}")
+        logger.error(f"Error in add-account: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- VERIFY CODE --------------------
@@ -193,10 +227,10 @@ def verify_code():
         if not result.get('success'):
             return jsonify({'success': False, 'error': result.get('error', 'Verification failed')})
         
-        # Create new account
+        # Create new account with a unique ID
         me = result['me']
         new_account = {
-            'id': len(accounts) + 1,
+            'id': max([acc['id'] for acc in accounts], default=0) + 1,
             'phone': session['phone'],
             'name': f"{me.get('first_name', '')} {me.get('last_name', '')}".strip() or 'User',
             'username': me.get('username', ''),
@@ -209,13 +243,14 @@ def verify_code():
         save_accounts()
         
         # Clean up temp data
-        del temp_data[session_id]
+        if session_id in temp_data:
+            del temp_data[session_id]
         
-        print(f"✅ Account added: {session['phone']}")
+        logger.info(f"✅ Account added: {session['phone']}")
         return jsonify({'success': True, 'account': new_account})
         
     except Exception as e:
-        print(f"Error in verify-code: {e}")
+        logger.error(f"Error in verify-code: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- GET MESSAGES (CHATS) --------------------
@@ -283,7 +318,8 @@ def get_messages():
                                 'date': msg.date.timestamp(),
                                 'out': msg.out
                             })
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error fetching messages for chat {chat_id}: {e}")
                     continue
             
             return {
@@ -293,6 +329,7 @@ def get_messages():
             }
             
         except Exception as e:
+            logger.error(f"Error in fetch_chats: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -310,7 +347,7 @@ def get_messages():
         })
         
     except Exception as e:
-        print(f"Error in get-messages: {e}")
+        logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- SEND MESSAGE --------------------
@@ -353,6 +390,7 @@ def send_message():
             return {'success': True}
             
         except Exception as e:
+            logger.error(f"Error sending message: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -366,7 +404,7 @@ def send_message():
             return jsonify({'success': False, 'error': result.get('error', 'Failed to send message')})
             
     except Exception as e:
-        print(f"Error in send-message: {e}")
+        logger.error(f"Error in send-message: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- REMOVE ACCOUNT --------------------
@@ -384,7 +422,7 @@ def remove_account():
     
     if len(accounts) < original_count:
         save_accounts()
-        print(f"🗑️ Removed account {account_id}")
+        logger.info(f"🗑️ Removed account {account_id}")
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -398,6 +436,17 @@ def health_check():
         'temp_sessions': len(temp_data)
     })
 
+# Error handler for 404
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({'success': False, 'error': 'Endpoint not found'}), 404
+
+# Error handler for 500
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {error}")
+    return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
@@ -406,6 +455,10 @@ if __name__ == '__main__':
     print(f'✅ Loaded {len(accounts)} accounts')
     print('✅ nest_asyncio applied')
     print('✅ Endpoints ready:')
+    print('   - GET  /')
+    print('   - GET  /index.html')
+    print('   - GET  /dashboard')
+    print('   - GET  /dashboard.html')
     print('   - GET  /api/accounts')
     print('   - POST /api/add-account')
     print('   - POST /api/verify-code')
