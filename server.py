@@ -2,12 +2,15 @@ from flask import Flask, send_file, jsonify, request, abort
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
+from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage
 import json
 import os
 import asyncio
 from datetime import datetime
 import logging
 import threading
+import base64
+import io
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -78,7 +81,7 @@ def serve_index():
         return send_file('login.html')
     except FileNotFoundError:
         logger.error("login.html not found!")
-        return "login.html not found", 404
+        return "login.html not found. Please check your repository.", 404
 
 @app.route('/login')
 def serve_login():
@@ -87,7 +90,7 @@ def serve_login():
         return send_file('login.html')
     except FileNotFoundError:
         logger.error("login.html not found!")
-        return "login.html not found", 404
+        return "login.html not found. Please check your repository.", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
@@ -96,7 +99,7 @@ def serve_dashboard():
         return send_file('dashboard.html')
     except FileNotFoundError:
         logger.error("dashboard.html not found!")
-        return "dashboard.html not found", 404
+        return "dashboard.html not found. Please check your repository.", 404
 
 @app.route('/home')
 def serve_home():
@@ -105,7 +108,7 @@ def serve_home():
         return send_file('home.html')
     except FileNotFoundError:
         logger.error("home.html not found!")
-        return "home.html not found", 404
+        return "home.html not found. Please check your repository.", 404
 
 # -------------------- GET ALL ACCOUNTS --------------------
 @app.route('/api/accounts', methods=['GET'])
@@ -266,7 +269,7 @@ def verify_code():
         logger.error(f"Error in verify-code: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# -------------------- GET MESSAGES (CHATS) --------------------
+# -------------------- GET MESSAGES (CHATS WITH MEDIA SUPPORT) --------------------
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -293,7 +296,7 @@ def get_messages():
                 return {'success': False, 'error': 'Not authorized'}
             
             # Get all dialogs (chats)
-            dialogs = await client.get_dialogs(limit=30)
+            dialogs = await client.get_dialogs(limit=50)
             
             chats = []
             all_messages = []
@@ -313,26 +316,103 @@ def get_messages():
                 
                 chat_id = str(dialog.id)
                 
-                # Add chat to list
+                # Get last message with media info
+                last_msg_text = ''
+                last_msg_media = None
+                
+                if dialog.message:
+                    if dialog.message.text:
+                        last_msg_text = dialog.message.text[:50]
+                        if len(dialog.message.text) > 50:
+                            last_msg_text += '...'
+                    elif dialog.message.media:
+                        # Check media type
+                        if isinstance(dialog.message.media, MessageMediaPhoto):
+                            last_msg_text = '📷 Photo'
+                            last_msg_media = 'photo'
+                        elif isinstance(dialog.message.media, MessageMediaDocument):
+                            # Check if it's video, voice, or document
+                            attrs = dialog.message.media.document.attributes
+                            is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                            is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                            
+                            if is_video:
+                                last_msg_text = '🎥 Video'
+                                last_msg_media = 'video'
+                            elif is_audio:
+                                if any(attr.voice for attr in attrs if hasattr(attr, 'voice')):
+                                    last_msg_text = '🎤 Voice message'
+                                    last_msg_media = 'voice'
+                                else:
+                                    last_msg_text = '🎵 Audio'
+                                    last_msg_media = 'audio'
+                            else:
+                                last_msg_text = '📎 Document'
+                                last_msg_media = 'document'
+                        elif hasattr(dialog.message.media, 'webpage'):
+                            last_msg_text = '🔗 Link'
+                            last_msg_media = 'webpage'
+                        else:
+                            last_msg_text = '📎 Media'
+                            last_msg_media = 'media'
+                    else:
+                        last_msg_text = ''
+                
+                # Add chat to list with media info
                 chats.append({
                     'id': chat_id,
                     'title': name,
                     'unread': dialog.unread_count or 0,
-                    'lastMessage': dialog.message.text[:50] + '...' if dialog.message and dialog.message.text else '',
+                    'lastMessage': last_msg_text,
+                    'lastMessageMedia': last_msg_media,
                     'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None
                 })
                 
-                # Get last 15 messages for this chat
+                # Get last 20 messages for this chat with full media support
                 try:
-                    msgs = await client.get_messages(dialog.entity, limit=15)
+                    msgs = await client.get_messages(dialog.entity, limit=20)
                     for msg in msgs:
-                        if msg and msg.text:
-                            all_messages.append({
+                        if msg:
+                            message_data = {
                                 'chatId': chat_id,
-                                'text': msg.text,
+                                'text': msg.text or '',
                                 'date': msg.date.timestamp(),
-                                'out': msg.out
-                            })
+                                'out': msg.out,
+                                'id': msg.id,
+                                'hasMedia': msg.media is not None
+                            }
+                            
+                            # Add media type info
+                            if msg.media:
+                                if isinstance(msg.media, MessageMediaPhoto):
+                                    message_data['mediaType'] = 'photo'
+                                    message_data['mediaPreview'] = '📷 Photo'
+                                elif isinstance(msg.media, MessageMediaDocument):
+                                    attrs = msg.media.document.attributes
+                                    is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                                    is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                                    
+                                    if is_video:
+                                        message_data['mediaType'] = 'video'
+                                        message_data['mediaPreview'] = '🎥 Video'
+                                    elif is_audio:
+                                        if any(attr.voice for attr in attrs if hasattr(attr, 'voice')):
+                                            message_data['mediaType'] = 'voice'
+                                            message_data['mediaPreview'] = '🎤 Voice message'
+                                        else:
+                                            message_data['mediaType'] = 'audio'
+                                            message_data['mediaPreview'] = '🎵 Audio'
+                                    else:
+                                        message_data['mediaType'] = 'document'
+                                        message_data['mediaPreview'] = '📎 Document'
+                                elif isinstance(msg.media, MessageMediaWebPage):
+                                    message_data['mediaType'] = 'webpage'
+                                    message_data['mediaPreview'] = '🔗 Link'
+                                else:
+                                    message_data['mediaType'] = 'media'
+                                    message_data['mediaPreview'] = '📎 Media'
+                            
+                            all_messages.append(message_data)
                 except Exception as e:
                     logger.error(f"Error fetching messages for chat {chat_id}: {e}")
                     continue
@@ -365,7 +445,7 @@ def get_messages():
         logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# -------------------- SEND MESSAGE --------------------
+# -------------------- SEND MESSAGE (WITH MEDIA SUPPORT COMING SOON) --------------------
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
@@ -453,6 +533,9 @@ def health_check():
         'temp_sessions': len(temp_data)
     })
 
+# Import missing Telethon types
+from telethon.tl.types import DocumentAttributeVideo, DocumentAttributeAudio
+
 # Error handler for 404
 @app.errorhandler(404)
 def not_found_error(error):
@@ -467,10 +550,11 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - COMPLETE VERSION')
+    print('📱 TELEGRAM MANAGER - COMPLETE VERSION WITH MEDIA SUPPORT')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
     print('✅ Fixed event loop handling')
+    print('✅ Media support: Photos, Videos, Voice, Documents')
     print('✅ Endpoints ready:')
     print('   - GET  /')
     print('   - GET  /login')
