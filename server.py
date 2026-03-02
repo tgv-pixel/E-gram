@@ -62,22 +62,31 @@ def run_async(coro):
 
 # -------------------- SERVE HTML FILES --------------------
 @app.route('/')
-def serve_index():
-    """Serve the login/index page"""
+def serve_login():
+    """Serve the login page (root)"""
     try:
-        return send_file('index.html')
+        return send_file('login.html')
     except FileNotFoundError:
-        logger.error("index.html not found!")
-        return "index.html not found", 404
+        logger.error("login.html not found!")
+        return "login.html not found - Please make sure the file exists in the same directory", 404
 
-@app.route('/index.html')
-def serve_index_html():
-    """Serve index.html directly"""
+@app.route('/login')
+def serve_login_page():
+    """Alternative route for login page"""
     try:
-        return send_file('index.html')
+        return send_file('login.html')
     except FileNotFoundError:
-        logger.error("index.html not found!")
-        return "index.html not found", 404
+        logger.error("login.html not found!")
+        return "login.html not found", 404
+
+@app.route('/login.html')
+def serve_login_html():
+    """Serve login.html directly"""
+    try:
+        return send_file('login.html')
+    except FileNotFoundError:
+        logger.error("login.html not found!")
+        return "login.html not found", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
@@ -86,7 +95,7 @@ def serve_dashboard():
         return send_file('dashboard.html')
     except FileNotFoundError:
         logger.error("dashboard.html not found!")
-        return "dashboard.html not found", 404
+        return "dashboard.html not found - Please make sure the file exists in the same directory", 404
 
 @app.route('/dashboard.html')
 def serve_dashboard_html():
@@ -450,15 +459,15 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('📱 TELEGRAM MANAGER')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
     print('✅ nest_asyncio applied')
-    print('✅ Endpoints ready:')
-    print('   - GET  /')
-    print('   - GET  /index.html')
-    print('   - GET  /dashboard')
-    print('   - GET  /dashboard.html')
+    print('✅ Available pages:')
+    print('   - http://localhost:5000/           (Login page - login.html)')
+    print('   - http://localhost:5000/login      (Login page - alternative)')
+    print('   - http://localhost:5000/dashboard  (Dashboard page)')
+    print('\n✅ API Endpoints:')
     print('   - GET  /api/accounts')
     print('   - POST /api/add-account')
     print('   - POST /api/verify-code')
@@ -467,5 +476,16 @@ if __name__ == '__main__':
     print('   - POST /api/remove-account')
     print('   - GET  /api/health')
     print('='*60 + '\n')
+    
+    # Check if files exist
+    if not os.path.exists('login.html'):
+        print("⚠️  WARNING: login.html not found in current directory!")
+        print(f"   Current directory: {os.getcwd()}")
+        print("   Please make sure login.html is in this folder\n")
+    
+    if not os.path.exists('dashboard.html'):
+        print("⚠️  WARNING: dashboard.html not found in current directory!")
+        print(f"   Current directory: {os.getcwd()}")
+        print("   Please make sure dashboard.html is in this folder\n")
     
     app.run(host='0.0.0.0', port=port, debug=False)
