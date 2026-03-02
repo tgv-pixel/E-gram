@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Multi-Account Dashboard</title>
     <style>
         * {
@@ -31,6 +31,7 @@
             border-bottom: 1px solid #2b3945;
             flex-shrink: 0;
             z-index: 10;
+            height: 60px;
         }
 
         .account-switcher {
@@ -218,9 +219,9 @@
             min-height: 0;
         }
 
-        /* Chats sidebar */
+        /* Chats sidebar - Telegram style */
         .chats-panel {
-            width: 360px;
+            width: 320px;
             background: #17212b;
             border-right: 1px solid #2b3945;
             display: flex;
@@ -257,6 +258,12 @@
             padding: 8px;
         }
 
+        /* Chat type indicators */
+        .chat-type-icon {
+            font-size: 1.2rem;
+            margin-left: 4px;
+        }
+
         .chat-item {
             display: flex;
             align-items: center;
@@ -288,6 +295,40 @@
             color: white;
             margin-right: 12px;
             flex-shrink: 0;
+            position: relative;
+        }
+
+        .chat-avatar.bot::after {
+            content: '🤖';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-size: 14px;
+            background: #17212b;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .chat-avatar.group::after {
+            content: '👥';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-size: 14px;
+            background: #17212b;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .chat-avatar.channel::after {
+            content: '📢';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-size: 14px;
+            background: #17212b;
+            border-radius: 50%;
+            padding: 2px;
         }
 
         .chat-info {
@@ -302,6 +343,12 @@
             margin-bottom: 4px;
         }
 
+        .chat-name-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .chat-name {
             font-weight: 600;
             font-size: 1rem;
@@ -309,7 +356,15 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 180px;
+            max-width: 160px;
+        }
+
+        .chat-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #2b3945;
+            color: #8e9fad;
         }
 
         .chat-time {
@@ -331,7 +386,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 200px;
+            max-width: 180px;
         }
 
         .chat-unread {
@@ -346,29 +401,60 @@
             margin-left: 8px;
         }
 
-        /* Messages panel */
+        /* Messages panel - Full screen like Telegram */
         .messages-panel {
             flex: 1;
             background: #0e1621;
             display: flex;
             flex-direction: column;
             min-width: 0;
+            position: relative;
         }
 
         .messages-header {
             background: #17212b;
-            padding: 16px 20px;
+            padding: 12px 20px;
             border-bottom: 1px solid #2b3945;
             flex-shrink: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            height: 60px;
         }
 
-        .messages-header h2 {
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 1.2rem;
-            font-weight: 500;
+            font-weight: 600;
+            color: white;
+        }
+
+        .chat-header-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header-title {
+            font-size: 1.1rem;
+            font-weight: 600;
             color: #fff;
+        }
+
+        .chat-header-subtitle {
+            font-size: 0.75rem;
+            color: #8e9fad;
         }
 
         .messages-header-actions {
@@ -401,24 +487,31 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
+            background: #0e1621;
+            background-image: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
         }
 
         .message-wrapper {
             display: flex;
             flex-direction: column;
+            max-width: 85%;
         }
 
         .message-wrapper.outgoing {
-            align-items: flex-end;
+            align-self: flex-end;
+        }
+
+        .message-wrapper.incoming {
+            align-self: flex-start;
         }
 
         .message-bubble {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 20px;
+            padding: 8px 12px;
+            border-radius: 18px;
             word-wrap: break-word;
-            line-height: 1.5;
+            line-height: 1.4;
             font-size: 0.95rem;
             position: relative;
         }
@@ -435,6 +528,7 @@
             border-bottom-right-radius: 4px;
         }
 
+        /* Media message styles */
         .media-message {
             display: flex;
             align-items: center;
@@ -454,13 +548,56 @@
             color: #8e9fad;
         }
 
+        /* Sticker and GIF styles */
+        .sticker-message {
+            max-width: 150px;
+            max-height: 150px;
+        }
+
+        .sticker-image {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+        }
+
+        .gif-message {
+            max-width: 200px;
+            max-height: 200px;
+        }
+
+        .gif-image {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+        }
+
+        .emoji-message {
+            font-size: 3rem;
+            padding: 10px;
+        }
+
+        .media-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            max-width: 300px;
+        }
+
+        .media-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
         .message-meta {
             display: flex;
             align-items: center;
             justify-content: flex-end;
             gap: 4px;
-            margin-top: 4px;
-            font-size: 0.7rem;
+            margin-top: 2px;
+            font-size: 0.65rem;
             color: #8e9fad;
             padding-right: 4px;
         }
@@ -469,9 +606,10 @@
             color: #a0c0e0;
         }
 
+        /* Compose area */
         .compose-area {
             background: #17212b;
-            padding: 16px 20px;
+            padding: 12px 20px;
             border-top: 1px solid #2b3945;
             display: flex;
             gap: 12px;
@@ -484,7 +622,7 @@
             background: #242f3d;
             border: none;
             border-radius: 30px;
-            padding: 14px 18px;
+            padding: 12px 18px;
             color: #fff;
             font-size: 1rem;
             outline: none;
@@ -499,11 +637,35 @@
             cursor: not-allowed;
         }
 
+        .compose-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .compose-action-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: 0.2s;
+        }
+
+        .compose-action-btn:hover {
+            background: #3a4a5a;
+        }
+
         .send-btn {
             background: #4c9ce0;
             border: none;
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -523,6 +685,7 @@
             cursor: not-allowed;
         }
 
+        /* Loading and empty states */
         .loading, .empty-state {
             text-align: center;
             padding: 40px;
@@ -539,6 +702,7 @@
             text-align: center;
         }
 
+        /* Toast notification */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -578,7 +742,7 @@
             border-left: 4px solid #e04c4c;
         }
 
-        /* Modal */
+        /* Modal for media preview */
         .modal {
             display: none;
             position: fixed;
@@ -586,7 +750,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.9);
             z-index: 1001;
             align-items: center;
             justify-content: center;
@@ -597,53 +761,34 @@
         }
 
         .modal-content {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid #2b3945;
+            max-width: 90%;
+            max-height: 90%;
         }
 
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #fff;
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
         }
 
-        .modal-body {
-            margin-bottom: 24px;
-            color: #8e9fad;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: none;
-            font-size: 0.95rem;
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
             cursor: pointer;
-            transition: 0.2s;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .modal-btn.cancel {
-            background: #2b3945;
-            color: #fff;
-        }
-
-        .modal-btn.confirm {
-            background: #8e2b2b;
-            color: #fff;
-        }
-
-        .modal-btn.confirm:hover {
-            background: #b33a3a;
+        .modal-close:hover {
+            background: rgba(255,255,255,0.2);
         }
 
         /* Responsive */
@@ -705,7 +850,13 @@
         <!-- Messages Panel -->
         <div class="messages-panel">
             <div class="messages-header" id="messagesHeader" style="display: none;">
-                <h2 id="currentChatTitle"></h2>
+                <div class="chat-header-info">
+                    <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
+                    <div class="chat-header-details">
+                        <span class="chat-header-title" id="currentChatTitle"></span>
+                        <span class="chat-header-subtitle" id="chatHeaderSubtitle"></span>
+                    </div>
+                </div>
                 <div class="messages-header-actions">
                     <button onclick="refreshMessages()" title="Refresh messages">↻</button>
                 </div>
@@ -715,20 +866,32 @@
             </div>
             <div class="compose-area" id="composeArea" style="display: none;">
                 <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
+                <div class="compose-actions">
+                    <button class="compose-action-btn" onclick="showEmojiPicker()" title="Emoji">😊</button>
+                    <button class="compose-action-btn" onclick="attachMedia()" title="Attach">📎</button>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Remove Account Modal -->
     <div class="modal" id="removeModal">
-        <div class="modal-content">
-            <div class="modal-title">Remove Account</div>
-            <div class="modal-body" id="removeModalBody">Are you sure you want to remove this account?</div>
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="hideRemoveModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmRemoveAccount()">Remove</button>
+        <div class="modal-content" style="background: #17212b; padding: 24px; border-radius: 16px; max-width: 400px;">
+            <div class="modal-title" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; color: #fff;">Remove Account</div>
+            <div class="modal-body" id="removeModalBody" style="margin-bottom: 24px; color: #8e9fad;">Are you sure you want to remove this account?</div>
+            <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="modal-btn cancel" onclick="hideRemoveModal()" style="padding: 10px 20px; border-radius: 30px; border: none; background: #2b3945; color: #fff; cursor: pointer;">Cancel</button>
+                <button class="modal-btn confirm" onclick="confirmRemoveAccount()" style="padding: 10px 20px; border-radius: 30px; border: none; background: #8e2b2b; color: #fff; cursor: pointer;">Remove</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Media Preview Modal -->
+    <div class="modal" id="mediaModal">
+        <div class="modal-close" onclick="hideMediaModal()">✕</div>
+        <div class="modal-content">
+            <img class="modal-image" id="modalImage" src="" alt="Media preview">
         </div>
     </div>
 
@@ -745,6 +908,15 @@
         let refreshInterval = null;
         let accountToRemove = null;
 
+        // Chat type mapping
+        const chatTypes = {
+            'user': '👤',
+            'bot': '🤖',
+            'group': '👥',
+            'channel': '📢',
+            'supergroup': '👥'
+        };
+
         // ---------- DOM elements ----------
         const dropdown = document.getElementById('accountDropdown');
         const switcher = document.getElementById('accountSwitcher');
@@ -754,6 +926,8 @@
         const chatsListDiv = document.getElementById('chatsList');
         const messagesHeader = document.getElementById('messagesHeader');
         const currentChatTitle = document.getElementById('currentChatTitle');
+        const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
+        const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
         const messagesListDiv = document.getElementById('messagesList');
         const composeArea = document.getElementById('composeArea');
         const messageInput = document.getElementById('messageInput');
@@ -762,6 +936,8 @@
         const refreshBtn = document.getElementById('refreshBtn');
         const removeModal = document.getElementById('removeModal');
         const removeModalBody = document.getElementById('removeModalBody');
+        const mediaModal = document.getElementById('mediaModal');
+        const modalImage = document.getElementById('modalImage');
         const toast = document.getElementById('toast');
 
         // ---------- Helper Functions ----------
@@ -785,6 +961,25 @@
                 element.classList.remove('refreshing');
                 element.disabled = false;
             }
+        }
+
+        // Media functions
+        function showMediaModal(src) {
+            modalImage.src = src;
+            mediaModal.classList.add('show');
+        }
+
+        function hideMediaModal() {
+            mediaModal.classList.remove('show');
+            modalImage.src = '';
+        }
+
+        function showEmojiPicker() {
+            showToast('Emoji picker coming soon!', 'info');
+        }
+
+        function attachMedia() {
+            showToast('Media attachment coming soon!', 'info');
         }
 
         // Close dropdown when clicking outside
@@ -1035,7 +1230,7 @@
                     if (currentChat) {
                         const stillExists = chats.find(c => c.id === currentChat.id);
                         if (stillExists) {
-                            displayMessages(currentChat.id);
+                            selectChat(currentChat.id, currentChat.title);
                         } else {
                             currentChat = null;
                             messagesHeader.style.display = 'none';
@@ -1090,6 +1285,12 @@
                         case 'webpage':
                             lastMsg = '🔗 ' + (lastMsg || 'Link');
                             break;
+                        case 'sticker':
+                            lastMsg = '🎯 Sticker';
+                            break;
+                        case 'gif':
+                            lastMsg = '🎬 GIF';
+                            break;
                         default:
                             lastMsg = lastMsg || 'No messages yet';
                     }
@@ -1101,12 +1302,21 @@
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
                 
+                // Determine chat type (you'd get this from server)
+                const chatType = chat.type || 'user';
+                const typeIcon = chatTypes[chatType] || '👤';
+                
                 html += `
                     <div class="chat-item ${activeClass}" onclick="selectChat('${escapeJsString(chat.id)}', '${escapeJsString(chat.title || 'Unknown')}')">
-                        <div class="chat-avatar">${escapeHtml(avatarLetter)}</div>
+                        <div class="chat-avatar ${chatType}">
+                            ${escapeHtml(avatarLetter)}
+                        </div>
                         <div class="chat-info">
                             <div class="chat-row">
-                                <span class="chat-name" title="${escapeHtml(chat.title || 'Unknown')}">${escapeHtml(chat.title || 'Unknown')}</span>
+                                <div class="chat-name-wrapper">
+                                    <span class="chat-name" title="${escapeHtml(chat.title || 'Unknown')}">${escapeHtml(chat.title || 'Unknown')}</span>
+                                    <span class="chat-type-icon">${typeIcon}</span>
+                                </div>
                                 <span class="chat-time">${escapeHtml(time)}</span>
                             </div>
                             <div class="chat-last-msg">
@@ -1124,8 +1334,19 @@
         // ---------- Message Management ----------
         window.selectChat = function(chatId, chatTitle) {
             currentChat = { id: chatId, title: chatTitle };
+            
+            // Update header with chat info
             currentChatTitle.textContent = chatTitle;
-            messagesHeader.style.display = 'block';
+            chatHeaderAvatar.textContent = chatTitle.charAt(0).toUpperCase();
+            
+            // Find chat to get more details
+            const chat = chats.find(c => c.id === chatId);
+            if (chat) {
+                const typeIcon = chatTypes[chat.type || 'user'] || '👤';
+                chatHeaderSubtitle.textContent = `${typeIcon} ${chat.type || 'user'}`;
+            }
+            
+            messagesHeader.style.display = 'flex';
             composeArea.style.display = 'flex';
             messageInput.disabled = false;
             sendBtn.disabled = false;
@@ -1167,43 +1388,82 @@
                         case 'photo':
                             mediaIcon = '📷';
                             mediaText = 'Photo';
+                            messageContent = `
+                                <div class="media-message" onclick="showMediaModal('https://via.placeholder.com/300')">
+                                    <span class="media-icon">${mediaIcon}</span>
+                                    <span class="media-label">${mediaText}</span>
+                                </div>
+                            `;
                             break;
                         case 'video':
                             mediaIcon = '🎥';
                             mediaText = 'Video';
+                            messageContent = `
+                                <div class="media-message">
+                                    <span class="media-icon">${mediaIcon}</span>
+                                    <span class="media-label">${mediaText}</span>
+                                </div>
+                            `;
                             break;
                         case 'voice':
                             mediaIcon = '🎤';
                             mediaText = 'Voice message';
+                            messageContent = `
+                                <div class="media-message">
+                                    <span class="media-icon">${mediaIcon}</span>
+                                    <span class="media-label">${mediaText}</span>
+                                    <audio controls style="width: 200px; height: 40px;">
+                                        <source src="#" type="audio/ogg">
+                                    </audio>
+                                </div>
+                            `;
                             break;
-                        case 'audio':
-                            mediaIcon = '🎵';
-                            mediaText = 'Audio';
+                        case 'sticker':
+                            messageContent = `
+                                <div class="sticker-message">
+                                    <img class="sticker-image" src="https://via.placeholder.com/150/4c9ce0/ffffff?text=Sticker" alt="sticker">
+                                </div>
+                            `;
+                            break;
+                        case 'gif':
+                            messageContent = `
+                                <div class="gif-message">
+                                    <img class="gif-image" src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDZ5M3JxMDRydG1oM2Z6cWJ5eGZ6bWZ5dWZ6eGZ6cWJ5eGZ6cWJ5eGZ6cQ/3o7abB06u9bNzA8LC8/giphy.gif" alt="gif">
+                                </div>
+                            `;
                             break;
                         case 'document':
                             mediaIcon = '📎';
                             mediaText = 'Document';
+                            messageContent = `
+                                <div class="media-message">
+                                    <span class="media-icon">${mediaIcon}</span>
+                                    <span class="media-label">${mediaText}</span>
+                                </div>
+                            `;
                             break;
-                        case 'webpage':
-                            mediaIcon = '🔗';
-                            mediaText = 'Link';
-                            break;
+                        default:
+                            messageContent = `
+                                <div class="media-message">
+                                    <span class="media-icon">${mediaIcon}</span>
+                                    <span class="media-label">${mediaText}</span>
+                                </div>
+                            `;
                     }
-                    
-                    messageContent = `
-                        <div class="media-message">
-                            <span class="media-icon">${mediaIcon}</span>
-                            <span class="media-label">${mediaText}</span>
-                        </div>
-                    `;
                     
                     // Add text if present
                     if (msg.text) {
                         messageContent += `<div>${escapeHtml(msg.text)}</div>`;
                     }
                 } else {
-                    // Text only message
-                    messageContent = `<div>${escapeHtml(msg.text || '')}</div>`;
+                    // Check if message is just emoji
+                    const isEmoji = /^(\p{Emoji})+$/u.test(msg.text?.trim());
+                    if (isEmoji && msg.text?.length < 10) {
+                        messageContent = `<div class="emoji-message">${escapeHtml(msg.text)}</div>`;
+                    } else {
+                        // Text only message
+                        messageContent = `<div>${escapeHtml(msg.text || '')}</div>`;
+                    }
                 }
                 
                 html += `
