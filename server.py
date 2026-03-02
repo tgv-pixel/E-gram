@@ -7,6 +7,7 @@ import os
 import asyncio
 import nest_asyncio
 from datetime import datetime
+import traceback
 
 # Apply nest_asyncio for Render
 nest_asyncio.apply()
@@ -43,6 +44,10 @@ def run_async(coro):
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(coro)
+    except Exception as e:
+        print(f"Error in run_async: {e}")
+        traceback.print_exc()
+        raise e
     finally:
         loop.close()
 
@@ -63,24 +68,51 @@ def send_otp():
     if not phone:
         return jsonify({'success': False, 'error': 'Phone number required'})
     
+    # Basic phone validation
+    if not phone.startswith('+'):
+        return jsonify({'success': False, 'error': 'Phone number must start with country code (e.g., +1234567890)'})
+    
     async def send_code():
         client = None
         try:
             client = TelegramClient(StringSession(), api_id, api_hash)
             await client.connect()
+            
+            # Check if connection is successful
+            if not await client.is_connected():
+                return {'success': False, 'error': 'Failed to connect to Telegram servers'}
+            
             result = await client.send_code_request(phone)
             session_str = client.session.save()
-            return {'success': True, 'phone_code_hash': result.phone_code_hash, 'session_str': session_str}
+            
+            return {
+                'success': True, 
+                'phone_code_hash': result.phone_code_hash, 
+                'session_str': session_str
+            }
         except errors.FloodWaitError as e:
-            return {'success': False, 'error': f'Too many requests. Try again after {e.seconds} seconds'}
+            wait_time = e.seconds
+            return {'success': False, 'error': f'Too many attempts. Please wait {wait_time} seconds'}
+        except errors.PhoneNumberInvalidError:
+            return {'success': False, 'error': 'Invalid phone number format. Include country code (e.g., +1234567890)'}
+        except errors.PhoneNumberBannedError:
+            return {'success': False, 'error': 'This phone number is banned from Telegram'}
+        except errors.PhoneNumberFloodError:
+            return {'success': False, 'error': 'Too many requests with this phone number. Try again later.'}
         except Exception as e:
+            print(f"Error in send_code: {str(e)}")
+            traceback.print_exc()
             return {'success': False, 'error': str(e)}
         finally:
             if client:
                 await client.disconnect()
     
     try:
-        result = run_async(send_code())
+        # Create new event loop for each request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(send_code())
+        loop.close()
         
         if not result.get('success'):
             return jsonify({'success': False, 'error': result.get('error', 'Unknown error')})
@@ -91,22 +123,32 @@ def send_otp():
             'phone_code_hash': result['phone_code_hash'],
             'session_str': result['session_str']
         }
+        
+        # Clean old sessions (older than 10 minutes)
+        current_time = datetime.now().timestamp()
+        old_sessions = [sid for sid, data in temp_data.items() 
+                       if current_time - int(sid) > 600]
+        for sid in old_sessions:
+            if sid in temp_data:
+                del temp_data[sid]
+        
         print(f"📱 OTP sent to {phone}")
         return jsonify({'success': True, 'session_id': session_id})
     except Exception as e:
         print(f"Error in send_otp: {e}")
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- VERIFY OTP --------------------
 @app.route('/api/verify-code', methods=['POST'])
 def verify_otp():
     data = request.json
-    code = data.get('code')
+    code = data.get('code', '')
     session_id = data.get('session_id')
     password = data.get('password', '')
     
-    if not code or not session_id:
-        return jsonify({'success': False, 'error': 'Code and session ID required'})
+    if not session_id:
+        return jsonify({'success': False, 'error': 'Session ID required'})
     
     if session_id not in temp_data:
         return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
@@ -122,18 +164,47 @@ def verify_otp():
             client = TelegramClient(StringSession(session_str), api_id, api_hash)
             await client.connect()
             
-            try:
-                await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
-            except errors.SessionPasswordNeededError:
-                if password:
-                    await client.sign_in(password=password)
-                else:
-                    return {'success': False, 'need_password': True}
-            except errors.PhoneCodeInvalidError:
-                return {'success': False, 'error': 'Invalid code. Please try again.'}
-            except errors.PhoneCodeExpiredError:
-                return {'success': False, 'error': 'Code expired. Please request a new code.'}
+            # Check if already signed in
+            if await client.is_user_authorized():
+                me = await client.get_me()
+                string_session = client.session.save()
+                return {
+                    'success': True, 
+                    'me': {
+                        'id': me.id,
+                        'first_name': me.first_name or '',
+                        'last_name': me.last_name or '',
+                        'username': me.username or '',
+                        'phone': me.phone or phone
+                    }, 
+                    'string_session': string_session
+                }
             
+            # If code is provided, try to sign in
+            if code:
+                try:
+                    await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
+                except errors.SessionPasswordNeededError:
+                    return {'success': False, 'need_password': True}
+                except errors.PhoneCodeInvalidError:
+                    return {'success': False, 'error': 'Invalid code. Please try again.'}
+                except errors.PhoneCodeExpiredError:
+                    return {'success': False, 'error': 'Code expired. Please request a new code.'}
+                except errors.FloodWaitError as e:
+                    return {'success': False, 'error': f'Too many attempts. Wait {e.seconds} seconds'}
+            
+            # If password is provided (2FA)
+            elif password:
+                try:
+                    await client.sign_in(password=password)
+                except errors.PasswordHashInvalidError:
+                    return {'success': False, 'error': 'Invalid password. Please try again.'}
+                except Exception as e:
+                    return {'success': False, 'error': str(e)}
+            else:
+                return {'success': False, 'error': 'Code or password required'}
+            
+            # Get user info after successful sign in
             me = await client.get_me()
             string_session = client.session.save()
             
@@ -148,14 +219,20 @@ def verify_otp():
                 }, 
                 'string_session': string_session
             }
+            
         except Exception as e:
+            print(f"Error in verify: {str(e)}")
+            traceback.print_exc()
             return {'success': False, 'error': str(e)}
         finally:
             if client:
                 await client.disconnect()
     
     try:
-        result = run_async(verify())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(verify())
+        loop.close()
         
         if result.get('need_password'):
             return jsonify({'success': False, 'need_password': True})
@@ -167,7 +244,11 @@ def verify_otp():
         string_session = result['string_session']
         
         # Check if account already exists
-        existing_account = next((a for a in accounts if a.get('phone') == phone or a.get('user_id') == me['id']), None)
+        existing_account = None
+        for a in accounts:
+            if a.get('phone') == phone or a.get('user_id') == me['id']:
+                existing_account = a
+                break
         
         if existing_account:
             # Update existing account
@@ -200,27 +281,55 @@ def verify_otp():
         
     except Exception as e:
         print(f"Error in verify_otp: {e}")
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- GET ACCOUNTS --------------------
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    account_list = [{
-        'id': a['id'],
-        'phone': a['phone'],
-        'name': a['name'],
-        'username': a.get('username', ''),
-        'session': a.get('session', a.get('string_session', ''))
-    } for a in accounts]
-    return jsonify({'success': True, 'accounts': account_list})
+    try:
+        account_list = [{
+            'id': a['id'],
+            'phone': a['phone'],
+            'name': a['name'],
+            'username': a.get('username', ''),
+            'session': a.get('session', a.get('string_session', ''))
+        } for a in accounts]
+        return jsonify({'success': True, 'accounts': account_list})
+    except Exception as e:
+        print(f"Error in get_accounts: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- DELETE ACCOUNT --------------------
 @app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
 def delete_account(account_id):
     global accounts
-    accounts = [a for a in accounts if a['id'] != account_id]
-    save_accounts()
-    return jsonify({'success': True})
+    try:
+        accounts = [a for a in accounts if a['id'] != account_id]
+        save_accounts()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error in delete_account: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+# -------------------- REMOVE ACCOUNT (POST method) --------------------
+@app.route('/api/remove-account', methods=['POST'])
+def remove_account():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    global accounts
+    try:
+        accounts = [a for a in accounts if a['id'] != account_id]
+        save_accounts()
+        print(f"✅ Account {account_id} removed")
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error in remove_account: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- GET CHATS AND MESSAGES --------------------
 @app.route('/api/get-messages', methods=['POST'])
@@ -251,60 +360,66 @@ def get_messages():
                 return {'success': False, 'error': 'Session expired. Please add account again.'}
             
             # Get dialogs (chats)
-            dialogs = await client.get_dialogs(limit=50)
+            dialogs = await client.get_dialogs(limit=100)
             
             chats = []
             all_messages = []
             
             for dialog in dialogs:
-                # Get chat info
-                if dialog.is_user:
-                    # Private chat
-                    if dialog.entity:
-                        name = dialog.entity.first_name or ''
-                        if dialog.entity.last_name:
-                            name += f" {dialog.entity.last_name}"
-                        if not name.strip():
-                            name = dialog.entity.username or 'Unknown'
+                try:
+                    # Get chat info
+                    if dialog.is_user:
+                        # Private chat
+                        if dialog.entity:
+                            first = getattr(dialog.entity, 'first_name', '')
+                            last = getattr(dialog.entity, 'last_name', '')
+                            name = f"{first} {last}".strip()
+                            if not name:
+                                name = getattr(dialog.entity, 'username', 'Unknown')
+                        else:
+                            name = 'Unknown'
+                    elif dialog.is_group or dialog.is_channel:
+                        # Group or channel
+                        name = dialog.name or 'Unknown'
                     else:
                         name = 'Unknown'
-                elif dialog.is_group or dialog.is_channel:
-                    # Group or channel
-                    name = dialog.name or 'Unknown'
-                else:
-                    name = 'Unknown'
-                
-                chat_id = str(dialog.id)
-                
-                # Get last message
-                last_msg = ''
-                last_msg_date = None
-                if dialog.message and dialog.message.text:
-                    last_msg = dialog.message.text[:100]
-                    last_msg_date = dialog.message.date.timestamp() if dialog.message.date else None
-                
-                chats.append({
-                    'id': chat_id,
-                    'title': name,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': last_msg,
-                    'lastMessageDate': last_msg_date
-                })
-                
-                # Get last 20 messages for this chat
-                try:
-                    msgs = await client.get_messages(dialog.entity, limit=20)
-                    for msg in msgs:
-                        if msg and msg.text:  # Only store text messages
-                            all_messages.append({
-                                'chatId': chat_id,
-                                'text': msg.text,
-                                'date': msg.date.timestamp() if msg.date else 0,
-                                'out': msg.out or False,
-                                'id': msg.id
-                            })
+                    
+                    chat_id = str(dialog.id)
+                    
+                    # Get last message
+                    last_msg = ''
+                    last_msg_date = None
+                    if dialog.message and dialog.message.text:
+                        last_msg = dialog.message.text[:100]
+                        if dialog.message.date:
+                            last_msg_date = dialog.message.date.timestamp()
+                    
+                    chats.append({
+                        'id': chat_id,
+                        'title': name,
+                        'unread': dialog.unread_count or 0,
+                        'lastMessage': last_msg,
+                        'lastMessageDate': last_msg_date
+                    })
+                    
+                    # Get last 20 messages for this chat
+                    try:
+                        msgs = await client.get_messages(dialog.entity, limit=20)
+                        for msg in msgs:
+                            if msg and msg.text:  # Only store text messages
+                                all_messages.append({
+                                    'chatId': chat_id,
+                                    'text': msg.text,
+                                    'date': msg.date.timestamp() if msg.date else 0,
+                                    'out': msg.out or False,
+                                    'id': msg.id
+                                })
+                    except Exception as e:
+                        print(f"Error getting messages for chat {chat_id}: {e}")
+                        continue
+                        
                 except Exception as e:
-                    print(f"Error getting messages for chat {chat_id}: {e}")
+                    print(f"Error processing dialog: {e}")
                     continue
             
             # Sort messages by date
@@ -316,15 +431,23 @@ def get_messages():
                 'messages': all_messages
             }
             
+        except errors.FloodWaitError as e:
+            return {'success': False, 'error': f'Flood wait. Try again in {e.seconds} seconds'}
+        except errors.RPCError as e:
+            return {'success': False, 'error': f'Telegram API error: {str(e)}'}
         except Exception as e:
             print(f"Error in fetch: {e}")
+            traceback.print_exc()
             return {'success': False, 'error': str(e)}
         finally:
             if client:
                 await client.disconnect()
     
     try:
-        result = run_async(fetch())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(fetch())
+        loop.close()
         
         if result.get('success'):
             return jsonify({
@@ -337,6 +460,7 @@ def get_messages():
             
     except Exception as e:
         print(f"Error in get_messages: {e}")
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- SEND MESSAGE --------------------
@@ -373,6 +497,8 @@ def send_message():
             except (ValueError, TypeError):
                 # Try as string (username or phone)
                 entity = await client.get_entity(chat_id)
+            except Exception as e:
+                return {'success': False, 'error': f'Could not find chat: {str(e)}'}
             
             sent_msg = await client.send_message(entity, message)
             
@@ -385,15 +511,23 @@ def send_message():
                     'out': True
                 }
             }
+        except errors.FloodWaitError as e:
+            return {'success': False, 'error': f'Flood wait. Try again in {e.seconds} seconds'}
+        except errors.RPCError as e:
+            return {'success': False, 'error': f'Telegram API error: {str(e)}'}
         except Exception as e:
             print(f"Error sending message: {e}")
+            traceback.print_exc()
             return {'success': False, 'error': str(e)}
         finally:
             if client:
                 await client.disconnect()
     
     try:
-        result = run_async(send())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(send())
+        loop.close()
         
         if result.get('success'):
             return jsonify({'success': True, 'message': result['message']})
@@ -402,30 +536,37 @@ def send_message():
             
     except Exception as e:
         print(f"Error in send_message: {e}")
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
-# -------------------- REMOVE ACCOUNT --------------------
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    global accounts
-    accounts = [a for a in accounts if a['id'] != account_id]
-    save_accounts()
-    
-    return jsonify({'success': True})
+# -------------------- HEALTH CHECK --------------------
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'temp_sessions': len(temp_data)
+    })
+
+# -------------------- ERROR HANDLERS --------------------
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'success': False, 'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('\n' + '='*50)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
-    print('='*50)
+    print('\n' + '='*60)
+    print('📱 TELEGRAM MANAGER - PRODUCTION READY')
+    print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
     print(f'✅ Server running on port {port}')
-    print('='*50 + '\n')
+    print(f'✅ API ID: {api_id}')
+    print(f'✅ nest_asyncio applied')
+    print('='*60 + '\n')
     
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Run with production settings
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
