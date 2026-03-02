@@ -435,6 +435,25 @@
             border-bottom-right-radius: 4px;
         }
 
+        .media-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+        }
+
+        .media-icon {
+            font-size: 1.5rem;
+        }
+
+        .media-label {
+            font-size: 0.9rem;
+            color: #8e9fad;
+        }
+
         .message-meta {
             display: flex;
             align-items: center;
@@ -653,7 +672,7 @@
 <body>
     <div class="app-header">
         <!-- Account switcher -->
-        <div class="account-switcher" id="accountSwitcher" onclick="toggleDropdown(event)">
+        <div class="account-switcher" id="accountSwitcher">
             <div class="current-avatar" id="currentAvatar">?</div>
             <div class="current-info">
                 <span class="current-name" id="currentName">Loading...</span>
@@ -666,8 +685,8 @@
         <div class="account-dropdown" id="accountDropdown"></div>
 
         <div class="header-actions">
-            <button class="refresh-btn" id="refreshBtn" onclick="refreshCurrentAccount()" title="Refresh chats">↻</button>
-            <a href="/">➕ Add Account</a>
+            <button class="refresh-btn" id="refreshBtn" title="Refresh chats">↻</button>
+            <a href="/login">➕ Add Account</a>
         </div>
     </div>
 
@@ -775,15 +794,17 @@
             }
         });
 
-        function toggleDropdown(event) {
+        // Toggle dropdown
+        switcher.addEventListener('click', function(event) {
             event.stopPropagation();
             dropdown.classList.toggle('show');
-        }
+        });
 
-        // ---------- Account Management ----------
+        // ---------- Load Accounts on Page Load ----------
         window.addEventListener('load', async () => {
-            await fetchAccounts();
-            // Auto-refresh every 30 seconds
+            await loadAccounts();
+            
+            // Auto-refresh every 30 seconds if an account is selected
             refreshInterval = setInterval(() => {
                 if (currentAccount) {
                     loadChatsForCurrentAccount(false);
@@ -797,7 +818,8 @@
             }
         });
 
-        async function fetchAccounts() {
+        // Load all accounts from server
+        async function loadAccounts() {
             try {
                 const res = await fetch('/api/accounts');
                 const data = await res.json();
@@ -806,14 +828,24 @@
                     accounts = data.accounts || [];
                     
                     if (accounts.length > 0) {
-                        // Check if current account still exists
-                        if (!currentAccount || !accounts.find(a => a.id === currentAccount.id)) {
+                        // Check if there's a previously selected account in localStorage
+                        const lastAccountId = localStorage.getItem('lastSelectedAccount');
+                        if (lastAccountId) {
+                            const savedAccount = accounts.find(a => a.id == lastAccountId);
+                            if (savedAccount) {
+                                currentAccount = savedAccount;
+                            } else {
+                                currentAccount = accounts[0];
+                            }
+                        } else {
                             currentAccount = accounts[0];
                         }
+                        
                         updateHeaderForCurrentAccount();
                         renderDropdown();
                         await loadChatsForCurrentAccount();
                     } else {
+                        // No accounts found
                         currentAccount = null;
                         updateHeaderForNoAccount();
                         renderDropdown();
@@ -825,6 +857,7 @@
             } catch (err) {
                 console.error('Error fetching accounts:', err);
                 showError('Failed to load accounts. Check server connection.');
+                chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server. <a href="/dashboard" style="color:#6ab2f2;">Retry</a></div>';
             }
         }
 
@@ -838,16 +871,20 @@
             currentAvatar.textContent = initial;
             currentName.textContent = name;
             currentPhone.textContent = phone;
+            
+            // Save last selected account
+            localStorage.setItem('lastSelectedAccount', currentAccount.id);
         }
 
         function updateHeaderForNoAccount() {
             currentAvatar.textContent = '?';
             currentName.textContent = 'No Account';
             currentPhone.textContent = '';
+            localStorage.removeItem('lastSelectedAccount');
         }
 
         function showNoAccountState() {
-            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <a href="/" style="color:#6ab2f2;">Add one</a>.</div>';
+            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <a href="/login" style="color:#6ab2f2;">Add one</a>.</div>';
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
             messagesListDiv.innerHTML = '<div class="empty-state">Add an account to start messaging</div>';
@@ -949,7 +986,7 @@
                 
                 if (data.success) {
                     showToast('Account removed successfully');
-                    await fetchAccounts(); // Refresh accounts list
+                    await loadAccounts(); // Refresh accounts list
                 } else {
                     showError('Failed to remove account');
                 }
@@ -968,6 +1005,8 @@
             setLoading(refreshBtn, false);
             showToast('Chats refreshed');
         };
+
+        refreshBtn.addEventListener('click', refreshCurrentAccount);
 
         // ---------- Chat Management ----------
         async function loadChatsForCurrentAccount(showLoading = true) {
@@ -1028,7 +1067,36 @@
             let html = '';
             chats.forEach(chat => {
                 const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
-                const lastMsg = chat.lastMessage || 'No messages yet';
+                let lastMsg = chat.lastMessage || '';
+                
+                // Add media emoji to last message if it's media
+                if (chat.lastMessageMedia) {
+                    switch(chat.lastMessageMedia) {
+                        case 'photo':
+                            lastMsg = '📷 ' + (lastMsg || 'Photo');
+                            break;
+                        case 'video':
+                            lastMsg = '🎥 ' + (lastMsg || 'Video');
+                            break;
+                        case 'voice':
+                            lastMsg = '🎤 ' + (lastMsg || 'Voice message');
+                            break;
+                        case 'audio':
+                            lastMsg = '🎵 ' + (lastMsg || 'Audio');
+                            break;
+                        case 'document':
+                            lastMsg = '📎 ' + (lastMsg || 'Document');
+                            break;
+                        case 'webpage':
+                            lastMsg = '🔗 ' + (lastMsg || 'Link');
+                            break;
+                        default:
+                            lastMsg = lastMsg || 'No messages yet';
+                    }
+                } else if (!lastMsg) {
+                    lastMsg = 'No messages yet';
+                }
+                
                 const time = chat.lastMessageDate ? formatTime(chat.lastMessageDate) : '';
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
@@ -1088,10 +1156,60 @@
                 const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const bubbleClass = msg.out ? 'outgoing' : 'incoming';
                 
+                let messageContent = '';
+                
+                // Check if message has media
+                if (msg.hasMedia || msg.mediaType) {
+                    let mediaIcon = '📎';
+                    let mediaText = 'Media';
+                    
+                    switch(msg.mediaType) {
+                        case 'photo':
+                            mediaIcon = '📷';
+                            mediaText = 'Photo';
+                            break;
+                        case 'video':
+                            mediaIcon = '🎥';
+                            mediaText = 'Video';
+                            break;
+                        case 'voice':
+                            mediaIcon = '🎤';
+                            mediaText = 'Voice message';
+                            break;
+                        case 'audio':
+                            mediaIcon = '🎵';
+                            mediaText = 'Audio';
+                            break;
+                        case 'document':
+                            mediaIcon = '📎';
+                            mediaText = 'Document';
+                            break;
+                        case 'webpage':
+                            mediaIcon = '🔗';
+                            mediaText = 'Link';
+                            break;
+                    }
+                    
+                    messageContent = `
+                        <div class="media-message">
+                            <span class="media-icon">${mediaIcon}</span>
+                            <span class="media-label">${mediaText}</span>
+                        </div>
+                    `;
+                    
+                    // Add text if present
+                    if (msg.text) {
+                        messageContent += `<div>${escapeHtml(msg.text)}</div>`;
+                    }
+                } else {
+                    // Text only message
+                    messageContent = `<div>${escapeHtml(msg.text || '')}</div>`;
+                }
+                
                 html += `
                     <div class="message-wrapper ${bubbleClass}">
                         <div class="message-bubble">
-                            <div>${escapeHtml(msg.text)}</div>
+                            ${messageContent}
                             <div class="message-meta">
                                 <span>${escapeHtml(timeStr)}</span>
                                 ${msg.out ? '✓✓' : ''}
@@ -1144,7 +1262,8 @@
                         text: messageText,
                         date: Date.now() / 1000,
                         out: true,
-                        id: Date.now()
+                        id: Date.now(),
+                        hasMedia: false
                     };
                     messages.push(newMsg);
                     displayMessages(currentChat.id);
