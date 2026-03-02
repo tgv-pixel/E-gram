@@ -33,6 +33,9 @@ def save_accounts():
 
 # Run async in a separate thread
 def run_async(coro):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
     """Run async function in a new thread with its own event loop"""
     result = None
     error = None
