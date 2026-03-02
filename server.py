@@ -21,38 +21,33 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 # Store temporary data for OTP
 temp_data = {}
 
-# Store accounts persistently - with Render support
+# Store accounts persistently - WILL BE CREATED AUTOMATICALLY
 accounts = []
-ACCOUNTS_FILE = '/tmp/accounts.json'  # Render's writable temp directory
+ACCOUNTS_FILE = 'accounts.json'  # File will be created automatically
 
-# Try to load existing accounts
+# Load existing accounts if file exists
 if os.path.exists(ACCOUNTS_FILE):
     try:
         with open(ACCOUNTS_FILE, 'r') as f:
             accounts = json.load(f)
-        print(f"✅ Loaded {len(accounts)} accounts")
-    except:
+        print(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
+    except Exception as e:
+        print(f"⚠️ Error loading accounts: {e}")
         accounts = []
 else:
-    # Also check current directory as fallback
-    if os.path.exists('accounts.json'):
-        try:
-            with open('accounts.json', 'r') as f:
-                accounts = json.load(f)
-            print(f"✅ Loaded {len(accounts)} accounts from local file")
-        except:
-            accounts = []
+    print(f"📝 {ACCOUNTS_FILE} will be created when you add your first account")
+    accounts = []
 
 def save_accounts():
-    """Save accounts to file"""
+    """Save accounts to file - creates file if it doesn't exist"""
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
-        # Also save to local file as backup
-        with open('accounts.json', 'w') as f:
-            json.dump(accounts, f, indent=2)
+        print(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
+        return True
     except Exception as e:
-        print(f"Error saving accounts: {e}")
+        print(f"❌ Error saving accounts: {e}")
+        return False
 
 # Helper to run async functions
 def run_async(coro):
@@ -71,6 +66,9 @@ def serve_dashboard():
 def send_otp():
     data = request.json
     phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'})
     
     async def send_code():
         # Create client with empty string session
@@ -154,7 +152,7 @@ def verify_otp():
                 'date': str(datetime.now())
             }
             accounts.append(account)
-            save_accounts()
+            save_accounts()  # This will CREATE accounts.json if it doesn't exist
             # Clean up temp data
             del temp_data[session_id]
             print(f"✅ Account added: {phone}")
@@ -194,6 +192,11 @@ def get_messages():
     async def fetch():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
         await client.connect()
+        
+        if not await client.is_user_authorized():
+            await client.disconnect()
+            return {'error': 'Not authorized'}
+            
         dialogs = await client.get_dialogs(limit=50)
         chats = []
         all_messages = []
@@ -213,20 +216,25 @@ def get_messages():
                 'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None
             })
             # Get last 10 messages
-            msgs = await client.get_messages(dialog.entity, limit=10)
-            for msg in msgs:
-                if msg and msg.text:
-                    all_messages.append({
-                        'chatId': chat_id,
-                        'text': msg.text,
-                        'date': msg.date.timestamp(),
-                        'out': msg.out
-                    })
+            try:
+                msgs = await client.get_messages(dialog.entity, limit=10)
+                for msg in msgs:
+                    if msg and msg.text:
+                        all_messages.append({
+                            'chatId': chat_id,
+                            'text': msg.text,
+                            'date': msg.date.timestamp(),
+                            'out': msg.out
+                        })
+            except:
+                pass
         await client.disconnect()
         return {'chats': chats, 'messages': all_messages}
     
     try:
         result = run_async(fetch())
+        if 'error' in result:
+            return jsonify({'success': False, 'error': result['error']})
         return jsonify({'success': True, 'chats': result['chats'], 'messages': result['messages']})
     except Exception as e:
         print(f"Error: {e}")
@@ -249,15 +257,27 @@ def send_message():
     async def send():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
         await client.connect()
+        
+        if not await client.is_user_authorized():
+            await client.disconnect()
+            return {'error': 'Not authorized'}
+            
         try:
             entity = await client.get_entity(int(chat_id))
         except:
-            entity = await client.get_entity(chat_id)
+            try:
+                entity = await client.get_entity(chat_id)
+            except:
+                await client.disconnect()
+                return {'error': 'Chat not found'}
         await client.send_message(entity, message)
         await client.disconnect()
+        return {'success': True}
     
     try:
-        run_async(send())
+        result = run_async(send())
+        if 'error' in result:
+            return jsonify({'success': False, 'error': result['error']})
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -280,7 +300,7 @@ if __name__ == '__main__':
     print('📱 TELEGRAM MANAGER - RENDER DEPLOYMENT')
     print('='*50)
     print(f'✅ Loaded {len(accounts)} accounts')
-    print(f'✅ Using {ACCOUNTS_FILE} for storage')
+    print(f'✅ Accounts file: {ACCOUNTS_FILE} (will be created automatically)')
     print('✅ DC info preserved for OTP')
     print('='*50 + '\n')
     
