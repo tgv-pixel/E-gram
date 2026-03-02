@@ -137,6 +137,7 @@
             cursor: pointer;
             transition: background 0.2s;
             border-radius: 14px;
+            position: relative;
         }
 
         .dropdown-item:hover {
@@ -179,6 +180,17 @@
         .dropdown-item i {
             color: #4c9ce0;
             font-size: 1rem;
+        }
+
+        .remove-account {
+            color: #ff6b6b !important;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .dropdown-item:hover .remove-account {
+            opacity: 1;
         }
 
         .header-actions {
@@ -396,6 +408,9 @@
             padding: 18px 24px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .messages-header h2 {
@@ -410,6 +425,24 @@
         .messages-header h2 i {
             color: #4c9ce0;
             font-size: 1.2rem;
+        }
+
+        .refresh-chat {
+            background: rgba(255,255,255,0.05);
+            color: #a0b3c5;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .refresh-chat:hover {
+            background: #4c9ce0;
+            color: white;
+            transform: rotate(180deg);
         }
 
         .messages-scroll {
@@ -577,6 +610,28 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1e2a33;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            border-left: 4px solid #4c9ce0;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
         /* Responsive */
         @media (max-width: 700px) {
             .chats-panel {
@@ -643,6 +698,7 @@
         <div class="messages-panel">
             <div class="messages-header" id="messagesHeader" style="display: none;">
                 <h2><i class="fas fa-user-circle"></i> <span id="currentChatTitle"></span></h2>
+                <button class="refresh-chat" onclick="refreshCurrentChat()" title="Refresh messages"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div class="messages-scroll" id="messagesList">
                 <div class="empty-state"><i class="fas fa-hand-point-left"></i> Select a chat to start messaging</div>
@@ -654,6 +710,9 @@
         </div>
     </div>
 
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
     <script>
         // ---------- State ----------
         let accounts = [];
@@ -661,6 +720,7 @@
         let currentChat = null;
         let chats = [];
         let messages = [];
+        let refreshInterval = null;
 
         // ---------- DOM elements ----------
         const dropdown = document.getElementById('accountDropdown');
@@ -675,8 +735,18 @@
         const composeArea = document.getElementById('composeArea');
         const messageInput = document.getElementById('messageInput');
         const totalChatsSpan = document.getElementById('totalChats');
+        const toast = document.getElementById('toast');
 
-        // ---------- Helper: close dropdown when clicking outside ----------
+        // ---------- Helper functions ----------
+        function showToast(message, duration = 3000) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // ---------- Close dropdown when clicking outside ----------
         document.addEventListener('click', function(event) {
             if (!switcher.contains(event.target) && !dropdown.contains(event.target)) {
                 dropdown.classList.remove('show');
@@ -691,7 +761,18 @@
         // ---------- Load all accounts on startup ----------
         window.addEventListener('load', async () => {
             await fetchAccounts();
+            startAutoRefresh();
         });
+
+        // Auto refresh every 30 seconds
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                if (currentAccount) {
+                    loadChatsForCurrentAccount(false);
+                }
+            }, 30000);
+        }
 
         async function fetchAccounts() {
             try {
@@ -699,7 +780,6 @@
                 const data = await res.json();
                 if (data.success && data.accounts.length > 0) {
                     accounts = data.accounts;
-                    // Default to the first account
                     currentAccount = accounts[0];
                     updateHeaderForCurrentAccount();
                     renderDropdown();
@@ -739,10 +819,31 @@
                             <div class="dropdown-phone">${escapeHtml(accPhone)}</div>
                         </div>
                         <span style="color:#6ab2f2;">${isCurrent}</span>
+                        <i class="fas fa-trash remove-account" onclick="event.stopPropagation(); removeAccount('${acc.id}')" title="Remove account"></i>
                     </div>
                 `;
             });
             dropdown.innerHTML = html;
+        }
+
+        async function removeAccount(accountId) {
+            if (!confirm('Are you sure you want to remove this account?')) return;
+            
+            try {
+                const res = await fetch('/api/remove-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: parseInt(accountId) })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Account removed successfully');
+                    await fetchAccounts();
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to remove account');
+            }
         }
 
         window.switchAccount = async function(accountId) {
@@ -763,9 +864,13 @@
             await loadChatsForCurrentAccount();
         };
 
-        async function loadChatsForCurrentAccount() {
+        async function loadChatsForCurrentAccount(showLoading = true) {
             if (!currentAccount) return;
-            chatsListDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> Loading chats...</div>';
+            
+            if (showLoading) {
+                chatsListDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> Loading chats...</div>';
+            }
+            
             try {
                 const res = await fetch('/api/get-messages', {
                     method: 'POST',
@@ -778,12 +883,21 @@
                     messages = data.messages || [];
                     totalChatsSpan.textContent = chats.length;
                     displayChats();
+                    
+                    // If we have a current chat selected, refresh its messages
+                    if (currentChat) {
+                        displayMessages(currentChat.id);
+                    }
                 } else {
-                    chatsListDiv.innerHTML = '<div class="empty-state">Error loading chats</div>';
+                    if (showLoading) {
+                        chatsListDiv.innerHTML = '<div class="empty-state">Error loading chats</div>';
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>';
+                if (showLoading) {
+                    chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>';
+                }
             }
         }
 
@@ -792,7 +906,10 @@
                 chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>';
                 return;
             }
+            
             let html = '';
+            chats.sort((a, b) => (b.lastMessageDate || 0) - (a.lastMessageDate || 0));
+            
             chats.forEach(chat => {
                 const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
                 const lastMsg = chat.lastMessage || '';
@@ -824,7 +941,13 @@
             messagesHeader.style.display = 'block';
             composeArea.style.display = 'flex';
             displayMessages(chatId);
-            displayChats(); // re-render to highlight active
+            displayChats();
+        };
+
+        window.refreshCurrentChat = async function() {
+            if (!currentChat) return;
+            showToast('Refreshing messages...');
+            await loadChatsForCurrentAccount(false);
         };
 
         function displayMessages(chatId) {
@@ -837,7 +960,6 @@
                 return;
             }
 
-            // Group messages by date
             let lastDate = null;
             let html = '';
 
@@ -880,9 +1002,11 @@
         window.sendMessage = async function() {
             const message = messageInput.value.trim();
             if (!message || !currentAccount || !currentChat) return;
+            
             messageInput.value = '';
+            
             try {
-                await fetch('/api/send-message', {
+                const res = await fetch('/api/send-message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -891,16 +1015,24 @@
                         message: message
                     })
                 });
-                const newMsg = {
-                    chatId: currentChat.id,
-                    text: message,
-                    date: Date.now() / 1000,
-                    out: true
-                };
-                messages.push(newMsg);
-                displayMessages(currentChat.id);
+                
+                const data = await res.json();
+                if (data.success) {
+                    const newMsg = {
+                        chatId: currentChat.id,
+                        text: message,
+                        date: Date.now() / 1000,
+                        out: true
+                    };
+                    messages.push(newMsg);
+                    displayMessages(currentChat.id);
+                    showToast('Message sent');
+                } else {
+                    showToast('Failed to send message');
+                }
             } catch (err) {
                 console.error(err);
+                showToast('Network error');
             }
         };
 
@@ -926,4 +1058,4 @@
         }
     </script>
 </body>
-</html>
+        </html>
