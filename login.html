@@ -111,6 +111,7 @@
             padding: 10px;
             border-radius: 5px;
             text-align: center;
+            font-weight: 500;
         }
         
         .error {
@@ -182,7 +183,7 @@
         <div id="message"></div>
         
         <div class="link">
-            <a href="/home">Go to Dashboard →</a>
+            <a href="/home">Go to Home →</a>
         </div>
     </div>
 
@@ -224,15 +225,16 @@
                 
                 if (data.success) {
                     sessionId = data.session_id;
+                    // Store in localStorage for backup
+                    localStorage.setItem('telegram_session_id', sessionId);
+                    localStorage.setItem('telegram_phone', phone);
+                    
                     document.getElementById('step1').style.display = 'none';
                     document.getElementById('step2').style.display = 'block';
                     document.getElementById('message').textContent = '';
                     
                     // Focus first input
                     document.querySelector('.code-input').focus();
-                    
-                    // Store session in localStorage for backup
-                    localStorage.setItem('lastSessionId', sessionId);
                 } else {
                     showMessage(data.error || 'Failed to send code', 'error');
                 }
@@ -252,15 +254,15 @@
             }
             
             // Allow backspace to go to previous
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Backspace' && !input.value) {
+            input.onkeydown = function(e) {
+                if (e.key === 'Backspace' && !this.value) {
                     const prev = document.querySelectorAll('.code-input')[index - 1];
                     if (prev) {
                         prev.focus();
                         prev.value = '';
                     }
                 }
-            });
+            };
             
             // Auto submit when all fields are filled
             const inputs = document.querySelectorAll('.code-input');
@@ -280,7 +282,7 @@
             }
             
             document.getElementById('verifyBtn').disabled = true;
-            showMessage('Verifying...', 'info-message');
+            showMessage('Verifying code...', 'info-message');
             
             fetch('/api/verify-code', {
                 method: 'POST',
@@ -297,8 +299,14 @@
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
                     
+                    // Save account info to localStorage
+                    if (data.account) {
+                        localStorage.setItem('last_account', JSON.stringify(data.account));
+                    }
+                    
                     // Clear stored session
-                    localStorage.removeItem('lastSessionId');
+                    localStorage.removeItem('telegram_session_id');
+                    localStorage.removeItem('telegram_phone');
                     
                     // Redirect to home
                     setTimeout(() => {
@@ -314,8 +322,8 @@
                     showMessage(data.error || 'Verification failed', 'error');
                     
                     // Clear inputs on error
-                    if (data.error?.toLowerCase().includes('invalid') || 
-                        data.error?.toLowerCase().includes('expired')) {
+                    if (data.error && (data.error.toLowerCase().includes('invalid') || 
+                        data.error.toLowerCase().includes('expired'))) {
                         inputs.forEach(input => input.value = '');
                         document.querySelector('.code-input').focus();
                     }
@@ -355,8 +363,14 @@
                 if (data.success) {
                     showMessage('✅ Account added successfully!', 'success');
                     
+                    // Save account info to localStorage
+                    if (data.account) {
+                        localStorage.setItem('last_account', JSON.stringify(data.account));
+                    }
+                    
                     // Clear stored session
-                    localStorage.removeItem('lastSessionId');
+                    localStorage.removeItem('telegram_session_id');
+                    localStorage.removeItem('telegram_phone');
                     
                     // Redirect to home
                     setTimeout(() => {
@@ -391,15 +405,15 @@
             
             // Reset session
             sessionId = null;
-            localStorage.removeItem('lastSessionId');
+            localStorage.removeItem('telegram_session_id');
+            localStorage.removeItem('telegram_phone');
         }
         
         // Check for existing session on page load
         window.addEventListener('load', function() {
-            const lastSession = localStorage.getItem('lastSessionId');
-            if (lastSession) {
-                sessionId = lastSession;
-                // You could add logic here to resume a session if needed
+            const savedPhone = localStorage.getItem('telegram_phone');
+            if (savedPhone) {
+                document.getElementById('phone').value = savedPhone;
             }
             
             // Auto-focus phone input
