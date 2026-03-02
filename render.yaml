@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: e-gram
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
