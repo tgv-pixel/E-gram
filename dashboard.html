@@ -18,6 +18,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         
         /* Header */
@@ -28,12 +29,22 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid #2b3945;
+            height: 60px;
+            flex-shrink: 0;
         }
         
         .account-info {
             display: flex;
             align-items: center;
             gap: 10px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 30px;
+            position: relative;
+        }
+        
+        .account-info:hover {
+            background: #242f3d;
         }
         
         .avatar {
@@ -88,11 +99,48 @@
             justify-content: center;
         }
         
+        /* Account dropdown */
+        .account-dropdown {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 10px;
+            width: 300px;
+            display: none;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .account-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            gap: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #2b3945;
+        }
+        
+        .dropdown-item:hover {
+            background: #242f3d;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
         /* Main layout */
         .main {
             display: flex;
             flex: 1;
             overflow: hidden;
+            height: calc(100vh - 60px);
         }
         
         /* Chats sidebar */
@@ -102,6 +150,8 @@
             border-right: 1px solid #2b3945;
             display: flex;
             flex-direction: column;
+            height: 100%;
+            overflow: hidden;
         }
         
         .chats-header {
@@ -109,6 +159,7 @@
             border-bottom: 1px solid #2b3945;
             display: flex;
             justify-content: space-between;
+            flex-shrink: 0;
         }
         
         .chats-list {
@@ -175,12 +226,23 @@
             margin-left: 5px;
         }
         
+        .chat-unread {
+            background: #4c9ce0;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+        
         /* Messages panel */
         .messages-panel {
             flex: 1;
             background: #0e1621;
             display: flex;
             flex-direction: column;
+            height: 100%;
+            overflow: hidden;
         }
         
         .messages-header {
@@ -190,6 +252,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-shrink: 0;
         }
         
         .messages-container {
@@ -232,6 +295,7 @@
             border-top: 1px solid #2b3945;
             display: flex;
             gap: 10px;
+            flex-shrink: 0;
         }
         
         .compose-input {
@@ -255,6 +319,10 @@
             cursor: pointer;
         }
         
+        .send-btn:hover {
+            background: #3a6a9e;
+        }
+        
         /* Loading and empty states */
         .loading, .empty-state {
             text-align: center;
@@ -266,39 +334,33 @@
             color: #ff6b6b;
             text-align: center;
             padding: 20px;
-        }
-        
-        /* Account switcher */
-        .account-switcher {
-            position: relative;
-        }
-        
-        .account-dropdown {
-            position: absolute;
-            top: 50px;
-            left: 0;
-            background: #17212b;
-            border: 1px solid #2b3945;
+            background: #2b1a1a;
             border-radius: 10px;
-            width: 300px;
-            display: none;
-            z-index: 100;
+            margin: 10px;
         }
         
-        .account-dropdown.show {
-            display: block;
+        .success {
+            color: #6ab2f2;
+            text-align: center;
+            padding: 20px;
         }
         
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            gap: 10px;
-            cursor: pointer;
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
         
-        .dropdown-item:hover {
-            background: #242f3d;
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #2b3945;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a4a5a;
         }
     </style>
 </head>
@@ -316,7 +378,7 @@
         <div class="account-dropdown" id="accountDropdown"></div>
         
         <div class="header-actions">
-            <button class="refresh-btn" id="refreshBtn">↻</button>
+            <button class="refresh-btn" id="refreshBtn" title="Refresh Chats">↻</button>
             <a href="/login">+ Add Account</a>
         </div>
     </div>
@@ -353,7 +415,7 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         // State
         let accounts = [];
@@ -416,10 +478,12 @@
                     } else {
                         showNoAccounts();
                     }
+                } else {
+                    showError('Failed to load accounts');
                 }
             } catch (err) {
                 console.error(err);
-                chatsList.innerHTML = '<div class="error">Failed to load accounts</div>';
+                showError('Network error loading accounts');
             }
         }
         
@@ -428,7 +492,7 @@
             
             const name = currentAccount.name || 'User';
             const phone = currentAccount.phone || '';
-            const initial = name.charAt(0).toUpperCase();
+            const initial = name.charAt(0).toUpperCase() || '?';
             
             currentAvatar.textContent = initial;
             currentName.textContent = name;
@@ -436,24 +500,42 @@
         }
         
         function renderDropdown() {
+            if (!accounts.length) {
+                dropdown.innerHTML = '<div class="dropdown-item">No accounts</div>';
+                return;
+            }
+            
             let html = '';
             accounts.forEach(acc => {
                 const name = acc.name || 'User';
                 const phone = acc.phone || '';
-                const initial = name.charAt(0).toUpperCase();
+                const initial = name.charAt(0).toUpperCase() || '?';
                 const isCurrent = acc.id === currentAccount?.id ? '✓' : '';
                 
                 html += `
                     <div class="dropdown-item" onclick="switchAccount(${acc.id})">
                         <div class="avatar" style="width: 35px; height: 35px;">${initial}</div>
-                        <div>
-                            <div>${name}</div>
-                            <div style="font-size: 12px; color: #8e9fad;">${phone}</div>
+                        <div style="flex: 1;">
+                            <div>${escapeHtml(name)}</div>
+                            <div style="font-size: 12px; color: #8e9fad;">${escapeHtml(phone)}</div>
                         </div>
-                        <span style="margin-left: auto; color: #6ab2f2;">${isCurrent}</span>
+                        <span style="color: #6ab2f2;">${isCurrent}</span>
                     </div>
                 `;
             });
+            
+            // Add remove option
+            if (accounts.length > 0) {
+                html += `
+                    <div class="dropdown-item" onclick="showRemoveModal()" style="border-top: 1px solid #2b3945;">
+                        <div class="avatar" style="width: 35px; height: 35px; background: #8e2b2b;">−</div>
+                        <div style="flex: 1;">
+                            <div style="color: #ff6b6b;">Remove Current Account</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             dropdown.innerHTML = html;
         }
         
@@ -468,6 +550,7 @@
             renderDropdown();
             dropdown.classList.remove('show');
             
+            // Reset messages panel
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
             messagesList.innerHTML = '<div class="empty-state">👈 Select a chat</div>';
@@ -475,6 +558,35 @@
             await loadChats();
         };
         
+        function showRemoveModal() {
+            if (!currentAccount) return;
+            if (confirm(`Remove account "${currentAccount.name}"?`)) {
+                removeAccount();
+            }
+        }
+        
+        async function removeAccount() {
+            try {
+                const res = await fetch('/api/remove-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: currentAccount.id })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    await loadAccounts(); // Reload accounts
+                } else {
+                    alert('Failed to remove account');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error removing account');
+            }
+        }
+        
+        // Load chats for current account
         async function loadChats() {
             if (!currentAccount) return;
             
@@ -495,11 +607,20 @@
                     totalChats.textContent = chats.length;
                     displayChats();
                 } else {
-                    chatsList.innerHTML = `<div class="error">Error: ${data.error || 'Failed to load chats'}</div>`;
+                    let errorMsg = data.error || 'Failed to load chats';
+                    
+                    // Handle specific errors
+                    if (errorMsg.includes("key is not registered") || errorMsg.includes("Session expired")) {
+                        chatsList.innerHTML = '<div class="error">⚠️ Session expired. Please <a href="/login" style="color:#6ab2f2;">re-add account</a>.</div>';
+                    } else if (errorMsg.includes("Flood")) {
+                        chatsList.innerHTML = `<div class="error">⚠️ Too many requests. Please wait a few minutes.</div>`;
+                    } else {
+                        chatsList.innerHTML = `<div class="error">Error: ${escapeHtml(errorMsg)}</div>`;
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                chatsList.innerHTML = '<div class="error">Failed to load chats</div>';
+                chatsList.innerHTML = '<div class="error">Network error. Check connection.</div>';
             }
         }
         
@@ -514,13 +635,17 @@
                 const active = currentChat && currentChat.id === chat.id ? 'active' : '';
                 const lastMsg = chat.lastMessage || 'No messages';
                 const initial = (chat.title || '?').charAt(0).toUpperCase();
+                const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 
                 html += `
-                    <div class="chat-item ${active}" onclick="selectChat('${chat.id}', '${chat.title}')">
+                    <div class="chat-item ${active}" onclick="selectChat('${chat.id}', '${escapeHtml(chat.title)}')">
                         <div class="chat-avatar">${initial}</div>
                         <div class="chat-info">
-                            <div class="chat-name">${chat.title || 'Unknown'}</div>
-                            <div class="chat-last">${lastMsg}</div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <div class="chat-name">${escapeHtml(chat.title || 'Unknown')}</div>
+                                ${unread}
+                            </div>
+                            <div class="chat-last">${escapeHtml(lastMsg)}</div>
                         </div>
                     </div>
                 `;
@@ -533,7 +658,13 @@
             currentChat = { id: chatId, title: title };
             
             chatTitle.textContent = title;
-            chatAvatar.textContent = title.charAt(0).toUpperCase();
+            chatAvatar.textContent = title.charAt(0).toUpperCase() || '?';
+            
+            // Find chat type
+            const chat = chats.find(c => c.id === chatId);
+            if (chat) {
+                chatType.textContent = chat.type || 'chat';
+            }
             
             messagesHeader.style.display = 'flex';
             composeArea.style.display = 'flex';
@@ -553,12 +684,13 @@
             
             let html = '';
             chatMessages.forEach(msg => {
-                const time = new Date(msg.date * 1000).toLocaleTimeString();
+                const time = msg.date ? new Date(msg.date * 1000).toLocaleTimeString() : '';
                 const type = msg.out ? 'outgoing' : 'incoming';
+                const text = msg.text || (msg.hasMedia ? '📎 Media' : '');
                 
                 html += `
                     <div class="message ${type}">
-                        <div>${msg.text || 'Media message'}</div>
+                        <div>${escapeHtml(text)}</div>
                         <div class="message-time">${time}</div>
                     </div>
                 `;
@@ -572,6 +704,7 @@
             const text = messageInput.value.trim();
             if (!text || !currentAccount || !currentChat) return;
             
+            const messageText = text;
             messageInput.value = '';
             
             try {
@@ -581,7 +714,7 @@
                     body: JSON.stringify({
                         accountId: currentAccount.id,
                         chatId: currentChat.id,
-                        message: text
+                        message: messageText
                     })
                 });
                 
@@ -591,26 +724,36 @@
                     // Add message to local list
                     messages.push({
                         chatId: currentChat.id,
-                        text: text,
+                        text: messageText,
                         date: Date.now() / 1000,
                         out: true,
                         id: Date.now()
                     });
                     displayMessages(currentChat.id);
+                } else {
+                    alert('Failed to send: ' + (data.error || 'Unknown error'));
+                    messageInput.value = messageText; // Restore
                 }
             } catch (err) {
                 console.error(err);
+                alert('Error sending message');
+                messageInput.value = messageText; // Restore
             }
         }
         
         sendBtn.addEventListener('click', sendMessage);
         
         messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
         });
         
         refreshBtn.addEventListener('click', () => {
-            if (currentAccount) loadChats();
+            if (currentAccount) {
+                loadChats();
+            }
         });
         
         function showNoAccounts() {
@@ -619,7 +762,19 @@
             currentPhone.textContent = '';
             chatsList.innerHTML = '<div class="empty-state">No accounts. <a href="/login" style="color:#6ab2f2;">Add one</a></div>';
             messagesList.innerHTML = '<div class="empty-state">Add an account to start</div>';
+            totalChats.textContent = '0';
+        }
+        
+        function showError(msg) {
+            chatsList.innerHTML = `<div class="error">${escapeHtml(msg)}</div>`;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>
-    </html>
+                </html>
