@@ -1,12 +1,10 @@
-from flask import Flask, send_file, jsonify, request, abort
+from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
 from telethon.tl.types import (
     MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage,
-    DocumentAttributeVideo, DocumentAttributeAudio, DocumentAttributeFilename,
-    MessageMediaPoll, MessageMediaContact, MessageMediaGeo, MessageMediaVenue,
-    MessageMediaGame, MessageMediaInvoice
+    DocumentAttributeVideo, DocumentAttributeAudio
 )
 from telethon.utils import get_display_name
 import json
@@ -14,9 +12,6 @@ import os
 import asyncio
 from datetime import datetime
 import logging
-import threading
-import base64
-import io
 import time
 
 # Set up logging
@@ -33,99 +28,98 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 # Store temporary data for OTP
 temp_data = {}
 
-# Store accounts persistently
+# Store accounts
 accounts = []
 ACCOUNTS_FILE = 'accounts.json'
 
-# Media cache directory
-MEDIA_CACHE_DIR = 'media_cache'
-if not os.path.exists(MEDIA_CACHE_DIR):
-    os.makedirs(MEDIA_CACHE_DIR)
-
-# Load existing accounts if file exists
+# IMPORTANT: This function ensures accounts persist across restarts
 def load_accounts():
     global accounts
-    if os.path.exists(ACCOUNTS_FILE):
-        try:
+    try:
+        # Try to load from current directory first
+        if os.path.exists(ACCOUNTS_FILE):
             with open(ACCOUNTS_FILE, 'r') as f:
                 content = f.read().strip()
-                if content:
-                    accounts = json.loads(content)
-                    logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
-                else:
-                    accounts = []
-        except Exception as e:
-            logger.error(f"⚠️ Error loading accounts: {e}")
-            accounts = []
-    else:
+                accounts = json.loads(content) if content else []
+                logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
+                return
+        
+        # If not found, try to load from environment variable (for Render)
+        accounts_json = os.environ.get('ACCOUNTS_JSON')
+        if accounts_json:
+            accounts = json.loads(accounts_json)
+            logger.info(f"✅ Loaded {len(accounts)} accounts from environment variable")
+            # Save to file for next time
+            save_accounts()
+            return
+        
+        # If no accounts found anywhere, start fresh
         accounts = []
-
-# Load accounts at startup
-load_accounts()
+        logger.info("📝 No accounts found, starting fresh")
+        
+    except Exception as e:
+        logger.error(f"⚠️ Error loading accounts: {e}")
+        accounts = []
 
 def save_accounts():
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
+        
+        # Also save to environment variable for Render (optional but helpful)
+        # Note: This won't persist across deployments, but helps during runtime
         logger.info(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
+        
+        # Create backup with timestamp
+        backup_file = f"accounts_backup_{int(time.time())}.json"
+        with open(backup_file, 'w') as f:
+            json.dump(accounts, f, indent=2)
+        
         return True
     except Exception as e:
         logger.error(f"❌ Error saving accounts: {e}")
         return False
 
-# Helper to run async functions
+# Load accounts at startup
+load_accounts()
+
+# Run async function
 def run_async(coro):
-    """Run async coroutine"""
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         return loop.run_until_complete(coro)
-    except Exception as e:
-        logger.error(f"Error in run_async: {e}")
-        raise
     finally:
         try:
             loop.close()
         except:
             pass
 
-# -------------------- SERVE HTML FILES --------------------
+# -------------------- HTML PAGES --------------------
 @app.route('/')
 def serve_index():
-    try:
-        return send_file('login.html')
-    except FileNotFoundError:
-        return "login.html not found", 404
+    return send_file('login.html')
 
 @app.route('/login')
 def serve_login():
-    try:
-        return send_file('login.html')
-    except FileNotFoundError:
-        return "login.html not found", 404
+    return send_file('login.html')
 
 @app.route('/dashboard')
 def serve_dashboard():
-    try:
-        return send_file('dashboard.html')
-    except FileNotFoundError:
-        return "dashboard.html not found", 404
+    return send_file('dashboard.html')
 
 @app.route('/home')
 def serve_home():
-    try:
-        return send_file('home.html')
-    except FileNotFoundError:
-        return "home.html not found", 404
+    return send_file('home.html')
 
-# -------------------- GET ALL ACCOUNTS --------------------
+# -------------------- API ENDPOINTS --------------------
+
+# Get all accounts
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    """Return all accounts"""
-    global accounts
-    load_accounts()  # Reload to ensure latest
-    
+    load_accounts()  # Always reload to ensure latest
     account_list = []
+    
     for acc in accounts:
         name = acc.get('name', '')
         if not name:
@@ -143,10 +137,9 @@ def get_accounts():
             'session': acc.get('session', '')
         })
     
-    logger.info(f"📋 Returning {len(account_list)} accounts")
     return jsonify({'success': True, 'accounts': account_list})
 
-# -------------------- ADD ACCOUNT (SEND OTP) --------------------
+# Send OTP
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
     data = request.json
@@ -167,32 +160,27 @@ def add_account():
                 'session_str': session_str
             }
         except errors.FloodWaitError as e:
-            return {'success': False, 'error': f'Too many attempts. Wait {e.seconds} seconds'}
+            return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
     
-    try:
-        result = run_async(send_code())
-        
-        if not result.get('success'):
-            return jsonify({'success': False, 'error': result.get('error', 'Unknown error')})
-        
-        session_id = str(int(datetime.now().timestamp()))
-        temp_data[session_id] = {
-            'phone': phone,
-            'phone_code_hash': result['phone_code_hash'],
-            'session_str': result['session_str']
-        }
-        logger.info(f"📱 OTP sent to {phone}")
-        return jsonify({'success': True, 'session_id': session_id})
-        
-    except Exception as e:
-        logger.error(f"Error in add-account: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+    result = run_async(send_code())
+    
+    if not result.get('success'):
+        return jsonify({'success': False, 'error': result.get('error', 'Failed')})
+    
+    session_id = str(int(time.time()))
+    temp_data[session_id] = {
+        'phone': phone,
+        'phone_code_hash': result['phone_code_hash'],
+        'session_str': result['session_str']
+    }
+    
+    return jsonify({'success': True, 'session_id': session_id})
 
-# -------------------- VERIFY CODE --------------------
+# Verify code
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
     data = request.json
@@ -201,7 +189,7 @@ def verify_code():
     password = data.get('password', '')
     
     if not session_id or session_id not in temp_data:
-        return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
+        return jsonify({'success': False, 'error': 'Session expired'})
     
     session = temp_data[session_id]
     
@@ -212,11 +200,7 @@ def verify_code():
             if password:
                 await client.sign_in(password=password)
             else:
-                await client.sign_in(
-                    session['phone'], 
-                    code, 
-                    phone_code_hash=session['phone_code_hash']
-                )
+                await client.sign_in(session['phone'], code, phone_code_hash=session['phone_code_hash'])
             
             me = await client.get_me()
             final_session = client.session.save()
@@ -240,51 +224,45 @@ def verify_code():
         finally:
             await client.disconnect()
     
-    try:
-        result = run_async(verify())
-        
-        if result.get('need_password'):
-            return jsonify({'success': False, 'need_password': True})
-        
-        if not result.get('success'):
-            return jsonify({'success': False, 'error': result.get('error', 'Verification failed')})
-        
-        # Create new account
-        me = result['me']
-        new_id = 1
-        if accounts:
-            new_id = max([acc.get('id', 0) for acc in accounts]) + 1
-        
-        full_name = f"{me.get('first_name', '')} {me.get('last_name', '')}".strip()
-        if not full_name:
-            full_name = session['phone']
-        
-        new_account = {
-            'id': new_id,
-            'phone': session['phone'],
-            'name': full_name,
-            'first_name': me.get('first_name', ''),
-            'last_name': me.get('last_name', ''),
-            'username': me.get('username', ''),
-            'user_id': me.get('id'),
-            'session': result['session'],
-            'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        
-        accounts.append(new_account)
-        save_accounts()
-        
-        if session_id in temp_data:
-            del temp_data[session_id]
-        
-        logger.info(f"✅ Account added: {session['phone']} (ID: {new_id})")
-        return jsonify({'success': True, 'account': new_account})
-        
-    except Exception as e:
-        logger.error(f"Error in verify-code: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+    result = run_async(verify())
+    
+    if result.get('need_password'):
+        return jsonify({'success': False, 'need_password': True})
+    
+    if not result.get('success'):
+        return jsonify({'success': False, 'error': result.get('error', 'Verification failed')})
+    
+    # Create new account
+    me = result['me']
+    new_id = 1
+    if accounts:
+        new_id = max([acc.get('id', 0) for acc in accounts]) + 1
+    
+    full_name = f"{me.get('first_name', '')} {me.get('last_name', '')}".strip()
+    if not full_name:
+        full_name = session['phone']
+    
+    new_account = {
+        'id': new_id,
+        'phone': session['phone'],
+        'name': full_name,
+        'first_name': me.get('first_name', ''),
+        'last_name': me.get('last_name', ''),
+        'username': me.get('username', ''),
+        'user_id': me.get('id'),
+        'session': result['session'],
+        'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    accounts.append(new_account)
+    save_accounts()
+    
+    if session_id in temp_data:
+        del temp_data[session_id]
+    
+    return jsonify({'success': True, 'account': new_account})
 
-# -------------------- GET MESSAGES --------------------
+# Get messages and chats
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -293,26 +271,17 @@ def get_messages():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    # Find account
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
     session_string = account.get('session', '')
     
-    if not session_string:
-        return jsonify({'success': False, 'error': 'No session found for account'})
-    
     async def fetch_chats():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
         await client.connect()
         
         try:
-            # Check if authorized
-            if not await client.is_user_authorized():
-                logger.error(f"Account {account_id} not authorized")
-                return {'success': False, 'error': 'Not authorized'}
-            
             # Get all dialogs
             dialogs = await client.get_dialogs(limit=100)
             
@@ -320,10 +289,14 @@ def get_messages():
             all_messages = []
             
             for dialog in dialogs:
+                # Skip if no dialog
+                if not dialog:
+                    continue
+                
                 # Get chat info
                 if dialog.is_user:
-                    name = get_display_name(dialog.entity)
-                    chat_type = 'bot' if (hasattr(dialog.entity, 'bot') and dialog.entity.bot) else 'user'
+                    name = get_display_name(dialog.entity) if dialog.entity else 'User'
+                    chat_type = 'bot' if (dialog.entity and hasattr(dialog.entity, 'bot') and dialog.entity.bot) else 'user'
                 elif dialog.is_group:
                     name = dialog.name or 'Group'
                     chat_type = 'group'
@@ -334,13 +307,15 @@ def get_messages():
                     name = dialog.name or 'Unknown'
                     chat_type = 'unknown'
                 
-                chat_id = str(dialog.id)
+                chat_id = str(dialog.id) if dialog.id else '0'
                 
-                # Get last message
+                # SAFELY get last message
                 last_msg_text = ''
                 last_msg_media = None
+                last_date = 0
                 
                 if dialog.message:
+                    # Get message text
                     if dialog.message.text:
                         last_msg_text = dialog.message.text[:50]
                         if len(dialog.message.text) > 50:
@@ -352,51 +327,66 @@ def get_messages():
                         elif isinstance(dialog.message.media, MessageMediaDocument):
                             last_msg_text = '📎 Document'
                             last_msg_media = 'document'
-                        elif isinstance(dialog.message.media, MessageMediaWebPage):
-                            last_msg_text = '🔗 Link'
-                            last_msg_media = 'webpage'
                         else:
                             last_msg_text = '📎 Media'
                             last_msg_media = 'media'
+                    
+                    # SAFELY get date
+                    try:
+                        if hasattr(dialog.message, 'date') and dialog.message.date:
+                            last_date = dialog.message.date.timestamp()
+                    except:
+                        last_date = 0
                 
                 chats.append({
                     'id': chat_id,
                     'title': name,
                     'type': chat_type,
-                    'unread': dialog.unread_count or 0,
+                    'unread': dialog.unread_count if hasattr(dialog, 'unread_count') else 0,
                     'lastMessage': last_msg_text,
                     'lastMessageMedia': last_msg_media,
-                    'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None,
-                    'pinned': dialog.pinned or False
+                    'lastMessageDate': last_date,
+                    'pinned': dialog.pinned if hasattr(dialog, 'pinned') else False
                 })
                 
                 # Get last 20 messages
                 try:
-                    msgs = await client.get_messages(dialog.entity, limit=20)
-                    for msg in msgs:
-                        if msg:
+                    if dialog.entity:
+                        msgs = await client.get_messages(dialog.entity, limit=20)
+                        
+                        for msg in msgs:
+                            if not msg:
+                                continue
+                            
+                            # SAFELY get message data
+                            msg_date = 0
+                            try:
+                                if hasattr(msg, 'date') and msg.date:
+                                    msg_date = msg.date.timestamp()
+                            except:
+                                msg_date = 0
+                            
                             message_data = {
                                 'chatId': chat_id,
-                                'text': msg.text or '',
-                                'date': msg.date.timestamp(),
-                                'out': msg.out,
-                                'id': msg.id,
-                                'hasMedia': msg.media is not None
+                                'text': msg.text or '' if msg.text else '',
+                                'date': msg_date,
+                                'out': msg.out if hasattr(msg, 'out') else False,
+                                'id': msg.id if msg.id else 0,
+                                'hasMedia': msg.media is not None if hasattr(msg, 'media') else False
                             }
                             
+                            # Add media type
                             if msg.media:
                                 if isinstance(msg.media, MessageMediaPhoto):
                                     message_data['mediaType'] = 'photo'
                                 elif isinstance(msg.media, MessageMediaDocument):
                                     message_data['mediaType'] = 'document'
-                                elif isinstance(msg.media, MessageMediaWebPage):
-                                    message_data['mediaType'] = 'webpage'
                                 else:
                                     message_data['mediaType'] = 'media'
                             
                             all_messages.append(message_data)
                 except Exception as e:
-                    logger.error(f"Error fetching messages: {e}")
+                    logger.error(f"Error getting messages for {chat_id}: {e}")
                     continue
             
             return {
@@ -414,12 +404,11 @@ def get_messages():
     try:
         result = run_async(fetch_chats())
         return jsonify(result)
-        
     except Exception as e:
         logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# -------------------- SEND MESSAGE --------------------
+# Send message
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
@@ -428,7 +417,7 @@ def send_message():
     message = data.get('message')
     
     if not all([account_id, chat_id]):
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+        return jsonify({'success': False, 'error': 'Missing required fields'})
     
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
@@ -441,9 +430,7 @@ def send_message():
         await client.connect()
         
         try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'Not authorized'}
-            
+            # Get entity
             try:
                 entity = await client.get_entity(int(chat_id))
             except:
@@ -452,6 +439,7 @@ def send_message():
                 except:
                     return {'success': False, 'error': 'Chat not found'}
             
+            # Send message
             if message:
                 await client.send_message(entity, message)
             
@@ -462,14 +450,10 @@ def send_message():
         finally:
             await client.disconnect()
     
-    try:
-        result = run_async(send())
-        return jsonify(result)
-            
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    result = run_async(send())
+    return jsonify(result)
 
-# -------------------- REMOVE ACCOUNT --------------------
+# Remove account
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
     data = request.json
@@ -488,21 +472,24 @@ def remove_account():
     else:
         return jsonify({'success': False, 'error': 'Account not found'})
 
-# -------------------- HEALTH CHECK --------------------
+# Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
+        'temp_sessions': len(temp_data),
         'accounts_file_exists': os.path.exists(ACCOUNTS_FILE)
     })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('📱 TELEGRAM MANAGER - PERSISTENT STORAGE VERSION')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
+    print(f'✅ Accounts file: {ACCOUNTS_FILE}')
+    print(f'✅ File exists: {os.path.exists(ACCOUNTS_FILE)}')
     print('='*60 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=True)
