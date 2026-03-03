@@ -6,9 +6,11 @@ services:
     startCommand: gunicorn server:app
     envVars:
       - key: API_ID
-        value: 33465589  # Replace with your real API ID
+        value: 33465589
       - key: API_HASH
-        value: "08bdab35790bf1fdf20c16a50bd323b8"  # Replace with your real API hash
+        value: "08bdab35790bf1fdf20c16a50bd323b8"
+      - key: TELEGRAM_ACCOUNTS
+        value: "[]"  # Start with empty array
     disk:
       name: data
       mountPath: /opt/render/project/src
