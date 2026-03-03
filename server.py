@@ -9,7 +9,6 @@ from telethon.tl.types import (
     MessageMediaGame, MessageMediaInvoice
 )
 from telethon.utils import get_display_name
-from telethon.tl.types import PeerUser, PeerChat, PeerChannel
 import json
 import os
 import asyncio
@@ -18,8 +17,7 @@ import logging
 import threading
 import base64
 import io
-import mimetypes
-from urllib.parse import urlparse
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -48,21 +46,48 @@ MEDIA_CACHE_DIR = 'media_cache'
 if not os.path.exists(MEDIA_CACHE_DIR):
     os.makedirs(MEDIA_CACHE_DIR)
 
-# Load existing accounts if file exists
-if os.path.exists(ACCOUNTS_FILE):
-    try:
-        with open(ACCOUNTS_FILE, 'r') as f:
-            accounts = json.load(f)
-        logger.info(f"✅ Loaded {len(accounts)} accounts")
-    except Exception as e:
-        logger.error(f"⚠️ Error loading accounts: {e}")
+# Load existing accounts if file exists - FIXED: Better error handling
+def load_accounts():
+    global accounts
+    if os.path.exists(ACCOUNTS_FILE):
+        try:
+            with open(ACCOUNTS_FILE, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    accounts = json.loads(content)
+                    logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
+                else:
+                    accounts = []
+                    logger.info("📝 Accounts file is empty")
+        except json.JSONDecodeError as e:
+            logger.error(f"⚠️ Error parsing accounts.json: {e}")
+            # Backup corrupted file
+            if os.path.exists(ACCOUNTS_FILE):
+                os.rename(ACCOUNTS_FILE, f"accounts_backup_{int(time.time())}.json")
+            accounts = []
+        except Exception as e:
+            logger.error(f"⚠️ Error loading accounts: {e}")
+            accounts = []
+    else:
         accounts = []
+        logger.info("📝 No accounts file found, starting fresh")
+
+# Load accounts at startup
+load_accounts()
 
 def save_accounts():
     try:
+        # Create backup before saving
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r') as f:
+                old_content = f.read()
+            with open(f"accounts_backup_{int(time.time())}.json", 'w') as f:
+                f.write(old_content)
+        
+        # Save new accounts
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
-        logger.info(f"💾 Saved {len(accounts)} accounts")
+        logger.info(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
         return True
     except Exception as e:
         logger.error(f"❌ Error saving accounts: {e}")
@@ -128,15 +153,34 @@ def serve_home():
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     """Return all accounts with proper formatting for dashboard"""
+    global accounts
+    # Reload accounts to ensure we have the latest
+    load_accounts()
+    
     account_list = []
     for acc in accounts:
+        # Get name properly
+        name = acc.get('name', '')
+        if not name or name == 'User':
+            # Try to construct name from first/last
+            first = acc.get('first_name', '')
+            last = acc.get('last_name', '')
+            if first or last:
+                name = f"{first} {last}".strip()
+            else:
+                name = acc.get('phone', 'Unknown')
+        
         account_list.append({
             'id': acc['id'],
-            'phone': acc['phone'],
-            'name': acc.get('name', 'User'),
+            'phone': acc.get('phone', ''),
+            'name': name,
+            'first_name': acc.get('first_name', ''),
+            'last_name': acc.get('last_name', ''),
             'username': acc.get('username', ''),
             'session': acc.get('session', acc.get('string_session', ''))
         })
+    
+    logger.info(f"📋 Returning {len(account_list)} accounts")
     return jsonify({'success': True, 'accounts': account_list})
 
 # -------------------- ADD ACCOUNT (SEND OTP) --------------------
@@ -259,10 +303,23 @@ def verify_code():
         
         # Create new account with a unique ID
         me = result['me']
+        
+        # Generate a unique ID
+        new_id = 1
+        if accounts:
+            new_id = max([acc.get('id', 0) for acc in accounts]) + 1
+        
+        # Create full name
+        full_name = f"{me.get('first_name', '')} {me.get('last_name', '')}".strip()
+        if not full_name:
+            full_name = session['phone']
+        
         new_account = {
-            'id': max([acc['id'] for acc in accounts], default=0) + 1,
+            'id': new_id,
             'phone': session['phone'],
-            'name': f"{me.get('first_name', '')} {me.get('last_name', '')}".strip() or 'User',
+            'name': full_name,
+            'first_name': me.get('first_name', ''),
+            'last_name': me.get('last_name', ''),
             'username': me.get('username', ''),
             'user_id': me.get('id'),
             'session': result['session'],
@@ -270,13 +327,18 @@ def verify_code():
         }
         
         accounts.append(new_account)
-        save_accounts()
+        
+        # Save accounts immediately
+        if save_accounts():
+            logger.info(f"✅ Account saved successfully: {session['phone']}")
+        else:
+            logger.error(f"❌ Failed to save account: {session['phone']}")
         
         # Clean up temp data
         if session_id in temp_data:
             del temp_data[session_id]
         
-        logger.info(f"✅ Account added: {session['phone']}")
+        logger.info(f"✅ Account added: {session['phone']} (ID: {new_id})")
         return jsonify({'success': True, 'account': new_account})
         
     except Exception as e:
@@ -299,6 +361,9 @@ def get_messages():
     
     session_string = account.get('session', account.get('string_session', ''))
     
+    if not session_string:
+        return jsonify({'success': False, 'error': 'No session found for account'})
+    
     async def fetch_chats():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
         await client.connect()
@@ -320,7 +385,7 @@ def get_messages():
                 if dialog.is_user:
                     name = get_display_name(dialog.entity)
                     chat_type = 'user'
-                    if dialog.entity.bot:
+                    if hasattr(dialog.entity, 'bot') and dialog.entity.bot:
                         chat_type = 'bot'
                 elif dialog.is_group:
                     name = dialog.name or 'Unknown Group'
@@ -337,12 +402,46 @@ def get_messages():
                 # Get last message with media info
                 last_msg_text = ''
                 last_msg_media = None
-                last_msg_media_type = None
                 
                 if dialog.message:
-                    last_msg_text, last_msg_media, last_msg_media_type = await extract_message_info(dialog.message, client)
+                    if dialog.message.text:
+                        last_msg_text = dialog.message.text[:50]
+                        if len(dialog.message.text) > 50:
+                            last_msg_text += '...'
+                    elif dialog.message.media:
+                        # Check media type
+                        if isinstance(dialog.message.media, MessageMediaPhoto):
+                            last_msg_text = '📷 Photo'
+                            last_msg_media = 'photo'
+                        elif isinstance(dialog.message.media, MessageMediaDocument):
+                            attrs = dialog.message.media.document.attributes
+                            is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                            is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                            
+                            if is_video:
+                                last_msg_text = '🎥 Video'
+                                last_msg_media = 'video'
+                            elif is_audio:
+                                for attr in attrs:
+                                    if isinstance(attr, DocumentAttributeAudio):
+                                        if attr.voice:
+                                            last_msg_text = '🎤 Voice message'
+                                            last_msg_media = 'voice'
+                                        else:
+                                            last_msg_text = '🎵 Audio'
+                                            last_msg_media = 'audio'
+                                        break
+                            else:
+                                last_msg_text = '📎 Document'
+                                last_msg_media = 'document'
+                        elif isinstance(dialog.message.media, MessageMediaWebPage):
+                            last_msg_text = '🔗 Link'
+                            last_msg_media = 'webpage'
+                        else:
+                            last_msg_text = '📎 Media'
+                            last_msg_media = 'media'
                 
-                # Add chat to list with media info
+                # Add chat to list
                 chats.append({
                     'id': chat_id,
                     'title': name,
@@ -350,17 +449,50 @@ def get_messages():
                     'unread': dialog.unread_count or 0,
                     'lastMessage': last_msg_text,
                     'lastMessageMedia': last_msg_media,
-                    'lastMessageMediaType': last_msg_media_type,
                     'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None,
                     'pinned': dialog.pinned or False
                 })
                 
-                # Get last 30 messages for this chat with full media support
+                # Get last 20 messages for this chat
                 try:
-                    msgs = await client.get_messages(dialog.entity, limit=30)
+                    msgs = await client.get_messages(dialog.entity, limit=20)
                     for msg in msgs:
                         if msg:
-                            message_data = await create_message_data(msg, chat_id, client)
+                            message_data = {
+                                'chatId': chat_id,
+                                'text': msg.text or '',
+                                'date': msg.date.timestamp(),
+                                'out': msg.out,
+                                'id': msg.id,
+                                'hasMedia': msg.media is not None
+                            }
+                            
+                            # Add media type info
+                            if msg.media:
+                                if isinstance(msg.media, MessageMediaPhoto):
+                                    message_data['mediaType'] = 'photo'
+                                elif isinstance(msg.media, MessageMediaDocument):
+                                    attrs = msg.media.document.attributes
+                                    is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                                    is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                                    
+                                    if is_video:
+                                        message_data['mediaType'] = 'video'
+                                    elif is_audio:
+                                        for attr in attrs:
+                                            if isinstance(attr, DocumentAttributeAudio):
+                                                if attr.voice:
+                                                    message_data['mediaType'] = 'voice'
+                                                else:
+                                                    message_data['mediaType'] = 'audio'
+                                                break
+                                    else:
+                                        message_data['mediaType'] = 'document'
+                                elif isinstance(msg.media, MessageMediaWebPage):
+                                    message_data['mediaType'] = 'webpage'
+                                else:
+                                    message_data['mediaType'] = 'media'
+                            
                             all_messages.append(message_data)
                 except Exception as e:
                     logger.error(f"Error fetching messages for chat {chat_id}: {e}")
@@ -395,15 +527,18 @@ def get_messages():
         return jsonify({'success': False, 'error': str(e)})
 
 # -------------------- GET MEDIA FILE --------------------
-@app.route('/api/media/<int:account_id>/<path:media_id>')
-def get_media(account_id, media_id):
-    """Get media file by ID"""
+@app.route('/api/media/<int:account_id>/<int:message_id>')
+def get_media(account_id, message_id):
+    """Get media file by message ID"""
     # Find account
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'}), 404
     
     session_string = account.get('session', account.get('string_session', ''))
+    
+    if not session_string:
+        return jsonify({'success': False, 'error': 'No session found'}), 404
     
     async def download_media():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=60)
@@ -413,14 +548,14 @@ def get_media(account_id, media_id):
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}, 401
             
-            # Get message by ID (assuming media_id is message_id)
+            # Get the message
             try:
-                # Try to get the message
-                msg = await client.get_messages(None, ids=int(media_id))
+                msg = await client.get_messages(None, ids=message_id)
                 if not msg or not msg.media:
                     return {'success': False, 'error': 'Media not found'}, 404
                 
                 # Download media to memory
+                import io
                 media_data = await client.download_media(msg, file=bytes)
                 
                 # Determine mime type
@@ -446,6 +581,9 @@ def get_media(account_id, media_id):
     try:
         result = run_async(download_media())
         
+        if isinstance(result, tuple):
+            return jsonify({'success': False, 'error': result[0]['error']}), result[1]
+        
         if not result.get('success'):
             return jsonify({'success': False, 'error': result.get('error', 'Failed to get media')}), 500
         
@@ -454,22 +592,20 @@ def get_media(account_id, media_id):
             io.BytesIO(result['data']),
             mimetype=result['mime_type'],
             as_attachment=False,
-            download_name=f"media_{media_id}"
+            download_name=f"media_{message_id}"
         )
         
     except Exception as e:
         logger.error(f"Error in get-media: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# -------------------- SEND MESSAGE (WITH MEDIA SUPPORT) --------------------
+# -------------------- SEND MESSAGE --------------------
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
     account_id = data.get('accountId')
     chat_id = data.get('chatId')
     message = data.get('message')
-    media_type = data.get('mediaType')  # 'photo', 'video', 'document', etc.
-    media_data = data.get('mediaData')  # Base64 encoded media data
     
     if not all([account_id, chat_id]):
         return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
@@ -480,6 +616,9 @@ def send_message():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     session_string = account.get('session', account.get('string_session', ''))
+    
+    if not session_string:
+        return jsonify({'success': False, 'error': 'No session found for account'})
     
     async def send():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
@@ -493,45 +632,19 @@ def send_message():
             
             # Get entity
             try:
+                # Try as integer ID
                 entity = await client.get_entity(int(chat_id))
             except:
                 try:
+                    # Try as string
                     entity = await client.get_entity(chat_id)
-                except:
+                except Exception as e:
+                    logger.error(f"Error getting entity: {e}")
                     return {'success': False, 'error': 'Chat not found'}
             
-            # Send message with media if provided
-            if media_type and media_data:
-                # Decode base64 media
-                import base64
-                media_bytes = base64.b64decode(media_data.split(',')[1] if ',' in media_data else media_data)
-                
-                # Create temporary file
-                import tempfile
-                with tempfile.NamedTemporaryFile(delete=False, suffix=get_extension(media_type)) as tmp:
-                    tmp.write(media_bytes)
-                    tmp_path = tmp.name
-                
-                try:
-                    # Send media
-                    if media_type.startswith('image/'):
-                        await client.send_file(entity, tmp_path, caption=message)
-                    elif media_type.startswith('video/'):
-                        await client.send_file(entity, tmp_path, caption=message, supports_streaming=True)
-                    else:
-                        await client.send_file(entity, tmp_path, caption=message)
-                    
-                    # Clean up temp file
-                    os.unlink(tmp_path)
-                except Exception as e:
-                    os.unlink(tmp_path)
-                    raise e
-            else:
-                # Send text message
-                if message:
-                    await client.send_message(entity, message)
-                else:
-                    return {'success': False, 'error': 'Message or media required'}
+            # Send message
+            if message:
+                await client.send_message(entity, message)
             
             return {'success': True}
             
@@ -567,9 +680,11 @@ def remove_account():
     accounts = [acc for acc in accounts if acc['id'] != account_id]
     
     if len(accounts) < original_count:
-        save_accounts()
-        logger.info(f"🗑️ Removed account {account_id}")
-        return jsonify({'success': True})
+        if save_accounts():
+            logger.info(f"🗑️ Removed account {account_id}")
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to save after removal'})
     else:
         return jsonify({'success': False, 'error': 'Account not found'})
 
@@ -579,237 +694,9 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'temp_sessions': len(temp_data)
+        'temp_sessions': len(temp_data),
+        'accounts_file_exists': os.path.exists(ACCOUNTS_FILE)
     })
-
-# -------------------- HELPER FUNCTIONS --------------------
-async def extract_message_info(message, client):
-    """Extract message text and media info"""
-    text = ''
-    media_type = None
-    media_subtype = None
-    
-    if message.text:
-        text = message.text[:100]
-        if len(message.text) > 100:
-            text += '...'
-    
-    if message.media:
-        if isinstance(message.media, MessageMediaPhoto):
-            media_type = 'photo'
-            text = text or '📷 Photo'
-        elif isinstance(message.media, MessageMediaDocument):
-            media_type = 'document'
-            attrs = message.media.document.attributes
-            
-            # Check for video
-            if any(isinstance(attr, DocumentAttributeVideo) for attr in attrs):
-                media_type = 'video'
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeVideo):
-                        text = f'🎥 Video ({attr.duration}s)'
-                        break
-            # Check for audio/voice
-            elif any(isinstance(attr, DocumentAttributeAudio) for attr in attrs):
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeAudio):
-                        if attr.voice:
-                            media_type = 'voice'
-                            text = f'🎤 Voice message ({attr.duration}s)'
-                        else:
-                            media_type = 'audio'
-                            text = f'🎵 Audio: {attr.title or "Unknown"}'
-                        break
-            # Check for sticker
-            elif message.file and message.file.mime_type == 'image/webp' and any(isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.webp') for attr in attrs):
-                media_type = 'sticker'
-                text = '🎯 Sticker'
-            # Check for GIF
-            elif message.file and message.file.mime_type == 'video/mp4' and any(isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.gif') for attr in attrs):
-                media_type = 'gif'
-                text = '🎬 GIF'
-            else:
-                # Regular document
-                filename = 'Unknown'
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeFilename):
-                        filename = attr.file_name
-                        break
-                media_type = 'document'
-                text = f'📎 {filename}'
-        elif isinstance(message.media, MessageMediaWebPage):
-            media_type = 'webpage'
-            text = '🔗 Link'
-        elif isinstance(message.media, MessageMediaPoll):
-            media_type = 'poll'
-            text = f'📊 Poll: {message.media.poll.question}'
-        elif isinstance(message.media, MessageMediaContact):
-            media_type = 'contact'
-            text = f'👤 Contact: {message.media.first_name} {message.media.last_name or ""}'
-        elif isinstance(message.media, MessageMediaGeo) or isinstance(message.media, MessageMediaVenue):
-            media_type = 'location'
-            text = '📍 Location'
-        elif isinstance(message.media, MessageMediaGame):
-            media_type = 'game'
-            text = f'🎮 Game: {message.media.game.title}'
-        elif isinstance(message.media, MessageMediaInvoice):
-            media_type = 'invoice'
-            text = f'💰 Invoice: {message.media.title}'
-        else:
-            media_type = 'media'
-            text = text or '📎 Media'
-    
-    return text, media_type, media_type
-
-async def create_message_data(message, chat_id, client):
-    """Create message data dictionary with full media info"""
-    message_data = {
-        'chatId': chat_id,
-        'text': message.text or '',
-        'date': message.date.timestamp(),
-        'out': message.out,
-        'id': message.id,
-        'hasMedia': message.media is not None,
-        'views': getattr(message, 'views', 0),
-        'forwards': getattr(message, 'forwards', 0),
-        'reply_to_msg_id': message.reply_to_msg_id if hasattr(message, 'reply_to_msg_id') else None
-    }
-    
-    # Add media type info
-    if message.media:
-        if isinstance(message.media, MessageMediaPhoto):
-            message_data['mediaType'] = 'photo'
-            message_data['mediaPreview'] = '📷 Photo'
-            message_data['mediaId'] = message.id
-            # Try to get photo dimensions
-            if hasattr(message.media, 'photo') and hasattr(message.media.photo, 'sizes'):
-                sizes = message.media.photo.sizes
-                if sizes:
-                    last_size = sizes[-1]
-                    if hasattr(last_size, 'w') and hasattr(last_size, 'h'):
-                        message_data['mediaWidth'] = last_size.w
-                        message_data['mediaHeight'] = last_size.h
-            
-        elif isinstance(message.media, MessageMediaDocument):
-            attrs = message.media.document.attributes
-            message_data['mediaId'] = message.id
-            
-            # Get file info
-            if message.file:
-                message_data['fileName'] = message.file.name
-                message_data['fileSize'] = message.file.size
-                message_data['mimeType'] = message.file.mime_type
-            
-            # Check for video
-            if any(isinstance(attr, DocumentAttributeVideo) for attr in attrs):
-                message_data['mediaType'] = 'video'
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeVideo):
-                        message_data['mediaPreview'] = f'🎥 Video ({attr.duration}s)'
-                        message_data['duration'] = attr.duration
-                        message_data['mediaWidth'] = getattr(attr, 'w', 0)
-                        message_data['mediaHeight'] = getattr(attr, 'h', 0)
-                        break
-            
-            # Check for audio/voice
-            elif any(isinstance(attr, DocumentAttributeAudio) for attr in attrs):
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeAudio):
-                        if attr.voice:
-                            message_data['mediaType'] = 'voice'
-                            message_data['mediaPreview'] = f'🎤 Voice message ({attr.duration}s)'
-                        else:
-                            message_data['mediaType'] = 'audio'
-                            message_data['mediaPreview'] = f'🎵 Audio: {attr.title or "Unknown"}'
-                        message_data['duration'] = attr.duration
-                        message_data['title'] = attr.title
-                        message_data['performer'] = attr.performer
-                        break
-            
-            # Check for sticker
-            elif message.file and message.file.mime_type == 'image/webp':
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.webp'):
-                        message_data['mediaType'] = 'sticker'
-                        message_data['mediaPreview'] = '🎯 Sticker'
-                        message_data['stickerSet'] = getattr(message.media.document, 'sticker_set', None)
-                        break
-            
-            # Check for GIF
-            elif message.file and message.file.mime_type == 'video/mp4':
-                for attr in attrs:
-                    if isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.gif'):
-                        message_data['mediaType'] = 'gif'
-                        message_data['mediaPreview'] = '🎬 GIF'
-                        break
-            else:
-                # Regular document
-                message_data['mediaType'] = 'document'
-                message_data['mediaPreview'] = '📎 Document'
-        
-        elif isinstance(message.media, MessageMediaWebPage):
-            message_data['mediaType'] = 'webpage'
-            message_data['mediaPreview'] = '🔗 Link'
-            message_data['webpageUrl'] = message.media.webpage.url if hasattr(message.media.webpage, 'url') else ''
-            message_data['webpageTitle'] = message.media.webpage.title if hasattr(message.media.webpage, 'title') else ''
-            
-        elif isinstance(message.media, MessageMediaPoll):
-            message_data['mediaType'] = 'poll'
-            message_data['mediaPreview'] = f'📊 Poll: {message.media.poll.question}'
-            message_data['pollQuestion'] = message.media.poll.question
-            message_data['pollOptions'] = [opt.text for opt in message.media.poll.answers]
-            
-        elif isinstance(message.media, MessageMediaContact):
-            message_data['mediaType'] = 'contact'
-            message_data['mediaPreview'] = f'👤 Contact: {message.media.first_name} {message.media.last_name or ""}'
-            message_data['contactName'] = f"{message.media.first_name} {message.media.last_name or ''}"
-            message_data['contactPhone'] = message.media.phone_number
-            
-        elif isinstance(message.media, MessageMediaGeo) or isinstance(message.media, MessageMediaVenue):
-            message_data['mediaType'] = 'location'
-            message_data['mediaPreview'] = '📍 Location'
-            if isinstance(message.media, MessageMediaVenue):
-                message_data['venueTitle'] = message.media.title
-                message_data['venueAddress'] = message.media.address
-            
-        elif isinstance(message.media, MessageMediaGame):
-            message_data['mediaType'] = 'game'
-            message_data['mediaPreview'] = f'🎮 Game: {message.media.game.title}'
-            
-        elif isinstance(message.media, MessageMediaInvoice):
-            message_data['mediaType'] = 'invoice'
-            message_data['mediaPreview'] = f'💰 Invoice: {message.media.title}'
-            message_data['amount'] = message.media.total_amount if hasattr(message.media, 'total_amount') else 0
-            
-        else:
-            message_data['mediaType'] = 'media'
-            message_data['mediaPreview'] = '📎 Media'
-    
-    # Check for emoji-only message
-    if message.text and len(message.text) < 10:
-        import re
-        emoji_pattern = re.compile(r'[\U00010000-\U0010ffff]|[\u2000-\u3300]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF]', re.UNICODE)
-        if emoji_pattern.sub('', message.text).strip() == '':
-            message_data['isEmoji'] = True
-    
-    return message_data
-
-def get_extension(mime_type):
-    """Get file extension from mime type"""
-    ext_map = {
-        'image/jpeg': '.jpg',
-        'image/png': '.png',
-        'image/gif': '.gif',
-        'image/webp': '.webp',
-        'video/mp4': '.mp4',
-        'video/webm': '.webm',
-        'audio/mpeg': '.mp3',
-        'audio/ogg': '.ogg',
-        'audio/mp4': '.m4a',
-        'application/pdf': '.pdf',
-        'text/plain': '.txt'
-    }
-    return ext_map.get(mime_type, '.bin')
 
 # Error handler for 404
 @app.errorhandler(404)
@@ -825,23 +712,10 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FULL MEDIA SUPPORT')
+    print('📱 TELEGRAM MANAGER - FIXED ACCOUNT STORAGE')
     print('='*60)
-    print(f'✅ Loaded {len(accounts)} accounts')
-    print('✅ Full Media Support:')
-    print('   - Photos (with dimensions)')
-    print('   - Videos (with duration)')
-    print('   - Voice messages')
-    print('   - Audio files')
-    print('   - Stickers')
-    print('   - GIFs')
-    print('   - Documents')
-    print('   - Webpage previews')
-    print('   - Polls')
-    print('   - Contacts')
-    print('   - Locations')
-    print('   - Games')
-    print('   - Invoices')
+    print(f'✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}')
+    print(f'✅ File exists: {os.path.exists(ACCOUNTS_FILE)}')
     print('✅ Endpoints ready:')
     print('   - GET  /')
     print('   - GET  /login')
@@ -851,7 +725,7 @@ if __name__ == '__main__':
     print('   - POST /api/add-account')
     print('   - POST /api/verify-code')
     print('   - POST /api/get-messages')
-    print('   - GET  /api/media/<account_id>/<media_id>')
+    print('   - GET  /api/media/<account_id>/<message_id>')
     print('   - POST /api/send-message')
     print('   - POST /api/remove-account')
     print('   - GET  /api/health')
