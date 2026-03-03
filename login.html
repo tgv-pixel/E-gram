@@ -60,6 +60,19 @@
             margin-bottom: 16px;
             position: relative;
         }
+        /* Disable keyboard for code inputs */
+.code-input {
+    caret-color: transparent; /* Hides cursor */
+    -webkit-user-select: none; /* Prevents selection */
+    user-select: none;
+    pointer-events: none; /* Prevents focus via mouse */
+}
+
+/* But keep them focusable via JavaScript */
+.code-input:focus {
+    outline: 2px solid #0088cc;
+    outline-offset: 2px;
+}
 
         .country-selector select {
             width: 100%;
