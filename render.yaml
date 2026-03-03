@@ -4,6 +4,10 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app
+    disk:
+      name: telegram-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
     envVars:
       - key: API_ID
         value: 33465589
