@@ -33,6 +33,37 @@ temp_data = {}
 accounts = []
 ACCOUNTS_FILE = 'accounts.json'
 
+# Debug startup
+print("\n" + "="*60)
+print("🚀 TELEGRAM MANAGER - STARTING UP")
+print("="*60)
+
+# Check if accounts.json exists and is writable
+if os.path.exists(ACCOUNTS_FILE):
+    print(f"✅ {ACCOUNTS_FILE} exists")
+    try:
+        with open(ACCOUNTS_FILE, 'r') as f:
+            content = f.read()
+            print(f"📄 File size: {len(content)} bytes")
+            if content.strip():
+                print(f"📄 Content preview: {content[:100]}")
+            else:
+                print("⚠️ File is empty")
+    except Exception as e:
+        print(f"❌ Error reading file: {e}")
+else:
+    print(f"❌ {ACCOUNTS_FILE} does not exist - will be created on first account add")
+    
+    # Try to create it
+    try:
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump([], f)
+        print(f"✅ Created empty {ACCOUNTS_FILE}")
+    except Exception as e:
+        print(f"❌ Could not create {ACCOUNTS_FILE}: {e}")
+
+print("="*60 + "\n")
+
 # IMPORTANT: This function ensures accounts persist across restarts
 def load_accounts():
     global accounts
@@ -69,18 +100,36 @@ def save_accounts():
         
         logger.info(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
         
-        # Create backup with timestamp
-        backup_file = f"accounts_backup_{int(time.time())}.json"
-        with open(backup_file, 'w') as f:
-            json.dump(accounts, f, indent=2)
+        # Also print to console for debugging
+        print(f"\n📝 Accounts saved: {len(accounts)} account(s)")
+        for i, acc in enumerate(accounts):
+            print(f"   {i+1}. ID: {acc.get('id')}, Phone: {acc.get('phone')}, Name: {acc.get('name')}")
         
         return True
     except Exception as e:
         logger.error(f"❌ Error saving accounts: {e}")
         return False
 
+def debug_accounts():
+    """Print debug info about accounts"""
+    print("\n" + "="*50)
+    print("🔍 ACCOUNTS DEBUG INFO")
+    print("="*50)
+    print(f"Total accounts in memory: {len(accounts)}")
+    for i, acc in enumerate(accounts):
+        print(f"\nAccount {i+1}:")
+        print(f"  ID: {acc.get('id')}")
+        print(f"  Phone: {acc.get('phone')}")
+        print(f"  Name: {acc.get('name')}")
+        print(f"  Username: {acc.get('username')}")
+        print(f"  Has session: {'✅ Yes' if acc.get('session') else '❌ No'}")
+        if acc.get('session'):
+            print(f"  Session length: {len(acc.get('session', ''))} chars")
+    print("="*50 + "\n")
+
 # Load accounts at startup
 load_accounts()
+debug_accounts()
 
 # Run async function
 def run_async(coro):
@@ -133,9 +182,10 @@ def get_accounts():
             'first_name': acc.get('first_name', ''),
             'last_name': acc.get('last_name', ''),
             'username': acc.get('username', ''),
-            'session': acc.get('session', '')
+            'session': acc.get('session', '')[:20] + '...' if acc.get('session') else ''  # Truncate for security
         })
     
+    print(f"📊 Returning {len(account_list)} accounts to client")
     return jsonify({'success': True, 'accounts': account_list})
 
 # Send OTP
@@ -179,7 +229,7 @@ def add_account():
     
     return jsonify({'success': True, 'session_id': session_id})
 
-# Verify code
+# Verify code - FIXED VERSION
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
     data = request.json
@@ -233,6 +283,10 @@ def verify_code():
     
     # Create new account
     me = result['me']
+    
+    # Load existing accounts to get the next ID
+    load_accounts()  # Reload to ensure we have latest
+    
     new_id = 1
     if accounts:
         new_id = max([acc.get('id', 0) for acc in accounts]) + 1
@@ -254,14 +308,18 @@ def verify_code():
     }
     
     accounts.append(new_account)
-    save_accounts()
+    
+    # Force save immediately
+    save_success = save_accounts()
+    print(f"📝 Account save attempt: {'✅ SUCCESS' if save_success else '❌ FAILED'}")
+    print(f"📝 Accounts now: {len(accounts)}")
     
     if session_id in temp_data:
         del temp_data[session_id]
     
     return jsonify({'success': True, 'account': new_account})
 
-# Get messages and chats - IMPROVED VERSION
+# Get messages and chats - IMPROVED VERSION WITH BETTER ERROR HANDLING
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -270,14 +328,28 @@ def get_messages():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
+    # Print debug info
+    print(f"\n🔍 Looking for account with ID: {account_id}")
+    print(f"📊 Total accounts in memory: {len(accounts)}")
+    
+    # Debug: Show all accounts
+    for acc in accounts:
+        print(f"   - ID: {acc.get('id')}, Phone: {acc.get('phone')}, Name: {acc.get('name')}")
+    
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
+        print(f"❌ Account NOT found for ID: {account_id}")
         return jsonify({'success': False, 'error': 'Account not found'})
+    
+    print(f"✅ Account found: {account.get('phone')}")
     
     session_string = account.get('session', '')
     
     if not session_string:
+        print(f"❌ No session found for account {account_id}")
         return jsonify({'success': False, 'error': 'No session found for account'})
+    
+    print(f"✅ Session found, length: {len(session_string)}")
     
     async def fetch_chats():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
@@ -289,11 +361,14 @@ def get_messages():
                 return {'success': False, 'error': 'Not authorized'}
             
             # Get all dialogs (chats)
+            print("📱 Fetching dialogs...")
             dialogs = await client.get_dialogs(limit=100)
             
             if not dialogs:
+                print("📭 No dialogs found")
                 return {'success': True, 'chats': [], 'messages': []}
             
+            print(f"📱 Found {len(dialogs)} dialogs")
             chats = []
             all_messages = []
             
@@ -455,6 +530,7 @@ def get_messages():
                     logger.error(f"Error getting messages for chat {chat_id}: {e}")
                     continue
             
+            print(f"✅ Returning {len(chats)} chats and {len(all_messages)} messages")
             return {
                 'success': True,
                 'chats': chats,
@@ -668,7 +744,7 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED ACCOUNT STORAGE')
+    print('📱 TELEGRAM MANAGER - READY TO GO')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}')
     print(f'✅ File exists: {os.path.exists(ACCOUNTS_FILE)}')
@@ -687,4 +763,4 @@ if __name__ == '__main__':
     print('   - GET  /api/health')
     print('='*60 + '\n')
     
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
