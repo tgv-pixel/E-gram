@@ -514,7 +514,7 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
             background: #0e1621;
             background-image: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 30px 30px;
@@ -574,30 +574,90 @@
             border-bottom-right-radius: 4px;
         }
 
-        /* Media message styles */
-        .media-message {
+        /* Media message styles - UPDATED FOR ACTUAL MEDIA */
+        .media-container {
+            max-width: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .media-image {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+
+        .media-image:hover {
+            transform: scale(1.02);
+        }
+
+        .media-video {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+        }
+
+        .media-audio {
+            width: 100%;
+            height: 40px;
+            border-radius: 20px;
+            background: #242f3d;
+        }
+
+        .media-document {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             background: rgba(255,255,255,0.05);
-            padding: 8px 12px;
+            padding: 12px;
             border-radius: 12px;
             margin-bottom: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .media-document:hover {
+            background: rgba(255,255,255,0.1);
         }
 
         .media-icon {
-            font-size: 1.5rem;
+            font-size: 2rem;
         }
 
-        .media-label {
+        .media-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .media-name {
+            font-weight: 600;
             font-size: 0.9rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .media-size {
+            font-size: 0.75rem;
             color: #8e9fad;
         }
 
+        .media-download {
+            color: #6ab2f2;
+            font-size: 1.2rem;
+        }
+
         /* Sticker and GIF styles */
-        .sticker-message {
+        .sticker-container {
             max-width: 150px;
             max-height: 150px;
+            cursor: pointer;
         }
 
         .sticker-image {
@@ -606,35 +666,111 @@
             border-radius: 12px;
         }
 
-        .gif-message {
-            max-width: 200px;
-            max-height: 200px;
+        .gif-container {
+            max-width: 250px;
+            max-height: 250px;
+            cursor: pointer;
         }
 
-        .gif-image {
+        .gif-video {
             width: 100%;
             height: auto;
             border-radius: 12px;
         }
 
+        /* Poll styles */
+        .poll-container {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+        }
+
+        .poll-question {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .poll-option {
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        /* Location styles */
+        .location-container {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .location-icon {
+            font-size: 1.5rem;
+            margin-right: 8px;
+        }
+
+        /* Contact styles */
+        .contact-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+        }
+
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #2b5278;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-weight: 600;
+        }
+
+        .contact-phone {
+            font-size: 0.8rem;
+            color: #8e9fad;
+        }
+
+        /* Webpage preview */
+        .webpage-container {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .webpage-title {
+            font-weight: 600;
+            color: #6ab2f2;
+            margin-bottom: 4px;
+        }
+
+        .webpage-url {
+            font-size: 0.8rem;
+            color: #8e9fad;
+            word-break: break-all;
+        }
+
         .emoji-message {
             font-size: 3rem;
             padding: 10px;
-        }
-
-        .media-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            max-width: 300px;
-        }
-
-        .media-thumb {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-            cursor: pointer;
         }
 
         .message-meta {
@@ -796,7 +932,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 1001;
             align-items: center;
             justify-content: center;
@@ -809,9 +945,16 @@
         .modal-content {
             max-width: 90%;
             max-height: 90%;
+            position: relative;
         }
 
         .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+        }
+
+        .modal-video {
             max-width: 100%;
             max-height: 90vh;
             border-radius: 8px;
@@ -831,13 +974,31 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 1002;
         }
 
         .modal-close:hover {
             background: rgba(255,255,255,0.2);
         }
 
-        /* Responsive - FIXED FOR MOBILE */
+        .modal-download {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: #4c9ce0;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
             .chats-panel {
                 width: 100%;
@@ -887,6 +1048,25 @@
 
         .mobile-back-btn:hover {
             background: #242f3d;
+        }
+
+        /* Media loading */
+        .media-loading {
+            width: 100%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8e9fad;
+        }
+
+        .spinner {
+            animation: rotate 1s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -947,9 +1127,10 @@
                 <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
                 <div class="compose-actions">
                     <button class="compose-action-btn" onclick="showEmojiPicker()" title="Emoji">😊</button>
-                    <button class="compose-action-btn" onclick="attachMedia()" title="Attach">📎</button>
+                    <button class="compose-action-btn" onclick="triggerFileUpload()" title="Attach">📎</button>
                     <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
                 </div>
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(event)">
             </div>
         </div>
     </div>
@@ -969,9 +1150,10 @@
     <!-- Media Preview Modal -->
     <div class="modal" id="mediaModal">
         <div class="modal-close" onclick="hideMediaModal()">✕</div>
-        <div class="modal-content">
-            <img class="modal-image" id="modalImage" src="" alt="Media preview">
+        <div class="modal-content" id="modalContent">
+            <!-- Content will be dynamically added -->
         </div>
+        <a class="modal-download" id="modalDownloadBtn" download>⬇️</a>
     </div>
 
     <!-- Toast Notification -->
@@ -986,6 +1168,7 @@
         let messages = [];
         let refreshInterval = null;
         let accountToRemove = null;
+        let selectedFile = null;
 
         // Chat type mapping
         const chatTypes = {
@@ -1016,10 +1199,12 @@
         const removeModal = document.getElementById('removeModal');
         const removeModalBody = document.getElementById('removeModalBody');
         const mediaModal = document.getElementById('mediaModal');
-        const modalImage = document.getElementById('modalImage');
+        const modalContent = document.getElementById('modalContent');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
         const toast = document.getElementById('toast');
         const chatsPanel = document.getElementById('chatsPanel');
         const messagesPanel = document.getElementById('messagesPanel');
+        const fileInput = document.getElementById('fileInput');
 
         // ---------- Helper Functions ----------
         function showToast(message, type = 'success') {
@@ -1044,23 +1229,88 @@
             }
         }
 
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Get media URL
+        function getMediaUrl(accountId, mediaId) {
+            return `/api/media/${accountId}/${mediaId}`;
+        }
+
         // Media functions
-        function showMediaModal(src) {
-            modalImage.src = src;
+        function showMediaModal(mediaUrl, mediaType, fileName = '') {
+            modalContent.innerHTML = '';
+            
+            if (mediaType === 'photo' || mediaType === 'image') {
+                const img = document.createElement('img');
+                img.src = mediaUrl;
+                img.className = 'modal-image';
+                img.alt = 'Media preview';
+                modalContent.appendChild(img);
+                modalDownloadBtn.href = mediaUrl;
+            } else if (mediaType === 'video' || mediaType === 'gif') {
+                const video = document.createElement('video');
+                video.src = mediaUrl;
+                video.className = 'modal-video';
+                video.controls = true;
+                video.autoplay = true;
+                video.loop = (mediaType === 'gif');
+                modalContent.appendChild(video);
+                modalDownloadBtn.href = mediaUrl;
+            } else if (mediaType === 'audio') {
+                const audio = document.createElement('audio');
+                audio.src = mediaUrl;
+                audio.controls = true;
+                audio.autoplay = false;
+                audio.style.width = '100%';
+                modalContent.appendChild(audio);
+                modalDownloadBtn.href = mediaUrl;
+            } else {
+                // Document - show download link
+                const div = document.createElement('div');
+                div.style.textAlign = 'center';
+                div.style.padding = '40px';
+                div.style.background = '#17212b';
+                div.style.borderRadius = '12px';
+                div.innerHTML = `
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📄</div>
+                    <div style="font-size: 1.2rem; margin-bottom: 20px;">${fileName || 'Document'}</div>
+                    <a href="${mediaUrl}" download style="background: #4c9ce0; color: white; padding: 12px 24px; border-radius: 30px; text-decoration: none;">Download File</a>
+                `;
+                modalContent.appendChild(div);
+                modalDownloadBtn.href = mediaUrl;
+            }
+            
+            modalDownloadBtn.download = fileName || 'download';
             mediaModal.classList.add('show');
         }
 
         function hideMediaModal() {
             mediaModal.classList.remove('show');
-            modalImage.src = '';
+            modalContent.innerHTML = '';
+            modalDownloadBtn.href = '#';
         }
 
         function showEmojiPicker() {
             showToast('Emoji picker coming soon!', 'info');
         }
 
-        function attachMedia() {
-            showToast('Media attachment coming soon!', 'info');
+        function triggerFileUpload() {
+            fileInput.click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showToast(`Selected: ${file.name}`, 'info');
+            }
         }
 
         // Mobile navigation
@@ -1393,6 +1643,15 @@
                         case 'gif':
                             lastMsg = '🎬 GIF';
                             break;
+                        case 'poll':
+                            lastMsg = '📊 Poll';
+                            break;
+                        case 'contact':
+                            lastMsg = '👤 Contact';
+                            break;
+                        case 'location':
+                            lastMsg = '📍 Location';
+                            break;
                         default:
                             lastMsg = lastMsg || 'No messages yet';
                     }
@@ -1404,7 +1663,7 @@
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
                 
-                // Determine chat type (you'd get this from server)
+                // Determine chat type
                 const chatType = chat.type || 'user';
                 const typeIcon = chatTypes[chatType] || '👤';
                 
@@ -1486,84 +1745,10 @@
                 
                 // Check if message has media
                 if (msg.hasMedia || msg.mediaType) {
-                    let mediaIcon = '📎';
-                    let mediaText = 'Media';
-                    
-                    switch(msg.mediaType) {
-                        case 'photo':
-                            mediaIcon = '📷';
-                            mediaText = 'Photo';
-                            messageContent = `
-                                <div class="media-message" onclick="showMediaModal('https://via.placeholder.com/300')">
-                                    <span class="media-icon">${mediaIcon}</span>
-                                    <span class="media-label">${mediaText}</span>
-                                </div>
-                            `;
-                            break;
-                        case 'video':
-                            mediaIcon = '🎥';
-                            mediaText = 'Video';
-                            messageContent = `
-                                <div class="media-message">
-                                    <span class="media-icon">${mediaIcon}</span>
-                                    <span class="media-label">${mediaText}</span>
-                                </div>
-                            `;
-                            break;
-                        case 'voice':
-                            mediaIcon = '🎤';
-                            mediaText = 'Voice message';
-                            messageContent = `
-                                <div class="media-message">
-                                    <span class="media-icon">${mediaIcon}</span>
-                                    <span class="media-label">${mediaText}</span>
-                                    <audio controls style="width: 200px; height: 40px;">
-                                        <source src="#" type="audio/ogg">
-                                    </audio>
-                                </div>
-                            `;
-                            break;
-                        case 'sticker':
-                            messageContent = `
-                                <div class="sticker-message">
-                                    <img class="sticker-image" src="https://via.placeholder.com/150/4c9ce0/ffffff?text=Sticker" alt="sticker">
-                                </div>
-                            `;
-                            break;
-                        case 'gif':
-                            messageContent = `
-                                <div class="gif-message">
-                                    <img class="gif-image" src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDZ5M3JxMDRydG1oM2Z6cWJ5eGZ6bWZ5dWZ6eGZ6cWJ5eGZ6cWJ5eGZ6cQ/3o7abB06u9bNzA8LC8/giphy.gif" alt="gif">
-                                </div>
-                            `;
-                            break;
-                        case 'document':
-                            mediaIcon = '📎';
-                            mediaText = 'Document';
-                            messageContent = `
-                                <div class="media-message">
-                                    <span class="media-icon">${mediaIcon}</span>
-                                    <span class="media-label">${mediaText}</span>
-                                </div>
-                            `;
-                            break;
-                        default:
-                            messageContent = `
-                                <div class="media-message">
-                                    <span class="media-icon">${mediaIcon}</span>
-                                    <span class="media-label">${mediaText}</span>
-                                </div>
-                            `;
-                    }
-                    
-                    // Add text if present
-                    if (msg.text) {
-                        messageContent += `<div>${escapeHtml(msg.text)}</div>`;
-                    }
+                    messageContent = renderMediaContent(msg);
                 } else {
                     // Check if message is just emoji
-                    const isEmoji = /^(\p{Emoji})+$/u.test(msg.text?.trim());
-                    if (isEmoji && msg.text?.length < 10) {
+                    if (msg.isEmoji) {
                         messageContent = `<div class="emoji-message">${escapeHtml(msg.text)}</div>`;
                     } else {
                         // Text only message
@@ -1578,6 +1763,8 @@
                             <div class="message-meta">
                                 <span>${escapeHtml(timeStr)}</span>
                                 ${msg.out ? '✓✓' : ''}
+                                ${msg.views ? `<span>👁️ ${msg.views}</span>` : ''}
+                                ${msg.forwards ? `<span>↪️ ${msg.forwards}</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1592,11 +1779,125 @@
             }, 100);
         }
 
+        function renderMediaContent(msg) {
+            const mediaUrl = getMediaUrl(currentAccount.id, msg.id);
+            
+            switch(msg.mediaType) {
+                case 'photo':
+                    return `
+                        <div class="media-container" onclick="showMediaModal('${mediaUrl}', 'photo')">
+                            <img class="media-image" src="${mediaUrl}" alt="Photo" loading="lazy" 
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%20viewBox%3D%220%200%20200%20200%22%3E%3Crect%20width%3D%22200%22%20height%3D%22200%22%20fill%3D%22%232b3945%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%22115%22%20font-size%3D%2220%22%20fill%3D%22%238e9fad%22%3E📷%20Photo%3C%2Ftext%3E%3C%2Fsvg%3E';">
+                        </div>
+                        ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+                    `;
+                    
+                case 'video':
+                    return `
+                        <div class="media-container" onclick="showMediaModal('${mediaUrl}', 'video')">
+                            <video class="media-video" src="${mediaUrl}" poster="" preload="metadata">
+                                <source src="${mediaUrl}" type="video/mp4">
+                            </video>
+                        </div>
+                        ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+                    `;
+                    
+                case 'gif':
+                    return `
+                        <div class="gif-container" onclick="showMediaModal('${mediaUrl}', 'gif')">
+                            <video class="gif-video" src="${mediaUrl}" autoplay loop muted playsinline>
+                                <source src="${mediaUrl}" type="video/mp4">
+                            </video>
+                        </div>
+                        ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+                    `;
+                    
+                case 'sticker':
+                    return `
+                        <div class="sticker-container" onclick="showMediaModal('${mediaUrl}', 'image')">
+                            <img class="sticker-image" src="${mediaUrl}" alt="Sticker" loading="lazy">
+                        </div>
+                    `;
+                    
+                case 'voice':
+                    return `
+                        <div class="media-container">
+                            <audio class="media-audio" src="${mediaUrl}" controls preload="metadata"></audio>
+                        </div>
+                        ${msg.duration ? `<div style="font-size:0.8rem; color:#8e9fad;">${msg.duration}s</div>` : ''}
+                    `;
+                    
+                case 'audio':
+                    return `
+                        <div class="media-container">
+                            <audio class="media-audio" src="${mediaUrl}" controls preload="metadata"></audio>
+                        </div>
+                        ${msg.title ? `<div>${escapeHtml(msg.title)}</div>` : ''}
+                        ${msg.performer ? `<div style="font-size:0.8rem; color:#8e9fad;">${escapeHtml(msg.performer)}</div>` : ''}
+                    `;
+                    
+                case 'document':
+                    return `
+                        <div class="media-document" onclick="showMediaModal('${mediaUrl}', 'document', '${escapeJsString(msg.fileName || 'Document')}')">
+                            <div class="media-icon">📄</div>
+                            <div class="media-info">
+                                <div class="media-name">${escapeHtml(msg.fileName || 'Document')}</div>
+                                <div class="media-size">${msg.fileSize ? formatFileSize(msg.fileSize) : ''}</div>
+                            </div>
+                            <div class="media-download">⬇️</div>
+                        </div>
+                        ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+                    `;
+                    
+                case 'webpage':
+                    return `
+                        <div class="webpage-container" onclick="window.open('${escapeJsString(msg.webpageUrl)}', '_blank')">
+                            <div class="webpage-title">${escapeHtml(msg.webpageTitle || 'Link')}</div>
+                            <div class="webpage-url">${escapeHtml(msg.webpageUrl || '')}</div>
+                        </div>
+                        ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+                    `;
+                    
+                case 'poll':
+                    return `
+                        <div class="poll-container">
+                            <div class="poll-question">📊 ${escapeHtml(msg.pollQuestion || 'Poll')}</div>
+                            ${msg.pollOptions ? msg.pollOptions.map(opt => 
+                                `<div class="poll-option">${escapeHtml(opt)}</div>`
+                            ).join('') : ''}
+                        </div>
+                    `;
+                    
+                case 'contact':
+                    return `
+                        <div class="contact-container">
+                            <div class="contact-avatar">👤</div>
+                            <div class="contact-info">
+                                <div class="contact-name">${escapeHtml(msg.contactName || 'Contact')}</div>
+                                <div class="contact-phone">${escapeHtml(msg.contactPhone || '')}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'location':
+                    return `
+                        <div class="location-container" onclick="window.open('https://maps.google.com/?q=${escapeJsString(msg.venueTitle || 'Location')}', '_blank')">
+                            <span class="location-icon">📍</span>
+                            <span>${escapeHtml(msg.venueTitle || 'Location')}</span>
+                            ${msg.venueAddress ? `<div style="font-size:0.8rem; color:#8e9fad;">${escapeHtml(msg.venueAddress)}</div>` : ''}
+                        </div>
+                    `;
+                    
+                default:
+                    return `<div>${escapeHtml(msg.text || 'Media message')}</div>`;
+            }
+        }
+
         window.sendMessage = async function() {
             const message = messageInput.value.trim();
             
-            if (!message || !currentAccount || !currentChat) {
-                if (!message) {
+            if ((!message && !selectedFile) || !currentAccount || !currentChat) {
+                if (!message && !selectedFile) {
                     messageInput.focus();
                 }
                 return;
@@ -1608,15 +1909,41 @@
             sendBtn.disabled = true;
             
             try {
-                const res = await fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: currentChat.id,
-                        message: messageText
-                    })
-                });
+                let res;
+                
+                if (selectedFile) {
+                    // Send with media
+                    const reader = new FileReader();
+                    const fileData = await new Promise((resolve) => {
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(selectedFile);
+                    });
+                    
+                    res = await fetch('/api/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accountId: currentAccount.id,
+                            chatId: currentChat.id,
+                            message: messageText,
+                            mediaType: selectedFile.type,
+                            mediaData: fileData
+                        })
+                    });
+                    
+                    selectedFile = null;
+                } else {
+                    // Send text only
+                    res = await fetch('/api/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accountId: currentAccount.id,
+                            chatId: currentChat.id,
+                            message: messageText
+                        })
+                    });
+                }
                 
                 const data = await res.json();
                 
@@ -1628,7 +1955,8 @@
                         date: Date.now() / 1000,
                         out: true,
                         id: Date.now(),
-                        hasMedia: false
+                        hasMedia: !!selectedFile,
+                        mediaType: selectedFile ? selectedFile.type.split('/')[0] : null
                     };
                     messages.push(newMsg);
                     displayMessages(currentChat.id);
@@ -1684,4 +2012,4 @@
         }
     </script>
 </body>
-    </html>
+                </html>
