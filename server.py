@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# Your API credentials
+# Your API credentials -这些是正确的
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
@@ -32,31 +32,18 @@ temp_data = {}
 accounts = []
 ACCOUNTS_FILE = 'accounts.json'
 
-# IMPORTANT: This function ensures accounts persist across restarts
+# Load existing accounts
 def load_accounts():
     global accounts
     try:
-        # Try to load from current directory first
         if os.path.exists(ACCOUNTS_FILE):
             with open(ACCOUNTS_FILE, 'r') as f:
                 content = f.read().strip()
                 accounts = json.loads(content) if content else []
                 logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
-                return
-        
-        # If not found, try to load from environment variable (for Render)
-        accounts_json = os.environ.get('ACCOUNTS_JSON')
-        if accounts_json:
-            accounts = json.loads(accounts_json)
-            logger.info(f"✅ Loaded {len(accounts)} accounts from environment variable")
-            # Save to file for next time
-            save_accounts()
-            return
-        
-        # If no accounts found anywhere, start fresh
-        accounts = []
-        logger.info("📝 No accounts found, starting fresh")
-        
+        else:
+            accounts = []
+            logger.info("📝 No accounts file found, starting fresh")
     except Exception as e:
         logger.error(f"⚠️ Error loading accounts: {e}")
         accounts = []
@@ -65,16 +52,7 @@ def save_accounts():
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
-        
-        # Also save to environment variable for Render (optional but helpful)
-        # Note: This won't persist across deployments, but helps during runtime
         logger.info(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
-        
-        # Create backup with timestamp
-        backup_file = f"accounts_backup_{int(time.time())}.json"
-        with open(backup_file, 'w') as f:
-            json.dump(accounts, f, indent=2)
-        
         return True
     except Exception as e:
         logger.error(f"❌ Error saving accounts: {e}")
@@ -117,7 +95,7 @@ def serve_home():
 # Get all accounts
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    load_accounts()  # Always reload to ensure latest
+    load_accounts()
     account_list = []
     
     for acc in accounts:
@@ -262,7 +240,7 @@ def verify_code():
     
     return jsonify({'success': True, 'account': new_account})
 
-# Get messages and chats
+# Get messages and chats - COMPLETELY FIXED VERSION
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -282,8 +260,40 @@ def get_messages():
         await client.connect()
         
         try:
-            # Get all dialogs
-            dialogs = await client.get_dialogs(limit=100)
+            # Add small delay to avoid rate limiting
+            await asyncio.sleep(1)
+            
+            # Check if authorized
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}
+            
+            # Get all dialogs with retry logic
+            max_retries = 3
+            dialogs = None
+            
+            for attempt in range(max_retries):
+                try:
+                    dialogs = await client.get_dialogs(limit=100)
+                    break
+                except errors.FloodWaitError as e:
+                    wait_time = e.seconds
+                    logger.info(f"Flood wait {wait_time} seconds, attempt {attempt + 1}/{max_retries}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(min(wait_time, 5))
+                    else:
+                        return {'success': False, 'error': f'Too many requests. Please wait {wait_time} seconds.'}
+                except Exception as e:
+                    error_str = str(e)
+                    if "key is not registered" in error_str:
+                        logger.error("Session expired -需要重新登录")
+                        return {'success': False, 'error': 'Session expired. Please re-add account.'}
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2)
+                    else:
+                        raise e
+            
+            if not dialogs:
+                return {'success': False, 'error': 'No chats found'}
             
             chats = []
             all_messages = []
@@ -293,18 +303,25 @@ def get_messages():
                 if not dialog:
                     continue
                 
+                # Add small delay between processing each dialog
+                await asyncio.sleep(0.1)
+                
                 # Get chat info
-                if dialog.is_user:
-                    name = get_display_name(dialog.entity) if dialog.entity else 'User'
-                    chat_type = 'bot' if (dialog.entity and hasattr(dialog.entity, 'bot') and dialog.entity.bot) else 'user'
-                elif dialog.is_group:
-                    name = dialog.name or 'Group'
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    name = dialog.name or 'Channel'
-                    chat_type = 'channel'
-                else:
-                    name = dialog.name or 'Unknown'
+                try:
+                    if dialog.is_user:
+                        name = get_display_name(dialog.entity) if dialog.entity else 'User'
+                        chat_type = 'bot' if (dialog.entity and hasattr(dialog.entity, 'bot') and dialog.entity.bot) else 'user'
+                    elif dialog.is_group:
+                        name = dialog.name or 'Group'
+                        chat_type = 'group'
+                    elif dialog.is_channel:
+                        name = dialog.name or 'Channel'
+                        chat_type = 'channel'
+                    else:
+                        name = dialog.name or 'Unknown'
+                        chat_type = 'unknown'
+                except:
+                    name = 'Unknown'
                     chat_type = 'unknown'
                 
                 chat_id = str(dialog.id) if dialog.id else '0'
@@ -315,28 +332,57 @@ def get_messages():
                 last_date = 0
                 
                 if dialog.message:
-                    # Get message text
-                    if dialog.message.text:
-                        last_msg_text = dialog.message.text[:50]
-                        if len(dialog.message.text) > 50:
-                            last_msg_text += '...'
-                    elif dialog.message.media:
-                        if isinstance(dialog.message.media, MessageMediaPhoto):
-                            last_msg_text = '📷 Photo'
-                            last_msg_media = 'photo'
-                        elif isinstance(dialog.message.media, MessageMediaDocument):
-                            last_msg_text = '📎 Document'
-                            last_msg_media = 'document'
-                        else:
-                            last_msg_text = '📎 Media'
-                            last_msg_media = 'media'
-                    
-                    # SAFELY get date
                     try:
+                        # Get message text
+                        if dialog.message.text:
+                            last_msg_text = dialog.message.text[:50]
+                            if len(dialog.message.text) > 50:
+                                last_msg_text += '...'
+                        elif dialog.message.media:
+                            if isinstance(dialog.message.media, MessageMediaPhoto):
+                                last_msg_text = '📷 Photo'
+                                last_msg_media = 'photo'
+                            elif isinstance(dialog.message.media, MessageMediaDocument):
+                                # Check if it's video or audio
+                                is_video = False
+                                is_audio = False
+                                is_voice = False
+                                
+                                for attr in dialog.message.media.document.attributes:
+                                    if isinstance(attr, DocumentAttributeVideo):
+                                        is_video = True
+                                        break
+                                    elif isinstance(attr, DocumentAttributeAudio):
+                                        is_audio = True
+                                        if attr.voice:
+                                            is_voice = True
+                                        break
+                                
+                                if is_video:
+                                    last_msg_text = '🎥 Video'
+                                    last_msg_media = 'video'
+                                elif is_voice:
+                                    last_msg_text = '🎤 Voice'
+                                    last_msg_media = 'voice'
+                                elif is_audio:
+                                    last_msg_text = '🎵 Audio'
+                                    last_msg_media = 'audio'
+                                else:
+                                    last_msg_text = '📎 Document'
+                                    last_msg_media = 'document'
+                            else:
+                                last_msg_text = '📎 Media'
+                                last_msg_media = 'media'
+                        
+                        # SAFELY get date
                         if hasattr(dialog.message, 'date') and dialog.message.date:
-                            last_date = dialog.message.date.timestamp()
-                    except:
-                        last_date = 0
+                            try:
+                                last_date = dialog.message.date.timestamp()
+                            except:
+                                last_date = 0
+                    except Exception as e:
+                        logger.error(f"Error processing message: {e}")
+                        last_msg_text = 'Message error'
                 
                 chats.append({
                     'id': chat_id,
@@ -349,10 +395,10 @@ def get_messages():
                     'pinned': dialog.pinned if hasattr(dialog, 'pinned') else False
                 })
                 
-                # Get last 20 messages
+                # Get last 10 messages (reduced from 20 to avoid rate limiting)
                 try:
                     if dialog.entity:
-                        msgs = await client.get_messages(dialog.entity, limit=20)
+                        msgs = await client.get_messages(dialog.entity, limit=10)
                         
                         for msg in msgs:
                             if not msg:
@@ -366,25 +412,77 @@ def get_messages():
                             except:
                                 msg_date = 0
                             
+                            msg_text = ''
+                            try:
+                                msg_text = msg.text or '' if msg.text else ''
+                            except:
+                                msg_text = ''
+                            
+                            msg_out = False
+                            try:
+                                msg_out = msg.out if hasattr(msg, 'out') else False
+                            except:
+                                msg_out = False
+                            
+                            msg_id = 0
+                            try:
+                                msg_id = msg.id if msg.id else 0
+                            except:
+                                msg_id = 0
+                            
+                            has_media = False
+                            try:
+                                has_media = msg.media is not None if hasattr(msg, 'media') else False
+                            except:
+                                has_media = False
+                            
                             message_data = {
                                 'chatId': chat_id,
-                                'text': msg.text or '' if msg.text else '',
+                                'text': msg_text,
                                 'date': msg_date,
-                                'out': msg.out if hasattr(msg, 'out') else False,
-                                'id': msg.id if msg.id else 0,
-                                'hasMedia': msg.media is not None if hasattr(msg, 'media') else False
+                                'out': msg_out,
+                                'id': msg_id,
+                                'hasMedia': has_media
                             }
                             
                             # Add media type
-                            if msg.media:
-                                if isinstance(msg.media, MessageMediaPhoto):
-                                    message_data['mediaType'] = 'photo'
-                                elif isinstance(msg.media, MessageMediaDocument):
-                                    message_data['mediaType'] = 'document'
-                                else:
+                            if has_media and msg.media:
+                                try:
+                                    if isinstance(msg.media, MessageMediaPhoto):
+                                        message_data['mediaType'] = 'photo'
+                                    elif isinstance(msg.media, MessageMediaDocument):
+                                        # Check if it's video or audio
+                                        is_video = False
+                                        is_audio = False
+                                        is_voice = False
+                                        
+                                        for attr in msg.media.document.attributes:
+                                            if isinstance(attr, DocumentAttributeVideo):
+                                                is_video = True
+                                                break
+                                            elif isinstance(attr, DocumentAttributeAudio):
+                                                is_audio = True
+                                                if attr.voice:
+                                                    is_voice = True
+                                                break
+                                        
+                                        if is_video:
+                                            message_data['mediaType'] = 'video'
+                                        elif is_voice:
+                                            message_data['mediaType'] = 'voice'
+                                        elif is_audio:
+                                            message_data['mediaType'] = 'audio'
+                                        else:
+                                            message_data['mediaType'] = 'document'
+                                    else:
+                                        message_data['mediaType'] = 'media'
+                                except:
                                     message_data['mediaType'] = 'media'
                             
                             all_messages.append(message_data)
+                except errors.FloodWaitError as e:
+                    logger.error(f"Flood wait on messages: {e.seconds}")
+                    continue
                 except Exception as e:
                     logger.error(f"Error getting messages for {chat_id}: {e}")
                     continue
@@ -395,8 +493,14 @@ def get_messages():
                 'messages': all_messages
             }
             
+        except errors.FloodWaitError as e:
+            logger.error(f"Flood wait error: {e.seconds} seconds")
+            return {'success': False, 'error': f'Too many requests. Please wait {e.seconds} seconds.'}
         except Exception as e:
-            logger.error(f"Error in fetch_chats: {e}")
+            error_str = str(e)
+            logger.error(f"Error in fetch_chats: {error_str}")
+            if "key is not registered" in error_str:
+                return {'success': False, 'error': 'Session expired. Please re-add account.'}
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -430,6 +534,9 @@ def send_message():
         await client.connect()
         
         try:
+            # Add small delay
+            await asyncio.sleep(0.5)
+            
             # Get entity
             try:
                 entity = await client.get_entity(int(chat_id))
@@ -445,6 +552,8 @@ def send_message():
             
             return {'success': True}
             
+        except errors.FloodWaitError as e:
+            return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
         finally:
@@ -485,11 +594,11 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - PERSISTENT STORAGE VERSION')
+    print('📱 TELEGRAM MANAGER - COMPLETELY FIXED VERSION')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
+    print(f'✅ API ID: {API_ID}')
     print(f'✅ Accounts file: {ACCOUNTS_FILE}')
-    print(f'✅ File exists: {os.path.exists(ACCOUNTS_FILE)}')
     print('='*60 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=True)
