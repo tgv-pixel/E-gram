@@ -1,1322 +1,860 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Telegram Multi-Account Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background: #0e1621;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #fff;
-            overflow: hidden;
-        }
-
-        /* ----- Header with account switcher ----- */
-        .app-header {
-            background: #17212b;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #2b3945;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-
-        .account-switcher {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 30px;
-            transition: background 0.2s;
-            position: relative;
-        }
-
-        .account-switcher:hover {
-            background: #242f3d;
-        }
-
-        .current-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .current-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .current-name {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .current-phone {
-            font-size: 0.75rem;
-            color: #8e9fad;
-        }
-
-        .dropdown-icon {
-            color: #8e9fad;
-            font-size: 1.2rem;
-            margin-left: 8px;
-        }
-
-        /* Dropdown menu */
-        .account-dropdown {
-            position: absolute;
-            top: 60px;
-            left: 16px;
-            background: #17212b;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            width: 280px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 100;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .account-dropdown.show {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            gap: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .dropdown-item:hover {
-            background: #242f3d;
-        }
-
-        .dropdown-item:first-child {
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-        }
-
-        .dropdown-item:last-child {
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-        }
-
-        .dropdown-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #2b5278;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .dropdown-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .dropdown-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .dropdown-phone {
-            font-size: 0.7rem;
-            color: #8e9fad;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions a, .header-actions button {
-            background: #2b3945;
-            color: #6ab2f2;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: 0.2s;
-            white-space: nowrap;
-            border: none;
-            cursor: pointer;
-        }
-
-        .header-actions a:hover, .header-actions button:hover {
-            background: #3a4a5a;
-        }
-
-        .refresh-btn {
-            background: #2b3945;
-            color: #6ab2f2;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: 0.2s;
-        }
-
-        .refresh-btn:hover {
-            background: #3a4a5a;
-            transform: rotate(180deg);
-        }
-
-        .refresh-btn.refreshing {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* ----- Main layout (two columns) ----- */
-        .main-layout {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        /* Chats sidebar */
-        .chats-panel {
-            width: 360px;
-            background: #17212b;
-            border-right: 1px solid #2b3945;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-        }
-
-        .chats-panel-header {
-            padding: 16px;
-            border-bottom: 1px solid #2b3945;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chats-panel-header h3 {
-            color: #8e9fad;
-            font-weight: 500;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
-        }
-
-        .chats-panel-header .badge {
-            background: #2b5278;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-        }
-
-        .chats-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-        }
-
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-bottom: 4px;
-        }
-
-        .chat-item:hover {
-            background: #242f3d;
-        }
-
-        .chat-item.active {
-            background: #2b5278;
-        }
-
-        .chat-avatar {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: white;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-
-        .chat-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .chat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-
-        .chat-name {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 180px;
-        }
-
-        .chat-time {
-            font-size: 0.75rem;
-            color: #8e9fad;
-            flex-shrink: 0;
-            margin-left: 8px;
-        }
-
-        .chat-last-msg {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-last-text {
-            font-size: 0.85rem;
-            color: #8e9fad;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 200px;
-        }
-
-        .chat-unread {
-            background: #4c9ce0;
-            color: white;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 12px;
-            min-width: 20px;
-            text-align: center;
-            margin-left: 8px;
-        }
-
-        /* Messages panel */
-        .messages-panel {
-            flex: 1;
-            background: #0e1621;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .messages-header {
-            background: #17212b;
-            padding: 16px 20px;
-            border-bottom: 1px solid #2b3945;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .messages-header h2 {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: #fff;
-        }
-
-        .messages-header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .messages-header-actions button {
-            background: #2b3945;
-            color: #6ab2f2;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: 0.2s;
-        }
-
-        .messages-header-actions button:hover {
-            background: #3a4a5a;
-        }
-
-        .messages-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .message-wrapper {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .message-wrapper.outgoing {
-            align-items: flex-end;
-        }
-
-        .message-bubble {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 20px;
-            word-wrap: break-word;
-            line-height: 1.5;
-            font-size: 0.95rem;
-            position: relative;
-        }
-
-        .incoming .message-bubble {
-            background: #17212b;
-            color: #fff;
-            border-bottom-left-radius: 4px;
-        }
-
-        .outgoing .message-bubble {
-            background: #2b5278;
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-
-        .media-message {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.05);
-            padding: 8px 12px;
-            border-radius: 12px;
-            margin-bottom: 4px;
-        }
-
-        .media-icon {
-            font-size: 1.5rem;
-        }
-
-        .media-label {
-            font-size: 0.9rem;
-            color: #8e9fad;
-        }
-
-        .message-meta {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 4px;
-            margin-top: 4px;
-            font-size: 0.7rem;
-            color: #8e9fad;
-            padding-right: 4px;
-        }
-
-        .outgoing .message-meta {
-            color: #a0c0e0;
-        }
-
-        .compose-area {
-            background: #17212b;
-            padding: 16px 20px;
-            border-top: 1px solid #2b3945;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .compose-input {
-            flex: 1;
-            background: #242f3d;
-            border: none;
-            border-radius: 30px;
-            padding: 14px 18px;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        .compose-input::placeholder {
-            color: #8e9fad;
-        }
-
-        .compose-input:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .send-btn {
-            background: #4c9ce0;
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            color: white;
-            font-size: 1.3rem;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            background: #6ab2f2;
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .loading, .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #8e9fad;
-            font-size: 1rem;
-        }
-
-        .error-message {
-            background: #8e2b2b;
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 16px;
-            text-align: center;
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #17212b;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            border: 1px solid #2b3945;
-            z-index: 1000;
-            display: none;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translate(-50%, 100%);
-                opacity: 0;
+from flask import Flask, send_file, jsonify, request, abort
+from flask_cors import CORS
+from telethon import TelegramClient, errors
+from telethon.sessions import StringSession
+from telethon.tl.types import (
+    MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage,
+    DocumentAttributeVideo, DocumentAttributeAudio, DocumentAttributeFilename,
+    MessageMediaPoll, MessageMediaContact, MessageMediaGeo, MessageMediaVenue,
+    MessageMediaGame, MessageMediaInvoice
+)
+from telethon.utils import get_display_name
+from telethon.tl.types import PeerUser, PeerChat, PeerChannel
+import json
+import os
+import asyncio
+from datetime import datetime
+import logging
+import threading
+import base64
+import io
+import mimetypes
+from urllib.parse import urlparse
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+CORS(app)
+
+# Your API credentials
+API_ID = int(os.environ.get('API_ID', 33465589))
+API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
+
+# Store temporary data for OTP
+temp_data = {}
+
+# Store accounts persistently
+accounts = []
+ACCOUNTS_FILE = 'accounts.json'
+
+# Create a global event loop for the main thread
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+# Media cache directory
+MEDIA_CACHE_DIR = 'media_cache'
+if not os.path.exists(MEDIA_CACHE_DIR):
+    os.makedirs(MEDIA_CACHE_DIR)
+
+# Load existing accounts if file exists
+if os.path.exists(ACCOUNTS_FILE):
+    try:
+        with open(ACCOUNTS_FILE, 'r') as f:
+            accounts = json.load(f)
+        logger.info(f"✅ Loaded {len(accounts)} accounts")
+    except Exception as e:
+        logger.error(f"⚠️ Error loading accounts: {e}")
+        accounts = []
+
+def save_accounts():
+    try:
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump(accounts, f, indent=2)
+        logger.info(f"💾 Saved {len(accounts)} accounts")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Error saving accounts: {e}")
+        return False
+
+# Fixed helper to run async functions
+def run_async(coro):
+    """Run async coroutine in the existing event loop"""
+    global loop
+    try:
+        # If we're in a thread, create a new event loop
+        if threading.current_thread() is not threading.main_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(coro)
+        else:
+            # In main thread, use the existing loop
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        # If no event loop is running, create one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+
+# -------------------- SERVE HTML FILES --------------------
+@app.route('/')
+def serve_index():
+    """Serve the login/index page"""
+    try:
+        return send_file('login.html')
+    except FileNotFoundError:
+        logger.error("login.html not found!")
+        return "login.html not found. Please check your repository.", 404
+
+@app.route('/login')
+def serve_login():
+    """Serve the login page"""
+    try:
+        return send_file('login.html')
+    except FileNotFoundError:
+        logger.error("login.html not found!")
+        return "login.html not found. Please check your repository.", 404
+
+@app.route('/dashboard')
+def serve_dashboard():
+    """Serve the dashboard page"""
+    try:
+        return send_file('dashboard.html')
+    except FileNotFoundError:
+        logger.error("dashboard.html not found!")
+        return "dashboard.html not found. Please check your repository.", 404
+
+@app.route('/home')
+def serve_home():
+    """Serve the home dashboard page"""
+    try:
+        return send_file('home.html')
+    except FileNotFoundError:
+        logger.error("home.html not found!")
+        return "home.html not found. Please check your repository.", 404
+
+# -------------------- GET ALL ACCOUNTS --------------------
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    """Return all accounts with proper formatting for dashboard"""
+    account_list = []
+    for acc in accounts:
+        account_list.append({
+            'id': acc['id'],
+            'phone': acc['phone'],
+            'name': acc.get('name', 'User'),
+            'username': acc.get('username', ''),
+            'session': acc.get('session', acc.get('string_session', ''))
+        })
+    return jsonify({'success': True, 'accounts': account_list})
+
+# -------------------- ADD ACCOUNT (SEND OTP) --------------------
+@app.route('/api/add-account', methods=['POST'])
+def add_account():
+    data = request.json
+    phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'})
+    
+    async def send_code():
+        client = TelegramClient(StringSession(), API_ID, API_HASH, timeout=30)
+        await client.connect()
+        try:
+            # Add a small delay to ensure connection is established
+            await asyncio.sleep(1)
+            result = await client.send_code_request(phone)
+            session_str = client.session.save()
+            return {
+                'success': True,
+                'phone_code_hash': result.phone_code_hash,
+                'session_str': session_str
             }
-            to {
-                transform: translate(-50%, 0);
-                opacity: 1;
-            }
+        except errors.FloodWaitError as e:
+            return {'success': False, 'error': f'Too many attempts. Wait {e.seconds} seconds'}
+        except Exception as e:
+            logger.error(f"Error in send_code: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(send_code())
+        
+        if not result.get('success'):
+            return jsonify({'success': False, 'error': result.get('error', 'Unknown error')})
+        
+        session_id = str(int(datetime.now().timestamp()))
+        temp_data[session_id] = {
+            'phone': phone,
+            'phone_code_hash': result['phone_code_hash'],
+            'session_str': result['session_str']
         }
+        logger.info(f"📱 OTP sent to {phone}")
+        return jsonify({'success': True, 'session_id': session_id})
+        
+    except Exception as e:
+        logger.error(f"Error in add-account: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
-        .toast.show {
-            display: block;
-        }
-
-        .toast.success {
-            border-left: 4px solid #4c9ce0;
-        }
-
-        .toast.error {
-            border-left: 4px solid #e04c4c;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 1001;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid #2b3945;
-        }
-
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #fff;
-        }
-
-        .modal-body {
-            margin-bottom: 24px;
-            color: #8e9fad;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: none;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .modal-btn.cancel {
-            background: #2b3945;
-            color: #fff;
-        }
-
-        .modal-btn.confirm {
-            background: #8e2b2b;
-            color: #fff;
-        }
-
-        .modal-btn.confirm:hover {
-            background: #b33a3a;
-        }
-
-        /* Responsive */
-        @media (max-width: 700px) {
-            .chats-panel {
-                width: 280px;
-            }
-        }
-
-        @media (max-width: 550px) {
-            .main-layout {
-                flex-direction: column;
-            }
-            .chats-panel {
-                width: 100%;
-                height: 40%;
-                border-right: none;
-                border-bottom: 1px solid #2b3945;
-            }
-            .messages-panel {
-                height: 60%;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="app-header">
-        <!-- Account switcher -->
-        <div class="account-switcher" id="accountSwitcher">
-            <div class="current-avatar" id="currentAvatar">?</div>
-            <div class="current-info">
-                <span class="current-name" id="currentName">Loading...</span>
-                <span class="current-phone" id="currentPhone"></span>
-            </div>
-            <span class="dropdown-icon">▼</span>
-        </div>
-
-        <!-- Dropdown menu -->
-        <div class="account-dropdown" id="accountDropdown"></div>
-
-        <div class="header-actions">
-            <button class="refresh-btn" id="refreshBtn" title="Refresh chats">↻</button>
-            <a href="/login">➕ Add Account</a>
-        </div>
-    </div>
-
-    <div class="main-layout">
-        <!-- Chats Panel -->
-        <div class="chats-panel">
-            <div class="chats-panel-header">
-                <h3>CHATS</h3>
-                <span class="badge" id="totalChats">0</span>
-            </div>
-            <div class="chats-scroll" id="chatsList">
-                <div class="loading">Loading chats...</div>
-            </div>
-        </div>
-
-        <!-- Messages Panel -->
-        <div class="messages-panel">
-            <div class="messages-header" id="messagesHeader" style="display: none;">
-                <h2 id="currentChatTitle"></h2>
-                <div class="messages-header-actions">
-                    <button onclick="refreshMessages()" title="Refresh messages">↻</button>
-                </div>
-            </div>
-            <div class="messages-scroll" id="messagesList">
-                <div class="empty-state">👈 Select a chat to start messaging</div>
-            </div>
-            <div class="compose-area" id="composeArea" style="display: none;">
-                <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Remove Account Modal -->
-    <div class="modal" id="removeModal">
-        <div class="modal-content">
-            <div class="modal-title">Remove Account</div>
-            <div class="modal-body" id="removeModalBody">Are you sure you want to remove this account?</div>
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="hideRemoveModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmRemoveAccount()">Remove</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
-
-    <script>
-        // ---------- State ----------
-        let accounts = [];
-        let currentAccount = null;
-        let currentChat = null;
-        let chats = [];
-        let messages = [];
-        let refreshInterval = null;
-        let accountToRemove = null;
-
-        // ---------- DOM elements ----------
-        const dropdown = document.getElementById('accountDropdown');
-        const switcher = document.getElementById('accountSwitcher');
-        const currentAvatar = document.getElementById('currentAvatar');
-        const currentName = document.getElementById('currentName');
-        const currentPhone = document.getElementById('currentPhone');
-        const chatsListDiv = document.getElementById('chatsList');
-        const messagesHeader = document.getElementById('messagesHeader');
-        const currentChatTitle = document.getElementById('currentChatTitle');
-        const messagesListDiv = document.getElementById('messagesList');
-        const composeArea = document.getElementById('composeArea');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const totalChatsSpan = document.getElementById('totalChats');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const removeModal = document.getElementById('removeModal');
-        const removeModalBody = document.getElementById('removeModalBody');
-        const toast = document.getElementById('toast');
-
-        // ---------- Helper Functions ----------
-        function showToast(message, type = 'success') {
-            toast.textContent = message;
-            toast.className = `toast show ${type}`;
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function showError(message) {
-            showToast(message, 'error');
-        }
-
-        function setLoading(element, isLoading) {
-            if (isLoading) {
-                element.classList.add('refreshing');
-                element.disabled = true;
-            } else {
-                element.classList.remove('refreshing');
-                element.disabled = false;
-            }
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!switcher.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        // Toggle dropdown
-        switcher.addEventListener('click', function(event) {
-            event.stopPropagation();
-            dropdown.classList.toggle('show');
-        });
-
-        // ---------- Load Accounts on Page Load ----------
-        window.addEventListener('load', async () => {
-            await loadAccounts();
+# -------------------- VERIFY CODE --------------------
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    data = request.json
+    code = data.get('code')
+    session_id = data.get('session_id')
+    password = data.get('password', '')
+    
+    if not session_id or session_id not in temp_data:
+        return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
+    
+    session = temp_data[session_id]
+    
+    async def verify():
+        client = TelegramClient(StringSession(session['session_str']), API_ID, API_HASH, timeout=30)
+        await client.connect()
+        try:
+            await asyncio.sleep(1)  # Small delay for connection
             
-            // Auto-refresh every 30 seconds if an account is selected
-            refreshInterval = setInterval(() => {
-                if (currentAccount) {
-                    loadChatsForCurrentAccount(false);
-                }
-            }, 30000);
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
+            if password:
+                # 2FA login
+                await client.sign_in(password=password)
+            else:
+                # Normal login with code
+                await client.sign_in(
+                    session['phone'], 
+                    code, 
+                    phone_code_hash=session['phone_code_hash']
+                )
+            
+            # Get user info
+            me = await client.get_me()
+            final_session = client.session.save()
+            
+            return {
+                'success': True,
+                'me': {
+                    'id': me.id,
+                    'first_name': me.first_name or '',
+                    'last_name': me.last_name or '',
+                    'username': me.username or '',
+                    'phone': me.phone or session['phone']
+                },
+                'session': final_session
             }
-        });
+            
+        except errors.SessionPasswordNeededError:
+            return {'success': False, 'need_password': True}
+        except errors.PhoneCodeInvalidError:
+            return {'success': False, 'error': 'Invalid code'}
+        except errors.PhoneCodeExpiredError:
+            return {'success': False, 'error': 'Code expired'}
+        except errors.PasswordHashInvalidError:
+            return {'success': False, 'error': 'Invalid password'}
+        except Exception as e:
+            logger.error(f"Error in verify: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(verify())
+        
+        if result.get('need_password'):
+            return jsonify({'success': False, 'need_password': True})
+        
+        if not result.get('success'):
+            return jsonify({'success': False, 'error': result.get('error', 'Verification failed')})
+        
+        # Create new account with a unique ID
+        me = result['me']
+        new_account = {
+            'id': max([acc['id'] for acc in accounts], default=0) + 1,
+            'phone': session['phone'],
+            'name': f"{me.get('first_name', '')} {me.get('last_name', '')}".strip() or 'User',
+            'username': me.get('username', ''),
+            'user_id': me.get('id'),
+            'session': result['session'],
+            'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        accounts.append(new_account)
+        save_accounts()
+        
+        # Clean up temp data
+        if session_id in temp_data:
+            del temp_data[session_id]
+        
+        logger.info(f"✅ Account added: {session['phone']}")
+        return jsonify({'success': True, 'account': new_account})
+        
+    except Exception as e:
+        logger.error(f"Error in verify-code: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
-        // Load all accounts from server
-        async function loadAccounts() {
-            try {
-                const res = await fetch('/api/accounts');
-                const data = await res.json();
+# -------------------- GET MESSAGES (FULL MEDIA SUPPORT) --------------------
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    # Find account
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session', account.get('string_session', ''))
+    
+    async def fetch_chats():
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
+        await client.connect()
+        
+        try:
+            await asyncio.sleep(1)  # Small delay for connection
+            
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}
+            
+            # Get all dialogs (chats)
+            dialogs = await client.get_dialogs(limit=100)
+            
+            chats = []
+            all_messages = []
+            
+            for dialog in dialogs:
+                # Get chat name and type
+                if dialog.is_user:
+                    name = get_display_name(dialog.entity)
+                    chat_type = 'user'
+                    if dialog.entity.bot:
+                        chat_type = 'bot'
+                elif dialog.is_group:
+                    name = dialog.name or 'Unknown Group'
+                    chat_type = 'group'
+                elif dialog.is_channel:
+                    name = dialog.name or 'Unknown Channel'
+                    chat_type = 'channel'
+                else:
+                    name = dialog.name or 'Unknown'
+                    chat_type = 'unknown'
                 
-                if (data.success) {
-                    accounts = data.accounts || [];
+                chat_id = str(dialog.id)
+                
+                # Get last message with media info
+                last_msg_text = ''
+                last_msg_media = None
+                last_msg_media_type = None
+                
+                if dialog.message:
+                    last_msg_text, last_msg_media, last_msg_media_type = await extract_message_info(dialog.message, client)
+                
+                # Add chat to list with media info
+                chats.append({
+                    'id': chat_id,
+                    'title': name,
+                    'type': chat_type,
+                    'unread': dialog.unread_count or 0,
+                    'lastMessage': last_msg_text,
+                    'lastMessageMedia': last_msg_media,
+                    'lastMessageMediaType': last_msg_media_type,
+                    'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None,
+                    'pinned': dialog.pinned or False
+                })
+                
+                # Get last 30 messages for this chat with full media support
+                try:
+                    msgs = await client.get_messages(dialog.entity, limit=30)
+                    for msg in msgs:
+                        if msg:
+                            message_data = await create_message_data(msg, chat_id, client)
+                            all_messages.append(message_data)
+                except Exception as e:
+                    logger.error(f"Error fetching messages for chat {chat_id}: {e}")
+                    continue
+            
+            return {
+                'success': True,
+                'chats': chats,
+                'messages': all_messages
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in fetch_chats: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(fetch_chats())
+        
+        if not result.get('success'):
+            return jsonify({'success': False, 'error': result.get('error', 'Failed to fetch chats')})
+        
+        return jsonify({
+            'success': True,
+            'chats': result['chats'],
+            'messages': result['messages']
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get-messages: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+# -------------------- GET MEDIA FILE --------------------
+@app.route('/api/media/<int:account_id>/<path:media_id>')
+def get_media(account_id, media_id):
+    """Get media file by ID"""
+    # Find account
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'}), 404
+    
+    session_string = account.get('session', account.get('string_session', ''))
+    
+    async def download_media():
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=60)
+        await client.connect()
+        
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}, 401
+            
+            # Get message by ID (assuming media_id is message_id)
+            try:
+                # Try to get the message
+                msg = await client.get_messages(None, ids=int(media_id))
+                if not msg or not msg.media:
+                    return {'success': False, 'error': 'Media not found'}, 404
+                
+                # Download media to memory
+                media_data = await client.download_media(msg, file=bytes)
+                
+                # Determine mime type
+                mime_type = 'application/octet-stream'
+                if msg.file and msg.file.mime_type:
+                    mime_type = msg.file.mime_type
+                elif isinstance(msg.media, MessageMediaPhoto):
+                    mime_type = 'image/jpeg'
+                
+                return {
+                    'success': True,
+                    'data': media_data,
+                    'mime_type': mime_type
+                }
+                
+            except Exception as e:
+                logger.error(f"Error getting media: {e}")
+                return {'success': False, 'error': str(e)}, 500
+                
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(download_media())
+        
+        if not result.get('success'):
+            return jsonify({'success': False, 'error': result.get('error', 'Failed to get media')}), 500
+        
+        # Return media file
+        return send_file(
+            io.BytesIO(result['data']),
+            mimetype=result['mime_type'],
+            as_attachment=False,
+            download_name=f"media_{media_id}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in get-media: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# -------------------- SEND MESSAGE (WITH MEDIA SUPPORT) --------------------
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    message = data.get('message')
+    media_type = data.get('mediaType')  # 'photo', 'video', 'document', etc.
+    media_data = data.get('mediaData')  # Base64 encoded media data
+    
+    if not all([account_id, chat_id]):
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    # Find account
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session', account.get('string_session', ''))
+    
+    async def send():
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
+        await client.connect()
+        
+        try:
+            await asyncio.sleep(1)  # Small delay for connection
+            
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}
+            
+            # Get entity
+            try:
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
+                    entity = await client.get_entity(chat_id)
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
+            
+            # Send message with media if provided
+            if media_type and media_data:
+                # Decode base64 media
+                import base64
+                media_bytes = base64.b64decode(media_data.split(',')[1] if ',' in media_data else media_data)
+                
+                # Create temporary file
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, suffix=get_extension(media_type)) as tmp:
+                    tmp.write(media_bytes)
+                    tmp_path = tmp.name
+                
+                try:
+                    # Send media
+                    if media_type.startswith('image/'):
+                        await client.send_file(entity, tmp_path, caption=message)
+                    elif media_type.startswith('video/'):
+                        await client.send_file(entity, tmp_path, caption=message, supports_streaming=True)
+                    else:
+                        await client.send_file(entity, tmp_path, caption=message)
                     
-                    if (accounts.length > 0) {
-                        // Check if there's a previously selected account in localStorage
-                        const lastAccountId = localStorage.getItem('lastSelectedAccount');
-                        if (lastAccountId) {
-                            const savedAccount = accounts.find(a => a.id == lastAccountId);
-                            if (savedAccount) {
-                                currentAccount = savedAccount;
-                            } else {
-                                currentAccount = accounts[0];
-                            }
-                        } else {
-                            currentAccount = accounts[0];
-                        }
-                        
-                        updateHeaderForCurrentAccount();
-                        renderDropdown();
-                        await loadChatsForCurrentAccount();
-                    } else {
-                        // No accounts found
-                        currentAccount = null;
-                        updateHeaderForNoAccount();
-                        renderDropdown();
-                        showNoAccountState();
-                    }
-                } else {
-                    showError('Failed to load accounts');
-                }
-            } catch (err) {
-                console.error('Error fetching accounts:', err);
-                showError('Failed to load accounts. Check server connection.');
-                chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server. <a href="/dashboard" style="color:#6ab2f2;">Retry</a></div>';
-            }
-        }
+                    # Clean up temp file
+                    os.unlink(tmp_path)
+                except Exception as e:
+                    os.unlink(tmp_path)
+                    raise e
+            else:
+                # Send text message
+                if message:
+                    await client.send_message(entity, message)
+                else:
+                    return {'success': False, 'error': 'Message or media required'}
+            
+            return {'success': True}
+            
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(send())
+        
+        if result.get('success'):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Failed to send message')})
+            
+    except Exception as e:
+        logger.error(f"Error in send-message: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
-        function updateHeaderForCurrentAccount() {
-            if (!currentAccount) return;
-            
-            const name = currentAccount.name || 'User';
-            const phone = currentAccount.phone || '';
-            const initial = name.charAt(0).toUpperCase() || '?';
-            
-            currentAvatar.textContent = initial;
-            currentName.textContent = name;
-            currentPhone.textContent = phone;
-            
-            // Save last selected account
-            localStorage.setItem('lastSelectedAccount', currentAccount.id);
-        }
+# -------------------- REMOVE ACCOUNT --------------------
+@app.route('/api/remove-account', methods=['POST'])
+def remove_account():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    global accounts
+    original_count = len(accounts)
+    accounts = [acc for acc in accounts if acc['id'] != account_id]
+    
+    if len(accounts) < original_count:
+        save_accounts()
+        logger.info(f"🗑️ Removed account {account_id}")
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Account not found'})
 
-        function updateHeaderForNoAccount() {
-            currentAvatar.textContent = '?';
-            currentName.textContent = 'No Account';
-            currentPhone.textContent = '';
-            localStorage.removeItem('lastSelectedAccount');
-        }
+# -------------------- HEALTH CHECK --------------------
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'temp_sessions': len(temp_data)
+    })
 
-        function showNoAccountState() {
-            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <a href="/login" style="color:#6ab2f2;">Add one</a>.</div>';
-            messagesHeader.style.display = 'none';
-            composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">Add an account to start messaging</div>';
-            totalChatsSpan.textContent = '0';
-        }
+# -------------------- HELPER FUNCTIONS --------------------
+async def extract_message_info(message, client):
+    """Extract message text and media info"""
+    text = ''
+    media_type = None
+    media_subtype = None
+    
+    if message.text:
+        text = message.text[:100]
+        if len(message.text) > 100:
+            text += '...'
+    
+    if message.media:
+        if isinstance(message.media, MessageMediaPhoto):
+            media_type = 'photo'
+            text = text or '📷 Photo'
+        elif isinstance(message.media, MessageMediaDocument):
+            media_type = 'document'
+            attrs = message.media.document.attributes
+            
+            # Check for video
+            if any(isinstance(attr, DocumentAttributeVideo) for attr in attrs):
+                media_type = 'video'
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeVideo):
+                        text = f'🎥 Video ({attr.duration}s)'
+                        break
+            # Check for audio/voice
+            elif any(isinstance(attr, DocumentAttributeAudio) for attr in attrs):
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeAudio):
+                        if attr.voice:
+                            media_type = 'voice'
+                            text = f'🎤 Voice message ({attr.duration}s)'
+                        else:
+                            media_type = 'audio'
+                            text = f'🎵 Audio: {attr.title or "Unknown"}'
+                        break
+            # Check for sticker
+            elif message.file and message.file.mime_type == 'image/webp' and any(isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.webp') for attr in attrs):
+                media_type = 'sticker'
+                text = '🎯 Sticker'
+            # Check for GIF
+            elif message.file and message.file.mime_type == 'video/mp4' and any(isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.gif') for attr in attrs):
+                media_type = 'gif'
+                text = '🎬 GIF'
+            else:
+                # Regular document
+                filename = 'Unknown'
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeFilename):
+                        filename = attr.file_name
+                        break
+                media_type = 'document'
+                text = f'📎 {filename}'
+        elif isinstance(message.media, MessageMediaWebPage):
+            media_type = 'webpage'
+            text = '🔗 Link'
+        elif isinstance(message.media, MessageMediaPoll):
+            media_type = 'poll'
+            text = f'📊 Poll: {message.media.poll.question}'
+        elif isinstance(message.media, MessageMediaContact):
+            media_type = 'contact'
+            text = f'👤 Contact: {message.media.first_name} {message.media.last_name or ""}'
+        elif isinstance(message.media, MessageMediaGeo) or isinstance(message.media, MessageMediaVenue):
+            media_type = 'location'
+            text = '📍 Location'
+        elif isinstance(message.media, MessageMediaGame):
+            media_type = 'game'
+            text = f'🎮 Game: {message.media.game.title}'
+        elif isinstance(message.media, MessageMediaInvoice):
+            media_type = 'invoice'
+            text = f'💰 Invoice: {message.media.title}'
+        else:
+            media_type = 'media'
+            text = text or '📎 Media'
+    
+    return text, media_type, media_type
 
-        function renderDropdown() {
-            if (!accounts.length) {
-                dropdown.innerHTML = '<div class="dropdown-item">No accounts</div>';
-                return;
-            }
+async def create_message_data(message, chat_id, client):
+    """Create message data dictionary with full media info"""
+    message_data = {
+        'chatId': chat_id,
+        'text': message.text or '',
+        'date': message.date.timestamp(),
+        'out': message.out,
+        'id': message.id,
+        'hasMedia': message.media is not None,
+        'views': getattr(message, 'views', 0),
+        'forwards': getattr(message, 'forwards', 0),
+        'reply_to_msg_id': message.reply_to_msg_id if hasattr(message, 'reply_to_msg_id') else None
+    }
+    
+    # Add media type info
+    if message.media:
+        if isinstance(message.media, MessageMediaPhoto):
+            message_data['mediaType'] = 'photo'
+            message_data['mediaPreview'] = '📷 Photo'
+            message_data['mediaId'] = message.id
+            # Try to get photo dimensions
+            if hasattr(message.media, 'photo') and hasattr(message.media.photo, 'sizes'):
+                sizes = message.media.photo.sizes
+                if sizes:
+                    last_size = sizes[-1]
+                    if hasattr(last_size, 'w') and hasattr(last_size, 'h'):
+                        message_data['mediaWidth'] = last_size.w
+                        message_data['mediaHeight'] = last_size.h
             
-            let html = '';
-            accounts.forEach(acc => {
-                const accName = acc.name || 'User';
-                const accPhone = acc.phone || '';
-                const initial = accName.charAt(0).toUpperCase() || '?';
-                const isCurrent = acc.id === currentAccount?.id ? '✓' : '';
-                
-                html += `
-                    <div class="dropdown-item" onclick="switchAccount(${acc.id})">
-                        <div class="dropdown-avatar">${escapeHtml(initial)}</div>
-                        <div class="dropdown-info">
-                            <div class="dropdown-name">${escapeHtml(accName)}</div>
-                            <div class="dropdown-phone">${escapeHtml(accPhone)}</div>
-                        </div>
-                        <span style="color:#6ab2f2;">${isCurrent}</span>
-                    </div>
-                `;
-            });
+        elif isinstance(message.media, MessageMediaDocument):
+            attrs = message.media.document.attributes
+            message_data['mediaId'] = message.id
             
-            // Add remove account option if there are accounts
-            if (accounts.length > 0) {
-                html += `
-                    <div class="dropdown-item" style="border-top: 1px solid #2b3945;" onclick="showRemoveModal()">
-                        <div class="dropdown-avatar" style="background: #8e2b2b;">−</div>
-                        <div class="dropdown-info">
-                            <div class="dropdown-name" style="color: #ff6b6b;">Remove Current Account</div>
-                        </div>
-                    </div>
-                `;
-            }
+            # Get file info
+            if message.file:
+                message_data['fileName'] = message.file.name
+                message_data['fileSize'] = message.file.size
+                message_data['mimeType'] = message.file.mime_type
             
-            dropdown.innerHTML = html;
-        }
+            # Check for video
+            if any(isinstance(attr, DocumentAttributeVideo) for attr in attrs):
+                message_data['mediaType'] = 'video'
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeVideo):
+                        message_data['mediaPreview'] = f'🎥 Video ({attr.duration}s)'
+                        message_data['duration'] = attr.duration
+                        message_data['mediaWidth'] = getattr(attr, 'w', 0)
+                        message_data['mediaHeight'] = getattr(attr, 'h', 0)
+                        break
+            
+            # Check for audio/voice
+            elif any(isinstance(attr, DocumentAttributeAudio) for attr in attrs):
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeAudio):
+                        if attr.voice:
+                            message_data['mediaType'] = 'voice'
+                            message_data['mediaPreview'] = f'🎤 Voice message ({attr.duration}s)'
+                        else:
+                            message_data['mediaType'] = 'audio'
+                            message_data['mediaPreview'] = f'🎵 Audio: {attr.title or "Unknown"}'
+                        message_data['duration'] = attr.duration
+                        message_data['title'] = attr.title
+                        message_data['performer'] = attr.performer
+                        break
+            
+            # Check for sticker
+            elif message.file and message.file.mime_type == 'image/webp':
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.webp'):
+                        message_data['mediaType'] = 'sticker'
+                        message_data['mediaPreview'] = '🎯 Sticker'
+                        message_data['stickerSet'] = getattr(message.media.document, 'sticker_set', None)
+                        break
+            
+            # Check for GIF
+            elif message.file and message.file.mime_type == 'video/mp4':
+                for attr in attrs:
+                    if isinstance(attr, DocumentAttributeFilename) and attr.file_name.endswith('.gif'):
+                        message_data['mediaType'] = 'gif'
+                        message_data['mediaPreview'] = '🎬 GIF'
+                        break
+            else:
+                # Regular document
+                message_data['mediaType'] = 'document'
+                message_data['mediaPreview'] = '📎 Document'
+        
+        elif isinstance(message.media, MessageMediaWebPage):
+            message_data['mediaType'] = 'webpage'
+            message_data['mediaPreview'] = '🔗 Link'
+            message_data['webpageUrl'] = message.media.webpage.url if hasattr(message.media.webpage, 'url') else ''
+            message_data['webpageTitle'] = message.media.webpage.title if hasattr(message.media.webpage, 'title') else ''
+            
+        elif isinstance(message.media, MessageMediaPoll):
+            message_data['mediaType'] = 'poll'
+            message_data['mediaPreview'] = f'📊 Poll: {message.media.poll.question}'
+            message_data['pollQuestion'] = message.media.poll.question
+            message_data['pollOptions'] = [opt.text for opt in message.media.poll.answers]
+            
+        elif isinstance(message.media, MessageMediaContact):
+            message_data['mediaType'] = 'contact'
+            message_data['mediaPreview'] = f'👤 Contact: {message.media.first_name} {message.media.last_name or ""}'
+            message_data['contactName'] = f"{message.media.first_name} {message.media.last_name or ''}"
+            message_data['contactPhone'] = message.media.phone_number
+            
+        elif isinstance(message.media, MessageMediaGeo) or isinstance(message.media, MessageMediaVenue):
+            message_data['mediaType'] = 'location'
+            message_data['mediaPreview'] = '📍 Location'
+            if isinstance(message.media, MessageMediaVenue):
+                message_data['venueTitle'] = message.media.title
+                message_data['venueAddress'] = message.media.address
+            
+        elif isinstance(message.media, MessageMediaGame):
+            message_data['mediaType'] = 'game'
+            message_data['mediaPreview'] = f'🎮 Game: {message.media.game.title}'
+            
+        elif isinstance(message.media, MessageMediaInvoice):
+            message_data['mediaType'] = 'invoice'
+            message_data['mediaPreview'] = f'💰 Invoice: {message.media.title}'
+            message_data['amount'] = message.media.total_amount if hasattr(message.media, 'total_amount') else 0
+            
+        else:
+            message_data['mediaType'] = 'media'
+            message_data['mediaPreview'] = '📎 Media'
+    
+    # Check for emoji-only message
+    if message.text and len(message.text) < 10:
+        import re
+        emoji_pattern = re.compile(r'[\U00010000-\U0010ffff]|[\u2000-\u3300]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|\uD83E[\uDD00-\uDDFF]', re.UNICODE)
+        if emoji_pattern.sub('', message.text).strip() == '':
+            message_data['isEmoji'] = True
+    
+    return message_data
 
-        // Switch to another account
-        window.switchAccount = async function(accountId) {
-            accountId = parseInt(accountId);
-            const newAccount = accounts.find(a => a.id === accountId);
-            
-            if (!newAccount || newAccount.id === currentAccount?.id) {
-                dropdown.classList.remove('show');
-                return;
-            }
-            
-            currentAccount = newAccount;
-            currentChat = null;
-            
-            updateHeaderForCurrentAccount();
-            renderDropdown();
-            dropdown.classList.remove('show');
-            
-            // Reset UI
-            messagesHeader.style.display = 'none';
-            composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">👈 Select a chat to start messaging</div>';
-            
-            await loadChatsForCurrentAccount();
-        };
+def get_extension(mime_type):
+    """Get file extension from mime type"""
+    ext_map = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/gif': '.gif',
+        'image/webp': '.webp',
+        'video/mp4': '.mp4',
+        'video/webm': '.webm',
+        'audio/mpeg': '.mp3',
+        'audio/ogg': '.ogg',
+        'audio/mp4': '.m4a',
+        'application/pdf': '.pdf',
+        'text/plain': '.txt'
+    }
+    return ext_map.get(mime_type, '.bin')
 
-        // Remove account modal
-        function showRemoveModal() {
-            if (!currentAccount) return;
-            accountToRemove = currentAccount.id;
-            removeModalBody.textContent = `Are you sure you want to remove account "${currentAccount.name || currentAccount.phone}"?`;
-            removeModal.classList.add('show');
-            dropdown.classList.remove('show');
-        }
+# Error handler for 404
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({'success': False, 'error': 'Endpoint not found'}), 404
 
-        function hideRemoveModal() {
-            removeModal.classList.remove('show');
-            accountToRemove = null;
-        }
+# Error handler for 500
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {error}")
+    return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
-        window.confirmRemoveAccount = async function() {
-            if (!accountToRemove) return;
-            
-            hideRemoveModal();
-            
-            try {
-                const res = await fetch('/api/remove-account', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: accountToRemove })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    showToast('Account removed successfully');
-                    await loadAccounts(); // Refresh accounts list
-                } else {
-                    showError('Failed to remove account');
-                }
-            } catch (err) {
-                console.error('Error removing account:', err);
-                showError('Error removing account');
-            }
-        };
-
-        // Refresh current account
-        window.refreshCurrentAccount = async function() {
-            if (!currentAccount) return;
-            
-            setLoading(refreshBtn, true);
-            await loadChatsForCurrentAccount(true);
-            setLoading(refreshBtn, false);
-            showToast('Chats refreshed');
-        };
-
-        refreshBtn.addEventListener('click', refreshCurrentAccount);
-
-        // ---------- Chat Management ----------
-        async function loadChatsForCurrentAccount(showLoading = true) {
-            if (!currentAccount) return;
-            
-            if (showLoading) {
-                chatsListDiv.innerHTML = '<div class="loading">Loading chats...</div>';
-            }
-            
-            try {
-                const res = await fetch('/api/get-messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    chats = data.chats || [];
-                    messages = data.messages || [];
-                    totalChatsSpan.textContent = chats.length;
-                    displayChats();
-                    
-                    // If we had a selected chat, try to reselect it
-                    if (currentChat) {
-                        const stillExists = chats.find(c => c.id === currentChat.id);
-                        if (stillExists) {
-                            displayMessages(currentChat.id);
-                        } else {
-                            currentChat = null;
-                            messagesHeader.style.display = 'none';
-                            composeArea.style.display = 'none';
-                            messagesListDiv.innerHTML = '<div class="empty-state">👈 Select a chat to start messaging</div>';
-                        }
-                    }
-                } else {
-                    if (showLoading) {
-                        chatsListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error || 'Failed to load chats')}</div>`;
-                    }
-                    showError(data.error || 'Failed to load chats');
-                }
-            } catch (err) {
-                console.error('Error loading chats:', err);
-                if (showLoading) {
-                    chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats. Check connection.</div>';
-                }
-                showError('Failed to load chats');
-            }
-        }
-
-        function displayChats() {
-            if (!chats || chats.length === 0) {
-                chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>';
-                return;
-            }
-            
-            let html = '';
-            chats.forEach(chat => {
-                const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
-                let lastMsg = chat.lastMessage || '';
-                
-                // Add media emoji to last message if it's media
-                if (chat.lastMessageMedia) {
-                    switch(chat.lastMessageMedia) {
-                        case 'photo':
-                            lastMsg = '📷 ' + (lastMsg || 'Photo');
-                            break;
-                        case 'video':
-                            lastMsg = '🎥 ' + (lastMsg || 'Video');
-                            break;
-                        case 'voice':
-                            lastMsg = '🎤 ' + (lastMsg || 'Voice message');
-                            break;
-                        case 'audio':
-                            lastMsg = '🎵 ' + (lastMsg || 'Audio');
-                            break;
-                        case 'document':
-                            lastMsg = '📎 ' + (lastMsg || 'Document');
-                            break;
-                        case 'webpage':
-                            lastMsg = '🔗 ' + (lastMsg || 'Link');
-                            break;
-                        default:
-                            lastMsg = lastMsg || 'No messages yet';
-                    }
-                } else if (!lastMsg) {
-                    lastMsg = 'No messages yet';
-                }
-                
-                const time = chat.lastMessageDate ? formatTime(chat.lastMessageDate) : '';
-                const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
-                const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
-                
-                html += `
-                    <div class="chat-item ${activeClass}" onclick="selectChat('${escapeJsString(chat.id)}', '${escapeJsString(chat.title || 'Unknown')}')">
-                        <div class="chat-avatar">${escapeHtml(avatarLetter)}</div>
-                        <div class="chat-info">
-                            <div class="chat-row">
-                                <span class="chat-name" title="${escapeHtml(chat.title || 'Unknown')}">${escapeHtml(chat.title || 'Unknown')}</span>
-                                <span class="chat-time">${escapeHtml(time)}</span>
-                            </div>
-                            <div class="chat-last-msg">
-                                <span class="chat-last-text">${escapeHtml(lastMsg)}</span>
-                                ${unread}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            chatsListDiv.innerHTML = html;
-        }
-
-        // ---------- Message Management ----------
-        window.selectChat = function(chatId, chatTitle) {
-            currentChat = { id: chatId, title: chatTitle };
-            currentChatTitle.textContent = chatTitle;
-            messagesHeader.style.display = 'block';
-            composeArea.style.display = 'flex';
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            displayMessages(chatId);
-            displayChats(); // Re-render to highlight active chat
-        };
-
-        window.refreshMessages = function() {
-            if (currentChat) {
-                displayMessages(currentChat.id);
-                showToast('Messages refreshed');
-            }
-        };
-
-        function displayMessages(chatId) {
-            const chatMessages = messages
-                .filter(m => m.chatId === chatId)
-                .sort((a, b) => a.date - b.date);
-                
-            if (!chatMessages || chatMessages.length === 0) {
-                messagesListDiv.innerHTML = '<div class="empty-state">No messages in this chat</div>';
-                return;
-            }
-            
-            let html = '';
-            chatMessages.forEach(msg => {
-                const date = new Date(msg.date * 1000);
-                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const bubbleClass = msg.out ? 'outgoing' : 'incoming';
-                
-                let messageContent = '';
-                
-                // Check if message has media
-                if (msg.hasMedia || msg.mediaType) {
-                    let mediaIcon = '📎';
-                    let mediaText = 'Media';
-                    
-                    switch(msg.mediaType) {
-                        case 'photo':
-                            mediaIcon = '📷';
-                            mediaText = 'Photo';
-                            break;
-                        case 'video':
-                            mediaIcon = '🎥';
-                            mediaText = 'Video';
-                            break;
-                        case 'voice':
-                            mediaIcon = '🎤';
-                            mediaText = 'Voice message';
-                            break;
-                        case 'audio':
-                            mediaIcon = '🎵';
-                            mediaText = 'Audio';
-                            break;
-                        case 'document':
-                            mediaIcon = '📎';
-                            mediaText = 'Document';
-                            break;
-                        case 'webpage':
-                            mediaIcon = '🔗';
-                            mediaText = 'Link';
-                            break;
-                    }
-                    
-                    messageContent = `
-                        <div class="media-message">
-                            <span class="media-icon">${mediaIcon}</span>
-                            <span class="media-label">${mediaText}</span>
-                        </div>
-                    `;
-                    
-                    // Add text if present
-                    if (msg.text) {
-                        messageContent += `<div>${escapeHtml(msg.text)}</div>`;
-                    }
-                } else {
-                    // Text only message
-                    messageContent = `<div>${escapeHtml(msg.text || '')}</div>`;
-                }
-                
-                html += `
-                    <div class="message-wrapper ${bubbleClass}">
-                        <div class="message-bubble">
-                            ${messageContent}
-                            <div class="message-meta">
-                                <span>${escapeHtml(timeStr)}</span>
-                                ${msg.out ? '✓✓' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            messagesListDiv.innerHTML = html;
-            
-            // Scroll to bottom
-            setTimeout(() => {
-                messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
-            }, 100);
-        }
-
-        window.sendMessage = async function() {
-            const message = messageInput.value.trim();
-            
-            if (!message || !currentAccount || !currentChat) {
-                if (!message) {
-                    messageInput.focus();
-                }
-                return;
-            }
-            
-            const messageText = message;
-            messageInput.value = '';
-            messageInput.disabled = true;
-            sendBtn.disabled = true;
-            
-            try {
-                const res = await fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: currentChat.id,
-                        message: messageText
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    // Add message to local cache
-                    const newMsg = {
-                        chatId: currentChat.id,
-                        text: messageText,
-                        date: Date.now() / 1000,
-                        out: true,
-                        id: Date.now(),
-                        hasMedia: false
-                    };
-                    messages.push(newMsg);
-                    displayMessages(currentChat.id);
-                    showToast('Message sent');
-                } else {
-                    showError('Failed to send message: ' + (data.error || 'Unknown error'));
-                    messageInput.value = messageText; // Restore message
-                }
-            } catch (err) {
-                console.error('Error sending message:', err);
-                showError('Error sending message. Check connection.');
-                messageInput.value = messageText; // Restore message
-            } finally {
-                messageInput.disabled = false;
-                sendBtn.disabled = false;
-                messageInput.focus();
-            }
-        };
-
-        // Enter key to send
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // ---------- Utility Functions ----------
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            try {
-                const d = new Date(timestamp * 1000);
-                const now = new Date();
-                if (d.toDateString() === now.toDateString()) {
-                    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
-                return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function escapeJsString(str) {
-            if (!str) return '';
-            return str.replace(/[\\']/g, '\\$&').replace(/"/g, '&quot;');
-        }
-    </script>
-</body>
-</html>
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    print('\n' + '='*60)
+    print('📱 TELEGRAM MANAGER - FULL MEDIA SUPPORT')
+    print('='*60)
+    print(f'✅ Loaded {len(accounts)} accounts')
+    print('✅ Full Media Support:')
+    print('   - Photos (with dimensions)')
+    print('   - Videos (with duration)')
+    print('   - Voice messages')
+    print('   - Audio files')
+    print('   - Stickers')
+    print('   - GIFs')
+    print('   - Documents')
+    print('   - Webpage previews')
+    print('   - Polls')
+    print('   - Contacts')
+    print('   - Locations')
+    print('   - Games')
+    print('   - Invoices')
+    print('✅ Endpoints ready:')
+    print('   - GET  /')
+    print('   - GET  /login')
+    print('   - GET  /dashboard')
+    print('   - GET  /home')
+    print('   - GET  /api/accounts')
+    print('   - POST /api/add-account')
+    print('   - POST /api/verify-code')
+    print('   - POST /api/get-messages')
+    print('   - GET  /api/media/<account_id>/<media_id>')
+    print('   - POST /api/send-message')
+    print('   - POST /api/remove-account')
+    print('   - GET  /api/health')
+    print('='*60 + '\n')
+    
+    app.run(host='0.0.0.0', port=port, debug=False)
