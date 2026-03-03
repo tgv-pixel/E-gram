@@ -4,9 +4,7 @@ from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
 from telethon.tl.types import (
     MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage,
-    DocumentAttributeVideo, DocumentAttributeAudio, DocumentAttributeFilename,
-    MessageMediaPoll, MessageMediaContact, MessageMediaGeo, MessageMediaVenue,
-    MessageMediaGame, MessageMediaInvoice
+    DocumentAttributeVideo, DocumentAttributeAudio, DocumentAttributeFilename
 )
 from telethon.utils import get_display_name
 import json
@@ -15,7 +13,6 @@ import asyncio
 from datetime import datetime
 import logging
 import threading
-import base64
 import io
 import time
 
@@ -37,7 +34,7 @@ temp_data = {}
 accounts = []
 ACCOUNTS_FILE = 'accounts.json'
 
-# Create a global event loop for the main thread
+# Create a global event loop
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
@@ -46,115 +43,131 @@ MEDIA_CACHE_DIR = 'media_cache'
 if not os.path.exists(MEDIA_CACHE_DIR):
     os.makedirs(MEDIA_CACHE_DIR)
 
-# Load existing accounts if file exists - FIXED: Better error handling
+# CRITICAL FIX: Load accounts with absolute path
 def load_accounts():
     global accounts
-    if os.path.exists(ACCOUNTS_FILE):
-        try:
-            with open(ACCOUNTS_FILE, 'r') as f:
+    try:
+        # Get absolute path
+        abs_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ACCOUNTS_FILE)
+        
+        if os.path.exists(abs_path):
+            with open(abs_path, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
                 if content:
                     accounts = json.loads(content)
-                    logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
+                    logger.info(f"✅ Loaded {len(accounts)} accounts from {abs_path}")
+                    
+                    # Log account IDs for debugging
+                    for acc in accounts:
+                        logger.info(f"   - Account ID: {acc.get('id')}, Phone: {acc.get('phone')}")
                 else:
                     accounts = []
                     logger.info("📝 Accounts file is empty")
-        except json.JSONDecodeError as e:
-            logger.error(f"⚠️ Error parsing accounts.json: {e}")
-            # Backup corrupted file
-            if os.path.exists(ACCOUNTS_FILE):
-                os.rename(ACCOUNTS_FILE, f"accounts_backup_{int(time.time())}.json")
+        else:
             accounts = []
-        except Exception as e:
-            logger.error(f"⚠️ Error loading accounts: {e}")
-            accounts = []
-    else:
+            logger.info(f"📝 No accounts file found at {abs_path}, starting fresh")
+            
+            # Create empty file
+            save_accounts()
+    except json.JSONDecodeError as e:
+        logger.error(f"⚠️ Error parsing accounts.json: {e}")
+        # Backup corrupted file
+        if os.path.exists(ACCOUNTS_FILE):
+            backup_name = f"accounts_backup_{int(time.time())}.json"
+            os.rename(ACCOUNTS_FILE, backup_name)
+            logger.info(f"📦 Created backup: {backup_name}")
         accounts = []
-        logger.info("📝 No accounts file found, starting fresh")
+    except Exception as e:
+        logger.error(f"⚠️ Error loading accounts: {e}")
+        accounts = []
 
-# Load accounts at startup
-load_accounts()
-
+# CRITICAL FIX: Save accounts with absolute path
 def save_accounts():
     try:
-        # Create backup before saving
-        if os.path.exists(ACCOUNTS_FILE):
-            with open(ACCOUNTS_FILE, 'r') as f:
+        # Get absolute path
+        abs_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ACCOUNTS_FILE)
+        
+        # Create backup if file exists
+        if os.path.exists(abs_path):
+            with open(abs_path, 'r', encoding='utf-8') as f:
                 old_content = f.read()
-            with open(f"accounts_backup_{int(time.time())}.json", 'w') as f:
+            backup_path = os.path.join(os.path.dirname(abs_path), f"accounts_backup_{int(time.time())}.json")
+            with open(backup_path, 'w', encoding='utf-8') as f:
                 f.write(old_content)
         
         # Save new accounts
-        with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2)
-        logger.info(f"💾 Saved {len(accounts)} accounts to {ACCOUNTS_FILE}")
-        return True
+        with open(abs_path, 'w', encoding='utf-8') as f:
+            json.dump(accounts, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"💾 Saved {len(accounts)} accounts to {abs_path}")
+        
+        # Verify save was successful
+        if os.path.exists(abs_path):
+            file_size = os.path.getsize(abs_path)
+            logger.info(f"📁 File size: {file_size} bytes")
+            return True
+        else:
+            logger.error("❌ File was not created!")
+            return False
+            
     except Exception as e:
         logger.error(f"❌ Error saving accounts: {e}")
         return False
 
-# Fixed helper to run async functions
+# Load accounts at startup
+load_accounts()
+
+# Helper to run async functions
 def run_async(coro):
     """Run async coroutine in the existing event loop"""
     global loop
     try:
-        # If we're in a thread, create a new event loop
         if threading.current_thread() is not threading.main_thread():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro)
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            return new_loop.run_until_complete(coro)
         else:
-            # In main thread, use the existing loop
             return loop.run_until_complete(coro)
     except RuntimeError:
-        # If no event loop is running, create one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop.run_until_complete(coro)
 
 # -------------------- SERVE HTML FILES --------------------
 @app.route('/')
 def serve_index():
-    """Serve the login/index page"""
     try:
         return send_file('login.html')
     except FileNotFoundError:
-        logger.error("login.html not found!")
-        return "login.html not found. Please check your repository.", 404
+        return "login.html not found", 404
 
 @app.route('/login')
 def serve_login():
-    """Serve the login page"""
     try:
         return send_file('login.html')
     except FileNotFoundError:
-        logger.error("login.html not found!")
-        return "login.html not found. Please check your repository.", 404
+        return "login.html not found", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
-    """Serve the dashboard page"""
     try:
         return send_file('dashboard.html')
     except FileNotFoundError:
-        logger.error("dashboard.html not found!")
-        return "dashboard.html not found. Please check your repository.", 404
+        return "dashboard.html not found", 404
 
 @app.route('/home')
 def serve_home():
-    """Serve the home dashboard page"""
     try:
         return send_file('home.html')
     except FileNotFoundError:
-        logger.error("home.html not found!")
-        return "home.html not found. Please check your repository.", 404
+        return "home.html not found", 404
 
 # -------------------- GET ALL ACCOUNTS --------------------
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    """Return all accounts with proper formatting for dashboard"""
+    """Return all accounts with proper formatting"""
     global accounts
-    # Reload accounts to ensure we have the latest
+    # Reload accounts to ensure we have latest
     load_accounts()
     
     account_list = []
@@ -162,7 +175,6 @@ def get_accounts():
         # Get name properly
         name = acc.get('name', '')
         if not name or name == 'User':
-            # Try to construct name from first/last
             first = acc.get('first_name', '')
             last = acc.get('last_name', '')
             if first or last:
@@ -196,7 +208,6 @@ def add_account():
         client = TelegramClient(StringSession(), API_ID, API_HASH, timeout=30)
         await client.connect()
         try:
-            # Add a small delay to ensure connection is established
             await asyncio.sleep(1)
             result = await client.send_code_request(phone)
             session_str = client.session.save()
@@ -249,20 +260,17 @@ def verify_code():
         client = TelegramClient(StringSession(session['session_str']), API_ID, API_HASH, timeout=30)
         await client.connect()
         try:
-            await asyncio.sleep(1)  # Small delay for connection
+            await asyncio.sleep(1)
             
             if password:
-                # 2FA login
                 await client.sign_in(password=password)
             else:
-                # Normal login with code
                 await client.sign_in(
                     session['phone'], 
                     code, 
                     phone_code_hash=session['phone_code_hash']
                 )
             
-            # Get user info
             me = await client.get_me()
             final_session = client.session.save()
             
@@ -328,9 +336,18 @@ def verify_code():
         
         accounts.append(new_account)
         
-        # Save accounts immediately
+        # CRITICAL FIX: Save immediately and verify
         if save_accounts():
-            logger.info(f"✅ Account saved successfully: {session['phone']}")
+            logger.info(f"✅ Account saved successfully: {session['phone']} (ID: {new_id})")
+            
+            # Double-check by reloading
+            load_accounts()
+            
+            # Verify account is in list
+            if any(acc['id'] == new_id for acc in accounts):
+                logger.info("✅ Account verified in accounts list")
+            else:
+                logger.error("❌ Account not found after reload!")
         else:
             logger.error(f"❌ Failed to save account: {session['phone']}")
         
@@ -338,14 +355,13 @@ def verify_code():
         if session_id in temp_data:
             del temp_data[session_id]
         
-        logger.info(f"✅ Account added: {session['phone']} (ID: {new_id})")
         return jsonify({'success': True, 'account': new_account})
         
     except Exception as e:
         logger.error(f"Error in verify-code: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# -------------------- GET MESSAGES (FULL MEDIA SUPPORT) --------------------
+# -------------------- GET MESSAGES --------------------
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -369,19 +385,17 @@ def get_messages():
         await client.connect()
         
         try:
-            await asyncio.sleep(1)  # Small delay for connection
+            await asyncio.sleep(1)
             
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}
             
-            # Get all dialogs (chats)
             dialogs = await client.get_dialogs(limit=100)
             
             chats = []
             all_messages = []
             
             for dialog in dialogs:
-                # Get chat name and type
                 if dialog.is_user:
                     name = get_display_name(dialog.entity)
                     chat_type = 'user'
@@ -399,7 +413,6 @@ def get_messages():
                 
                 chat_id = str(dialog.id)
                 
-                # Get last message with media info
                 last_msg_text = ''
                 last_msg_media = None
                 
@@ -409,7 +422,6 @@ def get_messages():
                         if len(dialog.message.text) > 50:
                             last_msg_text += '...'
                     elif dialog.message.media:
-                        # Check media type
                         if isinstance(dialog.message.media, MessageMediaPhoto):
                             last_msg_text = '📷 Photo'
                             last_msg_media = 'photo'
@@ -422,15 +434,8 @@ def get_messages():
                                 last_msg_text = '🎥 Video'
                                 last_msg_media = 'video'
                             elif is_audio:
-                                for attr in attrs:
-                                    if isinstance(attr, DocumentAttributeAudio):
-                                        if attr.voice:
-                                            last_msg_text = '🎤 Voice message'
-                                            last_msg_media = 'voice'
-                                        else:
-                                            last_msg_text = '🎵 Audio'
-                                            last_msg_media = 'audio'
-                                        break
+                                last_msg_text = '🎵 Audio'
+                                last_msg_media = 'audio'
                             else:
                                 last_msg_text = '📎 Document'
                                 last_msg_media = 'document'
@@ -441,7 +446,6 @@ def get_messages():
                             last_msg_text = '📎 Media'
                             last_msg_media = 'media'
                 
-                # Add chat to list
                 chats.append({
                     'id': chat_id,
                     'title': name,
@@ -450,10 +454,8 @@ def get_messages():
                     'lastMessage': last_msg_text,
                     'lastMessageMedia': last_msg_media,
                     'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None,
-                    'pinned': dialog.pinned or False
                 })
                 
-                # Get last 20 messages for this chat
                 try:
                     msgs = await client.get_messages(dialog.entity, limit=20)
                     for msg in msgs:
@@ -467,25 +469,15 @@ def get_messages():
                                 'hasMedia': msg.media is not None
                             }
                             
-                            # Add media type info
                             if msg.media:
                                 if isinstance(msg.media, MessageMediaPhoto):
                                     message_data['mediaType'] = 'photo'
                                 elif isinstance(msg.media, MessageMediaDocument):
                                     attrs = msg.media.document.attributes
-                                    is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
-                                    is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
-                                    
-                                    if is_video:
+                                    if any(isinstance(attr, DocumentAttributeVideo) for attr in attrs):
                                         message_data['mediaType'] = 'video'
-                                    elif is_audio:
-                                        for attr in attrs:
-                                            if isinstance(attr, DocumentAttributeAudio):
-                                                if attr.voice:
-                                                    message_data['mediaType'] = 'voice'
-                                                else:
-                                                    message_data['mediaType'] = 'audio'
-                                                break
+                                    elif any(isinstance(attr, DocumentAttributeAudio) for attr in attrs):
+                                        message_data['mediaType'] = 'audio'
                                     else:
                                         message_data['mediaType'] = 'document'
                                 elif isinstance(msg.media, MessageMediaWebPage):
@@ -529,16 +521,11 @@ def get_messages():
 # -------------------- GET MEDIA FILE --------------------
 @app.route('/api/media/<int:account_id>/<int:message_id>')
 def get_media(account_id, message_id):
-    """Get media file by message ID"""
-    # Find account
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'}), 404
     
     session_string = account.get('session', account.get('string_session', ''))
-    
-    if not session_string:
-        return jsonify({'success': False, 'error': 'No session found'}), 404
     
     async def download_media():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=60)
@@ -548,33 +535,27 @@ def get_media(account_id, message_id):
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}, 401
             
-            # Get the message
-            try:
-                msg = await client.get_messages(None, ids=message_id)
-                if not msg or not msg.media:
-                    return {'success': False, 'error': 'Media not found'}, 404
-                
-                # Download media to memory
-                import io
-                media_data = await client.download_media(msg, file=bytes)
-                
-                # Determine mime type
-                mime_type = 'application/octet-stream'
-                if msg.file and msg.file.mime_type:
-                    mime_type = msg.file.mime_type
-                elif isinstance(msg.media, MessageMediaPhoto):
-                    mime_type = 'image/jpeg'
-                
-                return {
-                    'success': True,
-                    'data': media_data,
-                    'mime_type': mime_type
-                }
-                
-            except Exception as e:
-                logger.error(f"Error getting media: {e}")
-                return {'success': False, 'error': str(e)}, 500
-                
+            msg = await client.get_messages(None, ids=message_id)
+            if not msg or not msg.media:
+                return {'success': False, 'error': 'Media not found'}, 404
+            
+            media_data = await client.download_media(msg, file=bytes)
+            
+            mime_type = 'application/octet-stream'
+            if msg.file and msg.file.mime_type:
+                mime_type = msg.file.mime_type
+            elif isinstance(msg.media, MessageMediaPhoto):
+                mime_type = 'image/jpeg'
+            
+            return {
+                'success': True,
+                'data': media_data,
+                'mime_type': mime_type
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting media: {e}")
+            return {'success': False, 'error': str(e)}, 500
         finally:
             await client.disconnect()
     
@@ -587,7 +568,6 @@ def get_media(account_id, message_id):
         if not result.get('success'):
             return jsonify({'success': False, 'error': result.get('error', 'Failed to get media')}), 500
         
-        # Return media file
         return send_file(
             io.BytesIO(result['data']),
             mimetype=result['mime_type'],
@@ -610,39 +590,30 @@ def send_message():
     if not all([account_id, chat_id]):
         return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
-    # Find account
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
     session_string = account.get('session', account.get('string_session', ''))
     
-    if not session_string:
-        return jsonify({'success': False, 'error': 'No session found for account'})
-    
     async def send():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH, timeout=30)
         await client.connect()
         
         try:
-            await asyncio.sleep(1)  # Small delay for connection
+            await asyncio.sleep(1)
             
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'Not authorized'}
             
-            # Get entity
             try:
-                # Try as integer ID
                 entity = await client.get_entity(int(chat_id))
             except:
                 try:
-                    # Try as string
                     entity = await client.get_entity(chat_id)
-                except Exception as e:
-                    logger.error(f"Error getting entity: {e}")
+                except:
                     return {'success': False, 'error': 'Chat not found'}
             
-            # Send message
             if message:
                 await client.send_message(entity, message)
             
@@ -691,11 +662,19 @@ def remove_account():
 # -------------------- HEALTH CHECK --------------------
 @app.route('/api/health', methods=['GET'])
 def health_check():
+    abs_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ACCOUNTS_FILE)
+    file_exists = os.path.exists(abs_path)
+    file_size = os.path.getsize(abs_path) if file_exists else 0
+    
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'temp_sessions': len(temp_data),
-        'accounts_file_exists': os.path.exists(ACCOUNTS_FILE)
+        'accounts_file': {
+            'exists': file_exists,
+            'path': abs_path,
+            'size': file_size
+        },
+        'temp_sessions': len(temp_data)
     })
 
 # Error handler for 404
@@ -711,24 +690,26 @@ def internal_error(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED ACCOUNT STORAGE')
-    print('='*60)
-    print(f'✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}')
-    print(f'✅ File exists: {os.path.exists(ACCOUNTS_FILE)}')
-    print('✅ Endpoints ready:')
-    print('   - GET  /')
-    print('   - GET  /login')
-    print('   - GET  /dashboard')
-    print('   - GET  /home')
-    print('   - GET  /api/accounts')
-    print('   - POST /api/add-account')
-    print('   - POST /api/verify-code')
-    print('   - POST /api/get-messages')
-    print('   - GET  /api/media/<account_id>/<message_id>')
-    print('   - POST /api/send-message')
-    print('   - POST /api/remove-account')
-    print('   - GET  /api/health')
-    print('='*60 + '\n')
+    
+    # Get absolute paths
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    accounts_path = os.path.join(current_dir, ACCOUNTS_FILE)
+    
+    print('\n' + '='*70)
+    print('📱 TELEGRAM MANAGER - FIXED PERMANENT STORAGE')
+    print('='*70)
+    print(f'📍 Working directory: {current_dir}')
+    print(f'📁 Accounts file: {accounts_path}')
+    print(f'📊 Current accounts: {len(accounts)}')
+    print(f'📄 File exists: {os.path.exists(accounts_path)}')
+    if os.path.exists(accounts_path):
+        print(f'📏 File size: {os.path.getsize(accounts_path)} bytes')
+    print('='*70)
+    print('✅ FIXES APPLIED:')
+    print('   - Absolute paths for file operations')
+    print('   - Immediate save after account addition')
+    print('   - Verification after save')
+    print('   - Detailed logging')
+    print('='*70 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=False)
