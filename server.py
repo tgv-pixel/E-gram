@@ -1,469 +1,637 @@
-import os
-import json
-import asyncio
-import nest_asyncio
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, send_file, jsonify, request, render_template
 from flask_cors import CORS
-from telethon import TelegramClient
-from telethon.errors import SessionPasswordNeededError
+from telethon import TelegramClient, errors
+from telethon.sessions import StringSession
 from telethon.tl.types import (
-    MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage,
-    MessageMediaContact, MessageMediaGeo, MessageMediaPoll,
-    DocumentAttributeFilename, DocumentAttributeAudio
+    MessageMediaPhoto, MessageMediaDocument, 
+    DocumentAttributeAudio, DocumentAttributeVideo,
+    MessageMediaWebPage, MessageMediaContact, MessageMediaGeo
 )
+from telethon.tl.functions.messages import GetDialogsRequest
+from telethon.tl.types import InputPeerEmpty
+import json
+import os
+import asyncio
 import logging
-from datetime import datetime
-import secrets
 import time
-
-# Apply nest_asyncio to allow running asyncio in Flask
-nest_asyncio.apply()
-
-app = Flask(__name__, template_folder='templates')
-app.secret_key = secrets.token_hex(32)
-CORS(app)
+from datetime import datetime
+import traceback
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# File to store accounts data
-ACCOUNTS_FILE = 'telegram_accounts.json'
+app = Flask(__name__, template_folder='.')
+CORS(app)
 
-# Store active clients
-active_clients = {}
+# Your API credentials
+API_ID = int(os.environ.get('API_ID', 33465589))
+API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
-# Helper functions
+# Storage
+ACCOUNTS_FILE = 'accounts.json'
+temp_sessions = {}  # Temporary storage for OTP sessions
+
+# Helper function to run async code
+def run_async(coro):
+    """Run async coroutine in a new event loop"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+    finally:
+        try:
+            loop.close()
+        except:
+            pass
+
+# Load accounts from file
 def load_accounts():
     """Load accounts from JSON file"""
     try:
         if os.path.exists(ACCOUNTS_FILE):
             with open(ACCOUNTS_FILE, 'r') as f:
-                return json.load(f)
+                content = f.read().strip()
+                if content:
+                    return json.loads(content)
+                return []
+        return []
     except Exception as e:
         logger.error(f"Error loading accounts: {e}")
-    return []
+        return []
 
+# Save accounts to file
 def save_accounts(accounts):
     """Save accounts to JSON file"""
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2)
+            json.dump(accounts, f, indent=2, default=str)
+        return True
     except Exception as e:
         logger.error(f"Error saving accounts: {e}")
+        return False
 
-def get_next_id(accounts):
-    """Get next available ID"""
-    if not accounts:
-        return 1
-    return max(a.get('id', 0) for a in accounts) + 1
+# Initialize accounts
+accounts = load_accounts()
+logger.info(f"Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
 
-async def get_client(account_id):
-    """Get or create Telegram client for account"""
-    account_id = int(account_id)
-    
-    if account_id in active_clients:
-        client = active_clients[account_id]
-        if client.is_connected():
-            return client
-    
-    accounts = load_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
-    
-    if not account:
-        return None
-    
-    # Create new client
-    client = TelegramClient(
-        f'session_{account_id}',
-        int(os.environ.get('API_ID', 33465589)),
-        os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-    )
-    
-    try:
-        await client.start(phone=account.get('phone'))  # Use .get() to avoid KeyError
-        active_clients[account_id] = client
-        return client
-    except Exception as e:
-        logger.error(f"Error starting client: {e}")
-        return None
-
-# Routes
+# -------------------- PAGES --------------------
 @app.route('/')
-def index():
-    """Redirect to dashboard"""
-    return redirect(url_for('dashboard'))
-
-@app.route('/dashboard')
-def dashboard():
-    """Render dashboard"""
-    return render_template('dashboard.html')
+def home():
+    return render_template('login.html')
 
 @app.route('/login')
 def login():
-    """Render login page"""
     return render_template('login.html')
 
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/home')
+def home_page():
+    return render_template('login.html')
+
+# -------------------- API ENDPOINTS --------------------
+
+# Get all accounts
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    """Get all accounts"""
-    accounts = load_accounts()
-    return jsonify({'success': True, 'accounts': accounts})
+    """Return all saved accounts"""
+    global accounts
+    accounts = load_accounts()  # Reload to ensure latest data
+    
+    # Format accounts for frontend
+    formatted_accounts = []
+    for acc in accounts:
+        formatted_accounts.append({
+            'id': acc.get('id'),
+            'phone': acc.get('phone', ''),
+            'name': acc.get('name', 'Unknown'),
+            'username': acc.get('username', '')
+        })
+    
+    return jsonify({
+        'success': True, 
+        'accounts': formatted_accounts
+    })
 
-@app.route('/api/send-code', methods=['POST'])
-def send_code():
-    """Send verification code to phone"""
+# Send OTP code
+@app.route('/api/add-account', methods=['POST'])
+def add_account():
+    """Start phone verification process"""
     data = request.json
     phone = data.get('phone')
     
     if not phone:
         return jsonify({'success': False, 'error': 'Phone number required'})
     
-    try:
-        # Create a unique session name
-        session_name = f'temp_{phone.replace("+", "")}_{int(time.time())}'
+    # Clean phone number
+    phone = phone.strip()
+    if not phone.startswith('+'):
+        phone = '+' + phone
+    
+    logger.info(f"Sending code to {phone}")
+    
+    async def send_code():
+        """Send verification code"""
+        client = TelegramClient(StringSession(), API_ID, API_HASH)
+        await client.connect()
         
-        # Create temporary client
-        client = TelegramClient(
-            session_name,
-            int(os.environ.get('API_ID', 33465589)),
-            os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-        )
-        
-        # Create new event loop for this operation
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        async def send():
-            await client.connect()
-            if not await client.is_user_authorized():
-                await client.send_code_request(phone)
-                # Store phone and session name in session
-                session['temp_phone'] = phone
-                session['temp_session'] = session_name
-                return True
-            return False
-        
-        result = loop.run_until_complete(send())
-        loop.close()
-        
-        if result:
-            return jsonify({'success': True, 'message': 'Code sent successfully'})
-        else:
-            return jsonify({'success': False, 'error': 'Already authorized'})
+        try:
+            # Send code request
+            result = await client.send_code_request(phone)
             
+            # Save session for later
+            session_id = str(int(time.time()))
+            temp_sessions[session_id] = {
+                'phone': phone,
+                'phone_code_hash': result.phone_code_hash,
+                'session': client.session.save()
+            }
+            
+            logger.info(f"Code sent to {phone}, session_id: {session_id}")
+            
+            return {
+                'success': True,
+                'session_id': session_id
+            }
+            
+        except errors.FloodWaitError as e:
+            logger.error(f"Flood wait: {e}")
+            return {'success': False, 'error': f'Too many attempts. Try again in {e.seconds} seconds'}
+        except Exception as e:
+            logger.error(f"Error sending code: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(send_code())
+        return jsonify(result)
     except Exception as e:
-        logger.error(f"Error sending code: {e}")
+        logger.error(f"Error in add-account: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# Verify code and complete login
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
-    """Verify code and add account"""
+    """Verify OTP code and complete login"""
     data = request.json
     code = data.get('code')
+    session_id = data.get('session_id')
     password = data.get('password', '')
     
-    if not code:
-        return jsonify({'success': False, 'error': 'Code required'})
+    if not code or not session_id:
+        return jsonify({'success': False, 'error': 'Code and session ID required'})
     
-    phone = session.get('temp_phone')
-    session_name = session.get('temp_session')
-    
-    if not phone or not session_name:
+    if session_id not in temp_sessions:
         return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
     
-    try:
-        client = TelegramClient(
-            session_name,
-            int(os.environ.get('API_ID', 33465589)),
-            os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-        )
+    session_data = temp_sessions[session_id]
+    phone = session_data['phone']
+    phone_code_hash = session_data['phone_code_hash']
+    session_string = session_data['session']
+    
+    logger.info(f"Verifying code for {phone}")
+    
+    async def verify():
+        """Verify code and sign in"""
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        await client.connect()
         
-        # Create new event loop for this operation
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        async def verify():
-            await client.connect()
+        try:
+            # Try to sign in
             try:
-                await client.sign_in(phone, code)
-            except SessionPasswordNeededError:
+                await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
+            except errors.SessionPasswordNeededError:
+                # 2FA required
                 if not password:
                     return {'need_password': True}
                 await client.sign_in(password=password)
-            except Exception as e:
-                return {'error': str(e)}
+            except errors.PhoneCodeInvalidError:
+                return {'success': False, 'error': 'Invalid code'}
+            except errors.PhoneCodeExpiredError:
+                return {'success': False, 'error': 'Code expired. Request new code.'}
             
             # Get user info
             me = await client.get_me()
             
-            # Load existing accounts
-            accounts = load_accounts()
-            
-            # Check if account already exists
-            if any(a.get('phone') == me.phone for a in accounts):
-                return {'error': 'Account already exists'}
-            
-            # Add new account
+            # Create account entry
             new_account = {
-                'id': get_next_id(accounts),
-                'phone': me.phone,
+                'id': int(time.time()),  # Use timestamp as ID
+                'phone': me.phone or phone,
                 'name': me.first_name or 'User',
-                'username': me.username,
+                'username': me.username or '',
+                'session': client.session.save(),
                 'added_at': time.time()
             }
+            
+            # Save to global accounts
+            global accounts
+            accounts = load_accounts()
             accounts.append(new_account)
             save_accounts(accounts)
             
-            # Store client for future use
-            active_clients[new_account['id']] = client
+            logger.info(f"Added account: {new_account['name']} ({new_account['phone']})")
             
-            return {'success': True, 'account': new_account}
-        
-        result = loop.run_until_complete(verify())
-        loop.close()
-        
-        # Clean up session
-        session.pop('temp_phone', None)
-        session.pop('temp_session', None)
-        
-        if result.get('need_password'):
-            return jsonify({'success': False, 'need_password': True})
-        elif result.get('error'):
-            return jsonify({'success': False, 'error': result['error']})
-        else:
-            return jsonify({'success': True, 'account': result['account']})
+            return {
+                'success': True,
+                'account': {
+                    'id': new_account['id'],
+                    'name': new_account['name'],
+                    'phone': new_account['phone']
+                }
+            }
             
+        except Exception as e:
+            logger.error(f"Error in verify: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(verify())
+        
+        # Clean up temp session if successful or not needing password
+        if result.get('success') or not result.get('need_password'):
+            if session_id in temp_sessions:
+                del temp_sessions[session_id]
+        
+        return jsonify(result)
     except Exception as e:
-        logger.error(f"Error verifying code: {e}")
+        logger.error(f"Error in verify-code: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# Get chats and messages
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
-    """Get chats and messages for account"""
+    """Get all chats and recent messages for an account"""
     data = request.json
     account_id = data.get('accountId')
     
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    try:
-        # Create new event loop for this operation
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    # Find account
+    accounts = load_accounts()
+    account = None
+    for acc in accounts:
+        if acc['id'] == account_id:
+            account = acc
+            break
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session')
+    if not session_string:
+        return jsonify({'success': False, 'error': 'No session found'})
+    
+    logger.info(f"Fetching chats for account {account_id}")
+    
+    async def fetch_chats():
+        """Fetch all dialogs and messages"""
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        await client.connect()
         
-        async def fetch():
-            client = await get_client(account_id)
-            if not client:
-                return {'error': 'Client not available'}
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}
             
-            chats_data = []
-            messages_data = []
+            # Get all dialogs
+            dialogs = await client.get_dialogs()
             
-            try:
-                # Get dialogs (chats)
-                async for dialog in client.iter_dialogs():
+            chats = []
+            all_messages = []
+            
+            for dialog in dialogs:
+                if not dialog or not dialog.entity:
+                    continue
+                
+                # Determine chat type
+                if dialog.is_user:
+                    if hasattr(dialog.entity, 'bot') and dialog.entity.bot:
+                        chat_type = 'bot'
+                    else:
+                        chat_type = 'user'
+                elif dialog.is_group:
+                    chat_type = 'group'
+                elif dialog.is_channel:
+                    chat_type = 'channel'
+                else:
                     chat_type = 'user'
-                    if dialog.is_group:
-                        chat_type = 'group'
-                    elif dialog.is_channel:
-                        chat_type = 'channel'
-                    
-                    # Get last message
-                    last_msg = dialog.message
-                    last_msg_text = ''
-                    last_msg_media = None
-                    
-                    if last_msg:
-                        last_msg_text = last_msg.text or ''
-                        if last_msg.media:
-                            if hasattr(last_msg.media, 'photo'):
-                                last_msg_media = 'photo'
-                            elif hasattr(last_msg.media, 'document'):
+                
+                # Get chat name
+                name = dialog.name or 'Unknown'
+                if dialog.is_user and hasattr(dialog.entity, 'first_name'):
+                    name = f"{dialog.entity.first_name or ''} {dialog.entity.last_name or ''}".strip()
+                
+                # Get chat ID as string
+                chat_id = str(dialog.id)
+                if hasattr(dialog.entity, 'username') and dialog.entity.username:
+                    chat_id = f"@{dialog.entity.username}"
+                
+                # Last message info
+                last_msg = ''
+                last_msg_media = None
+                last_date = 0
+                
+                if dialog.message:
+                    if dialog.message.text:
+                        last_msg = dialog.message.text[:100]
+                    elif dialog.message.media:
+                        if isinstance(dialog.message.media, MessageMediaPhoto):
+                            last_msg = '📷 Photo'
+                            last_msg_media = 'photo'
+                        elif isinstance(dialog.message.media, MessageMediaDocument):
+                            # Check if it's a video or document
+                            attrs = dialog.message.media.document.attributes
+                            is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                            is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                            
+                            if is_video:
+                                last_msg = '🎥 Video'
+                                last_msg_media = 'video'
+                            elif is_audio:
+                                for attr in attrs:
+                                    if isinstance(attr, DocumentAttributeAudio):
+                                        if attr.voice:
+                                            last_msg = '🎤 Voice'
+                                            last_msg_media = 'voice'
+                                        else:
+                                            last_msg = '🎵 Audio'
+                                            last_msg_media = 'audio'
+                                        break
+                            else:
+                                last_msg = '📎 Document'
                                 last_msg_media = 'document'
+                        elif isinstance(dialog.message.media, MessageMediaWebPage):
+                            last_msg = '🔗 Link'
+                            last_msg_media = 'link'
+                        else:
+                            last_msg = '📎 Media'
+                            last_msg_media = 'media'
                     
-                    chat_id = str(dialog.id)
-                    if hasattr(dialog.entity, 'username') and dialog.entity.username:
-                        chat_id = f"@{dialog.entity.username}"
+                    if dialog.message.date:
+                        last_date = int(dialog.message.date.timestamp())
+                
+                # Add to chats list
+                chats.append({
+                    'id': chat_id,
+                    'title': name,
+                    'type': chat_type,
+                    'unread': dialog.unread_count or 0,
+                    'lastMessage': last_msg,
+                    'lastMessageMedia': last_msg_media,
+                    'lastMessageDate': last_date,
+                    'pinned': dialog.pinned or False
+                })
+                
+                # Get recent messages for this chat (limit 20)
+                try:
+                    messages = await client.get_messages(dialog.entity, limit=20)
                     
-                    chats_data.append({
-                        'id': chat_id,
-                        'title': dialog.name or 'Unknown',
-                        'type': chat_type,
-                        'unread': dialog.unread_count,
-                        'lastMessage': (last_msg_text or '')[:50],
-                        'lastMessageMedia': last_msg_media,
-                        'lastMessageDate': last_msg.date.timestamp() if last_msg and last_msg.date else None
-                    })
-                    
-                    # Get last 20 messages for this chat (limited to avoid timeout)
-                    try:
-                        async for msg in client.iter_messages(dialog.entity, limit=20):
-                            msg_data = {
-                                'id': msg.id,
-                                'chatId': chat_id,
-                                'text': msg.text or '',
-                                'date': msg.date.timestamp() if msg.date else time.time(),
-                                'out': msg.out,
-                                'hasMedia': bool(msg.media),
-                                'views': getattr(msg, 'views', None),
-                                'forwards': getattr(msg, 'forwards', None)
-                            }
-                            
-                            # Handle media
-                            if msg.media:
-                                if hasattr(msg.media, 'photo'):
-                                    msg_data['mediaType'] = 'photo'
-                                elif hasattr(msg.media, 'document'):
-                                    msg_data['mediaType'] = 'document'
-                                    # Check for filename
-                                    for attr in msg.media.document.attributes:
-                                        if isinstance(attr, DocumentAttributeFilename):
-                                            msg_data['fileName'] = attr.file_name
+                    for msg in messages:
+                        if not msg:
+                            continue
+                        
+                        # Message text
+                        msg_text = msg.text or ''
+                        media_type = None
+                        
+                        # Check for media
+                        if msg.media:
+                            if isinstance(msg.media, MessageMediaPhoto):
+                                media_type = 'photo'
+                                if not msg_text:
+                                    msg_text = '📷 Photo'
+                            elif isinstance(msg.media, MessageMediaDocument):
+                                attrs = msg.media.document.attributes
+                                is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
+                                is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
+                                
+                                if is_video:
+                                    media_type = 'video'
+                                    if not msg_text:
+                                        msg_text = '🎥 Video'
+                                elif is_audio:
+                                    for attr in attrs:
+                                        if isinstance(attr, DocumentAttributeAudio):
+                                            if attr.voice:
+                                                media_type = 'voice'
+                                                if not msg_text:
+                                                    msg_text = '🎤 Voice message'
+                                            else:
+                                                media_type = 'audio'
+                                                if not msg_text:
+                                                    msg_text = '🎵 Audio'
                                             break
-                                elif hasattr(msg.media, 'webpage'):
-                                    msg_data['mediaType'] = 'webpage'
-                                    if hasattr(msg.media.webpage, 'url'):
-                                        msg_data['webpageUrl'] = msg.media.webpage.url
-                                    if hasattr(msg.media.webpage, 'title'):
-                                        msg_data['webpageTitle'] = msg.media.webpage.title
-                            
-                            messages_data.append(msg_data)
-                    except Exception as e:
-                        logger.error(f"Error getting messages for chat {dialog.id}: {e}")
-                        continue
-                    
-            except Exception as e:
-                logger.error(f"Error in fetch loop: {e}")
-                return {'error': str(e)}
+                                else:
+                                    media_type = 'document'
+                                    if not msg_text:
+                                        msg_text = '📎 Document'
+                            elif isinstance(msg.media, MessageMediaWebPage):
+                                media_type = 'link'
+                                if not msg_text:
+                                    msg_text = '🔗 Link'
+                            else:
+                                media_type = 'media'
+                                if not msg_text:
+                                    msg_text = '📎 Media'
+                        
+                        # Message date
+                        msg_date = 0
+                        if msg.date:
+                            msg_date = int(msg.date.timestamp())
+                        
+                        all_messages.append({
+                            'chatId': chat_id,
+                            'text': msg_text,
+                            'date': msg_date,
+                            'out': msg.out or False,
+                            'id': msg.id,
+                            'hasMedia': msg.media is not None,
+                            'mediaType': media_type
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"Error getting messages for {chat_id}: {e}")
+                    continue
+            
+            logger.info(f"Fetched {len(chats)} chats and {len(all_messages)} messages")
             
             return {
                 'success': True,
-                'chats': chats_data,
-                'messages': messages_data
+                'chats': chats,
+                'messages': all_messages
             }
-        
-        result = loop.run_until_complete(fetch())
-        loop.close()
-        
-        if result.get('error'):
-            return jsonify({'success': False, 'error': result['error']})
+            
+        except Exception as e:
+            logger.error(f"Error in fetch_chats: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(fetch_chats())
         return jsonify(result)
-        
     except Exception as e:
-        logger.error(f"Error fetching messages: {e}")
+        logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# Send message
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
-    """Send message to chat"""
+    """Send a message to a chat"""
     data = request.json
     account_id = data.get('accountId')
     chat_id = data.get('chatId')
     message = data.get('message')
     
-    if not all([account_id, chat_id, message]):
-        return jsonify({'success': False, 'error': 'Missing required fields'})
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
-    try:
-        # Create new event loop for this operation
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    if not message:
+        return jsonify({'success': False, 'error': 'Message cannot be empty'})
+    
+    # Find account
+    accounts = load_accounts()
+    account = None
+    for acc in accounts:
+        if acc['id'] == account_id:
+            account = acc
+            break
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session')
+    if not session_string:
+        return jsonify({'success': False, 'error': 'No session found'})
+    
+    logger.info(f"Sending message from account {account_id} to {chat_id}")
+    
+    async def send():
+        """Send the message"""
+        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        await client.connect()
         
-        async def send():
-            client = await get_client(account_id)
-            if not client:
-                return {'error': 'Client not available'}
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'Not authorized'}
             
-            # Get chat entity
+            # Get the chat entity
             try:
-                # Try to get entity by ID or username
-                if chat_id.startswith('@'):
-                    entity = await client.get_entity(chat_id)
-                elif chat_id.startswith('-100'):
+                # Try to get as integer ID first
+                if chat_id.startswith('-100'):
                     entity = await client.get_entity(int(chat_id))
+                elif chat_id.startswith('@'):
+                    entity = await client.get_entity(chat_id)
                 else:
-                    # Try as integer ID
                     try:
                         entity = await client.get_entity(int(chat_id))
                     except ValueError:
-                        # Try as username without @
-                        entity = await client.get_entity(f"@{chat_id}")
+                        entity = await client.get_entity(chat_id)
             except Exception as e:
                 logger.error(f"Error getting entity: {e}")
-                return {'error': f'Chat not found: {str(e)}'}
+                return {'success': False, 'error': f'Chat not found: {str(e)}'}
             
             # Send message
-            try:
-                sent = await client.send_message(entity, message)
-                return {'success': True, 'message_id': sent.id}
-            except Exception as e:
-                return {'error': f'Failed to send: {str(e)}'}
-        
-        result = loop.run_until_complete(send())
-        loop.close()
-        
-        if result.get('error'):
-            return jsonify({'success': False, 'error': result['error']})
+            await client.send_message(entity, message)
+            
+            logger.info(f"Message sent successfully to {chat_id}")
+            return {'success': True}
+            
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(send())
         return jsonify(result)
-        
     except Exception as e:
-        logger.error(f"Error sending message: {e}")
+        logger.error(f"Error in send-message: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# Remove account
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
-    """Remove account"""
+    """Remove an account"""
     data = request.json
     account_id = data.get('accountId')
     
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    try:
-        accounts = load_accounts()
-        accounts = [a for a in accounts if a['id'] != int(account_id)]
-        save_accounts(accounts)
-        
-        # Remove client if exists
-        if int(account_id) in active_clients:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            async def disconnect():
-                try:
-                    await active_clients[int(account_id)].disconnect()
-                except:
-                    pass
-            
-            loop.run_until_complete(disconnect())
-            loop.close()
-            del active_clients[int(account_id)]
-        
-        # Remove session file
-        session_file = f'session_{account_id}.session'
-        if os.path.exists(session_file):
-            os.remove(session_file)
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        logger.error(f"Error removing account: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+    global accounts
+    accounts = load_accounts()
+    original_count = len(accounts)
+    
+    # Filter out the account to remove
+    accounts = [acc for acc in accounts if acc['id'] != account_id]
+    
+    if len(accounts) < original_count:
+        if save_accounts(accounts):
+            logger.info(f"Removed account {account_id}")
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to save after removal'})
+    else:
+        return jsonify({'success': False, 'error': 'Account not found'})
 
-@app.route('/api/media/<int:account_id>/<int:message_id>')
-def get_media(account_id, message_id):
-    """Get media file"""
-    return jsonify({'error': 'Media download not implemented yet'}), 501
+# Health check
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    accounts = load_accounts()
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'temp_sessions': len(temp_sessions),
+        'api_id_configured': API_ID is not None,
+        'api_hash_configured': API_HASH is not None,
+        'accounts_file': os.path.exists(ACCOUNTS_FILE)
+    })
 
+# Error handlers
 @app.errorhandler(404)
 def not_found(error):
-    return render_template('dashboard.html'), 404
+    return render_template('login.html')
 
 @app.errorhandler(500)
 def internal_error(error):
+    logger.error(f"Internal server error: {error}")
     return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)  # Set debug=False for production
+    print('\n' + '='*60)
+    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('='*60)
+    print(f'✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}')
+    print(f'✅ API_ID: {API_ID}')
+    print(f'✅ API_HASH: {"*" * min(10, len(API_HASH)) if API_HASH else "Not set"}')
+    print('✅ Endpoints:')
+    print('   - GET  /, /login, /dashboard, /home')
+    print('   - GET  /api/accounts')
+    print('   - POST /api/add-account')
+    print('   - POST /api/verify-code')
+    print('   - POST /api/get-messages')
+    print('   - POST /api/send-message')
+    print('   - POST /api/remove-account')
+    print('   - GET  /api/health')
+    print('='*60 + '\n')
+    
+    # Create accounts file if it doesn't exist
+    if not os.path.exists(ACCOUNTS_FILE):
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump([], f)
+        print(f'✅ Created {ACCOUNTS_FILE}')
+    
+    app.run(host='0.0.0.0', port=port, debug=False)
