@@ -11,8 +11,4 @@ services:
       - key: API_HASH
         value: "08bdab35790bf1fdf20c16a50bd323b8"
       - key: PYTHON_VERSION
-        value: 3.10.0
-    disk:
-      name: telegram-data
-      mountPath: /opt/render/project/src
-      sizeGB: 1
+        value: 3.10.12
