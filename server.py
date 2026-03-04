@@ -172,7 +172,6 @@ def verify_code():
                 'id': new_id,
                 'phone': me.phone or session_data['phone'],
                 'name': me.first_name or 'User',
-                'username': me.username or '',
                 'session': client.session.save()
             }
             
@@ -200,7 +199,7 @@ def verify_code():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Get chats and messages - FIXED VERSION
+# ULTRA SIMPLE VERSION - Get chats
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -224,85 +223,53 @@ def get_messages():
         await client.connect()
         
         try:
-            # Get all dialogs (chats)
+            # Get all dialogs
             dialogs = await client.get_dialogs()
+            logger.info(f"Found {len(dialogs)} dialogs")
             
             chats = []
-            all_messages = []
             
             for dialog in dialogs:
                 if not dialog:
                     continue
                 
-                # Get chat ID
-                chat_id = str(dialog.id)
-                
-                # Get chat type
+                # Basic info only
                 chat_type = 'user'
                 if dialog.is_group:
                     chat_type = 'group'
                 elif dialog.is_channel:
                     chat_type = 'channel'
                 
-                # Get chat name
-                name = dialog.name or 'Unknown'
-                
-                # Get last message
-                last_msg = ''
-                last_date = 0
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        last_msg = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        last_msg = '📎 Media'
-                    
-                    if dialog.message.date:
-                        last_date = int(dialog.message.date.timestamp())
-                
-                # Add to chats list
-                chats.append({
-                    'id': chat_id,
-                    'title': name,
+                # Simple chat object
+                chat = {
+                    'id': str(dialog.id),
+                    'title': dialog.name or 'Unknown',
                     'type': chat_type,
                     'unread': dialog.unread_count or 0,
-                    'lastMessage': last_msg,
-                    'lastMessageDate': last_date
-                })
+                    'lastMessage': '',
+                    'lastMessageDate': 0
+                }
                 
-                # Get recent messages (limit 10)
-                try:
-                    messages = await client.get_messages(dialog.entity, limit=10)
+                # Add last message if exists
+                if dialog.message:
+                    if dialog.message.text:
+                        chat['lastMessage'] = dialog.message.text[:50]
+                    elif dialog.message.media:
+                        chat['lastMessage'] = '📎 Media'
                     
-                    for msg in messages:
-                        if not msg:
-                            continue
-                        
-                        msg_text = msg.text or ''
-                        if msg.media:
-                            msg_text = '📎 Media'
-                        
-                        msg_date = int(msg.date.timestamp()) if msg.date else 0
-                        
-                        all_messages.append({
-                            'chatId': chat_id,
-                            'text': msg_text,
-                            'date': msg_date,
-                            'out': msg.out or False,
-                            'id': msg.id,
-                            'hasMedia': msg.media is not None
-                        })
-                        
-                except:
-                    continue
+                    if dialog.message.date:
+                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                
+                chats.append(chat)
             
             return {
                 'success': True,
                 'chats': chats,
-                'messages': all_messages
+                'messages': []  # Empty for now
             }
             
         except Exception as e:
+            logger.error(f"Error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -311,6 +278,7 @@ def get_messages():
         result = run_async(fetch())
         return jsonify(result)
     except Exception as e:
+        logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Send message
@@ -381,6 +349,42 @@ def remove_account():
     
     return jsonify({'success': False, 'error': 'Account not found'})
 
+# Debug endpoint
+@app.route('/api/debug/chats/<int:account_id>', methods=['GET'])
+def debug_chats(account_id):
+    """Debug endpoint to test chat loading"""
+    try:
+        # Find account
+        account = None
+        for acc in accounts:
+            if acc['id'] == account_id:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def test():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                dialogs = await client.get_dialogs()
+                return {
+                    'success': True,
+                    'count': len(dialogs),
+                    'names': [d.name for d in dialogs[:10] if d.name]
+                }
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(test())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -393,7 +397,7 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('TELEGRAM MANAGER - FINAL FIXED VERSION')
+    print('TELEGRAM MANAGER - ULTRA SIMPLE')
     print('='*50)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
