@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Multi-Account Dashboard</title>
     <style>
-        /* Keep all your existing styles */
         * {
             margin: 0;
             padding: 0;
@@ -853,9 +852,6 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .mobile-back-btn:hover {
@@ -885,6 +881,8 @@
             
             .mobile-back-btn {
                 display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
     </style>
@@ -993,6 +991,7 @@
             'photo': '📷',
             'video': '🎥',
             'audio': '🎵',
+            'voice': '🎤',
             'document': '📎',
             'link': '🔗',
             'media': '📎'
@@ -1051,10 +1050,17 @@
             try {
                 const date = new Date(timestamp * 1000);
                 const now = new Date();
-                if (date.toDateString() === now.toDateString()) {
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (date >= today) {
                     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else if (date >= yesterday) {
+                    return 'Yesterday';
+                } else {
+                    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
                 }
-                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
             } catch {
                 return '';
             }
@@ -1081,10 +1087,10 @@
         });
 
         // Mobile navigation
-        function showChatsPanel() {
+        window.showChatsPanel = function() {
             chatsPanel.style.display = 'block';
             messagesPanel.classList.remove('show');
-        }
+        };
 
         function showMessagesPanel() {
             if (window.innerWidth <= 768) {
@@ -1101,55 +1107,16 @@
             }
         });
 
-        // ---------- Media Functions ----------
-        function getMediaUrl(accountId, messageId) {
-            return `/api/media/${accountId}/${messageId}`;
-        }
-
-        function showMediaModal(mediaUrl, mediaType) {
-            modalContent.innerHTML = '';
-            
-            if (mediaType === 'photo' || mediaType === 'image') {
-                const img = document.createElement('img');
-                img.src = mediaUrl;
-                img.className = 'modal-image';
-                img.alt = 'Media preview';
-                modalContent.appendChild(img);
-            } else if (mediaType === 'video') {
-                const video = document.createElement('video');
-                video.src = mediaUrl;
-                video.className = 'modal-video';
-                video.controls = true;
-                video.autoplay = true;
-                modalContent.appendChild(video);
-            } else if (mediaType === 'audio') {
-                const audio = document.createElement('audio');
-                audio.src = mediaUrl;
-                audio.controls = true;
-                audio.style.width = '100%';
-                modalContent.appendChild(audio);
-            }
-            
-            mediaModal.classList.add('show');
-        }
-
-        function hideMediaModal() {
-            mediaModal.classList.remove('show');
-            modalContent.innerHTML = '';
-        }
-
         // ---------- Account Functions ----------
         async function loadAccounts() {
             try {
                 const res = await fetch('/api/accounts');
                 const data = await res.json();
-                console.log('Accounts loaded:', data);
                 
                 if (data.success) {
                     accounts = data.accounts || [];
                     
                     if (accounts.length > 0) {
-                        // Check for previously selected account
                         const lastAccountId = localStorage.getItem('lastSelectedAccount');
                         if (lastAccountId) {
                             const savedAccount = accounts.find(a => a.id == lastAccountId);
@@ -1172,11 +1139,10 @@
                         showNoAccountState();
                     }
                 } else {
-                    showError('Failed to load accounts: ' + (data.error || 'Unknown error'));
+                    showError('Failed to load accounts');
                 }
             } catch (err) {
                 console.error('Error fetching accounts:', err);
-                showError('Failed to load accounts. Check server connection.');
                 chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server. <a href="/dashboard" style="color:#6ab2f2;">Retry</a></div>';
             }
         }
@@ -1192,7 +1158,6 @@
             currentName.textContent = name;
             currentPhone.textContent = phone;
             
-            // Save last selected account
             localStorage.setItem('lastSelectedAccount', currentAccount.id);
         }
 
@@ -1236,7 +1201,6 @@
                 `;
             });
             
-            // Add remove account option
             if (accounts.length > 0) {
                 html += `
                     <div class="dropdown-item remove-item" onclick="showRemoveModal()">
@@ -1251,7 +1215,6 @@
             dropdown.innerHTML = html;
         }
 
-        // Switch account
         window.switchAccount = async function(accountId) {
             accountId = parseInt(accountId);
             const newAccount = accounts.find(a => a.id === accountId);
@@ -1268,7 +1231,6 @@
             renderDropdown();
             dropdown.classList.remove('show');
             
-            // Reset UI
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
             messagesListDiv.innerHTML = '<div class="empty-state">👈 Select a chat to start messaging</div>';
@@ -1276,7 +1238,6 @@
             await loadChatsForCurrentAccount();
         };
 
-        // Remove account modal
         function showRemoveModal() {
             if (!currentAccount) return;
             accountToRemove = currentAccount.id;
@@ -1308,7 +1269,7 @@
                     showToast('Account removed successfully');
                     await loadAccounts();
                 } else {
-                    showError('Failed to remove account: ' + (data.error || 'Unknown error'));
+                    showError('Failed to remove account');
                 }
             } catch (err) {
                 console.error('Error removing account:', err);
@@ -1316,7 +1277,6 @@
             }
         };
 
-        // Refresh current account
         window.refreshCurrentAccount = async function() {
             if (!currentAccount) return;
             
@@ -1337,8 +1297,6 @@
             }
             
             try {
-                console.log('Loading chats for account:', currentAccount.id);
-                
                 const res = await fetch('/api/get-messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1346,7 +1304,6 @@
                 });
                 
                 const data = await res.json();
-                console.log('Chats response:', data);
                 
                 if (data.success) {
                     chats = data.chats || [];
@@ -1355,7 +1312,6 @@
                     totalChatsSpan.textContent = chats.length;
                     displayChats();
                     
-                    // If we had a selected chat, try to reselect it
                     if (currentChat) {
                         const stillExists = chats.find(c => c.id === currentChat.id);
                         if (stillExists) {
@@ -1393,23 +1349,20 @@
                 const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
                 let lastMsg = chat.lastMessage || '';
                 
-                // Add emoji to last message if it's media
-                if (lastMsg.includes('📷') || lastMsg.includes('🎥') || lastMsg.includes('🎵') || lastMsg.includes('📎')) {
-                    // Already has emoji
-                } else if (chat.lastMessageMedia) {
+                if (chat.lastMessageMedia) {
                     const icon = mediaIcons[chat.lastMessageMedia] || '📎';
-                    lastMsg = icon + ' ' + lastMsg;
+                    if (!lastMsg.startsWith(icon)) {
+                        lastMsg = icon + ' ' + lastMsg;
+                    }
                 }
                 
                 const time = chat.lastMessageDate ? formatTime(chat.lastMessageDate) : '';
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
-                
-                // Get chat type icon
                 const typeIcon = chatTypes[chat.type] || '👤';
                 
                 html += `
-                    <div class="chat-item ${activeClass}" onclick="selectChat('${chat.id}', '${escapeHtml(chat.title || 'Unknown')}')">
+                    <div class="chat-item ${activeClass}" onclick="selectChat('${escapeHtml(chat.id)}', '${escapeHtml(chat.title || 'Unknown')}')">
                         <div class="chat-avatar ${chat.type}">
                             ${escapeHtml(avatarLetter)}
                         </div>
@@ -1437,11 +1390,9 @@
         window.selectChat = function(chatId, chatTitle) {
             currentChat = { id: chatId, title: chatTitle };
             
-            // Update header with chat info
             currentChatTitle.textContent = chatTitle;
             chatHeaderAvatar.textContent = chatTitle.charAt(0).toUpperCase();
             
-            // Find chat to get more details
             const chat = chats.find(c => c.id === chatId);
             if (chat) {
                 const typeIcon = chatTypes[chat.type || 'user'] || '👤';
@@ -1453,9 +1404,8 @@
             messageInput.disabled = false;
             sendBtn.disabled = false;
             displayMessages(chatId);
-            displayChats(); // Re-render to highlight active chat
+            displayChats();
             
-            // On mobile, show messages panel
             showMessagesPanel();
         };
 
@@ -1484,14 +1434,26 @@
                 
                 let messageContent = '';
                 
-                // Check if message has media
-                if (msg.hasMedia || msg.mediaType) {
-                    messageContent = renderMediaContent(msg);
-                } else {
-                    // Text only message
-                    const text = msg.text || '';
+                if (msg.hasMedia && msg.mediaType) {
+                    const icon = mediaIcons[msg.mediaType] || '📎';
+                    let mediaText = '';
                     
-                    // Check if message is just emoji
+                    switch(msg.mediaType) {
+                        case 'photo': mediaText = '📷 Photo'; break;
+                        case 'video': mediaText = '🎥 Video'; break;
+                        case 'audio': mediaText = '🎵 Audio'; break;
+                        case 'voice': mediaText = '🎤 Voice'; break;
+                        case 'document': mediaText = '📎 Document'; break;
+                        case 'link': mediaText = '🔗 Link'; break;
+                        default: mediaText = '📎 Media';
+                    }
+                    
+                    messageContent = `<div class="media-message"><b>${mediaText}</b></div>`;
+                    if (msg.text && !msg.text.includes('📷') && !msg.text.includes('🎥')) {
+                        messageContent += `<div style="margin-top:5px;">${escapeHtml(msg.text)}</div>`;
+                    }
+                } else {
+                    const text = msg.text || '';
                     if (text.length <= 2 && isEmoji(text)) {
                         messageContent = `<div class="emoji-message">${escapeHtml(text)}</div>`;
                     } else {
@@ -1514,7 +1476,6 @@
             
             messagesListDiv.innerHTML = html;
             
-            // Scroll to bottom
             setTimeout(() => {
                 messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
             }, 100);
@@ -1523,43 +1484,6 @@
         function isEmoji(str) {
             const emojiRegex = /[\u{1F300}-\u{1F6FF}|\u{1F900}-\u{1F9FF}|\u{2600}-\u{26FF}|\u{2700}-\u{27BF}]/u;
             return emojiRegex.test(str);
-        }
-
-        function renderMediaContent(msg) {
-            const mediaType = msg.mediaType || 'media';
-            const icon = mediaIcons[mediaType] || '📎';
-            const text = msg.text || '';
-            
-            // Just show media type with icon
-            let mediaText = '';
-            switch(mediaType) {
-                case 'photo':
-                    mediaText = '📷 Photo';
-                    break;
-                case 'video':
-                    mediaText = '🎥 Video';
-                    break;
-                case 'audio':
-                    mediaText = '🎵 Audio';
-                    break;
-                case 'document':
-                    mediaText = '📎 Document';
-                    break;
-                case 'link':
-                    mediaText = '🔗 Link';
-                    break;
-                default:
-                    mediaText = '📎 Media';
-            }
-            
-            let content = `<div class="media-message"><b>${mediaText}</b></div>`;
-            
-            // Add caption if exists
-            if (text && text.length > 0 && !text.includes('📷') && !text.includes('🎥')) {
-                content += `<div style="margin-top:5px;">${escapeHtml(text)}</div>`;
-            }
-            
-            return content;
         }
 
         window.sendMessage = async function() {
@@ -1589,11 +1513,10 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    // Add message to local cache
                     const newMsg = {
                         chatId: currentChat.id,
                         text: messageText,
-                        date: Date.now() / 1000,
+                        date: Math.floor(Date.now() / 1000),
                         out: true,
                         id: Date.now(),
                         hasMedia: false
@@ -1607,7 +1530,7 @@
                 }
             } catch (err) {
                 console.error('Error sending message:', err);
-                showError('Error sending message. Check connection.');
+                showError('Error sending message');
                 messageInput.value = messageText;
             } finally {
                 messageInput.disabled = false;
@@ -1616,7 +1539,6 @@
             }
         };
 
-        // Enter key to send
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -1624,7 +1546,7 @@
             }
         });
 
-        // Auto-refresh every 30 seconds
+        // Initialize
         window.addEventListener('load', () => {
             loadAccounts();
             
@@ -1642,4 +1564,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
