@@ -103,6 +103,47 @@
             padding-left: 70px;
         }
 
+        /* 5-digit code boxes */
+        .code-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .code-box {
+            width: 60px;
+            height: 70px;
+            background: #242f3d;
+            border: 2px solid #2b3945;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            line-height: 70px;
+            transition: all 0.2s;
+        }
+
+        .code-box.filled {
+            border-color: #4c9ce0;
+            background: #2b5278;
+        }
+
+        .code-box:focus {
+            outline: none;
+            border-color: #4c9ce0;
+            box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
+        }
+
+        .hidden-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
         .btn {
             width: 100%;
             padding: 14px;
@@ -149,6 +190,8 @@
             font-size: 0.9rem;
             text-decoration: none;
             display: inline-block;
+            border: none;
+            cursor: pointer;
         }
 
         .btn-link:hover {
@@ -277,7 +320,7 @@
                     <label>Phone Number (with country code)</label>
                     <div class="input-wrapper">
                         <span class="country-code">+</span>
-                        <input type="tel" class="form-control phone-input" id="phone" placeholder="1234567890" value="">
+                        <input type="tel" class="form-control phone-input" id="phone" placeholder="1234567890" value="" inputmode="numeric" pattern="[0-9]*">
                     </div>
                     <div class="info-text">Enter your phone number in international format</div>
                 </div>
@@ -286,22 +329,38 @@
                 </button>
             </div>
 
-            <!-- Step 2: Verification Code -->
+            <!-- Step 2: Verification Code with 5 boxes -->
             <div id="step2" style="display: none;">
                 <div class="form-group">
-                    <label>Verification Code</label>
-                    <input type="text" class="form-control" id="code" placeholder="Enter 5-digit code" maxlength="6">
+                    <label>Enter 5-digit verification code</label>
+                    
+                    <!-- Hidden input to capture actual value -->
+                    <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*">
+                    
+                    <!-- 5 visible boxes -->
+                    <div class="code-container" id="codeBoxes">
+                        <div class="code-box" id="box1" onclick="focusHiddenInput()">-</div>
+                        <div class="code-box" id="box2" onclick="focusHiddenInput()">-</div>
+                        <div class="code-box" id="box3" onclick="focusHiddenInput()">-</div>
+                        <div class="code-box" id="box4" onclick="focusHiddenInput()">-</div>
+                        <div class="code-box" id="box5" onclick="focusHiddenInput()">-</div>
+                    </div>
+                    
+                    <div class="info-text">Code sent to your phone</div>
                 </div>
+                
                 <div class="form-group" id="passwordGroup" style="display: none;">
                     <label>Two-Factor Authentication Password</label>
                     <input type="password" class="form-control" id="password" placeholder="Enter your 2FA password">
                     <div class="info-text">This account has 2FA enabled</div>
                 </div>
-                <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
-                    <span>Verify & Add Account</span>
+                
+                <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()" style="display: none;">
+                    <span>Verify</span>
                 </button>
+                
                 <button class="btn btn-link" onclick="backToPhone()">
-                    ← Back
+                    ← Change Phone Number
                 </button>
                 <div class="resend-timer" id="resendTimer"></div>
             </div>
@@ -311,7 +370,7 @@
                 <div style="font-size: 4rem; margin: 20px 0;">✅</div>
                 <h2 style="margin-bottom: 16px;">Account Added!</h2>
                 <p style="color: #8e9fad; margin-bottom: 24px;" id="successAccountInfo"></p>
-                <a href="/dashboard" class="btn btn-primary" style="text-decoration: none; display: block;">
+                <a href="/home" class="btn btn-primary" style="text-decoration: none; display: block;">
                     Go to Dashboard
                 </a>
                 <button class="btn btn-link" onclick="addAnotherAccount()">
@@ -329,6 +388,17 @@
         let timerInterval;
         let timeLeft = 60;
         let currentSessionId = null;
+        let currentPhone = '';
+
+        // DOM elements
+        const hiddenInput = document.getElementById('hiddenCodeInput');
+        const boxes = [
+            document.getElementById('box1'),
+            document.getElementById('box2'),
+            document.getElementById('box3'),
+            document.getElementById('box4'),
+            document.getElementById('box5')
+        ];
 
         function showError(message) {
             const errorEl = document.getElementById('errorMessage');
@@ -349,7 +419,11 @@
         }
 
         function setLoading(button, isLoading) {
-            const originalText = button.querySelector('span').textContent;
+            if (!button) return;
+            const span = button.querySelector('span');
+            if (!span) return;
+            
+            const originalText = span.textContent;
             if (isLoading) {
                 button.disabled = true;
                 button.innerHTML = '<span class="loading-spinner"></span><span> Please wait...</span>';
@@ -358,6 +432,43 @@
                 button.innerHTML = `<span>${originalText}</span>`;
             }
         }
+
+        function focusHiddenInput() {
+            hiddenInput.focus();
+        }
+
+        // Update boxes based on hidden input value
+        function updateCodeBoxes() {
+            const code = hiddenInput.value;
+            for (let i = 0; i < 5; i++) {
+                if (i < code.length) {
+                    boxes[i].textContent = code[i];
+                    boxes[i].classList.add('filled');
+                } else {
+                    boxes[i].textContent = '-';
+                    boxes[i].classList.remove('filled');
+                }
+            }
+            
+            // Auto verify when 5 digits entered
+            if (code.length === 5) {
+                setTimeout(() => verifyCode(), 300);
+            }
+        }
+
+        // Hidden input event listeners
+        hiddenInput.addEventListener('input', function(e) {
+            // Only allow numbers
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
+            updateCodeBoxes();
+        });
+
+        hiddenInput.addEventListener('keydown', function(e) {
+            // Handle backspace
+            if (e.key === 'Backspace') {
+                // Allow normal backspace behavior
+            }
+        });
 
         function startResendTimer() {
             timeLeft = 60;
@@ -371,7 +482,7 @@
                 timeLeft--;
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    timerEl.innerHTML = '<button class="btn btn-link" onclick="resendCode()" style="margin-top:8px;">Resend Code</button>';
+                    timerEl.innerHTML = '<button class="btn-link" onclick="resendCode()" style="margin-top:8px;">Resend Code</button>';
                 } else {
                     timerEl.textContent = `Resend code in ${timeLeft}s`;
                 }
@@ -380,11 +491,16 @@
 
         async function sendCode() {
             const phoneInput = document.getElementById('phone');
-            const phone = '+' + phoneInput.value.trim().replace(/\s+/g, '');
+            let phone = phoneInput.value.trim().replace(/\s+/g, '');
             
-            if (!phoneInput.value.trim()) {
+            if (!phone) {
                 showError('Please enter your phone number');
                 return;
+            }
+
+            // Ensure phone has + prefix
+            if (!phone.startsWith('+')) {
+                phone = '+' + phone;
             }
 
             const button = document.getElementById('sendCodeBtn');
@@ -403,6 +519,7 @@
 
                 if (data.success) {
                     currentSessionId = data.session_id;
+                    currentPhone = phone;
                     
                     // Move to step 2
                     document.getElementById('step1').style.display = 'none';
@@ -411,6 +528,11 @@
                     document.getElementById('step1-dot').classList.remove('active');
                     document.getElementById('step1-dot').classList.add('completed');
                     document.getElementById('step2-dot').classList.add('active');
+                    
+                    // Clear and focus hidden input
+                    hiddenInput.value = '';
+                    updateCodeBoxes();
+                    setTimeout(() => hiddenInput.focus(), 300);
                     
                     startResendTimer();
                     showSuccess('Code sent successfully!');
@@ -426,11 +548,18 @@
         }
 
         async function verifyCode() {
-            const code = document.getElementById('code').value.trim();
-            const password = document.getElementById('password').value;
+            const code = hiddenInput.value;
             
-            if (!code) {
-                showError('Please enter the verification code');
+            if (code.length !== 5) {
+                showError('Please enter the 5-digit code');
+                return;
+            }
+
+            const password = document.getElementById('password').value;
+            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
+
+            if (needPassword && !password) {
+                showError('Please enter your 2FA password');
                 return;
             }
 
@@ -462,17 +591,28 @@
                     document.getElementById('step3-dot').classList.add('active');
                     
                     document.getElementById('successAccountInfo').innerHTML = 
-                        `Account added successfully!`;
+                        `Account added successfully!<br>Redirecting to dashboard...`;
                     
                     if (timerInterval) {
                         clearInterval(timerInterval);
                     }
+                    
+                    // Redirect to home page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 2000);
+                    
                 } else {
                     if (data.need_password) {
                         document.getElementById('passwordGroup').style.display = 'block';
                         showError('2FA is enabled. Please enter your password.');
                     } else {
                         showError(data.error || 'Verification failed');
+                        
+                        // Clear code boxes for retry
+                        hiddenInput.value = '';
+                        updateCodeBoxes();
+                        hiddenInput.focus();
                     }
                 }
             } catch (error) {
@@ -484,14 +624,35 @@
         }
 
         async function resendCode() {
-            if (!currentSessionId) {
+            if (!currentPhone) {
                 backToPhone();
                 return;
             }
 
-            // For resend, we need to restart the process
-            backToPhone();
-            showError('Please request code again');
+            try {
+                const response = await fetch('/api/add-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: currentPhone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    hiddenInput.value = '';
+                    updateCodeBoxes();
+                    startResendTimer();
+                    showSuccess('Code resent successfully!');
+                } else {
+                    showError(data.error || 'Failed to resend code');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please try again.');
+            }
         }
 
         function backToPhone() {
@@ -504,9 +665,10 @@
             document.getElementById('step2-dot').classList.remove('active', 'completed');
             document.getElementById('step3-dot').classList.remove('active', 'completed');
             
-            document.getElementById('code').value = '';
             document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'none';
+            hiddenInput.value = '';
+            updateCodeBoxes();
             
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -517,14 +679,12 @@
             backToPhone();
             document.getElementById('phone').value = '';
             currentSessionId = null;
+            currentPhone = '';
         }
 
+        // Only allow numbers in phone input
         document.getElementById('phone').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^\d]/g, '');
-        });
-
-        document.getElementById('code').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^\d]/g, '');
+            this.value = this.value.replace(/[^0-9]/g, '');
         });
 
         document.getElementById('phone').addEventListener('keypress', function(e) {
@@ -533,17 +693,16 @@
             }
         });
 
-        document.getElementById('code').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verifyCode();
-            }
-        });
-
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 verifyCode();
             }
         });
+
+        // Focus hidden input when clicking anywhere in step 2
+        document.getElementById('step2').addEventListener('click', function() {
+            hiddenInput.focus();
+        });
     </script>
 </body>
-</html>
+                            </html>
