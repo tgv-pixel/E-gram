@@ -3,502 +3,623 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Login</title>
+    <title>Add Telegram Account</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        
+
         body {
-            background: linear-gradient(145deg, #0088cc, #006699);
-            min-height: 100vh;
+            background: #0e1621;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #fff;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
             padding: 20px;
         }
-        
-        .container {
-            background: white;
-            max-width: 400px;
-            width: 100%;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+
+        .login-card {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 32px 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            border: 1px solid #2b3945;
         }
-        
-        h1 {
-            color: #0088cc;
+
+        .login-header {
             text-align: center;
-            margin-bottom: 20px;
-            font-size: 24px;
+            margin-bottom: 32px;
         }
-        
-        .info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #01579b;
-            border-left: 4px solid #0088cc;
+
+        .login-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: #fff;
         }
-        
-        input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
+
+        .login-header p {
+            color: #8e9fad;
+            font-size: 0.95rem;
         }
-        
-        input:focus {
-            outline: none;
-            border-color: #0088cc;
+
+        .telegram-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: #4c9ce0;
         }
-        
-        button {
-            width: 100%;
-            padding: 15px;
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-bottom: 10px;
-        }
-        
-        button:hover {
-            background: #006699;
-        }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .code-inputs {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
+
+        .form-group {
             margin-bottom: 20px;
         }
-        
-        .code-input {
-            width: 50px;
-            height: 60px;
-            text-align: center;
-            font-size: 24px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-        }
-        
-        .code-input:focus {
-            border-color: #0088cc;
-            outline: none;
-        }
-        
-        #message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 4px solid #c62828;
-        }
-        
-        .success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 4px solid #2e7d32;
-        }
-        
-        .info-message {
-            background: #e3f2fd;
-            color: #01579b;
-            border-left: 4px solid #0088cc;
-        }
-        
-        .link {
-            text-align: center;
-            margin-top: 15px;
-        }
-        
-        .link a {
-            color: #0088cc;
-            text-decoration: none;
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #8e9fad;
+            font-size: 0.9rem;
             font-weight: 500;
         }
-        
-        .link a:hover {
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .country-code {
+            position: absolute;
+            left: 16px;
+            color: #8e9fad;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: #4c9ce0;
+            box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: #5d6f7e;
+        }
+
+        .phone-input {
+            padding-left: 70px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #4c9ce0;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #6ab2f2;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #2b3945;
+            color: #6ab2f2;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #3a4a5a;
+        }
+
+        .btn-link {
+            background: transparent;
+            color: #6ab2f2;
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn-link:hover {
             text-decoration: underline;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2b3945;
+            transition: all 0.2s;
+        }
+
+        .step-dot.active {
+            background: #4c9ce0;
+            transform: scale(1.3);
+        }
+
+        .step-dot.completed {
+            background: #4c9ce0;
+        }
+
+        .error-message {
+            background: #8e2b2b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #1e4a2b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .info-text {
+            color: #8e9fad;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            text-align: center;
         }
 
         .loading-spinner {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            border-top-color: #fff;
+            border-top-color: white;
             animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .btn-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+        .footer-links {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .footer-links a {
+            color: #6ab2f2;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .resend-timer {
+            color: #8e9fad;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📱 Telegram Manager</h1>
-        
-        <div class="info">
-            <strong>🔐 Add Telegram Account</strong><br>
-            Enter your phone number to get started
-        </div>
-        
-        <div id="step1">
-            <input type="text" id="phone" placeholder="Phone number (+1234567890)" value="+">
-            <button onclick="sendCode()" id="sendBtn">
-                <span class="btn-content">
-                    <span>Send Code</span>
-                </span>
-            </button>
-        </div>
-        
-        <div id="step2" style="display: none;">
-            <div class="code-inputs">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 0)" onkeydown="handleKeyDown(event, this, 0)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)" onkeydown="handleKeyDown(event, this, 1)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)" onkeydown="handleKeyDown(event, this, 2)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)" onkeydown="handleKeyDown(event, this, 3)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)" onkeydown="handleKeyDown(event, this, 4)">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="telegram-icon">📱</div>
+                <h1>Add Telegram Account</h1>
+                <p>Connect your Telegram account to start messaging</p>
             </div>
-            <button onclick="verifyCode()" id="verifyBtn">Verify Code</button>
-            <button onclick="backToPhone()" style="background: #666;">Back</button>
-            <div id="resendTimer" style="text-align: center; margin-top: 10px; font-size: 14px; color: #666;"></div>
-        </div>
-        
-        <div id="step3" style="display: none;">
-            <input type="password" id="password" placeholder="2FA Password" onkeypress="if(event.key==='Enter') verifyPassword()">
-            <button onclick="verifyPassword()" id="passwordBtn">Submit</button>
-            <button onclick="backToPhone()" style="background: #666;">Cancel</button>
-        </div>
-        
-        <div id="message"></div>
-        
-        <div class="link">
-            <a href="/dashboard">Go to Dashboard →</a>
+
+            <!-- Step indicators -->
+            <div class="step-indicator">
+                <div class="step-dot active" id="step1-dot"></div>
+                <div class="step-dot" id="step2-dot"></div>
+                <div class="step-dot" id="step3-dot"></div>
+            </div>
+
+            <!-- Error/Success messages -->
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- Step 1: Phone Number -->
+            <div id="step1" style="display: block;">
+                <div class="form-group">
+                    <label>Phone Number (with country code)</label>
+                    <div class="input-wrapper">
+                        <span class="country-code">+</span>
+                        <input type="tel" class="form-control phone-input" id="phone" placeholder="1234567890" value="">
+                    </div>
+                    <div class="info-text">Enter your phone number in international format</div>
+                </div>
+                <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
+                    <span>Send Code</span>
+                </button>
+            </div>
+
+            <!-- Step 2: Verification Code -->
+            <div id="step2" style="display: none;">
+                <div class="form-group">
+                    <label>Verification Code</label>
+                    <input type="text" class="form-control" id="code" placeholder="Enter 5-digit code" maxlength="6">
+                </div>
+                <div class="form-group" id="passwordGroup" style="display: none;">
+                    <label>Two-Factor Authentication Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your 2FA password">
+                    <div class="info-text">This account has 2FA enabled</div>
+                </div>
+                <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
+                    <span>Verify & Add Account</span>
+                </button>
+                <button class="btn btn-link" onclick="backToPhone()">
+                    ← Back
+                </button>
+                <div class="resend-timer" id="resendTimer"></div>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="step3" style="display: none; text-align: center;">
+                <div style="font-size: 4rem; margin: 20px 0;">✅</div>
+                <h2 style="margin-bottom: 16px;">Account Added!</h2>
+                <p style="color: #8e9fad; margin-bottom: 24px;" id="successAccountInfo"></p>
+                <a href="/dashboard" class="btn btn-primary" style="text-decoration: none; display: block;">
+                    Go to Dashboard
+                </a>
+                <button class="btn btn-link" onclick="addAnotherAccount()">
+                    Add Another Account
+                </button>
+            </div>
+
+            <div class="footer-links">
+                <a href="/dashboard">← Back to Dashboard</a>
+            </div>
         </div>
     </div>
 
     <script>
-        let sessionId = null;
-        let phoneNumber = null;
-        let resendTimer = null;
-        let resendSeconds = 30;
-        
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = text;
-            msgDiv.className = type;
+        let timerInterval;
+        let timeLeft = 60;
+        let phoneNumber = '';
+
+        // Show error message
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => {
+                errorEl.classList.remove('show');
+            }, 5000);
         }
-        
-        function setButtonLoading(buttonId, isLoading, text) {
-            const btn = document.getElementById(buttonId);
+
+        // Show success message
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.classList.add('show');
+            setTimeout(() => {
+                successEl.classList.remove('show');
+            }, 3000);
+        }
+
+        // Set loading state
+        function setLoading(button, isLoading) {
+            const originalText = button.querySelector('span').textContent;
             if (isLoading) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="btn-content"><span class="loading-spinner"></span><span>' + text + '</span></span>';
+                button.disabled = true;
+                button.innerHTML = '<span class="loading-spinner"></span><span> Please wait...</span>';
             } else {
-                btn.disabled = false;
-                btn.innerHTML = '<span class="btn-content"><span>' + text + '</span></span>';
+                button.disabled = false;
+                button.innerHTML = `<span>${originalText}</span>`;
             }
         }
-        
-        function sendCode() {
-            const phone = document.getElementById('phone').value.trim();
-            if (!phone) {
-                showMessage('Please enter phone number', 'error');
-                return;
-            }
-            
-            // Basic phone validation
-            if (!phone.match(/^\+[\d]{10,15}$/)) {
-                showMessage('Please enter phone number with country code (e.g., +1234567890)', 'error');
-                return;
-            }
-            
-            phoneNumber = phone;
-            setButtonLoading('sendBtn', true, 'Sending...');
-            showMessage('Sending code...', 'info-message');
-            
-            fetch('/api/add-account', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phone})
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                
-                if (data.success) {
-                    sessionId = data.session_id;
-                    document.getElementById('step1').style.display = 'none';
-                    document.getElementById('step2').style.display = 'block';
-                    document.getElementById('message').textContent = '';
-                    
-                    // Focus first input
-                    document.querySelector('.code-input').focus();
-                    
-                    // Start resend timer
-                    startResendTimer();
-                } else {
-                    showMessage(data.error || 'Failed to send code', 'error');
-                }
-            })
-            .catch(err => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
+
+        // Start resend timer
         function startResendTimer() {
-            resendSeconds = 30;
-            const timerDiv = document.getElementById('resendTimer');
+            timeLeft = 60;
+            const timerEl = document.getElementById('resendTimer');
             
-            if (resendTimer) clearInterval(resendTimer);
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
             
-            resendTimer = setInterval(() => {
-                resendSeconds--;
-                if (resendSeconds <= 0) {
-                    clearInterval(resendTimer);
-                    timerDiv.innerHTML = '<a href="#" onclick="resendCode(); return false;" style="color: #0088cc;">Resend code</a>';
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.innerHTML = '<button class="btn btn-link" onclick="resendCode()" style="margin-top:8px;">Resend Code</button>';
                 } else {
-                    timerDiv.textContent = `Resend code in ${resendSeconds}s`;
+                    timerEl.textContent = `Resend code in ${timeLeft}s`;
                 }
             }, 1000);
         }
-        
-        function resendCode() {
+
+        // Send verification code
+        async function sendCode() {
+            const phoneInput = document.getElementById('phone');
+            const phone = phoneInput.value.trim().replace(/\s+/g, '');
+            
+            if (!phone) {
+                showError('Please enter your phone number');
+                return;
+            }
+
+            // Format: just numbers
+            if (!/^\d+$/.test(phone)) {
+                showError('Please enter only numbers');
+                return;
+            }
+
+            const button = document.getElementById('sendCodeBtn');
+            setLoading(button, true);
+
+            try {
+                const response = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: '+' + phone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    phoneNumber = '+' + phone;
+                    // Move to step 2
+                    document.getElementById('step1').style.display = 'none';
+                    document.getElementById('step2').style.display = 'block';
+                    
+                    // Update step indicators
+                    document.getElementById('step1-dot').classList.remove('active');
+                    document.getElementById('step1-dot').classList.add('completed');
+                    document.getElementById('step2-dot').classList.add('active');
+                    
+                    // Start timer
+                    startResendTimer();
+                    
+                    showSuccess('Code sent successfully!');
+                } else {
+                    showError(data.error || 'Failed to send code');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please try again.');
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        // Verify code
+        async function verifyCode() {
+            const code = document.getElementById('code').value.trim();
+            const password = document.getElementById('password').value;
+            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
+            
+            if (!code) {
+                showError('Please enter the verification code');
+                return;
+            }
+
+            if (needPassword && !password) {
+                showError('Please enter your 2FA password');
+                return;
+            }
+
+            const button = document.getElementById('verifyBtn');
+            setLoading(button, true);
+
+            try {
+                const response = await fetch('/api/verify-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        code: code,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Move to success step
+                    document.getElementById('step2').style.display = 'none';
+                    document.getElementById('step3').style.display = 'block';
+                    
+                    // Update step indicators
+                    document.getElementById('step2-dot').classList.remove('active');
+                    document.getElementById('step2-dot').classList.add('completed');
+                    document.getElementById('step3-dot').classList.add('active');
+                    
+                    // Show account info
+                    const account = data.account;
+                    document.getElementById('successAccountInfo').innerHTML = 
+                        `Account: <strong>${account.name}</strong><br>Phone: ${account.phone}`;
+                    
+                    // Clear timer
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                    }
+                } else {
+                    if (data.need_password) {
+                        // Show password field
+                        document.getElementById('passwordGroup').style.display = 'block';
+                        showError('2FA is enabled. Please enter your password.');
+                    } else {
+                        showError(data.error || 'Verification failed');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please try again.');
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        // Resend code
+        async function resendCode() {
             if (!phoneNumber) {
                 backToPhone();
                 return;
             }
-            
-            setButtonLoading('sendBtn', true, 'Resending...');
-            
-            fetch('/api/add-account', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phoneNumber})
-            })
-            .then(res => res.json())
-            .then(data => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                
+
+            try {
+                const response = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: phoneNumber })
+                });
+
+                const data = await response.json();
+
                 if (data.success) {
-                    sessionId = data.session_id;
-                    showMessage('Code resent successfully', 'success');
                     startResendTimer();
-                    
-                    // Clear code inputs
-                    document.querySelectorAll('.code-input').forEach(input => {
-                        input.value = '';
-                    });
-                    document.querySelector('.code-input').focus();
+                    showSuccess('Code resent successfully!');
                 } else {
-                    showMessage(data.error || 'Failed to resend code', 'error');
+                    showError(data.error || 'Failed to resend code');
                 }
-            })
-            .catch(err => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                showMessage('Network error: ' + err.message, 'error');
-            });
-        }
-        
-        function moveToNext(input, index) {
-            // Allow only numbers
-            input.value = input.value.replace(/[^0-9]/g, '');
-            
-            if (input.value.length === 1) {
-                const next = document.querySelectorAll('.code-input')[index + 1];
-                if (next) next.focus();
-            }
-            
-            // Auto submit when all fields are filled
-            const inputs = document.querySelectorAll('.code-input');
-            const allFilled = Array.from(inputs).every(i => i.value.length === 1);
-            if (allFilled) {
-                verifyCode();
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please try again.');
             }
         }
-        
-        function handleKeyDown(event, input, index) {
-            // Handle backspace
-            if (event.key === 'Backspace' && !input.value) {
-                const prev = document.querySelectorAll('.code-input')[index - 1];
-                if (prev) {
-                    prev.focus();
-                    prev.value = '';
-                }
-            }
-        }
-        
-        function verifyCode() {
-            const inputs = document.querySelectorAll('.code-input');
-            const code = Array.from(inputs).map(i => i.value).join('');
-            
-            if (code.length !== 5) {
-                showMessage('Please enter 5-digit code', 'error');
-                return;
-            }
-            
-            setButtonLoading('verifyBtn', true, 'Verifying...');
-            showMessage('Verifying code...', 'info-message');
-            
-            fetch('/api/verify-code', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    code: code
-                })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('verifyBtn', false, 'Verify Code');
-                
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1500);
-                } else if (data.need_password) {
-                    document.getElementById('step2').style.display = 'none';
-                    document.getElementById('step3').style.display = 'block';
-                    document.getElementById('message').textContent = '';
-                    document.getElementById('password').focus();
-                } else {
-                    showMessage(data.error || 'Verification failed', 'error');
-                    // Clear code inputs on error
-                    inputs.forEach(input => input.value = '');
-                    inputs[0].focus();
-                }
-            })
-            .catch(err => {
-                setButtonLoading('verifyBtn', false, 'Verify Code');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
-        function verifyPassword() {
-            const password = document.getElementById('password').value;
-            
-            if (!password) {
-                showMessage('Please enter password', 'error');
-                return;
-            }
-            
-            setButtonLoading('passwordBtn', true, 'Verifying...');
-            
-            fetch('/api/verify-code', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    password: password
-                })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('passwordBtn', false, 'Submit');
-                
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1500);
-                } else {
-                    showMessage(data.error || 'Verification failed', 'error');
-                }
-            })
-            .catch(err => {
-                setButtonLoading('passwordBtn', false, 'Submit');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
+
+        // Back to phone step
         function backToPhone() {
             document.getElementById('step1').style.display = 'block';
             document.getElementById('step2').style.display = 'none';
             document.getElementById('step3').style.display = 'none';
-            document.getElementById('message').textContent = '';
-            sessionId = null;
             
-            // Clear code inputs
-            document.querySelectorAll('.code-input').forEach(input => {
-                input.value = '';
-            });
+            // Update step indicators
+            document.getElementById('step1-dot').classList.add('active');
+            document.getElementById('step1-dot').classList.remove('completed');
+            document.getElementById('step2-dot').classList.remove('active', 'completed');
+            document.getElementById('step3-dot').classList.remove('active', 'completed');
             
-            // Clear password
+            // Clear inputs
+            document.getElementById('code').value = '';
             document.getElementById('password').value = '';
+            document.getElementById('passwordGroup').style.display = 'none';
             
             // Clear timer
-            if (resendTimer) {
-                clearInterval(resendTimer);
-                document.getElementById('resendTimer').textContent = '';
+            if (timerInterval) {
+                clearInterval(timerInterval);
             }
         }
 
-        // Auto-focus first input when step2 shows
+        // Add another account
+        function addAnotherAccount() {
+            // Reset to step 1
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            
+            // Reset step indicators
+            document.getElementById('step1-dot').classList.add('active');
+            document.getElementById('step1-dot').classList.remove('completed');
+            document.getElementById('step2-dot').classList.remove('active', 'completed');
+            document.getElementById('step3-dot').classList.remove('active', 'completed');
+            
+            // Clear inputs
+            document.getElementById('phone').value = '';
+            document.getElementById('code').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('passwordGroup').style.display = 'none';
+        }
+
+        // Auto-focus on code input when step 2 appears
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                if (mutation.target.style.display === 'block' && mutation.target.id === 'step2') {
-                    document.querySelector('.code-input').focus();
+                if (mutation.target.id === 'step2' && mutation.target.style.display === 'block') {
+                    document.getElementById('code').focus();
                 }
             });
         });
 
         observer.observe(document.getElementById('step2'), { attributes: true, attributeFilter: ['style'] });
+
+        // Allow only numbers in phone and code inputs
+        document.getElementById('phone').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^\d]/g, '');
+        });
+
+        document.getElementById('code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^\d]/g, '');
+        });
+
+        // Enter key to submit
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendCode();
+            }
+        });
+
+        document.getElementById('code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyCode();
+            }
+        });
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyCode();
+            }
+        });
     </script>
 </body>
-</html>
+                    </html>
