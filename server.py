@@ -199,7 +199,7 @@ def verify_code():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ULTRA SIMPLE VERSION - Get chats
+# Get chats and messages - FIXED WITH MESSAGES
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -228,21 +228,24 @@ def get_messages():
             logger.info(f"Found {len(dialogs)} dialogs")
             
             chats = []
+            all_messages = []
             
             for dialog in dialogs:
                 if not dialog:
                     continue
                 
-                # Basic info only
+                # Chat info
                 chat_type = 'user'
                 if dialog.is_group:
                     chat_type = 'group'
                 elif dialog.is_channel:
                     chat_type = 'channel'
                 
-                # Simple chat object
+                chat_id = str(dialog.id)
+                
+                # Create chat object
                 chat = {
-                    'id': str(dialog.id),
+                    'id': chat_id,
                     'title': dialog.name or 'Unknown',
                     'type': chat_type,
                     'unread': dialog.unread_count or 0,
@@ -261,11 +264,43 @@ def get_messages():
                         chat['lastMessageDate'] = int(dialog.message.date.timestamp())
                 
                 chats.append(chat)
+                
+                # Get last 15 messages for this chat
+                try:
+                    messages = await client.get_messages(dialog.entity, limit=15)
+                    
+                    for msg in messages:
+                        if not msg:
+                            continue
+                        
+                        # Get message text
+                        msg_text = msg.text or ''
+                        if msg.media:
+                            msg_text = '📎 Media'
+                        
+                        # Get message date
+                        msg_date = 0
+                        if msg.date:
+                            msg_date = int(msg.date.timestamp())
+                        
+                        # Add to messages list
+                        all_messages.append({
+                            'chatId': chat_id,
+                            'text': msg_text,
+                            'date': msg_date,
+                            'out': msg.out or False,
+                            'id': msg.id,
+                            'hasMedia': msg.media is not None
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"Error getting messages for {chat_id}: {e}")
+                    continue
             
             return {
                 'success': True,
                 'chats': chats,
-                'messages': []  # Empty for now
+                'messages': all_messages
             }
             
         except Exception as e:
@@ -397,7 +432,7 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('TELEGRAM MANAGER - ULTRA SIMPLE')
+    print('TELEGRAM MANAGER - WITH MESSAGES')
     print('='*50)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
