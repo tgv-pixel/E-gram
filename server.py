@@ -1,20 +1,17 @@
-from flask import Flask, send_file, jsonify, request, render_template
+from flask import Flask, send_file, jsonify, request, render_template, send_from_directory
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
 from telethon.tl.types import (
     MessageMediaPhoto, MessageMediaDocument, 
     DocumentAttributeAudio, DocumentAttributeVideo,
-    MessageMediaWebPage, MessageMediaContact, MessageMediaGeo
+    MessageMediaWebPage
 )
-from telethon.tl.functions.messages import GetDialogsRequest
-from telethon.tl.types import InputPeerEmpty
 import json
 import os
 import asyncio
 import logging
 import time
-from datetime import datetime
 import traceback
 
 # Configure logging
@@ -24,7 +21,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, template_folder='.')
+# Create Flask app
+app = Flask(__name__, 
+    template_folder='.',  # Look for templates in current directory
+    static_folder='.',     # Look for static files in current directory
+    static_url_path=''     # Serve static files from root
+)
 CORS(app)
 
 # Your API credentials
@@ -42,6 +44,9 @@ def run_async(coro):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         return loop.run_until_complete(coro)
+    except Exception as e:
+        logger.error(f"Error in async operation: {e}")
+        return None
     finally:
         try:
             loop.close()
@@ -53,7 +58,7 @@ def load_accounts():
     """Load accounts from JSON file"""
     try:
         if os.path.exists(ACCOUNTS_FILE):
-            with open(ACCOUNTS_FILE, 'r') as f:
+            with open(ACCOUNTS_FILE, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
                 if content:
                     return json.loads(content)
@@ -67,8 +72,8 @@ def load_accounts():
 def save_accounts(accounts):
     """Save accounts to JSON file"""
     try:
-        with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2, default=str)
+        with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(accounts, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
         logger.error(f"Error saving accounts: {e}")
@@ -81,19 +86,22 @@ logger.info(f"Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
 # -------------------- PAGES --------------------
 @app.route('/')
 def home():
-    return render_template('login.html')
+    return send_file('login.html')
 
 @app.route('/login')
 def login():
-    return render_template('login.html')
+    return send_file('login.html')
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    return send_file('dashboard.html')
 
-@app.route('/home')
-def home_page():
-    return render_template('login.html')
+@app.route('/<path:path>')
+def serve_static(path):
+    """Serve static files"""
+    if os.path.exists(path):
+        return send_file(path)
+    return send_file('login.html')
 
 # -------------------- API ENDPOINTS --------------------
 
@@ -161,7 +169,6 @@ def add_account():
             }
             
         except errors.FloodWaitError as e:
-            logger.error(f"Flood wait: {e}")
             return {'success': False, 'error': f'Too many attempts. Try again in {e.seconds} seconds'}
         except Exception as e:
             logger.error(f"Error sending code: {e}")
@@ -257,7 +264,7 @@ def verify_code():
         result = run_async(verify())
         
         # Clean up temp session if successful or not needing password
-        if result.get('success') or not result.get('need_password'):
+        if result and (result.get('success') or not result.get('need_password')):
             if session_id in temp_sessions:
                 del temp_sessions[session_id]
         
@@ -348,27 +355,8 @@ def get_messages():
                             last_msg = '📷 Photo'
                             last_msg_media = 'photo'
                         elif isinstance(dialog.message.media, MessageMediaDocument):
-                            # Check if it's a video or document
-                            attrs = dialog.message.media.document.attributes
-                            is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
-                            is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
-                            
-                            if is_video:
-                                last_msg = '🎥 Video'
-                                last_msg_media = 'video'
-                            elif is_audio:
-                                for attr in attrs:
-                                    if isinstance(attr, DocumentAttributeAudio):
-                                        if attr.voice:
-                                            last_msg = '🎤 Voice'
-                                            last_msg_media = 'voice'
-                                        else:
-                                            last_msg = '🎵 Audio'
-                                            last_msg_media = 'audio'
-                                        break
-                            else:
-                                last_msg = '📎 Document'
-                                last_msg_media = 'document'
+                            last_msg = '📎 Document'
+                            last_msg_media = 'document'
                         elif isinstance(dialog.message.media, MessageMediaWebPage):
                             last_msg = '🔗 Link'
                             last_msg_media = 'link'
@@ -391,9 +379,9 @@ def get_messages():
                     'pinned': dialog.pinned or False
                 })
                 
-                # Get recent messages for this chat (limit 20)
+                # Get recent messages for this chat (limit 10)
                 try:
-                    messages = await client.get_messages(dialog.entity, limit=20)
+                    messages = await client.get_messages(dialog.entity, limit=10)
                     
                     for msg in messages:
                         if not msg:
@@ -407,41 +395,12 @@ def get_messages():
                         if msg.media:
                             if isinstance(msg.media, MessageMediaPhoto):
                                 media_type = 'photo'
-                                if not msg_text:
-                                    msg_text = '📷 Photo'
                             elif isinstance(msg.media, MessageMediaDocument):
-                                attrs = msg.media.document.attributes
-                                is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
-                                is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
-                                
-                                if is_video:
-                                    media_type = 'video'
-                                    if not msg_text:
-                                        msg_text = '🎥 Video'
-                                elif is_audio:
-                                    for attr in attrs:
-                                        if isinstance(attr, DocumentAttributeAudio):
-                                            if attr.voice:
-                                                media_type = 'voice'
-                                                if not msg_text:
-                                                    msg_text = '🎤 Voice message'
-                                            else:
-                                                media_type = 'audio'
-                                                if not msg_text:
-                                                    msg_text = '🎵 Audio'
-                                            break
-                                else:
-                                    media_type = 'document'
-                                    if not msg_text:
-                                        msg_text = '📎 Document'
+                                media_type = 'document'
                             elif isinstance(msg.media, MessageMediaWebPage):
                                 media_type = 'link'
-                                if not msg_text:
-                                    msg_text = '🔗 Link'
                             else:
                                 media_type = 'media'
-                                if not msg_text:
-                                    msg_text = '📎 Media'
                         
                         # Message date
                         msg_date = 0
@@ -594,15 +553,13 @@ def health_check():
         'status': 'healthy',
         'accounts': len(accounts),
         'temp_sessions': len(temp_sessions),
-        'api_id_configured': API_ID is not None,
-        'api_hash_configured': API_HASH is not None,
-        'accounts_file': os.path.exists(ACCOUNTS_FILE)
+        'accounts_file_exists': os.path.exists(ACCOUNTS_FILE)
     })
 
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
-    return render_template('login.html')
+    return send_file('login.html')
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -612,25 +569,16 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('📱 TELEGRAM MANAGER')
     print('='*60)
-    print(f'✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}')
+    print(f'✅ Loaded {len(accounts)} accounts')
     print(f'✅ API_ID: {API_ID}')
-    print(f'✅ API_HASH: {"*" * min(10, len(API_HASH)) if API_HASH else "Not set"}')
-    print('✅ Endpoints:')
-    print('   - GET  /, /login, /dashboard, /home')
-    print('   - GET  /api/accounts')
-    print('   - POST /api/add-account')
-    print('   - POST /api/verify-code')
-    print('   - POST /api/get-messages')
-    print('   - POST /api/send-message')
-    print('   - POST /api/remove-account')
-    print('   - GET  /api/health')
+    print(f'✅ Port: {port}')
     print('='*60 + '\n')
     
     # Create accounts file if it doesn't exist
     if not os.path.exists(ACCOUNTS_FILE):
-        with open(ACCOUNTS_FILE, 'w') as f:
+        with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f:
             json.dump([], f)
         print(f'✅ Created {ACCOUNTS_FILE}')
     
