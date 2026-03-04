@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: telegram-manager
-    runtime: python
-    plan: free
+    name: e-gram
+    env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app
     envVars:
@@ -11,4 +10,4 @@ services:
       - key: API_HASH
         value: "08bdab35790bf1fdf20c16a50bd323b8"
       - key: PYTHON_VERSION
-        value: 3.10.12
+        value: 3.11.0  # Add this line
