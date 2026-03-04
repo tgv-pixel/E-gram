@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Telegram Account</title>
+    <title>Telegram Login</title>
     <style>
         * {
             margin: 0;
@@ -35,85 +35,175 @@
             border: 1px solid #2b3945;
         }
 
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
+        /* Header with back button */
+        .header-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 16px;
         }
 
-        .login-header h1 {
-            font-size: 1.8rem;
+        .back-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #242f3d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #8e9fad;
+            transition: background 0.2s;
+            border: none;
+        }
+
+        .back-button:hover {
+            background: #2b3945;
+        }
+
+        .back-button svg {
+            width: 24px;
+            height: 24px;
+            fill: #8e9fad;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        /* Step title and description */
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 600;
             margin-bottom: 8px;
             color: #fff;
         }
 
-        .login-header p {
+        .step-description {
             color: #8e9fad;
             font-size: 0.95rem;
+            margin-bottom: 24px;
+            line-height: 1.5;
         }
 
-        .telegram-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            color: #4c9ce0;
-        }
-
+        /* Form elements */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
-        .form-group label {
+        .form-label {
             display: block;
-            margin-bottom: 8px;
             color: #8e9fad;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
 
         .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .country-code {
-            position: absolute;
-            left: 16px;
-            color: #8e9fad;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 14px 16px;
             background: #242f3d;
             border: 1px solid #2b3945;
             border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
             transition: all 0.2s;
-            outline: none;
         }
 
-        .form-control:focus {
+        .input-wrapper:focus-within {
             border-color: #4c9ce0;
             box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
-        .phone-input {
-            padding-left: 70px;
+        .country-code-prefix {
+            padding: 14px 0 14px 16px;
+            color: #8e9fad;
+            font-weight: 500;
+            font-size: 1rem;
+            background: #1e2a36;
+            border-right: 1px solid #2b3945;
+            min-width: 60px;
         }
 
-        /* 5-digit code boxes */
+        .form-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .form-input::placeholder {
+            color: #5d6f7e;
+        }
+
+        /* Country selector */
+        .country-selector {
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .country-selector:hover {
+            background: #2b3945;
+        }
+
+        .country-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .country-flag {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #2b5278;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .country-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .country-code {
+            color: #8e9fad;
+        }
+
+        .dropdown-arrow {
+            color: #8e9fad;
+            font-size: 1.2rem;
+        }
+
+        /* Code input boxes */
         .code-container {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
-            margin: 20px 0;
+            margin: 24px 0;
         }
 
         .code-box {
-            width: 60px;
-            height: 70px;
+            width: 55px;
+            height: 65px;
             background: #242f3d;
             border: 2px solid #2b3945;
             border-radius: 12px;
@@ -121,7 +211,7 @@
             font-size: 2rem;
             font-weight: bold;
             text-align: center;
-            line-height: 70px;
+            line-height: 65px;
             transition: all 0.2s;
         }
 
@@ -133,7 +223,6 @@
         .code-box:focus {
             outline: none;
             border-color: #4c9ce0;
-            box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
         .hidden-input {
@@ -144,11 +233,91 @@
             pointer-events: none;
         }
 
+        /* Email display */
+        .email-display {
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            color: #fff;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .email-display small {
+            display: block;
+            color: #8e9fad;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: normal;
+        }
+
+        .cant-access {
+            color: #4c9ce0;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 8px 0 16px;
+            cursor: pointer;
+        }
+
+        .cant-access:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #8e9fad;
+            font-size: 0.9rem;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #2b3945;
+        }
+
+        .divider span {
+            padding: 0 10px;
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 14px;
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+
+        .google-btn:hover {
+            background: #2b3945;
+        }
+
+        .google-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .btn {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 12px;
+            border-radius: 30px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -157,6 +326,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            margin-top: 24px;
         }
 
         .btn-primary {
@@ -183,45 +353,6 @@
             background: #3a4a5a;
         }
 
-        .btn-link {
-            background: transparent;
-            color: #6ab2f2;
-            padding: 8px;
-            font-size: 0.9rem;
-            text-decoration: none;
-            display: inline-block;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-link:hover {
-            text-decoration: underline;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .step-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #2b3945;
-            transition: all 0.2s;
-        }
-
-        .step-dot.active {
-            background: #4c9ce0;
-            transform: scale(1.3);
-        }
-
-        .step-dot.completed {
-            background: #4c9ce0;
-        }
-
         .error-message {
             background: #8e2b2b;
             color: white;
@@ -234,27 +365,6 @@
 
         .error-message.show {
             display: block;
-        }
-
-        .success-message {
-            background: #1e4a2b;
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .success-message.show {
-            display: block;
-        }
-
-        .info-text {
-            color: #8e9fad;
-            font-size: 0.85rem;
-            margin-top: 8px;
-            text-align: center;
         }
 
         .loading-spinner {
@@ -271,115 +381,173 @@
             to { transform: rotate(360deg); }
         }
 
-        .footer-links {
-            margin-top: 24px;
+        .footer-link {
             text-align: center;
+            margin-top: 24px;
         }
 
-        .footer-links a {
-            color: #6ab2f2;
+        .footer-link a {
+            color: #4c9ce0;
             text-decoration: none;
             font-size: 0.9rem;
         }
 
-        .footer-links a:hover {
+        .footer-link a:hover {
             text-decoration: underline;
         }
 
         .resend-timer {
             color: #8e9fad;
-            font-size: 0.85rem;
-            margin-top: 8px;
+            font-size: 0.9rem;
             text-align: center;
+            margin-top: 16px;
+        }
+
+        .resend-btn {
+            background: transparent;
+            color: #4c9ce0;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 8px;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
-            <div class="login-header">
-                <div class="telegram-icon">📱</div>
-                <h1>Add Telegram Account</h1>
-                <p>Connect your Telegram account to start messaging</p>
-            </div>
-
-            <!-- Step indicators -->
-            <div class="step-indicator">
-                <div class="step-dot active" id="step1-dot"></div>
-                <div class="step-dot" id="step2-dot"></div>
-                <div class="step-dot" id="step3-dot"></div>
-            </div>
-
-            <!-- Error/Success messages -->
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-
             <!-- Step 1: Phone Number -->
-            <div id="step1" style="display: block;">
-                <div class="form-group">
-                    <label>Phone Number (with country code)</label>
-                    <div class="input-wrapper">
-                        <span class="country-code">+</span>
-                        <input type="tel" class="form-control phone-input" id="phone" placeholder="1234567890" value="" inputmode="numeric" pattern="[0-9]*">
+            <div id="step1">
+                <div class="header-bar">
+                    <div class="back-button" onclick="goBack()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                        </svg>
                     </div>
-                    <div class="info-text">Enter your phone number in international format</div>
+                    <div class="header-title">Telegram</div>
                 </div>
+
+                <div class="step-title">Your phone number</div>
+                <div class="step-description">
+                    Please confirm your country code and enter your phone number.
+                </div>
+
+                <!-- Country Selector -->
+                <div class="country-selector" onclick="selectCountry()">
+                    <div class="country-info">
+                        <div class="country-flag">🇺🇸</div>
+                        <span class="country-name">United States</span>
+                        <span class="country-code">+1</span>
+                    </div>
+                    <span class="dropdown-arrow">▼</span>
+                </div>
+
+                <!-- Phone Input -->
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <span class="country-code-prefix" id="countryCodeDisplay">+1</span>
+                        <input type="tel" class="form-input" id="phone" placeholder="Phone number" inputmode="numeric" pattern="[0-9]*" value="">
+                    </div>
+                </div>
+
                 <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
-                    <span>Send Code</span>
+                    <span>Next</span>
                 </button>
             </div>
 
-            <!-- Step 2: Verification Code with 5 boxes -->
+            <!-- Step 2: Verification Code -->
             <div id="step2" style="display: none;">
-                <div class="form-group">
-                    <label>Enter 5-digit verification code</label>
-                    
-                    <!-- Hidden input to capture actual value -->
-                    <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*">
-                    
-                    <!-- 5 visible boxes -->
-                    <div class="code-container" id="codeBoxes">
-                        <div class="code-box" id="box1" onclick="focusHiddenInput()">-</div>
-                        <div class="code-box" id="box2" onclick="focusHiddenInput()">-</div>
-                        <div class="code-box" id="box3" onclick="focusHiddenInput()">-</div>
-                        <div class="code-box" id="box4" onclick="focusHiddenInput()">-</div>
-                        <div class="code-box" id="box5" onclick="focusHiddenInput()">-</div>
+                <div class="header-bar">
+                    <div class="back-button" onclick="backToPhone()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                        </svg>
                     </div>
-                    
-                    <div class="info-text">Code sent to your phone</div>
+                    <div class="header-title">Telegram</div>
                 </div>
+
+                <div class="step-title">Check Your Email</div>
+                <div class="step-description">
+                    Please enter the code we have sent to your email <strong id="emailDisplay">mr3@gmail.com</strong>.
+                </div>
+
+                <!-- Email display -->
+                <div class="email-display" id="emailContainer">
+                    <span id="emailAddress">mr3@gmail.com</span>
+                    <small>Check your inbox for the code</small>
+                </div>
+
+                <div class="cant-access" onclick="cantAccessEmail()">Can't access this email?</div>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <!-- Google Sign In -->
+                <button class="google-btn" onclick="googleSignIn()">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign in with Google
+                </button>
+
+                <!-- Hidden input for code -->
+                <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*">
                 
+                <!-- 5 code boxes -->
+                <div class="code-container" id="codeBoxes" onclick="focusHiddenInput()">
+                    <div class="code-box" id="box1">-</div>
+                    <div class="code-box" id="box2">-</div>
+                    <div class="code-box" id="box3">-</div>
+                    <div class="code-box" id="box4">-</div>
+                    <div class="code-box" id="box5">-</div>
+                </div>
+
+                <!-- 2FA Password Input -->
                 <div class="form-group" id="passwordGroup" style="display: none;">
-                    <label>Two-Factor Authentication Password</label>
-                    <input type="password" class="form-control" id="password" placeholder="Enter your 2FA password">
-                    <div class="info-text">This account has 2FA enabled</div>
+                    <div class="form-label">Two-Factor Authentication</div>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" id="password" placeholder="Enter your 2FA password">
+                    </div>
                 </div>
-                
-                <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()" style="display: none;">
-                    <span>Verify</span>
+
+                <!-- Next Button -->
+                <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
+                    <span>Next</span>
                 </button>
-                
-                <button class="btn btn-link" onclick="backToPhone()">
-                    ← Change Phone Number
-                </button>
+
+                <!-- Resend timer -->
                 <div class="resend-timer" id="resendTimer"></div>
             </div>
 
             <!-- Step 3: Success -->
-            <div id="step3" style="display: none; text-align: center;">
-                <div style="font-size: 4rem; margin: 20px 0;">✅</div>
-                <h2 style="margin-bottom: 16px;">Account Added!</h2>
-                <p style="color: #8e9fad; margin-bottom: 24px;" id="successAccountInfo"></p>
-                <a href="/home" class="btn btn-primary" style="text-decoration: none; display: block;">
-                    Go to Dashboard
-                </a>
-                <button class="btn btn-link" onclick="addAnotherAccount()">
-                    Add Another Account
-                </button>
-            </div>
+            <div id="step3" style="display: none;">
+                <div class="header-bar">
+                    <div class="back-button" onclick="backToPhone()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                        </svg>
+                    </div>
+                    <div class="header-title">Telegram</div>
+                </div>
 
-            <div class="footer-links">
-            
+                <div style="text-align: center;">
+                    <div style="font-size: 4rem; margin: 20px 0;">✅</div>
+                    <div class="step-title">Account Added!</div>
+                    <div class="step-description" style="margin-bottom: 24px;" id="successAccountInfo"></div>
+                    
+                    <button class="btn btn-primary" onclick="goToDashboard()">
+                        <span>Go to Dashboard</span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="addAnotherAccount()" style="margin-top: 12px;">
+                        <span>Add Another Account</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -389,6 +557,7 @@
         let timeLeft = 60;
         let currentSessionId = null;
         let currentPhone = '';
+        let currentCountryCode = '+1';
 
         // DOM elements
         const hiddenInput = document.getElementById('hiddenCodeInput');
@@ -400,30 +569,42 @@
             document.getElementById('box5')
         ];
 
+        // Helper functions
         function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = message;
-            errorEl.classList.add('show');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message show';
+            errorDiv.textContent = message;
+            
+            const step2 = document.getElementById('step2');
+            step2.insertBefore(errorDiv, step2.firstChild);
+            
             setTimeout(() => {
-                errorEl.classList.remove('show');
-            }, 5000);
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 4000);
         }
 
         function showSuccess(message) {
-            const successEl = document.getElementById('successMessage');
-            successEl.textContent = message;
-            successEl.classList.add('show');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message show';
+            errorDiv.style.background = '#1e4a2b';
+            errorDiv.textContent = message;
+            
+            const step2 = document.getElementById('step2');
+            step2.insertBefore(errorDiv, step2.firstChild);
+            
             setTimeout(() => {
-                successEl.classList.remove('show');
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
             }, 3000);
         }
 
         function setLoading(button, isLoading) {
-            if (!button) return;
             const span = button.querySelector('span');
-            if (!span) return;
+            const originalText = span ? span.textContent : 'Next';
             
-            const originalText = span.textContent;
             if (isLoading) {
                 button.disabled = true;
                 button.innerHTML = '<span class="loading-spinner"></span><span> Please wait...</span>';
@@ -437,7 +618,7 @@
             hiddenInput.focus();
         }
 
-        // Update boxes based on hidden input value
+        // Update code boxes based on hidden input
         function updateCodeBoxes() {
             const code = hiddenInput.value;
             for (let i = 0; i < 5; i++) {
@@ -458,50 +639,56 @@
 
         // Hidden input event listeners
         hiddenInput.addEventListener('input', function(e) {
-            // Only allow numbers
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
             updateCodeBoxes();
         });
 
-        hiddenInput.addEventListener('keydown', function(e) {
-            // Handle backspace
-            if (e.key === 'Backspace') {
-                // Allow normal backspace behavior
-            }
-        });
-
-        function startResendTimer() {
-            timeLeft = 60;
-            const timerEl = document.getElementById('resendTimer');
-            
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
-            
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    timerEl.innerHTML = '<button class="btn-link" onclick="resendCode()" style="margin-top:8px;">Resend Code</button>';
-                } else {
-                    timerEl.textContent = `Resend code in ${timeLeft}s`;
-                }
-            }, 1000);
+        // Navigation
+        function goBack() {
+            window.location.href = '/dashboard';
         }
 
+        function selectCountry() {
+            // In a real app, this would open a country selector
+            // For now, just cycle through a few countries
+            const countries = [
+                { name: 'United States', code: '+1', flag: '🇺🇸' },
+                { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
+                { name: 'India', code: '+91', flag: '🇮🇳' },
+                { name: 'UAE', code: '+971', flag: '🇦🇪' }
+            ];
+            
+            const currentIndex = countries.findIndex(c => c.code === currentCountryCode);
+            const nextIndex = (currentIndex + 1) % countries.length;
+            const country = countries[nextIndex];
+            
+            currentCountryCode = country.code;
+            document.querySelector('.country-name').textContent = country.name;
+            document.querySelector('.country-code').textContent = country.code;
+            document.querySelector('.country-flag').textContent = country.flag;
+            document.getElementById('countryCodeDisplay').textContent = country.code;
+        }
+
+        function cantAccessEmail() {
+            showError('Please check your email spam folder or request a new code');
+        }
+
+        function googleSignIn() {
+            showError('Google Sign-In is not available in this demo');
+        }
+
+        // Send verification code
         async function sendCode() {
             const phoneInput = document.getElementById('phone');
-            let phone = phoneInput.value.trim().replace(/\s+/g, '');
+            let phoneNumber = phoneInput.value.trim().replace(/\s+/g, '');
             
-            if (!phone) {
+            if (!phoneNumber) {
                 showError('Please enter your phone number');
                 return;
             }
 
-            // Ensure phone has + prefix
-            if (!phone.startsWith('+')) {
-                phone = '+' + phone;
-            }
+            // Combine country code with phone number
+            const fullPhone = currentCountryCode + phoneNumber;
 
             const button = document.getElementById('sendCodeBtn');
             setLoading(button, true);
@@ -512,22 +699,21 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ phone: phone })
+                    body: JSON.stringify({ phone: fullPhone })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
                     currentSessionId = data.session_id;
-                    currentPhone = phone;
+                    currentPhone = fullPhone;
                     
-                    // Move to step 2
+                    // Show step 2
                     document.getElementById('step1').style.display = 'none';
                     document.getElementById('step2').style.display = 'block';
                     
-                    document.getElementById('step1-dot').classList.remove('active');
-                    document.getElementById('step1-dot').classList.add('completed');
-                    document.getElementById('step2-dot').classList.add('active');
+                    // Set email display (in a real app, this would be the user's email)
+                    document.getElementById('emailAddress').textContent = 'user@gmail.com';
                     
                     // Clear and focus hidden input
                     hiddenInput.value = '';
@@ -547,6 +733,7 @@
             }
         }
 
+        // Verify code
         async function verifyCode() {
             const code = hiddenInput.value;
             
@@ -556,12 +743,6 @@
             }
 
             const password = document.getElementById('password').value;
-            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
-
-            if (needPassword && !password) {
-                showError('Please enter your 2FA password');
-                return;
-            }
 
             const button = document.getElementById('verifyBtn');
             setLoading(button, true);
@@ -582,25 +763,16 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Move to success step
+                    // Show success step
                     document.getElementById('step2').style.display = 'none';
                     document.getElementById('step3').style.display = 'block';
                     
-                    document.getElementById('step2-dot').classList.remove('active');
-                    document.getElementById('step2-dot').classList.add('completed');
-                    document.getElementById('step3-dot').classList.add('active');
-                    
                     document.getElementById('successAccountInfo').innerHTML = 
-                        `Account added successfully!<br>Redirecting to dashboard...`;
+                        `Account added successfully!`;
                     
                     if (timerInterval) {
                         clearInterval(timerInterval);
                     }
-                    
-                    // Redirect to home page after 2 seconds
-                    setTimeout(() => {
-                        window.location.href = '/home';
-                    }, 2000);
                     
                 } else {
                     if (data.need_password) {
@@ -623,6 +795,7 @@
             }
         }
 
+        // Resend code
         async function resendCode() {
             if (!currentPhone) {
                 backToPhone();
@@ -655,15 +828,29 @@
             }
         }
 
+        function startResendTimer() {
+            timeLeft = 60;
+            const timerEl = document.getElementById('resendTimer');
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.innerHTML = '<button class="resend-btn" onclick="resendCode()">Resend Code</button>';
+                } else {
+                    timerEl.textContent = `Resend code in ${timeLeft}s`;
+                }
+            }, 1000);
+        }
+
         function backToPhone() {
             document.getElementById('step1').style.display = 'block';
             document.getElementById('step2').style.display = 'none';
             document.getElementById('step3').style.display = 'none';
-            
-            document.getElementById('step1-dot').classList.add('active');
-            document.getElementById('step1-dot').classList.remove('completed');
-            document.getElementById('step2-dot').classList.remove('active', 'completed');
-            document.getElementById('step3-dot').classList.remove('active', 'completed');
             
             document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'none';
@@ -682,7 +869,11 @@
             currentPhone = '';
         }
 
-        // Only allow numbers in phone input
+        function goToDashboard() {
+            window.location.href = '/home';
+        }
+
+        // Event listeners
         document.getElementById('phone').addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
         });
@@ -699,10 +890,12 @@
             }
         });
 
-        // Focus hidden input when clicking anywhere in step 2
-        document.getElementById('step2').addEventListener('click', function() {
-            hiddenInput.focus();
+        // Focus hidden input when clicking step 2
+        document.getElementById('step2').addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resend-btn')) {
+                hiddenInput.focus();
+            }
         });
     </script>
 </body>
-                        </html>
+</html>
