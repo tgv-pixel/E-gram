@@ -778,9 +778,14 @@
             try {
                 const res = await fetch('/api/accounts');
                 const data = await res.json();
-                if (data.success && data.accounts.length > 0) {
+                console.log('Accounts loaded:', data); // Debug log
+                
+                if (data.success && data.accounts && data.accounts.length > 0) {
                     accounts = data.accounts;
-                    currentAccount = accounts[0];
+                    // Set current account to first one if not set
+                    if (!currentAccount) {
+                        currentAccount = accounts[0];
+                    }
                     updateHeaderForCurrentAccount();
                     renderDropdown();
                     await loadChatsForCurrentAccount();
@@ -788,7 +793,7 @@
                     chatsListDiv.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> No accounts. <a href="/" style="color:#6ab2f2;">Add one</a>.</div>';
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Error fetching accounts:', err);
                 chatsListDiv.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i> Failed to load accounts</div>';
             }
         }
@@ -804,13 +809,15 @@
         }
 
         function renderDropdown() {
-            if (!accounts.length) return;
+            if (!accounts || !accounts.length) return;
+            
             let html = '';
             accounts.forEach(acc => {
                 const accName = acc.name || 'User';
                 const accPhone = acc.phone || '';
                 const initial = accName.charAt(0).toUpperCase();
                 const isCurrent = acc.id === currentAccount?.id ? '<i class="fas fa-check"></i>' : '';
+                
                 html += `
                     <div class="dropdown-item" onclick="switchAccount('${acc.id}')">
                         <div class="dropdown-avatar">${initial}</div>
@@ -838,6 +845,7 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast('Account removed successfully');
+                    // Refresh accounts list
                     await fetchAccounts();
                 }
             } catch (err) {
@@ -853,14 +861,19 @@
                 dropdown.classList.remove('show');
                 return;
             }
+            
             currentAccount = newAccount;
             updateHeaderForCurrentAccount();
             renderDropdown();
             dropdown.classList.remove('show');
+            
+            // Reset chat selection
             currentChat = null;
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
             messagesListDiv.innerHTML = '<div class="empty-state"><i class="fas fa-hand-point-left"></i> Select a chat</div>';
+            
+            // Load chats for new account
             await loadChatsForCurrentAccount();
         };
 
@@ -878,6 +891,8 @@
                     body: JSON.stringify({ accountId: currentAccount.id })
                 });
                 const data = await res.json();
+                console.log('Chats loaded:', data); // Debug log
+                
                 if (data.success) {
                     chats = data.chats || [];
                     messages = data.messages || [];
@@ -886,7 +901,16 @@
                     
                     // If we have a current chat selected, refresh its messages
                     if (currentChat) {
-                        displayMessages(currentChat.id);
+                        // Check if current chat still exists in new chats
+                        const chatExists = chats.some(c => c.id === currentChat.id);
+                        if (chatExists) {
+                            displayMessages(currentChat.id);
+                        } else {
+                            currentChat = null;
+                            messagesHeader.style.display = 'none';
+                            composeArea.style.display = 'none';
+                            messagesListDiv.innerHTML = '<div class="empty-state"><i class="fas fa-hand-point-left"></i> Select a chat</div>';
+                        }
                     }
                 } else {
                     if (showLoading) {
@@ -894,7 +918,7 @@
                     }
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Error loading chats:', err);
                 if (showLoading) {
                     chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>';
                 }
@@ -902,20 +926,22 @@
         }
 
         function displayChats() {
-            if (!chats.length) {
+            if (!chats || !chats.length) {
                 chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>';
                 return;
             }
             
-            let html = '';
+            // Sort chats by last message date (most recent first)
             chats.sort((a, b) => (b.lastMessageDate || 0) - (a.lastMessageDate || 0));
             
+            let html = '';
             chats.forEach(chat => {
                 const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
                 const lastMsg = chat.lastMessage || '';
                 const time = chat.lastMessageDate ? formatTime(chat.lastMessageDate) : '';
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
                 const avatarLetter = chat.title ? chat.title.charAt(0).toUpperCase() : '?';
+                
                 html += `
                     <div class="chat-item ${activeClass}" onclick="selectChat('${chat.id}', '${escapeJsString(chat.title)}')">
                         <div class="chat-avatar">${avatarLetter}</div>
@@ -941,7 +967,7 @@
             messagesHeader.style.display = 'block';
             composeArea.style.display = 'flex';
             displayMessages(chatId);
-            displayChats();
+            displayChats(); // Update active state in chat list
         };
 
         window.refreshCurrentChat = async function() {
@@ -966,6 +992,7 @@
             chatMessages.forEach(msg => {
                 const date = new Date(msg.date * 1000);
                 const dateStr = date.toDateString();
+                
                 if (dateStr !== lastDate) {
                     html += `<div class="message-date-separator">${formatDateSeparator(date)}</div>`;
                     lastDate = dateStr;
@@ -973,6 +1000,7 @@
 
                 const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const bubbleClass = msg.out ? 'outgoing' : 'incoming';
+                
                 html += `
                     <div class="message-wrapper ${bubbleClass}">
                         <div class="message-bubble">
@@ -985,7 +1013,9 @@
                     </div>
                 `;
             });
+            
             messagesListDiv.innerHTML = html;
+            // Scroll to bottom
             messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
         }
 
@@ -1018,6 +1048,7 @@
                 
                 const data = await res.json();
                 if (data.success) {
+                    // Optimistically add message to UI
                     const newMsg = {
                         chatId: currentChat.id,
                         text: message,
@@ -1027,6 +1058,9 @@
                     messages.push(newMsg);
                     displayMessages(currentChat.id);
                     showToast('Message sent');
+                    
+                    // Refresh chats to update last message
+                    setTimeout(() => loadChatsForCurrentAccount(false), 500);
                 } else {
                     showToast('Failed to send message');
                 }
@@ -1054,8 +1088,9 @@
         }
 
         function escapeJsString(str) {
+            if (!str) return '';
             return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         }
     </script>
 </body>
-    </html>
+            </html>
