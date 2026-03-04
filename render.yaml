@@ -1,17 +1,19 @@
 services:
   - type: web
-    name: e-gram
-    env: python
+    name: telegram-manager
+    runtime: python
+    region: oregon  # or frankfurt, singapore, etc.
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app
     envVars:
       - key: API_ID
         value: 33465589
       - key: API_HASH
-        value: "08bdab35790bf1fdf20c16a50bd323b8"
-      - key: accounts.json
-        value: "[]"  # Start with empty array
+        value: 08bdab35790bf1fdf20c16a50bd323b8
+      - key: PYTHON_VERSION
+        value: 3.9.0
     disk:
-      name: data
+      name: telegram-data
       mountPath: /opt/render/project/src
       sizeGB: 1
