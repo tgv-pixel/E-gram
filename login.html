@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Login</title>
+    <title>Add Telegram Account</title>
     <style>
         * {
             margin: 0;
@@ -13,1327 +13,826 @@
         }
 
         body {
-            background-color: #ffffff;
+            background: #0e1621;
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            margin: 0;
+            color: #fff;
+            padding: 16px;
         }
 
-        .container {
-            max-width: 400px;
+        .login-container {
             width: 100%;
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            max-width: 420px;
+            background: #17212b;
+            border-radius: 24px;
+            padding: 32px 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 1px solid #2b3945;
+            animation: fadeIn 0.3s ease;
         }
 
-        .logo-section {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
         }
 
-        .logo-section img {
+        .logo-icon {
             width: 80px;
             height: 80px;
-            margin-bottom: 12px;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: white;
         }
 
-        .logo-section h1 {
-            font-size: 24px;
+        .logo h1 {
+            font-size: 1.8rem;
             font-weight: 600;
-            color: #000000;
+            color: #fff;
             margin-bottom: 8px;
         }
 
-        .logo-section p {
-            font-size: 15px;
-            color: #666666;
-            line-height: 1.4;
+        .logo p {
+            color: #8e9fad;
+            font-size: 0.95rem;
         }
 
-        .country-selector {
-            margin-bottom: 16px;
-            position: relative;
-        }
-        /* Disable keyboard for code inputs */
-.code-input {
-    caret-color: transparent; /* Hides cursor */
-    -webkit-user-select: none; /* Prevents selection */
-    user-select: none;
-    pointer-events: none; /* Prevents focus via mouse */
-}
-
-/* But keep them focusable via JavaScript */
-.code-input:focus {
-    outline: 2px solid #0088cc;
-    outline-offset: 2px;
-}
-
-        .country-selector select {
-            width: 100%;
-            height: 56px;
-            padding: 0 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            color: #000000;
-            background-color: white;
-            appearance: none;
-            cursor: pointer;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .country-selector select:focus {
-            border-color: #0088cc;
-        }
-
-        .country-selector::after {
-            content: "▼";
-            font-size: 12px;
-            color: #666;
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-        }
-
-        .phone-input-container {
-            position: relative;
-            margin-bottom: 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            background: white;
-            display: flex;
-            align-items: center;
-            transition: border-color 0.2s;
-        }
-
-        .phone-input-container:focus-within {
-            border-color: #0088cc;
-        }
-
-        .phone-prefix {
-            display: flex;
-            align-items: center;
-            padding-left: 16px;
-            color: #000000;
-            font-weight: 500;
-            font-size: 18px;
-        }
-
-        .country-code-input {
-            width: 60px;
-            border: none;
-            outline: none;
-            font-size: 18px;
-            padding: 16px 0;
-            margin-left: 4px;
-            color: #000000;
-            font-weight: 500;
-        }
-
-        .phone-input {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 18px;
-            padding: 16px 16px 16px 0;
-            color: #000000;
-            background: transparent;
-        }
-
-        .phone-input::placeholder {
-            color: #999999;
-            font-size: 16px;
-        }
-
-        .sync-option {
-            display: flex;
-            align-items: center;
-            margin-bottom: 24px;
-            cursor: pointer;
-        }
-
-        .sync-option input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            cursor: pointer;
-            accent-color: #0088cc;
-        }
-
-        .sync-option label {
-            font-size: 16px;
-            color: #333333;
-            cursor: pointer;
-        }
-
-        .next-button {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 24px;
-        }
-
-        .next-button button {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background-color: #0088cc;
-            border: none;
-            cursor: pointer;
+        .step-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s, transform 0.1s;
-            box-shadow: 0 4px 8px rgba(0, 136, 204, 0.3);
-        }
-
-        .next-button button:hover {
-            background-color: #006699;
-        }
-
-        .next-button button:active {
-            transform: scale(0.95);
-        }
-
-        .next-button button svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-            padding: 8px;
-        }
-
-        .keypad button {
-            aspect-ratio: 1.5 / 1;
-            border: none;
-            background: white;
-            border-radius: 12px;
-            font-size: 24px;
-            font-weight: 500;
-            color: #000000;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border: 1px solid #f0f0f0;
-        }
-
-        .keypad button:active {
-            background-color: #f5f5f5;
-        }
-
-        .keypad .letters {
-            font-size: 11px;
-            color: #999999;
-            margin-top: 2px;
-            font-weight: 400;
-        }
-
-        .keypad .zero {
-            grid-column: span 2;
-            aspect-ratio: 3.2 / 1;
-        }
-
-        .keypad .backspace {
-            font-size: 28px;
-            color: #666666;
-        }
-
-        .loader {
-            display: none;
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #0088cc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #message {
-            margin: 16px 0;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 14px;
-            display: none;
-        }
-
-        #message.error {
-            background-color: #ffebee;
-            color: #c62828;
-            border-left: 4px solid #c62828;
-            display: block;
-        }
-
-        #message.success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border-left: 4px solid #2e7d32;
-            display: block;
-        }
-
-        #message.info {
-            background-color: #e3f2fd;
-            color: #01579b;
-            border-left: 4px solid #0088cc;
-            display: block;
-        }
-
-        .verification-container {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .code-inputs {
-            display: flex;
+            margin-bottom: 32px;
             gap: 8px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .code-input {
-            width: 50px;
-            height: 60px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: 600;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .code-input:focus {
-            border-color: #0088cc;
-        }
-
-        .password-input {
-            width: 100%;
-            padding: 16px;
-            font-size: 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            outline: none;
-            margin-bottom: 16px;
-            transition: border-color 0.2s;
-        }
-
-        .password-input:focus {
-            border-color: #0088cc;
-        }
-
-        .verify-button {
-            width: 100%;
-            padding: 16px;
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-bottom: 12px;
-        }
-
-        .verify-button:hover {
-            background-color: #006699;
-        }
-
-        .back-button {
-            width: 100%;
-            padding: 16px;
-            background-color: #f5f5f5;
-            color: #666666;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .back-button:hover {
-            background-color: #e0e0e0;
         }
 
         .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #242f3d;
+            color: #8e9fad;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .step.active .step-number {
+            background: #4c9ce0;
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: #2b5278;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            color: #8e9fad;
+        }
+
+        .step.active .step-label {
+            color: #fff;
+        }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: #242f3d;
+        }
+
+        .step.completed ~ .step-line {
+            background: #2b5278;
+        }
+
+        .form-step {
             display: block;
         }
 
-        .step.hidden {
+        .form-step.hidden {
             display: none;
         }
 
-        .footer-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #999999;
+        .form-group {
+            margin-bottom: 20px;
         }
 
-        .footer-link a {
-            color: #0088cc;
-            text-decoration: none;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #8e9fad;
+            font-size: 0.9rem;
             font-weight: 500;
         }
 
-        .footer-link a:hover {
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #4c9ce0;
+        }
+
+        .form-group input::placeholder {
+            color: #5f7a8f;
+        }
+
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .phone-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+
+        .country-code {
+            width: 100px;
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 30px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            text-align: center;
+        }
+
+        .phone-number {
+            flex: 1;
+        }
+
+        .info-box {
+            background: #242f3d;
+            border-left: 4px solid #4c9ce0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            color: #8e9fad;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-icon {
+            font-size: 1.2rem;
+            color: #4c9ce0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #4c9ce0;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #6ab2f2;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #2b3945;
+            color: #6ab2f2;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #3a4a5a;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #8e2b2b;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error-message.hidden {
+            display: none;
+        }
+
+        .error-icon {
+            font-size: 1.2rem;
+        }
+
+        .resend-link {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .resend-link a {
+            color: #6ab2f2;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .resend-link a:hover {
             text-decoration: underline;
+        }
+
+        .resend-link a.disabled {
+            color: #5f7a8f;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .back-to-dashboard {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #2b3945;
+        }
+
+        .back-to-dashboard a {
+            color: #8e9fad;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-to-dashboard a:hover {
+            color: #6ab2f2;
+        }
+
+        .note {
+            text-align: center;
+            color: #5f7a8f;
+            font-size: 0.8rem;
+            margin-top: 16px;
+        }
+
+        .password-requirements {
+            font-size: 0.85rem;
+            color: #8e9fad;
+            margin-top: 8px;
+            padding-left: 16px;
+        }
+
+        .password-requirements li {
+            margin-bottom: 4px;
+        }
+
+        .success-check {
+            text-align: center;
+            margin: 24px 0;
+        }
+
+        .success-check .check-icon {
+            width: 64px;
+            height: 64px;
+            background: #2b5278;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .redirect-countdown {
+            font-size: 0.9rem;
+            color: #8e9fad;
+            margin-top: 16px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Logo and Header Section -->
-        <div class="logo-section">
-            <img src="https://telegram.org/img/t_logo.png" alt="Telegram">
-            <h1>Your phone number</h1>
-            <p>Please confirm your country code<br>and enter your phone number</p>
+    <div class="login-container">
+        <div class="logo">
+            <div class="logo-icon">📱</div>
+            <h1>Telegram Manager</h1>
+            <p>Add a new account</p>
         </div>
 
-        <!-- Step 1: Phone Number Input -->
-        <div id="step1" class="step">
-            <!-- Country Selector (YOU WILL ADD YOUR COUNTRY LIST HERE) -->
-            <div class="country-selector">
-                <select id="countrySelect">
-                    <option value="" disabled selected>Select your country</option>
-                     <option value="93">🇦🇫 Afghanistan (+93)</option>
-  <option value="355">🇦🇱 Albania (+355)</option>
-  <option value="213">🇩🇿 Algeria (+213)</option>
-  <option value="376">🇦🇩 Andorra (+376)</option>
-  <option value="244">🇦🇴 Angola (+244)</option>
-  <option value="1264">🇦🇮 Anguilla (+1264)</option>
-  <option value="1268">🇦🇬 Antigua and Barbuda (+1268)</option>
-  <option value="54">🇦🇷 Argentina (+54)</option>
-  <option value="374">🇦🇲 Armenia (+374)</option>
-  <option value="297">🇦🇼 Aruba (+297)</option>
-  <option value="61">🇦🇺 Australia (+61)</option>
-  <option value="43">🇦🇹 Austria (+43)</option>
-  <option value="994">🇦🇿 Azerbaijan (+994)</option>
-  <option value="1242">🇧🇸 Bahamas (+1242)</option>
-  <option value="973">🇧🇭 Bahrain (+973)</option>
-  <option value="880">🇧🇩 Bangladesh (+880)</option>
-  <option value="1246">🇧🇧 Barbados (+1246)</option>
-  <option value="375">🇧🇾 Belarus (+375)</option>
-  <option value="32">🇧🇪 Belgium (+32)</option>
-  <option value="501">🇧🇿 Belize (+501)</option>
-  <option value="229">🇧🇯 Benin (+229)</option>
-  <option value="1441">🇧🇲 Bermuda (+1441)</option>
-  <option value="975">🇧🇹 Bhutan (+975)</option>
-  <option value="591">🇧🇴 Bolivia (+591)</option>
-  <option value="387">🇧🇦 Bosnia and Herzegovina (+387)</option>
-  <option value="267">🇧🇼 Botswana (+267)</option>
-  <option value="55">🇧🇷 Brazil (+55)</option>
-  <option value="673">🇧🇳 Brunei (+673)</option>
-  <option value="359">🇧🇬 Bulgaria (+359)</option>
-  <option value="226">🇧🇫 Burkina Faso (+226)</option>
-  <option value="257">🇧🇮 Burundi (+257)</option>
-  <option value="855">🇰🇭 Cambodia (+855)</option>
-  <option value="237">🇨🇲 Cameroon (+237)</option>
-  <option value="1">🇨🇦 Canada (+1)</option>
-  <option value="238">🇨🇻 Cape Verde (+238)</option>
-  <option value="1345">🇰🇾 Cayman Islands (+1345)</option>
-  <option value="236">🇨🇫 Central African Republic (+236)</option>
-  <option value="235">🇹🇩 Chad (+235)</option>
-  <option value="56">🇨🇱 Chile (+56)</option>
-  <option value="86">🇨🇳 China (+86)</option>
-  <option value="57">🇨🇴 Colombia (+57)</option>
-  <option value="269">🇰🇲 Comoros (+269)</option>
-  <option value="242">🇨🇬 Congo (+242)</option>
-  <option value="682">🇨🇰 Cook Islands (+682)</option>
-  <option value="506">🇨🇷 Costa Rica (+506)</option>
-  <option value="385">🇭🇷 Croatia (+385)</option>
-  <option value="53">🇨🇺 Cuba (+53)</option>
-  <option value="599">🇨🇼 Curaçao (+599)</option>
-  <option value="357">🇨🇾 Cyprus (+357)</option>
-  <option value="420">🇨🇿 Czech Republic (+420)</option>
-  <option value="243">🇨🇩 Democratic Republic of the Congo (+243)</option>
-  <option value="45">🇩🇰 Denmark (+45)</option>
-  <option value="253">🇩🇯 Djibouti (+253)</option>
-  <option value="1767">🇩🇲 Dominica (+1767)</option>
-  <option value="1809">🇩🇴 Dominican Republic (+1809)</option>
-  <option value="1829">🇩🇴 Dominican Republic (+1829)</option>
-  <option value="670">🇹🇱 East Timor (+670)</option>
-  <option value="593">🇪🇨 Ecuador (+593)</option>
-  <option value="20">🇪🇬 Egypt (+20)</option>
-  <option value="503">🇸🇻 El Salvador (+503)</option>
-  <option value="240">🇬🇶 Equatorial Guinea (+240)</option>
-  <option value="291">🇪🇷 Eritrea (+291)</option>
-  <option value="372">🇪🇪 Estonia (+372)</option>
-  <option value="251">🇪🇹 Ethiopia (+251)</option>
-  <option value="500">🇫🇰 Falkland Islands (+500)</option>
-  <option value="298">🇫🇴 Faroe Islands (+298)</option>
-  <option value="679">🇫🇯 Fiji (+679)</option>
-  <option value="358">🇫🇮 Finland (+358)</option>
-  <option value="33">🇫🇷 France (+33)</option>
-  <option value="594">🇬🇫 French Guiana (+594)</option>
-  <option value="689">🇵🇫 French Polynesia (+689)</option>
-  <option value="241">🇬🇦 Gabon (+241)</option>
-  <option value="220">🇬🇲 Gambia (+220)</option>
-  <option value="995">🇬🇪 Georgia (+995)</option>
-  <option value="49">🇩🇪 Germany (+49)</option>
-  <option value="233">🇬🇭 Ghana (+233)</option>
-  <option value="350">🇬🇮 Gibraltar (+350)</option>
-  <option value="30">🇬🇷 Greece (+30)</option>
-  <option value="299">🇬🇱 Greenland (+299)</option>
-  <option value="1473">🇬🇩 Grenada (+1473)</option>
-  <option value="590">🇬🇵 Guadeloupe (+590)</option>
-  <option value="1671">🇬🇺 Guam (+1671)</option>
-  <option value="502">🇬🇹 Guatemala (+502)</option>
-  <option value="224">🇬🇳 Guinea (+224)</option>
-  <option value="245">🇬🇼 Guinea-Bissau (+245)</option>
-  <option value="592">🇬🇾 Guyana (+592)</option>
-  <option value="509">🇭🇹 Haiti (+509)</option>
-  <option value="504">🇭🇳 Honduras (+504)</option>
-  <option value="852">🇭🇰 Hong Kong (+852)</option>
-  <option value="36">🇭🇺 Hungary (+36)</option>
-  <option value="354">🇮🇸 Iceland (+354)</option>
-  <option value="91">🇮🇳 India (+91)</option>
-  <option value="62">🇮🇩 Indonesia (+62)</option>
-  <option value="98">🇮🇷 Iran (+98)</option>
-  <option value="964">🇮🇶 Iraq (+964)</option>
-  <option value="353">🇮🇪 Ireland (+353)</option>
-  <option value="972">🇮🇱 Israel (+972)</option>
-  <option value="39">🇮🇹 Italy (+39)</option>
-  <option value="225">🇨🇮 Ivory Coast (+225)</option>
-  <option value="1876">🇯🇲 Jamaica (+1876)</option>
-  <option value="81">🇯🇵 Japan (+81)</option>
-  <option value="962">🇯🇴 Jordan (+962)</option>
-  <option value="7">🇰🇿 Kazakhstan (+7)</option>
-  <option value="254">🇰🇪 Kenya (+254)</option>
-  <option value="686">🇰🇮 Kiribati (+686)</option>
-  <option value="965">🇰🇼 Kuwait (+965)</option>
-  <option value="996">🇰🇬 Kyrgyzstan (+996)</option>
-  <option value="856">🇱🇦 Laos (+856)</option>
-  <option value="371">🇱🇻 Latvia (+371)</option>
-  <option value="961">🇱🇧 Lebanon (+961)</option>
-  <option value="266">🇱🇸 Lesotho (+266)</option>
-  <option value="231">🇱🇷 Liberia (+231)</option>
-  <option value="218">🇱🇾 Libya (+218)</option>
-  <option value="423">🇱🇮 Liechtenstein (+423)</option>
-  <option value="370">🇱🇹 Lithuania (+370)</option>
-  <option value="352">🇱🇺 Luxembourg (+352)</option>
-  <option value="853">🇲🇴 Macau (+853)</option>
-  <option value="389">🇲🇰 North Macedonia (+389)</option>
-  <option value="261">🇲🇬 Madagascar (+261)</option>
-  <option value="265">🇲🇼 Malawi (+265)</option>
-  <option value="60">🇲🇾 Malaysia (+60)</option>
-  <option value="960">🇲🇻 Maldives (+960)</option>
-  <option value="223">🇲🇱 Mali (+223)</option>
-  <option value="356">🇲🇹 Malta (+356)</option>
-  <option value="692">🇲🇭 Marshall Islands (+692)</option>
-  <option value="596">🇲🇶 Martinique (+596)</option>
-  <option value="222">🇲🇷 Mauritania (+222)</option>
-  <option value="230">🇲🇺 Mauritius (+230)</option>
-  <option value="262">🇾🇹 Mayotte (+262)</option>
-  <option value="52">🇲🇽 Mexico (+52)</option>
-  <option value="691">🇫🇲 Micronesia (+691)</option>
-  <option value="373">🇲🇩 Moldova (+373)</option>
-  <option value="377">🇲🇨 Monaco (+377)</option>
-  <option value="976">🇲🇳 Mongolia (+976)</option>
-  <option value="382">🇲🇪 Montenegro (+382)</option>
-  <option value="1664">🇲🇸 Montserrat (+1664)</option>
-  <option value="212">🇲🇦 Morocco (+212)</option>
-  <option value="258">🇲🇿 Mozambique (+258)</option>
-  <option value="95">🇲🇲 Myanmar (+95)</option>
-  <option value="264">🇳🇦 Namibia (+264)</option>
-  <option value="674">🇳🇷 Nauru (+674)</option>
-  <option value="977">🇳🇵 Nepal (+977)</option>
-  <option value="31">🇳🇱 Netherlands (+31)</option>
-  <option value="687">🇳🇨 New Caledonia (+687)</option>
-  <option value="64">🇳🇿 New Zealand (+64)</option>
-  <option value="505">🇳🇮 Nicaragua (+505)</option>
-  <option value="227">🇳🇪 Niger (+227)</option>
-  <option value="234">🇳🇬 Nigeria (+234)</option>
-  <option value="683">🇳🇺 Niue (+683)</option>
-  <option value="850">🇰🇵 North Korea (+850)</option>
-  <option value="1670">🇲🇵 Northern Mariana Islands (+1670)</option>
-  <option value="47">🇳🇴 Norway (+47)</option>
-  <option value="968">🇴🇲 Oman (+968)</option>
-  <option value="92">🇵🇰 Pakistan (+92)</option>
-  <option value="680">🇵🇼 Palau (+680)</option>
-  <option value="970">🇵🇸 Palestine (+970)</option>
-  <option value="507">🇵🇦 Panama (+507)</option>
-  <option value="675">🇵🇬 Papua New Guinea (+675)</option>
-  <option value="595">🇵🇾 Paraguay (+595)</option>
-  <option value="51">🇵🇪 Peru (+51)</option>
-  <option value="63">🇵🇭 Philippines (+63)</option>
-  <option value="48">🇵🇱 Poland (+48)</option>
-  <option value="351">🇵🇹 Portugal (+351)</option>
-  <option value="1787">🇵🇷 Puerto Rico (+1787)</option>
-  <option value="1939">🇵🇷 Puerto Rico (+1939)</option>
-  <option value="974">🇶🇦 Qatar (+974)</option>
-  <option value="262">🇷🇪 Réunion (+262)</option>
-  <option value="40">🇷🇴 Romania (+40)</option>
-  <option value="7">🇷🇺 Russia (+7)</option>
-  <option value="250">🇷🇼 Rwanda (+250)</option>
-  <option value="590">🇧🇱 Saint Barthélemy (+590)</option>
-  <option value="290">🇸🇭 Saint Helena (+290)</option>
-  <option value="1869">🇰🇳 Saint Kitts and Nevis (+1869)</option>
-  <option value="1758">🇱🇨 Saint Lucia (+1758)</option>
-  <option value="590">🇲🇫 Saint Martin (+590)</option>
-  <option value="508">🇵🇲 Saint Pierre and Miquelon (+508)</option>
-  <option value="1784">🇻🇨 Saint Vincent and the Grenadines (+1784)</option>
-  <option value="685">🇼🇸 Samoa (+685)</option>
-  <option value="378">🇸🇲 San Marino (+378)</option>
-  <option value="239">🇸🇹 Sao Tome and Principe (+239)</option>
-  <option value="966">🇸🇦 Saudi Arabia (+966)</option>
-  <option value="221">🇸🇳 Senegal (+221)</option>
-  <option value="381">🇷🇸 Serbia (+381)</option>
-  <option value="248">🇸🇨 Seychelles (+248)</option>
-  <option value="232">🇸🇱 Sierra Leone (+232)</option>
-  <option value="65">🇸🇬 Singapore (+65)</option>
-  <option value="1721">🇸🇽 Sint Maarten (+1721)</option>
-  <option value="421">🇸🇰 Slovakia (+421)</option>
-  <option value="386">🇸🇮 Slovenia (+386)</option>
-  <option value="677">🇸🇧 Solomon Islands (+677)</option>
-  <option value="252">🇸🇴 Somalia (+252)</option>
-  <option value="27">🇿🇦 South Africa (+27)</option>
-  <option value="82">🇰🇷 South Korea (+82)</option>
-  <option value="211">🇸🇸 South Sudan (+211)</option>
-  <option value="34">🇪🇸 Spain (+34)</option>
-  <option value="94">🇱🇰 Sri Lanka (+94)</option>
-  <option value="249">🇸🇩 Sudan (+249)</option>
-  <option value="597">🇸🇷 Suriname (+597)</option>
-  <option value="268">🇸🇿 Swaziland (+268)</option>
-  <option value="46">🇸🇪 Sweden (+46)</option>
-  <option value="41">🇨🇭 Switzerland (+41)</option>
-  <option value="963">🇸🇾 Syria (+963)</option>
-  <option value="886">🇹🇼 Taiwan (+886)</option>
-  <option value="992">🇹🇯 Tajikistan (+992)</option>
-  <option value="255">🇹🇿 Tanzania (+255)</option>
-  <option value="66">🇹🇭 Thailand (+66)</option>
-  <option value="228">🇹🇬 Togo (+228)</option>
-  <option value="690">🇹🇰 Tokelau (+690)</option>
-  <option value="676">🇹🇴 Tonga (+676)</option>
-  <option value="1868">🇹🇹 Trinidad and Tobago (+1868)</option>
-  <option value="216">🇹🇳 Tunisia (+216)</option>
-  <option value="90">🇹🇷 Turkey (+90)</option>
-  <option value="993">🇹🇲 Turkmenistan (+993)</option>
-  <option value="1649">🇹🇨 Turks and Caicos Islands (+1649)</option>
-  <option value="688">🇹🇻 Tuvalu (+688)</option>
-  <option value="256">🇺🇬 Uganda (+256)</option>
-  <option value="380">🇺🇦 Ukraine (+380)</option>
-  <option value="971">🇦🇪 United Arab Emirates (+971)</option>
-  <option value="44">🇬🇧 United Kingdom (+44)</option>
-  <option value="1">🇺🇸 United States (+1)</option>
-  <option value="598">🇺🇾 Uruguay (+598)</option>
-  <option value="998">🇺🇿 Uzbekistan (+998)</option>
-  <option value="678">🇻🇺 Vanuatu (+678)</option>
-  <option value="379">🇻🇦 Vatican City (+379)</option>
-  <option value="58">🇻🇪 Venezuela (+58)</option>
-  <option value="84">🇻🇳 Vietnam (+84)</option>
-  <option value="681">🇼🇫 Wallis and Futuna (+681)</option>
-  <option value="212">🇪🇭 Western Sahara (+212)</option>
-  <option value="967">🇾🇪 Yemen (+967)</option>
-  <option value="260">🇿🇲 Zambia (+260)</option>
-  <option value="263">🇿🇼 Zimbabwe (+263)</option>
-                </select>
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step" id="step1Indicator">
+                <div class="step-number">1</div>
+                <span class="step-label">Phone</span>
             </div>
-
-            <!-- Phone Input with Country Code -->
-            <div class="phone-input-container">
-                <span class="phone-prefix">
-                    <span style="margin-right: 2px;">+</span>
-                    <span style="color: #333; margin-right: 4px;">|</span>
-                </span>
-                <input type="tel" class="country-code-input" id="countryCode" maxlength="4" placeholder="1" value="">
-                <input type="tel" class="phone-input" id="phoneNumber" placeholder="Phone number">
+            <div class="step-line" id="step1Line"></div>
+            <div class="step" id="step2Indicator">
+                <div class="step-number">2</div>
+                <span class="step-label">Code</span>
             </div>
-
-            <!-- Sync Contacts Option -->
-            <label class="sync-option">
-                <input type="checkbox" id="syncContacts" checked>
-                <label for="syncContacts">Sync Contacts</label>
-            </label>
-
-            <!-- Next Button -->
-            <div class="next-button">
-                <button id="sendCodeBtn">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
-                    </svg>
-                </button>
+            <div class="step-line" id="step2Line"></div>
+            <div class="step" id="step3Indicator">
+                <div class="step-number">3</div>
+                <span class="step-label">Complete</span>
             </div>
         </div>
 
-        <!-- Step 2: Verification Code Input -->
-        <div id="step2" class="step hidden">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h3 style="font-size: 20px; margin-bottom: 8px;">Enter verification code</h3>
-                <p style="color: #666; font-size: 14px;">We've sent a 5-digit code to your phone</p>
-            </div>
-
-            <div class="code-inputs">
-                <input type="text" class="code-input" maxlength="1" id="code1" inputmode="numeric">
-                <input type="text" class="code-input" maxlength="1" id="code2" inputmode="numeric">
-                <input type="text" class="code-input" maxlength="1" id="code3" inputmode="numeric">
-                <input type="text" class="code-input" maxlength="1" id="code4" inputmode="numeric">
-                <input type="text" class="code-input" maxlength="1" id="code5" inputmode="numeric">
-            </div>
-
-            <button class="verify-button" id="verifyCodeBtn">Verify Code</button>
-            <button class="back-button" id="backToPhoneBtn">Back</button>
+        <!-- Error Message -->
+        <div class="error-message hidden" id="errorMessage">
+            <span class="error-icon">⚠️</span>
+            <span id="errorText"></span>
         </div>
 
-        <!-- Step 3: 2FA Password Input -->
-        <div id="step3" class="step hidden">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h3 style="font-size: 20px; margin-bottom: 8px;">Two-Step Verification</h3>
-                <p style="color: #666; font-size: 14px;">Enter your password to complete login</p>
+        <!-- Step 1: Phone Number -->
+        <div class="form-step" id="step1">
+            <div class="info-box">
+                <span class="info-icon">ℹ️</span>
+                <span>Enter your phone number in international format (e.g., +1234567890)</span>
             </div>
 
-            <input type="password" class="password-input" id="password" placeholder="Your password">
-            <button class="verify-button" id="verifyPasswordBtn">Submit</button>
-            <button class="back-button" id="backFromPasswordBtn">Cancel</button>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <div class="phone-input-wrapper">
+                    <input type="text" class="country-code" id="countryCode" value="+" placeholder="+" readonly disabled>
+                    <input type="tel" class="phone-number" id="phone" placeholder="1234567890" autocomplete="off" autofocus>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
+                <span>📤</span> Send Code
+            </button>
+
+            <div class="back-to-dashboard">
+                <a href="/dashboard">← Back to Dashboard</a>
+            </div>
+
+            <div class="note">
+                Your credentials are stored securely and never shared.
+            </div>
         </div>
 
-        <!-- Message Display Area -->
-        <div id="message"></div>
+        <!-- Step 2: Verification Code -->
+        <div class="form-step hidden" id="step2">
+            <div class="info-box">
+                <span class="info-icon">📱</span>
+                <span id="codeInfo">Enter the code sent to <span id="phoneDisplay"></span></span>
+            </div>
 
-        <!-- Loading Spinner -->
-        <div class="loader" id="loader"></div>
+            <div class="form-group">
+                <label for="code">Verification Code</label>
+                <input type="text" id="code" placeholder="12345" autocomplete="off" inputmode="numeric" autofocus>
+            </div>
 
-        
+            <div class="form-group hidden" id="passwordGroup">
+                <label for="password">2FA Password</label>
+                <input type="password" id="password" placeholder="Enter your 2FA password">
+                <ul class="password-requirements">
+                    <li>If you have two-factor authentication enabled</li>
+                    <li>Enter your account password</li>
+                </ul>
+            </div>
+
+            <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
+                <span>✓</span> Verify & Login
+            </button>
+
+            <button class="btn btn-secondary" id="backBtn" onclick="goToStep1()">
+                <span>←</span> Back
+            </button>
+
+            <div class="resend-link">
+                <a id="resendLink" onclick="resendCode()">Didn't receive the code? Resend</a>
+            </div>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div class="form-step hidden" id="step3">
+            <div class="success-check">
+                <div class="check-icon">✓</div>
+                <h2 style="margin-bottom: 8px;">Success!</h2>
+                <p style="color: #8e9fad; margin-bottom: 24px;">Account added successfully</p>
+            </div>
+
+            <button class="btn btn-primary" onclick="goToDashboard()">
+                <span>📱</span> Go to Dashboard
+            </button>
+
+            <div class="redirect-countdown" id="countdown">
+                Redirecting in 3 seconds...
+            </div>
+        </div>
     </div>
 
-    <!-- Keypad (Visible outside container for better UX) -->
-    <div class="keypad">
-        <button onclick="appendNumber('1')">1<div class="letters"></div></button>
-        <button onclick="appendNumber('2')">2<div class="letters">ABC</div></button>
-        <button onclick="appendNumber('3')">3<div class="letters">DEF</div></button>
-        <button onclick="appendNumber('4')">4<div class="letters">GHI</div></button>
-        <button onclick="appendNumber('5')">5<div class="letters">JKL</div></button>
-        <button onclick="appendNumber('6')">6<div class="letters">MNO</div></button>
-        <button onclick="appendNumber('7')">7<div class="letters">PQRS</div></button>
-        <button onclick="appendNumber('8')">8<div class="letters">TUV</div></button>
-        <button onclick="appendNumber('9')">9<div class="letters">WXYZ</div></button>
-        <button onclick="appendNumber('0')" class="zero">0<div class="letters"></div></button>
-        <button onclick="backspace()" class="backspace">⌫</button>
-    </div>                                        }
-                <script>
-        // ---------- DOM Elements ----------
+    <script>
+        // State
+        let currentStep = 1;
+        let sessionId = null;
+        let phoneNumber = '';
+        let countdownInterval = null;
+        let resendCooldown = false;
+
+        // DOM Elements
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
-        const countryCodeInput = document.getElementById('countryCode');
-        const phoneInput = document.getElementById('phoneNumber');
+        const step1Indicator = document.getElementById('step1Indicator');
+        const step2Indicator = document.getElementById('step2Indicator');
+        const step3Indicator = document.getElementById('step3Indicator');
+        const step1Line = document.getElementById('step1Line');
+        const step2Line = document.getElementById('step2Line');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const phoneInput = document.getElementById('phone');
+        const codeInput = document.getElementById('code');
+        const passwordInput = document.getElementById('password');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const phoneDisplay = document.getElementById('phoneDisplay');
         const sendCodeBtn = document.getElementById('sendCodeBtn');
-        const verifyCodeBtn = document.getElementById('verifyCodeBtn');
-        const verifyPasswordBtn = document.getElementById('verifyPasswordBtn');
-        const backToPhoneBtn = document.getElementById('backToPhoneBtn');
-        const backFromPasswordBtn = document.getElementById('backFromPasswordBtn');
-        const messageDiv = document.getElementById('message');
-        const loader = document.getElementById('loader');
-        const countrySelect = document.getElementById('countrySelect');
-        
-        // Code inputs
-        const codeInputs = [
-            document.getElementById('code1'),
-            document.getElementById('code2'),
-            document.getElementById('code3'),
-            document.getElementById('code4'),
-            document.getElementById('code5')
-        ];
+        const verifyBtn = document.getElementById('verifyBtn');
+        const resendLink = document.getElementById('resendLink');
+        const countdownSpan = document.getElementById('countdown');
 
-        // ---------- State ----------
-        let sessionId = null;
-        let currentPhone = '';
+        // Initialize
+        function init() {
+            // Auto-focus phone input
+            phoneInput.focus();
 
-        // ---------- Helper Functions ----------
-        function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = type;
-            messageDiv.style.display = 'block';
-            
-            // Auto hide after 5 seconds for success messages
-            if (type === 'success') {
-                setTimeout(() => {
-                    messageDiv.style.display = 'none';
-                }, 5000);
-            }
+            // Add event listeners
+            phoneInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendCode();
+                }
+            });
+
+            codeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyCode();
+                }
+            });
+
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyCode();
+                }
+            });
+
+            // Format phone input
+            phoneInput.addEventListener('input', function(e) {
+                // Remove non-digits
+                this.value = this.value.replace(/\D/g, '');
+            });
+
+            // Format code input
+            codeInput.addEventListener('input', function(e) {
+                // Remove non-digits
+                this.value = this.value.replace(/\D/g, '');
+            });
         }
 
-        function clearMessage() {
-            messageDiv.style.display = 'none';
-            messageDiv.textContent = '';
-            messageDiv.className = '';
+        // Show error
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
         }
 
-        function setLoading(isLoading) {
+        // Set loading state
+        function setLoading(button, isLoading) {
             if (isLoading) {
-                loader.style.display = 'block';
-                sendCodeBtn.disabled = true;
-                verifyCodeBtn.disabled = true;
-                verifyPasswordBtn.disabled = true;
+                button.classList.add('loading');
+                button.disabled = true;
             } else {
-                loader.style.display = 'none';
-                sendCodeBtn.disabled = false;
-                verifyCodeBtn.disabled = false;
-                verifyPasswordBtn.disabled = false;
+                button.classList.remove('loading');
+                button.disabled = false;
             }
         }
 
-        // ---------- Country List with Ethiopia Added ----------
-        const countries = [
-            { name: 'United States', code: '1', flag: '🇺🇸' },
-            { name: 'United Kingdom', code: '44', flag: '🇬🇧' },
-            { name: 'India', code: '91', flag: '🇮🇳' },
-            { name: 'Canada', code: '1', flag: '🇨🇦' },
-            { name: 'Australia', code: '61', flag: '🇦🇺' },
-            { name: 'Germany', code: '49', flag: '🇩🇪' },
-            { name: 'France', code: '33', flag: '🇫🇷' },
-            { name: 'Brazil', code: '55', flag: '🇧🇷' },
-            { name: 'Russia', code: '7', flag: '🇷🇺' },
-            { name: 'Japan', code: '81', flag: '🇯🇵' },
-            { name: 'China', code: '86', flag: '🇨🇳' },
-            { name: 'Italy', code: '39', flag: '🇮🇹' },
-            { name: 'Spain', code: '34', flag: '🇪🇸' },
-            { name: 'Mexico', code: '52', flag: '🇲🇽' },
-            { name: 'Indonesia', code: '62', flag: '🇮🇩' },
-            { name: 'Turkey', code: '90', flag: '🇹🇷' },
-            { name: 'Netherlands', code: '31', flag: '🇳🇱' },
-            { name: 'Saudi Arabia', code: '966', flag: '🇸🇦' },
-            { name: 'Switzerland', code: '41', flag: '🇨🇭' },
-            { name: 'Sweden', code: '46', flag: '🇸🇪' },
-            { name: 'Belgium', code: '32', flag: '🇧🇪' },
-            { name: 'Argentina', code: '54', flag: '🇦🇷' },
-            { name: 'Norway', code: '47', flag: '🇳🇴' },
-            { name: 'Austria', code: '43', flag: '🇦🇹' },
-            { name: 'Poland', code: '48', flag: '🇵🇱' },
-            { name: 'Ukraine', code: '380', flag: '🇺🇦' },
-            { name: 'Philippines', code: '63', flag: '🇵🇭' },
-            { name: 'Malaysia', code: '60', flag: '🇲🇾' },
-            { name: 'Singapore', code: '65', flag: '🇸🇬' },
-            { name: 'Thailand', code: '66', flag: '🇹🇭' },
-            { name: 'Vietnam', code: '84', flag: '🇻🇳' },
-            { name: 'South Korea', code: '82', flag: '🇰🇷' },
-            { name: 'UAE', code: '971', flag: '🇦🇪' },
-            { name: 'Egypt', code: '20', flag: '🇪🇬' },
-            { name: 'South Africa', code: '27', flag: '🇿🇦' },
-            { name: 'Nigeria', code: '234', flag: '🇳🇬' },
-            { name: 'Kenya', code: '254', flag: '🇰🇪' },
-            { name: 'Pakistan', code: '92', flag: '🇵🇰' },
-            { name: 'Bangladesh', code: '880', flag: '🇧🇩' },
-            { name: 'Sri Lanka', code: '94', flag: '🇱🇰' },
-            { name: 'Nepal', code: '977', flag: '🇳🇵' },
-            { name: 'Afghanistan', code: '93', flag: '🇦🇫' },
-            { name: 'Iraq', code: '964', flag: '🇮🇶' },
-            { name: 'Iran', code: '98', flag: '🇮🇷' },
-            { name: 'Israel', code: '972', flag: '🇮🇱' },
-            { name: 'Jordan', code: '962', flag: '🇯🇴' },
-            { name: 'Lebanon', code: '961', flag: '🇱🇧' },
-            { name: 'Syria', code: '963', flag: '🇸🇾' },
-            { name: 'Yemen', code: '967', flag: '🇾🇪' },
-            { name: 'Kuwait', code: '965', flag: '🇰🇼' },
-            { name: 'Qatar', code: '974', flag: '🇶🇦' },
-            { name: 'Bahrain', code: '973', flag: '🇧🇭' },
-            { name: 'Oman', code: '968', flag: '🇴🇲' },
-            { name: 'Cyprus', code: '357', flag: '🇨🇾' },
-            { name: 'Greece', code: '30', flag: '🇬🇷' },
-            { name: 'Denmark', code: '45', flag: '🇩🇰' },
-            { name: 'Finland', code: '358', flag: '🇫🇮' },
-            { name: 'Iceland', code: '354', flag: '🇮🇸' },
-            { name: 'Ireland', code: '353', flag: '🇮🇪' },
-            { name: 'Portugal', code: '351', flag: '🇵🇹' },
-            { name: 'Luxembourg', code: '352', flag: '🇱🇺' },
-            { name: 'Malta', code: '356', flag: '🇲🇹' },
-            { name: 'Monaco', code: '377', flag: '🇲🇨' },
-            { name: 'San Marino', code: '378', flag: '🇸🇲' },
-            { name: 'Vatican City', code: '379', flag: '🇻🇦' },
-            { name: 'Andorra', code: '376', flag: '🇦🇩' },
-            { name: 'Liechtenstein', code: '423', flag: '🇱🇮' },
-            { name: 'Czech Republic', code: '420', flag: '🇨🇿' },
-            { name: 'Slovakia', code: '421', flag: '🇸🇰' },
-            { name: 'Hungary', code: '36', flag: '🇭🇺' },
-            { name: 'Slovenia', code: '386', flag: '🇸🇮' },
-            { name: 'Croatia', code: '385', flag: '🇭🇷' },
-            { name: 'Bosnia', code: '387', flag: '🇧🇦' },
-            { name: 'Serbia', code: '381', flag: '🇷🇸' },
-            { name: 'Montenegro', code: '382', flag: '🇲🇪' },
-            { name: 'Albania', code: '355', flag: '🇦🇱' },
-            { name: 'North Macedonia', code: '389', flag: '🇲🇰' },
-            { name: 'Bulgaria', code: '359', flag: '🇧🇬' },
-            { name: 'Romania', code: '40', flag: '🇷🇴' },
-            { name: 'Moldova', code: '373', flag: '🇲🇩' },
-            { name: 'Estonia', code: '372', flag: '🇪🇪' },
-            { name: 'Latvia', code: '371', flag: '🇱🇻' },
-            { name: 'Lithuania', code: '370', flag: '🇱🇹' },
-            { name: 'Belarus', code: '375', flag: '🇧🇾' },
-            { name: 'Georgia', code: '995', flag: '🇬🇪' },
-            { name: 'Armenia', code: '374', flag: '🇦🇲' },
-            { name: 'Azerbaijan', code: '994', flag: '🇦🇿' },
-            { name: 'Kazakhstan', code: '7', flag: '🇰🇿' },
-            { name: 'Uzbekistan', code: '998', flag: '🇺🇿' },
-            { name: 'Turkmenistan', code: '993', flag: '🇹🇲' },
-            { name: 'Kyrgyzstan', code: '996', flag: '🇰🇬' },
-            { name: 'Tajikistan', code: '992', flag: '🇹🇯' },
-            { name: 'Mongolia', code: '976', flag: '🇲🇳' },
-            { name: 'Ethiopia', code: '251', flag: '🇪🇹' } // Added Ethiopia
-        ];
+        // Update steps
+        function updateSteps(step) {
+            // Reset all
+            step1Indicator.classList.remove('active', 'completed');
+            step2Indicator.classList.remove('active', 'completed');
+            step3Indicator.classList.remove('active', 'completed');
+            step1Line.classList.remove('completed');
+            step2Line.classList.remove('completed');
 
-        // Populate country select with flags
-        function populateCountries() {
-            countries.sort((a, b) => a.name.localeCompare(b.name));
-            countries.forEach(country => {
-                const option = document.createElement('option');
-                option.value = country.code;
-                option.textContent = `${country.flag} ${country.name} (+${country.code})`;
-                countrySelect.appendChild(option);
-            });
+            // Set based on step
+            if (step === 1) {
+                step1Indicator.classList.add('active');
+            } else if (step === 2) {
+                step1Indicator.classList.add('completed');
+                step2Indicator.classList.add('active');
+                step1Line.classList.add('completed');
+            } else if (step === 3) {
+                step1Indicator.classList.add('completed');
+                step2Indicator.classList.add('completed');
+                step3Indicator.classList.add('active');
+                step1Line.classList.add('completed');
+                step2Line.classList.add('completed');
+            }
         }
 
-        // ---------- Enhanced Country Code Detection ----------
-        function findCountryByCode(code) {
-            return countries.find(c => c.code === code);
-        }
-
-        // Auto-select country based on typed code
-        countryCodeInput.addEventListener('input', function() {
-            const code = this.value.trim();
-            
-            if (code.length >= 1 && code.length <= 4) {
-                const matchedCountry = findCountryByCode(code);
-                if (matchedCountry) {
-                    // Select the matching country in dropdown
-                    countrySelect.value = code;
-                    
-                    // Show small preview
-                    showMessage(`Selected: ${matchedCountry.flag} ${matchedCountry.name}`, 'info');
-                    
-                    // Auto-focus phone input after short delay
-                    setTimeout(() => {
-                        phoneInput.focus();
-                    }, 100);
-                } else {
-                    countrySelect.value = '';
-                }
-            }
-            
-            // Limit code length to 4 digits
-            if (code.length > 4) {
-                this.value = code.slice(0, 4);
-            }
-        });
-
-        // Auto-jump to phone input when code is complete (3-4 digits)
-        countryCodeInput.addEventListener('keyup', function(e) {
-            const code = this.value.trim();
-            
-            // If user pressed Enter or code is 3-4 digits long
-            if (e.key === 'Enter' || code.length >= 3) {
-                const matchedCountry = findCountryByCode(code);
-                if (matchedCountry) {
-                    phoneInput.focus();
-                }
-            }
-        });
-
-        // Update country code when country is selected from dropdown
-        countrySelect.addEventListener('change', function() {
-            const selectedCode = this.value;
-            if (selectedCode) {
-                countryCodeInput.value = selectedCode;
-                phoneInput.focus();
-            }
-        });
-
-        // ---------- Paste Support for Phone Number ----------
-        phoneInput.addEventListener('paste', function(e) {
-            e.preventDefault();
-            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            
-            // Extract only numbers
-            const numbers = pastedText.replace(/\D/g, '');
-            
-            // Check if pasted text contains country code
-            const plusMatch = pastedText.match(/\+(\d+)/);
-            if (plusMatch) {
-                // Has + prefix, extract country code
-                const fullCode = plusMatch[1];
-                // Try to match country code
-                for (let i = 3; i >= 1; i--) {
-                    const possibleCode = fullCode.substring(0, i);
-                    const matchedCountry = findCountryByCode(possibleCode);
-                    if (matchedCountry) {
-                        countryCodeInput.value = possibleCode;
-                        // Set remaining numbers as phone
-                        const remainingNumbers = fullCode.substring(i) + numbers;
-                        this.value = remainingNumbers;
-                        
-                        // Update dropdown
-                        countrySelect.value = possibleCode;
-                        
-                        showMessage(`Detected: ${matchedCountry.flag} ${matchedCountry.name}`, 'success');
-                        return;
-                    }
-                }
-            }
-            
-            // If no country code detected or no + prefix, just paste numbers
-            this.value = numbers;
-        });
-
-        // Also allow pasting in country code input
-        countryCodeInput.addEventListener('paste', function(e) {
-            e.preventDefault();
-            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            const numbers = pastedText.replace(/\D/g, '');
-            this.value = numbers.substring(0, 4); // Max 4 digits
-            
-            // Trigger the input event to auto-select country
-            this.dispatchEvent(new Event('input'));
-        });
-
-        // ---------- Keypad Functions ----------
-        window.appendNumber = function(num) {
-            // Determine which input is currently focused
-            if (!step1.classList.contains('hidden')) {
-                // Check if country code input is focused or has less than 3 digits
-                if (document.activeElement === countryCodeInput || countryCodeInput.value.length < 3) {
-                    countryCodeInput.value += num;
-                    // Trigger input event to check for country match
-                    countryCodeInput.dispatchEvent(new Event('input'));
-                } else {
-                    phoneInput.value += num;
-                    phoneInput.focus();
-                }
-            } else if (!step2.classList.contains('hidden')) {
-                // Find first empty code input
-                for (let i = 0; i < codeInputs.length; i++) {
-                    if (!codeInputs[i].value) {
-                        codeInputs[i].value = num;
-                        if (i < codeInputs.length - 1) {
-                            codeInputs[i + 1].focus();
-                        } else {
-                            // Auto-submit when last digit is entered
-                            setTimeout(() => verifyCode(), 100);
-                        }
-                        break;
-                    }
-                }
-            } else if (!step3.classList.contains('hidden')) {
-                const password = document.getElementById('password');
-                password.value += num;
-                password.focus();
-            }
+        // Go to step 1
+        window.goToStep1 = function() {
+            currentStep = 1;
+            step1.classList.remove('hidden');
+            step2.classList.add('hidden');
+            step3.classList.add('hidden');
+            updateSteps(1);
+            phoneInput.focus();
         };
 
-        window.backspace = function() {
-            if (!step1.classList.contains('hidden')) {
-                if (document.activeElement === countryCodeInput || 
-                    (document.activeElement === phoneInput && phoneInput.value === '')) {
-                    countryCodeInput.value = countryCodeInput.value.slice(0, -1);
-                    countryCodeInput.focus();
-                    // Trigger input event to update country selection
-                    countryCodeInput.dispatchEvent(new Event('input'));
-                } else {
-                    phoneInput.value = phoneInput.value.slice(0, -1);
-                    phoneInput.focus();
-                }
-            } else if (!step2.classList.contains('hidden')) {
-                for (let i = codeInputs.length - 1; i >= 0; i--) {
-                    if (codeInputs[i].value) {
-                        codeInputs[i].value = '';
-                        codeInputs[i].focus();
-                        break;
-                    }
-                }
-            } else if (!step3.classList.contains('hidden')) {
-                const password = document.getElementById('password');
-                password.value = password.value.slice(0, -1);
-                password.focus();
+        // Go to step 2
+        function goToStep2(phone) {
+            currentStep = 2;
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+            step3.classList.add('hidden');
+            updateSteps(2);
+            phoneDisplay.textContent = phone;
+            codeInput.focus();
+        }
+
+        // Go to step 3
+        function goToStep3() {
+            currentStep = 3;
+            step1.classList.add('hidden');
+            step2.classList.add('hidden');
+            step3.classList.remove('hidden');
+            updateSteps(3);
+            
+            // Start countdown
+            let countdown = 3;
+            countdownSpan.textContent = `Redirecting in ${countdown} seconds...`;
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
             }
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    countdownSpan.textContent = `Redirecting in ${countdown} seconds...`;
+                } else {
+                    clearInterval(countdownInterval);
+                    goToDashboard();
+                }
+            }, 1000);
+        }
+
+        // Go to dashboard
+        window.goToDashboard = function() {
+            window.location.href = '/dashboard';
         };
 
-        // Auto-move between code inputs
-        codeInputs.forEach((input, index) => {
-            input.addEventListener('input', function() {
-                if (this.value.length === 1) {
-                    if (index < codeInputs.length - 1) {
-                        codeInputs[index + 1].focus();
-                    } else {
-                        // Auto-verify when last digit is entered
-                        setTimeout(() => verifyCode(), 200);
-                    }
-                }
-            });
-
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Backspace' && !this.value && index > 0) {
-                    codeInputs[index - 1].focus();
-                }
-            });
-
-            // Allow pasting in code inputs
-            input.addEventListener('paste', function(e) {
-                e.preventDefault();
-                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                const numbers = pastedText.replace(/\D/g, '').substring(0, 5);
-                
-                if (numbers.length > 0) {
-                    // Fill in all code inputs
-                    for (let i = 0; i < numbers.length && i < codeInputs.length; i++) {
-                        codeInputs[i].value = numbers[i];
-                    }
-                    
-                    // Focus next empty or last input
-                    if (numbers.length < codeInputs.length) {
-                        codeInputs[numbers.length].focus();
-                    } else {
-                        codeInputs[codeInputs.length - 1].focus();
-                        // Auto-verify
-                        setTimeout(() => verifyCode(), 200);
-                    }
-                }
-            });
-        });
-
-        // ---------- API Functions ----------
-        async function sendCode() {
-            const countryCode = countryCodeInput.value.trim();
-            const phone = phoneInput.value.trim().replace(/\D/g, '');
-            
-            if (!countryCode) {
-                showMessage('Please enter your country code', 'error');
-                countryCodeInput.focus();
-                return;
-            }
+        // Send code
+        window.sendCode = async function() {
+            const phone = phoneInput.value.trim();
             
             if (!phone) {
-                showMessage('Please enter your phone number', 'error');
+                showError('Please enter your phone number');
                 phoneInput.focus();
                 return;
             }
-            
-            const fullPhone = `+${countryCode}${phone}`;
-            currentPhone = fullPhone;
-            
-            setLoading(true);
-            clearMessage();
-            
+
+            // Format phone with + if not present
+            let formattedPhone = phone;
+            if (!formattedPhone.startsWith('+')) {
+                formattedPhone = '+' + formattedPhone;
+            }
+
+            setLoading(sendCodeBtn, true);
+            hideError();
+
             try {
                 const response = await fetch('/api/add-account', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: fullPhone })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: formattedPhone })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     sessionId = data.session_id;
-                    localStorage.setItem('telegram_session_id', sessionId);
-                    localStorage.setItem('telegram_phone', fullPhone);
-                    
-                    step1.classList.add('hidden');
-                    step2.classList.remove('hidden');
-                    showMessage('Verification code sent!', 'info');
-                    
-                    // Focus first code input
-                    setTimeout(() => codeInputs[0].focus(), 100);
+                    phoneNumber = formattedPhone;
+                    goToStep2(formattedPhone);
                 } else {
-                    showMessage(data.error || 'Failed to send code', 'error');
+                    showError(data.error || 'Failed to send code');
                 }
-            } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-                console.error(error);
+            } catch (err) {
+                console.error('Error sending code:', err);
+                showError('Network error. Check your connection.');
             } finally {
-                setLoading(false);
+                setLoading(sendCodeBtn, false);
             }
-        }
+        };
 
-        async function verifyCode() {
-            const code = codeInputs.map(input => input.value).join('');
+        // Verify code
+        window.verifyCode = async function() {
+            const code = codeInput.value.trim();
+            const password = passwordInput.value.trim();
             
-            if (code.length !== 5) {
-                showMessage('Please enter the 5-digit code', 'error');
+            if (!code && !password) {
+                showError('Please enter the verification code');
+                codeInput.focus();
                 return;
             }
-            
-            setLoading(true);
-            clearMessage();
-            
+
+            if (!sessionId) {
+                showError('Session expired. Please start over.');
+                goToStep1();
+                return;
+            }
+
+            setLoading(verifyBtn, true);
+            hideError();
+
             try {
                 const response = await fetch('/api/verify-code', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
+                        code: code,
                         session_id: sessionId,
-                        code: code
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    
-                    
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = '/home';
-                    }, 1500);
-                } else if (data.need_password) {
-                    step2.classList.add('hidden');
-                    step3.classList.remove('hidden');
-                    document.getElementById('password').focus();
-                    showMessage('2FA required. Enter your password.', 'info');
-                } else {
-                    showMessage(data.error || 'Verification failed', 'error');
-                    // Clear code inputs on error
-                    codeInputs.forEach(input => input.value = '');
-                    codeInputs[0].focus();
-                }
-            } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        async function verifyPassword() {
-            const password = document.getElementById('password').value.trim();
-            
-            if (!password) {
-                showMessage('Please enter your password', 'error');
-                return;
-            }
-            
-            setLoading(true);
-            clearMessage();
-            
-            try {
-                const response = await fetch('/api/verify-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        code: '',
                         password: password
                     })
                 });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    goToStep3();
+                } else if (data.need_password) {
+                    // Show password field
+                    passwordGroup.classList.remove('hidden');
+                    passwordInput.focus();
+                    showError('2FA required. Please enter your password.');
+                } else {
+                    showError(data.error || 'Verification failed');
+                }
+            } catch (err) {
+                console.error('Error verifying code:', err);
+                showError('Network error. Check your connection.');
+            } finally {
+                setLoading(verifyBtn, false);
+            }
+        };
+
+        // Resend code
+        window.resendCode = async function() {
+            if (resendCooldown || !sessionId) return;
+
+            setLoading(resendLink, true);
+            resendCooldown = true;
+            resendLink.classList.add('disabled');
+            hideError();
+
+            try {
+                // Use the same phone number to resend
+                const response = await fetch('/api/add-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: phoneNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionId = data.session_id;
+                    showError('Code resent successfully!');
+                    
+                    // Clear any 2FA field
+                    passwordGroup.classList.add('hidden');
+                    passwordInput.value = '';
+                } else {
+                    showError(data.error || 'Failed to resend code');
+                }
+            } catch (err) {
+                console.error('Error resending code:', err);
+                showError('Network error. Check your connection.');
+            } finally {
+                setLoading(resendLink, false);
                 
+                // Cooldown timer
+                setTimeout(() => {
+                    resendCooldown = false;
+                    resendLink.classList.remove('disabled');
+                }, 30000); // 30 seconds cooldown
+            }
+        };
+
+        // Hide error
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Check if already has accounts
+        async function checkAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
                 const data = await response.json();
                 
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    
-                    localStorage.removeItem('telegram_session_id');
-                    localStorage.removeItem('telegram_phone');
-                    
-                    setTimeout(() => {
-                        window.location.href = '/home';
-                    }, 1500);
-                } else {
-                    showMessage(data.error || 'Invalid password', 'error');
-                    document.getElementById('password').value = '';
-                    document.getElementById('password').focus();
+                if (data.success && data.accounts && data.accounts.length > 0) {
+                    // Has accounts, we're good
+                    console.log('Found', data.accounts.length, 'accounts');
                 }
-            } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-                console.error(error);
-            } finally {
-                setLoading(false);
+            } catch (err) {
+                console.error('Error checking accounts:', err);
             }
         }
 
-        // ---------- Event Listeners ----------
-        sendCodeBtn.addEventListener('click', sendCode);
-        verifyCodeBtn.addEventListener('click', verifyCode);
-        verifyPasswordBtn.addEventListener('click', verifyPassword);
-
-        backToPhoneBtn.addEventListener('click', function() {
-            step2.classList.add('hidden');
-            step1.classList.remove('hidden');
-            clearMessage();
-            
-            // Clear code inputs
-            codeInputs.forEach(input => input.value = '');
-            
-            // Reset session
-            sessionId = null;
-            localStorage.removeItem('telegram_session_id');
-            
-            // Focus country code input
-            countryCodeInput.focus();
+        // Initialize on load
+        window.addEventListener('load', () => {
+            init();
+            checkAccounts();
         });
 
-        backFromPasswordBtn.addEventListener('click', function() {
-            step3.classList.add('hidden');
-            step2.classList.remove('hidden');
-            document.getElementById('password').value = '';
-            clearMessage();
-            codeInputs[0].focus();
-        });
-
-        // Enter key handlers
-        phoneInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') sendCode();
-        });
-
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') verifyPassword();
-        });
-
-        // Auto-focus country code on load
-        window.addEventListener('load', function() {
-            populateCountries();
-            countryCodeInput.focus();
-            
-            // Check for existing session
-            const savedPhone = localStorage.getItem('telegram_phone');
-            if (savedPhone) {
-                // Extract country code and phone
-                const match = savedPhone.match(/\+(\d+)(\d+)/);
-                if (match) {
-                    countryCodeInput.value = match[1];
-                    phoneInput.value = match[2];
-                    
-                    // Auto-select country
-                    setTimeout(() => {
-                        countryCodeInput.dispatchEvent(new Event('input'));
-                    }, 100);
-                }
+        // Clean up on unload
+        window.addEventListener('beforeunload', () => {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
             }
-        });
-
-        // Prevent form submission on enter
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
-                e.preventDefault();
-            }
-        });
-
-        // Clean up on page unload
-        window.addEventListener('beforeunload', function() {
-            setLoading(false);
         });
     </script>
 </body>
-</html>
+    </html>
