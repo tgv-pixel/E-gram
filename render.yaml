@@ -9,7 +9,7 @@ services:
         value: 33465589
       - key: API_HASH
         value: "08bdab35790bf1fdf20c16a50bd323b8"
-      - key: TELEGRAM_ACCOUNTS
+      - key: accounts.json
         value: "[]"  # Start with empty array
     disk:
       name: data
