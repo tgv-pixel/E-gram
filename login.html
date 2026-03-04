@@ -99,10 +99,6 @@
             box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
-        .form-control::placeholder {
-            color: #5d6f7e;
-        }
-
         .phone-input {
             padding-left: 70px;
         }
@@ -151,6 +147,8 @@
             color: #6ab2f2;
             padding: 8px;
             font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-link:hover {
@@ -330,9 +328,8 @@
     <script>
         let timerInterval;
         let timeLeft = 60;
-        let phoneNumber = '';
+        let currentSessionId = null;
 
-        // Show error message
         function showError(message) {
             const errorEl = document.getElementById('errorMessage');
             errorEl.textContent = message;
@@ -342,7 +339,6 @@
             }, 5000);
         }
 
-        // Show success message
         function showSuccess(message) {
             const successEl = document.getElementById('successMessage');
             successEl.textContent = message;
@@ -352,7 +348,6 @@
             }, 3000);
         }
 
-        // Set loading state
         function setLoading(button, isLoading) {
             const originalText = button.querySelector('span').textContent;
             if (isLoading) {
@@ -364,7 +359,6 @@
             }
         }
 
-        // Start resend timer
         function startResendTimer() {
             timeLeft = 60;
             const timerEl = document.getElementById('resendTimer');
@@ -384,19 +378,12 @@
             }, 1000);
         }
 
-        // Send verification code
         async function sendCode() {
             const phoneInput = document.getElementById('phone');
-            const phone = phoneInput.value.trim().replace(/\s+/g, '');
+            const phone = '+' + phoneInput.value.trim().replace(/\s+/g, '');
             
-            if (!phone) {
+            if (!phoneInput.value.trim()) {
                 showError('Please enter your phone number');
-                return;
-            }
-
-            // Format: just numbers
-            if (!/^\d+$/.test(phone)) {
-                showError('Please enter only numbers');
                 return;
             }
 
@@ -404,30 +391,28 @@
             setLoading(button, true);
 
             try {
-                const response = await fetch('/api/send-code', {
+                const response = await fetch('/api/add-account', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ phone: '+' + phone })
+                    body: JSON.stringify({ phone: phone })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    phoneNumber = '+' + phone;
+                    currentSessionId = data.session_id;
+                    
                     // Move to step 2
                     document.getElementById('step1').style.display = 'none';
                     document.getElementById('step2').style.display = 'block';
                     
-                    // Update step indicators
                     document.getElementById('step1-dot').classList.remove('active');
                     document.getElementById('step1-dot').classList.add('completed');
                     document.getElementById('step2-dot').classList.add('active');
                     
-                    // Start timer
                     startResendTimer();
-                    
                     showSuccess('Code sent successfully!');
                 } else {
                     showError(data.error || 'Failed to send code');
@@ -440,19 +425,12 @@
             }
         }
 
-        // Verify code
         async function verifyCode() {
             const code = document.getElementById('code').value.trim();
             const password = document.getElementById('password').value;
-            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
             
             if (!code) {
                 showError('Please enter the verification code');
-                return;
-            }
-
-            if (needPassword && !password) {
-                showError('Please enter your 2FA password');
                 return;
             }
 
@@ -467,6 +445,7 @@
                     },
                     body: JSON.stringify({ 
                         code: code,
+                        session_id: currentSessionId,
                         password: password
                     })
                 });
@@ -478,23 +457,18 @@
                     document.getElementById('step2').style.display = 'none';
                     document.getElementById('step3').style.display = 'block';
                     
-                    // Update step indicators
                     document.getElementById('step2-dot').classList.remove('active');
                     document.getElementById('step2-dot').classList.add('completed');
                     document.getElementById('step3-dot').classList.add('active');
                     
-                    // Show account info
-                    const account = data.account;
                     document.getElementById('successAccountInfo').innerHTML = 
-                        `Account: <strong>${account.name}</strong><br>Phone: ${account.phone}`;
+                        `Account added successfully!`;
                     
-                    // Clear timer
                     if (timerInterval) {
                         clearInterval(timerInterval);
                     }
                 } else {
                     if (data.need_password) {
-                        // Show password field
                         document.getElementById('passwordGroup').style.display = 'block';
                         showError('2FA is enabled. Please enter your password.');
                     } else {
@@ -509,91 +483,42 @@
             }
         }
 
-        // Resend code
         async function resendCode() {
-            if (!phoneNumber) {
+            if (!currentSessionId) {
                 backToPhone();
                 return;
             }
 
-            try {
-                const response = await fetch('/api/send-code', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ phone: phoneNumber })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    startResendTimer();
-                    showSuccess('Code resent successfully!');
-                } else {
-                    showError(data.error || 'Failed to resend code');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showError('Network error. Please try again.');
-            }
+            // For resend, we need to restart the process
+            backToPhone();
+            showError('Please request code again');
         }
 
-        // Back to phone step
         function backToPhone() {
             document.getElementById('step1').style.display = 'block';
             document.getElementById('step2').style.display = 'none';
             document.getElementById('step3').style.display = 'none';
             
-            // Update step indicators
             document.getElementById('step1-dot').classList.add('active');
             document.getElementById('step1-dot').classList.remove('completed');
             document.getElementById('step2-dot').classList.remove('active', 'completed');
             document.getElementById('step3-dot').classList.remove('active', 'completed');
             
-            // Clear inputs
             document.getElementById('code').value = '';
             document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'none';
             
-            // Clear timer
             if (timerInterval) {
                 clearInterval(timerInterval);
             }
         }
 
-        // Add another account
         function addAnotherAccount() {
-            // Reset to step 1
-            document.getElementById('step1').style.display = 'block';
-            document.getElementById('step2').style.display = 'none';
-            document.getElementById('step3').style.display = 'none';
-            
-            // Reset step indicators
-            document.getElementById('step1-dot').classList.add('active');
-            document.getElementById('step1-dot').classList.remove('completed');
-            document.getElementById('step2-dot').classList.remove('active', 'completed');
-            document.getElementById('step3-dot').classList.remove('active', 'completed');
-            
-            // Clear inputs
+            backToPhone();
             document.getElementById('phone').value = '';
-            document.getElementById('code').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('passwordGroup').style.display = 'none';
+            currentSessionId = null;
         }
 
-        // Auto-focus on code input when step 2 appears
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.target.id === 'step2' && mutation.target.style.display === 'block') {
-                    document.getElementById('code').focus();
-                }
-            });
-        });
-
-        observer.observe(document.getElementById('step2'), { attributes: true, attributeFilter: ['style'] });
-
-        // Allow only numbers in phone and code inputs
         document.getElementById('phone').addEventListener('input', function(e) {
             this.value = this.value.replace(/[^\d]/g, '');
         });
@@ -602,7 +527,6 @@
             this.value = this.value.replace(/[^\d]/g, '');
         });
 
-        // Enter key to submit
         document.getElementById('phone').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendCode();
@@ -622,4 +546,4 @@
         });
     </script>
 </body>
-                    </html>
+</html>
