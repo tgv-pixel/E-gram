@@ -2,7 +2,6 @@ from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
-from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 import json
 import os
 import asyncio
@@ -129,7 +128,6 @@ def add_account():
         result = run_async(send_code())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Verify code
@@ -200,10 +198,9 @@ def verify_code():
         
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# Get chats and messages - SIMPLIFIED VERSION
+# Get chats and messages - FIXED VERSION
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -222,8 +219,6 @@ def get_messages():
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
-    logger.info(f"Fetching chats for account {account_id}")
-    
     async def fetch():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
@@ -231,13 +226,12 @@ def get_messages():
         try:
             # Get all dialogs (chats)
             dialogs = await client.get_dialogs()
-            logger.info(f"Found {len(dialogs)} dialogs")
             
             chats = []
             all_messages = []
             
             for dialog in dialogs:
-                if not dialog or not dialog.entity:
+                if not dialog:
                     continue
                 
                 # Get chat ID
@@ -286,10 +280,7 @@ def get_messages():
                         
                         msg_text = msg.text or ''
                         if msg.media:
-                            if isinstance(msg.media, MessageMediaPhoto):
-                                msg_text = '📷 Photo'
-                            elif isinstance(msg.media, MessageMediaDocument):
-                                msg_text = '📎 Document'
+                            msg_text = '📎 Media'
                         
                         msg_date = int(msg.date.timestamp()) if msg.date else 0
                         
@@ -302,11 +293,8 @@ def get_messages():
                             'hasMedia': msg.media is not None
                         })
                         
-                except Exception as e:
-                    logger.error(f"Error getting messages: {e}")
+                except:
                     continue
-            
-            logger.info(f"Returning {len(chats)} chats")
             
             return {
                 'success': True,
@@ -315,7 +303,6 @@ def get_messages():
             }
             
         except Exception as e:
-            logger.error(f"Error in fetch: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -324,7 +311,6 @@ def get_messages():
         result = run_async(fetch())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Send message
@@ -366,7 +352,6 @@ def send_message():
             return {'success': True}
             
         except Exception as e:
-            logger.error(f"Send error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -375,7 +360,6 @@ def send_message():
         result = run_async(send())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Remove account
@@ -409,7 +393,7 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('TELEGRAM MANAGER - SIMPLIFIED VERSION')
+    print('TELEGRAM MANAGER - FINAL FIXED VERSION')
     print('='*50)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
