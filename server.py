@@ -43,9 +43,9 @@ def load_accounts():
                 accounts = json.loads(content) if content else []
                 logger.info(f"✅ Loaded {len(accounts)} accounts from {ACCOUNTS_FILE}")
                 
-                # Debug: Print account IDs
+                # Debug: Print all account IDs
                 for acc in accounts:
-                    logger.info(f"   - Account ID: {acc.get('id')}, Phone: {acc.get('phone')}")
+                    logger.info(f"   - Account ID: {acc.get('id')} (type: {type(acc.get('id'))}), Phone: {acc.get('phone')}")
         else:
             # Create empty accounts file
             accounts = []
@@ -120,7 +120,7 @@ def serve_home():
 def get_accounts():
     try:
         load_accounts()  # Reload to ensure latest
-        logger.info(f"get_accounts: Found {len(accounts)} accounts")
+        logger.info(f"GET /api/accounts - Found {len(accounts)} accounts")
         
         account_list = []
         for acc in accounts:
@@ -272,34 +272,47 @@ def verify_code():
     
     return jsonify({'success': True, 'account': new_account})
 
-# Get messages and chats - FIXED VERSION
+# Get messages and chats - FIXED VERSION WITH BETTER DEBUGGING
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
     account_id = data.get('accountId')
     
-    logger.info(f"get-messages called for account_id: {account_id}")
+    logger.info(f"🔍 get-messages called with account_id: {account_id} (type: {type(account_id)})")
     
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    # Find account - make sure we compare correctly
+    # Try to convert to int if it's a string
+    try:
+        account_id_int = int(account_id)
+    except:
+        account_id_int = account_id
+    
+    # Debug: Show all available accounts
+    logger.info(f"Available accounts: {[{'id': a.get('id'), 'type': type(a.get('id'))} for a in accounts]}")
+    
+    # Find account - try multiple matching methods
     account = None
+    
+    # Method 1: Direct match by value (handle both int and string)
     for acc in accounts:
-        if str(acc.get('id')) == str(account_id):
+        acc_id = acc.get('id')
+        if str(acc_id) == str(account_id) or acc_id == account_id_int:
             account = acc
+            logger.info(f"✅ Found account by direct match: {acc.get('name')}")
             break
     
     if not account:
-        logger.error(f"Account not found with ID: {account_id}. Available accounts: {[a.get('id') for a in accounts]}")
-        return jsonify({'success': False, 'error': 'Account not found'})
+        logger.error(f"❌ Account not found with ID: {account_id}")
+        return jsonify({'success': False, 'error': f'Account not found with ID: {account_id}'})
     
     session_string = account.get('session', '')
     if not session_string:
-        logger.error(f"No session string for account {account_id}")
+        logger.error(f"❌ No session string for account {account_id}")
         return jsonify({'success': False, 'error': 'No session found for account'})
     
-    logger.info(f"Found account: {account.get('name')}, session length: {len(session_string)}")
+    logger.info(f"✅ Found account: {account.get('name')}, session length: {len(session_string)}")
     
     async def fetch_chats():
         client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
@@ -308,12 +321,14 @@ def get_messages():
         try:
             # Check if authorized
             if not await client.is_user_authorized():
-                logger.error(f"Account {account_id} is not authorized")
+                logger.error(f"❌ Account {account_id} is not authorized")
                 return {'success': False, 'error': 'Account not authorized'}
+            
+            logger.info(f"✅ Connected to Telegram for account {account_id}")
             
             # Get all dialogs
             dialogs = await client.get_dialogs(limit=100)
-            logger.info(f"Found {len(dialogs)} dialogs for account {account_id}")
+            logger.info(f"📱 Found {len(dialogs)} dialogs for account {account_id}")
             
             chats = []
             all_messages = []
@@ -325,8 +340,6 @@ def get_messages():
                     
                     # Get chat ID safely
                     chat_id = str(dialog.id)
-                    if chat_id.startswith('-'):
-                        chat_id = chat_id
                     
                     # Determine chat type and name
                     entity = dialog.entity
@@ -349,12 +362,35 @@ def get_messages():
                     # Get last message info
                     last_msg_text = ''
                     last_date = 0
+                    last_msg_media = None
                     
                     if dialog.message:
                         if dialog.message.text:
                             last_msg_text = dialog.message.text[:100]
                         elif dialog.message.media:
-                            last_msg_text = '📎 Media'
+                            if isinstance(dialog.message.media, MessageMediaPhoto):
+                                last_msg_text = '📷 Photo'
+                                last_msg_media = 'photo'
+                            elif isinstance(dialog.message.media, MessageMediaDocument):
+                                if dialog.message.file and dialog.message.file.mime_type:
+                                    if dialog.message.file.mime_type.startswith('video/'):
+                                        last_msg_text = '🎥 Video'
+                                        last_msg_media = 'video'
+                                    elif dialog.message.file.mime_type.startswith('audio/'):
+                                        last_msg_text = '🎵 Audio'
+                                        last_msg_media = 'audio'
+                                    else:
+                                        last_msg_text = '📎 Document'
+                                        last_msg_media = 'document'
+                                else:
+                                    last_msg_text = '📎 Document'
+                                    last_msg_media = 'document'
+                            elif isinstance(dialog.message.media, MessageMediaWebPage):
+                                last_msg_text = '🔗 Link'
+                                last_msg_media = 'link'
+                            else:
+                                last_msg_text = '📎 Media'
+                                last_msg_media = 'media'
                         
                         if dialog.message.date:
                             last_date = int(dialog.message.date.timestamp())
@@ -366,13 +402,14 @@ def get_messages():
                         'type': chat_type,
                         'unread': dialog.unread_count or 0,
                         'lastMessage': last_msg_text,
+                        'lastMessageMedia': last_msg_media,
                         'lastMessageDate': last_date,
                         'pinned': dialog.pinned or False
                     })
                     
-                    # Get recent messages (limit 10 for performance)
+                    # Get recent messages (limit 15)
                     try:
-                        msgs = await client.get_messages(entity, limit=10)
+                        msgs = await client.get_messages(entity, limit=15)
                         
                         for msg in msgs:
                             if not msg:
@@ -431,7 +468,7 @@ def get_messages():
                     logger.error(f"Error processing dialog: {e}")
                     continue
             
-            logger.info(f"Returning {len(chats)} chats and {len(all_messages)} messages")
+            logger.info(f"✅ Returning {len(chats)} chats and {len(all_messages)} messages")
             
             return {
                 'success': True,
@@ -440,7 +477,7 @@ def get_messages():
             }
             
         except Exception as e:
-            logger.error(f"Error in fetch_chats: {e}")
+            logger.error(f"❌ Error in fetch_chats: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -457,7 +494,7 @@ def get_messages():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"Error in get-messages: {e}")
+        logger.error(f"❌ Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Get media file
@@ -532,6 +569,8 @@ def send_message():
     chat_id = data.get('chatId')
     message = data.get('message')
     
+    logger.info(f"Send message - account: {account_id}, chat: {chat_id}")
+    
     if not all([account_id, chat_id]):
         return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
@@ -555,7 +594,8 @@ def send_message():
             except:
                 try:
                     entity = await client.get_entity(chat_id)
-                except:
+                except Exception as e:
+                    logger.error(f"Chat not found: {e}")
                     return {'success': False, 'error': 'Chat not found'}
             
             # Send message
@@ -579,6 +619,8 @@ def remove_account():
     data = request.json
     account_id = data.get('accountId')
     
+    logger.info(f"Remove account: {account_id}")
+    
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
@@ -588,10 +630,22 @@ def remove_account():
     
     if len(accounts) < original_count:
         save_accounts()
-        logger.info(f"Removed account {account_id}")
+        logger.info(f"✅ Removed account {account_id}")
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Account not found'})
+
+# Debug endpoint to check accounts
+@app.route('/api/debug', methods=['GET'])
+def debug_accounts():
+    load_accounts()
+    return jsonify({
+        'success': True,
+        'accounts_count': len(accounts),
+        'accounts': [{'id': a.get('id'), 'name': a.get('name'), 'phone': a.get('phone')} for a in accounts],
+        'accounts_file': ACCOUNTS_FILE,
+        'file_exists': os.path.exists(ACCOUNTS_FILE)
+    })
 
 # Health check
 @app.route('/api/health', methods=['GET'])
@@ -600,14 +654,13 @@ def health_check():
         'status': 'healthy',
         'accounts': len(accounts),
         'accounts_file': ACCOUNTS_FILE,
-        'file_exists': os.path.exists(ACCOUNTS_FILE),
-        'accounts_list': [{'id': a.get('id'), 'name': a.get('name')} for a in accounts]
+        'file_exists': os.path.exists(ACCOUNTS_FILE)
     })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - FIXED VERSION')
+    print('📱 TELEGRAM MANAGER - DEBUG VERSION')
     print('='*60)
     print(f'✅ Loaded {len(accounts)} accounts')
     print(f'✅ Accounts file: {ACCOUNTS_FILE}')
@@ -615,7 +668,7 @@ if __name__ == '__main__':
     if accounts:
         print('📋 Accounts:')
         for acc in accounts:
-            print(f'   - ID: {acc.get("id")}, Name: {acc.get("name")}')
+            print(f'   - ID: {acc.get("id")} (type: {type(acc.get("id"))}), Name: {acc.get("name")}')
     print('='*60 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=True)
