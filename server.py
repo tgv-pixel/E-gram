@@ -4,7 +4,7 @@ import asyncio
 import nest_asyncio
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
-from telethon import TelegramClient, events
+from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 from telethon.tl.types import (
     MessageMediaPhoto, MessageMediaDocument, MessageMediaWebPage,
@@ -19,7 +19,7 @@ import time
 # Apply nest_asyncio to allow running asyncio in Flask
 nest_asyncio.apply()
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 app.secret_key = secrets.token_hex(32)
 CORS(app)
 
@@ -81,7 +81,7 @@ async def get_client(account_id):
     )
     
     try:
-        await client.start(phone=account['phone'])
+        await client.start(phone=account.get('phone'))  # Use .get() to avoid KeyError
         active_clients[account_id] = client
         return client
     except Exception as e:
@@ -120,13 +120,17 @@ def send_code():
         return jsonify({'success': False, 'error': 'Phone number required'})
     
     try:
+        # Create a unique session name
+        session_name = f'temp_{phone.replace("+", "")}_{int(time.time())}'
+        
         # Create temporary client
         client = TelegramClient(
-            f'temp_{phone}',
+            session_name,
             int(os.environ.get('API_ID', 33465589)),
             os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
         )
         
+        # Create new event loop for this operation
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -134,13 +138,14 @@ def send_code():
             await client.connect()
             if not await client.is_user_authorized():
                 await client.send_code_request(phone)
-                # Store phone in session
+                # Store phone and session name in session
                 session['temp_phone'] = phone
-                session['temp_session'] = f'temp_{phone}'
+                session['temp_session'] = session_name
                 return True
             return False
         
         result = loop.run_until_complete(send())
+        loop.close()
         
         if result:
             return jsonify({'success': True, 'message': 'Code sent successfully'})
@@ -162,16 +167,19 @@ def verify_code():
         return jsonify({'success': False, 'error': 'Code required'})
     
     phone = session.get('temp_phone')
-    if not phone:
-        return jsonify({'success': False, 'error': 'Session expired'})
+    session_name = session.get('temp_session')
+    
+    if not phone or not session_name:
+        return jsonify({'success': False, 'error': 'Session expired. Please start over.'})
     
     try:
         client = TelegramClient(
-            session.get('temp_session'),
+            session_name,
             int(os.environ.get('API_ID', 33465589)),
             os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
         )
         
+        # Create new event loop for this operation
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -183,6 +191,8 @@ def verify_code():
                 if not password:
                     return {'need_password': True}
                 await client.sign_in(password=password)
+            except Exception as e:
+                return {'error': str(e)}
             
             # Get user info
             me = await client.get_me()
@@ -205,13 +215,17 @@ def verify_code():
             accounts.append(new_account)
             save_accounts(accounts)
             
-            # Clean up session
-            session.pop('temp_phone', None)
-            session.pop('temp_session', None)
+            # Store client for future use
+            active_clients[new_account['id']] = client
             
             return {'success': True, 'account': new_account}
         
         result = loop.run_until_complete(verify())
+        loop.close()
+        
+        # Clean up session
+        session.pop('temp_phone', None)
+        session.pop('temp_session', None)
         
         if result.get('need_password'):
             return jsonify({'success': False, 'need_password': True})
@@ -234,6 +248,7 @@ def get_messages():
         return jsonify({'success': False, 'error': 'Account ID required'})
     
     try:
+        # Create new event loop for this operation
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -245,94 +260,82 @@ def get_messages():
             chats_data = []
             messages_data = []
             
-            # Get dialogs (chats)
-            async for dialog in client.iter_dialogs():
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
-                
-                # Get last message
-                last_msg = dialog.message
-                last_msg_text = ''
-                last_msg_media = None
-                
-                if last_msg:
-                    last_msg_text = last_msg.text or ''
-                    if last_msg.media:
-                        if hasattr(last_msg.media, 'photo'):
-                            last_msg_media = 'photo'
-                        elif hasattr(last_msg.media, 'document'):
-                            last_msg_media = 'document'
-                
-                chats_data.append({
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count,
-                    'lastMessage': last_msg_text[:50],
-                    'lastMessageMedia': last_msg_media,
-                    'lastMessageDate': last_msg.date.timestamp() if last_msg else None
-                })
-                
-                # Get last 50 messages for this chat
-                async for msg in client.iter_messages(dialog.entity, limit=50):
-                    msg_data = {
-                        'id': msg.id,
-                        'chatId': str(dialog.id),
-                        'text': msg.text or '',
-                        'date': msg.date.timestamp(),
-                        'out': msg.out,
-                        'hasMedia': bool(msg.media),
-                        'views': getattr(msg, 'views', None),
-                        'forwards': getattr(msg, 'forwards', None)
-                    }
+            try:
+                # Get dialogs (chats)
+                async for dialog in client.iter_dialogs():
+                    chat_type = 'user'
+                    if dialog.is_group:
+                        chat_type = 'group'
+                    elif dialog.is_channel:
+                        chat_type = 'channel'
                     
-                    # Handle media
-                    if msg.media:
-                        if hasattr(msg.media, 'photo'):
-                            msg_data['mediaType'] = 'photo'
-                        elif hasattr(msg.media, 'document'):
-                            # Check if it's a sticker, gif, etc.
-                            for attr in msg.media.document.attributes:
-                                if isinstance(attr, DocumentAttributeFilename):
-                                    if attr.file_name.endswith(('.mp4', '.gif')):
-                                        msg_data['mediaType'] = 'gif'
-                                    elif attr.file_name.endswith(('.webp', '.tgs')):
-                                        msg_data['mediaType'] = 'sticker'
-                                    else:
-                                        msg_data['mediaType'] = 'document'
-                                    msg_data['fileName'] = attr.file_name
-                                    break
+                    # Get last message
+                    last_msg = dialog.message
+                    last_msg_text = ''
+                    last_msg_media = None
+                    
+                    if last_msg:
+                        last_msg_text = last_msg.text or ''
+                        if last_msg.media:
+                            if hasattr(last_msg.media, 'photo'):
+                                last_msg_media = 'photo'
+                            elif hasattr(last_msg.media, 'document'):
+                                last_msg_media = 'document'
+                    
+                    chat_id = str(dialog.id)
+                    if hasattr(dialog.entity, 'username') and dialog.entity.username:
+                        chat_id = f"@{dialog.entity.username}"
+                    
+                    chats_data.append({
+                        'id': chat_id,
+                        'title': dialog.name or 'Unknown',
+                        'type': chat_type,
+                        'unread': dialog.unread_count,
+                        'lastMessage': (last_msg_text or '')[:50],
+                        'lastMessageMedia': last_msg_media,
+                        'lastMessageDate': last_msg.date.timestamp() if last_msg and last_msg.date else None
+                    })
+                    
+                    # Get last 20 messages for this chat (limited to avoid timeout)
+                    try:
+                        async for msg in client.iter_messages(dialog.entity, limit=20):
+                            msg_data = {
+                                'id': msg.id,
+                                'chatId': chat_id,
+                                'text': msg.text or '',
+                                'date': msg.date.timestamp() if msg.date else time.time(),
+                                'out': msg.out,
+                                'hasMedia': bool(msg.media),
+                                'views': getattr(msg, 'views', None),
+                                'forwards': getattr(msg, 'forwards', None)
+                            }
                             
-                            # Check if it's audio
-                            for attr in msg.media.document.attributes:
-                                if isinstance(attr, DocumentAttributeAudio):
-                                    if attr.voice:
-                                        msg_data['mediaType'] = 'voice'
-                                    else:
-                                        msg_data['mediaType'] = 'audio'
-                                    msg_data['duration'] = attr.duration
-                                    msg_data['title'] = attr.title
-                                    msg_data['performer'] = attr.performer
-                                    break
-                        elif hasattr(msg.media, 'webpage'):
-                            msg_data['mediaType'] = 'webpage'
-                            msg_data['webpageUrl'] = msg.media.webpage.url
-                            msg_data['webpageTitle'] = msg.media.webpage.title
-                        elif hasattr(msg.media, 'contact'):
-                            msg_data['mediaType'] = 'contact'
-                            msg_data['contactName'] = f"{msg.media.first_name} {msg.media.last_name or ''}"
-                            msg_data['contactPhone'] = msg.media.phone_number
-                        elif hasattr(msg.media, 'geo'):
-                            msg_data['mediaType'] = 'location'
-                        elif hasattr(msg.media, 'poll'):
-                            msg_data['mediaType'] = 'poll'
-                            msg_data['pollQuestion'] = msg.media.poll.question
-                            msg_data['pollOptions'] = [opt.text for opt in msg.media.poll.answers]
+                            # Handle media
+                            if msg.media:
+                                if hasattr(msg.media, 'photo'):
+                                    msg_data['mediaType'] = 'photo'
+                                elif hasattr(msg.media, 'document'):
+                                    msg_data['mediaType'] = 'document'
+                                    # Check for filename
+                                    for attr in msg.media.document.attributes:
+                                        if isinstance(attr, DocumentAttributeFilename):
+                                            msg_data['fileName'] = attr.file_name
+                                            break
+                                elif hasattr(msg.media, 'webpage'):
+                                    msg_data['mediaType'] = 'webpage'
+                                    if hasattr(msg.media.webpage, 'url'):
+                                        msg_data['webpageUrl'] = msg.media.webpage.url
+                                    if hasattr(msg.media.webpage, 'title'):
+                                        msg_data['webpageTitle'] = msg.media.webpage.title
+                            
+                            messages_data.append(msg_data)
+                    except Exception as e:
+                        logger.error(f"Error getting messages for chat {dialog.id}: {e}")
+                        continue
                     
-                    messages_data.append(msg_data)
+            except Exception as e:
+                logger.error(f"Error in fetch loop: {e}")
+                return {'error': str(e)}
             
             return {
                 'success': True,
@@ -341,6 +344,7 @@ def get_messages():
             }
         
         result = loop.run_until_complete(fetch())
+        loop.close()
         
         if result.get('error'):
             return jsonify({'success': False, 'error': result['error']})
@@ -362,6 +366,7 @@ def send_message():
         return jsonify({'success': False, 'error': 'Missing required fields'})
     
     try:
+        # Create new event loop for this operation
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -372,22 +377,31 @@ def send_message():
             
             # Get chat entity
             try:
-                if chat_id.startswith('-100'):
+                # Try to get entity by ID or username
+                if chat_id.startswith('@'):
+                    entity = await client.get_entity(chat_id)
+                elif chat_id.startswith('-100'):
                     entity = await client.get_entity(int(chat_id))
                 else:
-                    entity = await client.get_entity(int(chat_id))
-            except:
-                # Try as username
-                try:
-                    entity = await client.get_entity(chat_id)
-                except:
-                    return {'error': 'Chat not found'}
+                    # Try as integer ID
+                    try:
+                        entity = await client.get_entity(int(chat_id))
+                    except ValueError:
+                        # Try as username without @
+                        entity = await client.get_entity(f"@{chat_id}")
+            except Exception as e:
+                logger.error(f"Error getting entity: {e}")
+                return {'error': f'Chat not found: {str(e)}'}
             
             # Send message
-            sent = await client.send_message(entity, message)
-            return {'success': True, 'message_id': sent.id}
+            try:
+                sent = await client.send_message(entity, message)
+                return {'success': True, 'message_id': sent.id}
+            except Exception as e:
+                return {'error': f'Failed to send: {str(e)}'}
         
         result = loop.run_until_complete(send())
+        loop.close()
         
         if result.get('error'):
             return jsonify({'success': False, 'error': result['error']})
@@ -408,14 +422,22 @@ def remove_account():
     
     try:
         accounts = load_accounts()
-        accounts = [a for a in accounts if a['id'] != account_id]
+        accounts = [a for a in accounts if a['id'] != int(account_id)]
         save_accounts(accounts)
         
         # Remove client if exists
         if int(account_id) in active_clients:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            loop.run_until_complete(active_clients[int(account_id)].disconnect())
+            
+            async def disconnect():
+                try:
+                    await active_clients[int(account_id)].disconnect()
+                except:
+                    pass
+            
+            loop.run_until_complete(disconnect())
+            loop.close()
             del active_clients[int(account_id)]
         
         # Remove session file
@@ -434,6 +456,14 @@ def get_media(account_id, message_id):
     """Get media file"""
     return jsonify({'error': 'Media download not implemented yet'}), 501
 
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('dashboard.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)  # Set debug=False for production
