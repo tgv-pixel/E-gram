@@ -2,6 +2,7 @@ from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
+from telethon.errors import AuthKeyUnregisteredError
 import json
 import os
 import asyncio
@@ -62,6 +63,17 @@ def save_accounts():
     except Exception as e:
         logger.error(f"Error saving accounts: {e}")
         return False
+
+# Remove invalid account
+def remove_invalid_account(account_id):
+    global accounts
+    original_len = len(accounts)
+    accounts = [acc for acc in accounts if acc['id'] != account_id]
+    if len(accounts) < original_len:
+        save_accounts()
+        logger.info(f"🗑️ Removed invalid account {account_id}")
+        return True
+    return False
 
 # Load accounts on startup
 load_accounts()
@@ -199,7 +211,7 @@ def verify_code():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ULTRA SIMPLE VERSION - Get chats
+# Get chats - WITH AUTH KEY ERROR HANDLING
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -223,9 +235,18 @@ def get_messages():
         await client.connect()
         
         try:
+            # Check if authorized first
+            if not await client.is_user_authorized():
+                return {
+                    'success': False, 
+                    'error': 'auth_key_unregistered',
+                    'message': 'Session expired. Please re-add this account.',
+                    'account_id': account_id
+                }
+            
             # Get all dialogs
             dialogs = await client.get_dialogs()
-            logger.info(f"Found {len(dialogs)} dialogs")
+            logger.info(f"Found {len(dialogs)} dialogs for account {account_id}")
             
             chats = []
             
@@ -265,11 +286,29 @@ def get_messages():
             return {
                 'success': True,
                 'chats': chats,
-                'messages': []  # Empty for now
+                'messages': []
             }
             
+        except AuthKeyUnregisteredError:
+            logger.error(f"Auth key unregistered for account {account_id}")
+            # Remove the invalid account
+            remove_invalid_account(account_id)
+            return {
+                'success': False, 
+                'error': 'auth_key_unregistered',
+                'message': 'Session expired. Account has been removed. Please add it again.',
+                'account_id': account_id
+            }
+        except errors.FloodWaitError as e:
+            logger.error(f"Flood wait for account {account_id}: {e.seconds}s")
+            return {
+                'success': False,
+                'error': f'flood_wait',
+                'message': f'Too many requests. Please wait {e.seconds} seconds.',
+                'wait': e.seconds
+            }
         except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error fetching chats for account {account_id}: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -307,6 +346,13 @@ def send_message():
         await client.connect()
         
         try:
+            if not await client.is_user_authorized():
+                return {
+                    'success': False, 
+                    'error': 'auth_key_unregistered',
+                    'message': 'Session expired. Please re-add this account.'
+                }
+            
             # Get entity
             try:
                 entity = await client.get_entity(int(chat_id))
@@ -319,6 +365,14 @@ def send_message():
             await client.send_message(entity, message)
             return {'success': True}
             
+        except AuthKeyUnregisteredError:
+            logger.error(f"Auth key unregistered for account {account_id} during send")
+            remove_invalid_account(account_id)
+            return {
+                'success': False, 
+                'error': 'auth_key_unregistered',
+                'message': 'Session expired. Account has been removed.'
+            }
         except Exception as e:
             return {'success': False, 'error': str(e)}
         finally:
@@ -369,11 +423,25 @@ def debug_chats(account_id):
             await client.connect()
             
             try:
+                if not await client.is_user_authorized():
+                    return {
+                        'success': False, 
+                        'error': 'auth_key_unregistered',
+                        'message': 'Session expired'
+                    }
+                
                 dialogs = await client.get_dialogs()
                 return {
                     'success': True,
                     'count': len(dialogs),
                     'names': [d.name for d in dialogs[:10] if d.name]
+                }
+            except AuthKeyUnregisteredError:
+                remove_invalid_account(account_id)
+                return {
+                    'success': False, 
+                    'error': 'auth_key_unregistered',
+                    'message': 'Session expired and account removed'
                 }
             except Exception as e:
                 return {'success': False, 'error': str(e)}
@@ -397,7 +465,7 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*50)
-    print('TELEGRAM MANAGER - ULTRA SIMPLE')
+    print('TELEGRAM MANAGER - WITH AUTH ERROR HANDLING')
     print('='*50)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
