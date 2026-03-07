@@ -3,439 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminate Sessions</title>
+    <title>Account Manager</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
         body {
             background: #0e1621;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #fff;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
         }
-
-        /* Header */
-        .app-header {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 30px;
+        }
+        .account-card {
             background: #17212b;
-            padding: 8px 16px;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #2b3945;
-            height: 60px;
         }
-
-        .header-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #fff;
+        .account-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 15px;
         }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions a {
-            background: #2b3945;
-            color: #6ab2f2;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-
-        .header-actions a:hover {
-            background: #3a4a5a;
-        }
-
-        /* Main container */
-        .container {
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 0 20px;
-            width: 100%;
-        }
-
-        /* Warning card */
-        .warning-card {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #2b3945;
-            border-left: 4px solid #e04c4c;
-        }
-
-        .warning-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #ff6b6b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .warning-text {
-            color: #8e9fad;
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-
-        /* Account selector */
-        .selector-card {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #2b3945;
-        }
-
-        .selector-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #fff;
-        }
-
-        .account-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 4px;
-        }
-
-        .account-card {
-            background: #242f3d;
-            border: 2px solid #2b3945;
-            border-radius: 12px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .account-card:hover {
-            background: #2b3945;
-            transform: translateY(-2px);
-        }
-
-        .account-card.selected {
-            border-color: #4c9ce0;
-            background: #2b5278;
-        }
-
-        .account-avatar {
-            width: 48px;
-            height: 48px;
+        .avatar {
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: linear-gradient(145deg, #2b5278, #4c9ce0);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             font-weight: 600;
+        }
+        .details h3 {
+            margin: 0 0 5px 0;
             color: white;
-            flex-shrink: 0;
         }
-
-        .account-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .account-name {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 4px;
-        }
-
-        .account-phone {
-            font-size: 0.8rem;
+        .details p {
+            margin: 0;
             color: #8e9fad;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 0.9rem;
         }
-
-        .no-accounts {
-            text-align: center;
-            padding: 40px;
-            color: #8e9fad;
-            background: #242f3d;
-            border-radius: 12px;
-            border: 1px solid #2b3945;
-        }
-
-        .no-accounts a {
-            color: #6ab2f2;
-            text-decoration: none;
-        }
-
-        .no-accounts a:hover {
-            text-decoration: underline;
-        }
-
-        /* Terminate button */
-        .terminate-btn {
-            width: 100%;
-            padding: 16px;
-            background: #8e2b2b;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+        .actions {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 16px;
+            gap: 10px;
         }
-
-        .terminate-btn:hover:not(:disabled) {
-            background: #b53b3b;
-            transform: translateY(-2px);
-        }
-
-        .terminate-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .terminate-btn.danger {
-            background: #8e2b2b;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 1001;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #17212b;
-            padding: 24px;
-            border-radius: 16px;
-            max-width: 400px;
-            width: 90%;
-            border: 1px solid #2b3945;
-        }
-
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #fff;
-        }
-
-        .modal-body {
-            margin-bottom: 24px;
-            color: #8e9fad;
-            line-height: 1.5;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: none;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .modal-btn.cancel {
+        button {
             background: #2b3945;
-            color: #fff;
+            color: #6ab2f2;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
         }
-
-        .modal-btn.cancel:hover {
+        button:hover {
             background: #3a4a5a;
         }
-
-        .modal-btn.confirm {
+        button.terminate {
             background: #8e2b2b;
-            color: #fff;
+            color: white;
         }
-
-        .modal-btn.confirm:hover {
-            background: #b53b3b;
+        button.terminate:hover {
+            background: #a53333;
         }
-
-        /* Toast */
         .toast {
             position: fixed;
-            bottom: 24px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: #17212b;
             color: white;
             padding: 12px 24px;
             border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             border: 1px solid #2b3945;
-            z-index: 1000;
             display: none;
-            animation: slideUp 0.3s ease;
         }
-
-        @keyframes slideUp {
-            from {
-                transform: translate(-50%, 100%);
-                opacity: 0;
-            }
-            to {
-                transform: translate(-50%, 0);
-                opacity: 1;
-            }
-        }
-
         .toast.show {
             display: block;
         }
-
-        .toast.success {
-            border-left: 4px solid #4c9ce0;
-        }
-
-        .toast.error {
-            border-left: 4px solid #e04c4c;
-        }
-
-        /* Loading spinner */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         .loading {
             text-align: center;
-            padding: 40px;
             color: #8e9fad;
+            padding: 40px;
         }
     </style>
 </head>
 <body>
-    <div class="app-header">
-        <div class="header-title">
-            <span>🔐 Terminate Sessions</span>
-        </div>
-        <div class="header-actions">
-            <a href="/dashboard">← Back to Dashboard</a>
-        </div>
-    </div>
-
     <div class="container">
-        <!-- Warning Card -->
-        <div class="warning-card">
-            <div class="warning-title">
-                <span>⚠️ Warning</span>
-            </div>
-            <div class="warning-text">
-                Terminating all sessions will log out this account from all devices except the current one.
-                This includes Telegram mobile, desktop, and web sessions. You will need to log in again
-                on those devices. This action cannot be undone.
-            </div>
-        </div>
-
-        <!-- Account Selector -->
-        <div class="selector-card">
-            <div class="selector-title">Select Account to Terminate Sessions</div>
-            
-            <div id="accountsList" class="account-grid">
-                <div class="loading">Loading accounts...</div>
-            </div>
-
-            <button class="terminate-btn" id="terminateBtn" onclick="showTerminateModal()" disabled>
-                <span>🔒</span> Terminate All Sessions
-            </button>
+        <h1>Account Manager</h1>
+        <div id="accountsList">
+            <div class="loading">Loading accounts...</div>
         </div>
     </div>
-
-    <!-- Confirmation Modal -->
-    <div class="modal" id="confirmModal">
-        <div class="modal-content">
-            <div class="modal-title" id="modalTitle">Confirm Termination</div>
-            <div class="modal-body" id="modalBody">
-                Are you sure you want to terminate all sessions for <strong id="selectedAccountName">this account</strong>?
-            </div>
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="hideModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="terminateSessions()">Terminate</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
+    
     <div class="toast" id="toast"></div>
 
     <script>
-        // ---------- State ----------
-        let accounts = [];
-        let selectedAccount = null;
-        let isProcessing = false;
-
-        // DOM elements
-        const accountsListDiv = document.getElementById('accountsList');
-        const terminateBtn = document.getElementById('terminateBtn');
-        const confirmModal = document.getElementById('confirmModal');
-        const modalBody = document.getElementById('modalBody');
-        const selectedAccountNameSpan = document.getElementById('selectedAccountName');
         const toast = document.getElementById('toast');
-
-        // ---------- Helper Functions ----------
+        
         function showToast(message, type = 'success') {
             toast.textContent = message;
             toast.className = `toast show ${type}`;
@@ -444,19 +122,98 @@
             }, 3000);
         }
 
-        function showError(message) {
-            showToast(message, 'error');
+        async function loadAccounts() {
+            try {
+                const res = await fetch('/api/accounts');
+                const data = await res.json();
+                
+                if (data.success) {
+                    displayAccounts(data.accounts);
+                } else {
+                    showToast('Failed to load accounts', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error loading accounts', 'error');
+            }
         }
 
-        function setLoading(isLoading) {
-            if (isLoading) {
-                terminateBtn.disabled = true;
-                terminateBtn.innerHTML = '<span class="loading-spinner"></span><span> Processing...</span>';
-            } else {
-                terminateBtn.disabled = !selectedAccount;
-                terminateBtn.innerHTML = '<span>🔒</span> Terminate All Sessions';
+        function displayAccounts(accounts) {
+            const container = document.getElementById('accountsList');
+            
+            if (!accounts.length) {
+                container.innerHTML = '<div class="loading">No accounts found. <a href="/login" style="color:#6ab2f2;">Add one</a></div>';
+                return;
             }
-            isProcessing = isLoading;
+            
+            let html = '';
+            accounts.forEach(acc => {
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
+                html += `
+                    <div class="account-card" id="account-${acc.id}">
+                        <div class="account-info">
+                            <div class="avatar">${initial}</div>
+                            <div class="details">
+                                <h3>${escapeHtml(acc.name)}</h3>
+                                <p>${escapeHtml(acc.phone)}</p>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button onclick="terminateSessions(${acc.id})" class="terminate">Terminate Others</button>
+                            <button onclick="removeAccount(${acc.id})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function terminateSessions(accountId) {
+            if (!confirm('This will log out all other devices. Continue?')) return;
+            
+            try {
+                const res = await fetch('/api/terminate-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(data.message || 'Sessions terminated successfully');
+                } else {
+                    showToast(data.error || 'Failed to terminate sessions', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error terminating sessions', 'error');
+            }
+        }
+
+        async function removeAccount(accountId) {
+            if (!confirm('Are you sure you want to remove this account?')) return;
+            
+            try {
+                const res = await fetch('/api/remove-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Account removed successfully');
+                    loadAccounts(); // Refresh list
+                } else {
+                    showToast(data.error || 'Failed to remove account', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error removing account', 'error');
+            }
         }
 
         function escapeHtml(text) {
@@ -466,129 +223,8 @@
             return div.innerHTML;
         }
 
-        // ---------- Modal Functions ----------
-        function showTerminateModal() {
-            if (!selectedAccount || isProcessing) return;
-            
-            selectedAccountNameSpan.textContent = selectedAccount.name || selectedAccount.phone;
-            confirmModal.classList.add('show');
-        }
-
-        function hideModal() {
-            confirmModal.classList.remove('show');
-        }
-
-        // ---------- Account Functions ----------
-        async function loadAccounts() {
-            try {
-                accountsListDiv.innerHTML = '<div class="loading">Loading accounts...</div>';
-                
-                const res = await fetch('/api/accounts');
-                const data = await res.json();
-                
-                if (data.success) {
-                    accounts = data.accounts || [];
-                    displayAccounts();
-                } else {
-                    showError('Failed to load accounts');
-                    accountsListDiv.innerHTML = '<div class="no-accounts">Failed to load accounts</div>';
-                }
-            } catch (err) {
-                console.error('Error fetching accounts:', err);
-                accountsListDiv.innerHTML = '<div class="no-accounts">Cannot connect to server. <a href="/terminate">Retry</a></div>';
-            }
-        }
-
-        function displayAccounts() {
-            if (!accounts || accounts.length === 0) {
-                accountsListDiv.innerHTML = '<div class="no-accounts">No accounts found. <a href="/login">Add one</a>.</div>';
-                terminateBtn.disabled = true;
-                return;
-            }
-            
-            let html = '';
-            accounts.forEach(acc => {
-                const accName = acc.name || 'User';
-                const accPhone = acc.phone || '';
-                const initial = accName.charAt(0).toUpperCase() || '?';
-                const isSelected = selectedAccount && selectedAccount.id === acc.id;
-                
-                html += `
-                    <div class="account-card ${isSelected ? 'selected' : ''}" onclick="selectAccount(${acc.id})">
-                        <div class="account-avatar">${escapeHtml(initial)}</div>
-                        <div class="account-info">
-                            <div class="account-name">${escapeHtml(accName)}</div>
-                            <div class="account-phone">${escapeHtml(accPhone)}</div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            accountsListDiv.innerHTML = html;
-        }
-
-        window.selectAccount = function(accountId) {
-            if (isProcessing) return;
-            
-            const newSelected = accounts.find(a => a.id === accountId);
-            if (!newSelected) return;
-            
-            selectedAccount = newSelected;
-            displayAccounts();
-            terminateBtn.disabled = false;
-        };
-
-        // ---------- Terminate Function ----------
-        window.terminateSessions = async function() {
-            if (!selectedAccount || isProcessing) return;
-            
-            hideModal();
-            setLoading(true);
-
-            try {
-                // This is the key endpoint - you'll need to implement this in your server.py
-                const response = await fetch('/api/terminate-sessions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        accountId: selectedAccount.id 
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast('All sessions terminated successfully!');
-                    
-                    // Optionally remove the account or mark it as needing re-login
-                    // accounts = accounts.filter(a => a.id !== selectedAccount.id);
-                    // selectedAccount = null;
-                    // displayAccounts();
-                    
-                } else {
-                    showError(data.error || 'Failed to terminate sessions');
-                }
-            } catch (err) {
-                console.error('Error terminating sessions:', err);
-                showError('Network error. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        // Initialize
-        window.addEventListener('load', () => {
-            loadAccounts();
-        });
-
-        // Click outside modal to close
-        window.addEventListener('click', function(event) {
-            if (event.target === confirmModal) {
-                hideModal();
-            }
-        });
+        // Load accounts on page load
+        window.addEventListener('load', loadAccounts);
     </script>
 </body>
 </html>
