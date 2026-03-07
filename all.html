@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Manager - Telegram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #0e1621;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #fff;
+        }
+
+        .header p {
+            color: #8e9fad;
+            margin-top: 8px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: #3a4a5a;
+        }
+
+        /* Account selector */
+        .account-selector {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #2b3945;
+        }
+
+        .account-selector h3 {
+            color: #8e9fad;
+            margin-bottom: 16px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .account-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .account-card {
+            background: #242f3d;
+            border: 2px solid #2b3945;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .account-card:hover {
+            background: #2b3945;
+        }
+
+        .account-card.selected {
+            border-color: #4c9ce0;
+            background: #2b5278;
+        }
+
+        .account-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .account-info h4 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .account-info p {
+            font-size: 0.8rem;
+            color: #8e9fad;
+        }
+
+        /* Devices section */
+        .devices-section {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #2b3945;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-header h2 {
+            font-size: 1.3rem;
+            color: #fff;
+        }
+
+        .terminate-all-btn {
+            background: #8e2b2b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminate-all-btn:hover:not(:disabled) {
+            background: #a53333;
+        }
+
+        .terminate-all-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .devices-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .device-item {
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .device-item.current {
+            border-color: #4c9ce0;
+            background: #1e3a4a;
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .device-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .device-details h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .current-badge {
+            background: #4c9ce0;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 30px;
+            text-transform: uppercase;
+        }
+
+        .device-details p {
+            color: #8e9fad;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .device-details p span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .terminate-btn {
+            background: #8e2b2b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .terminate-btn:hover:not(:disabled) {
+            background: #a53333;
+        }
+
+        .terminate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-message {
+            background: #1e3a4a;
+            border: 1px solid #4c9ce0;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            color: #8e9fad;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-message.warning {
+            background: #4a2b2b;
+            border-color: #e04c4c;
+        }
+
+        .info-icon {
+            font-size: 1.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e9fad;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #8e9fad;
+            background: #242f3d;
+            border-radius: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #17212b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border: 1px solid #2b3945;
+            z-index: 1000;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.success {
+            border-left: 4px solid #4c9ce0;
+        }
+
+        .toast.error {
+            border-left: 4px solid #e04c4c;
+        }
+
+        .last-active {
+            color: #4c9ce0;
+        }
+
+        @media (max-width: 600px) {
+            .device-item {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .device-actions {
+                width: 100%;
+            }
+            
+            .terminate-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>🔐 Device Manager</h1>
+                <p>Manage active sessions for your Telegram accounts</p>
+            </div>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
+                <a href="/dash" class="nav-btn">⚙️ Account Manager</a>
+            </div>
+        </div>
+
+        <!-- Account Selector -->
+        <div class="account-selector">
+            <h3>Select Account</h3>
+            <div class="account-grid" id="accountList">
+                <div class="loading">Loading accounts...</div>
+            </div>
+        </div>
+
+        <!-- Info Message (shown when no account selected) -->
+        <div id="infoMessage" class="info-message">
+            <span class="info-icon">ℹ️</span>
+            <span>Select an account to view and manage its active sessions</span>
+        </div>
+
+        <!-- Devices Section -->
+        <div class="devices-section" id="devicesSection" style="display: none;">
+            <div class="section-header">
+                <h2>📱 Active Sessions</h2>
+                <button class="terminate-all-btn" id="terminateAllBtn" onclick="terminateAllSessions()">
+                    ⚡ Terminate All Other Sessions
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div id="devicesLoading" class="loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                Loading sessions...
+            </div>
+
+            <!-- Devices List -->
+            <div id="devicesList" class="devices-list"></div>
+
+            <!-- Warning Message -->
+            <div id="warningMessage" class="info-message warning" style="display: none;">
+                <span class="info-icon">⚠️</span>
+                <span>You cannot terminate sessions within 24 hours of logging in</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // State
+        let accounts = [];
+        let selectedAccount = null;
+        let currentDevices = [];
+
+        // DOM Elements
+        const toast = document.getElementById('toast');
+        const accountList = document.getElementById('accountList');
+        const infoMessage = document.getElementById('infoMessage');
+        const devicesSection = document.getElementById('devicesSection');
+        const devicesList = document.getElementById('devicesList');
+        const devicesLoading = document.getElementById('devicesLoading');
+        const warningMessage = document.getElementById('warningMessage');
+        const terminateAllBtn = document.getElementById('terminateAllBtn');
+
+        // Helper Functions
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Unknown';
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Load accounts
+        async function loadAccounts() {
+            try {
+                const res = await fetch('/api/accounts');
+                const data = await res.json();
+                
+                if (data.success) {
+                    accounts = data.accounts || [];
+                    displayAccounts();
+                } else {
+                    showToast('Failed to load accounts', 'error');
+                }
+            } catch (err) {
+                console.error('Error loading accounts:', err);
+                showToast('Error loading accounts', 'error');
+            }
+        }
+
+        // Display account list
+        function displayAccounts() {
+            if (!accounts.length) {
+                accountList.innerHTML = `
+                    <div class="empty-state">
+                        No accounts found.<br>
+                        <a href="/login" style="color:#6ab2f2;">Add an account</a> to manage sessions.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            accounts.forEach(acc => {
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
+                const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                
+                html += `
+                    <div class="account-card ${isSelected ? 'selected' : ''}" 
+                         onclick="selectAccount(${acc.id})">
+                        <div class="account-avatar">${escapeHtml(initial)}</div>
+                        <div class="account-info">
+                            <h4>${escapeHtml(acc.name || 'Unknown')}</h4>
+                            <p>${escapeHtml(acc.phone || '')}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            accountList.innerHTML = html;
+        }
+
+        // Select account and load devices
+        async function selectAccount(accountId) {
+            const account = accounts.find(a => a.id === accountId);
+            if (!account) return;
+
+            selectedAccount = account;
+            displayAccounts(); // Update selection styling
+
+            // Show loading
+            devicesSection.style.display = 'block';
+            devicesLoading.style.display = 'block';
+            devicesList.innerHTML = '';
+            warningMessage.style.display = 'none';
+            infoMessage.style.display = 'none';
+            terminateAllBtn.disabled = true;
+
+            await loadDevices(accountId);
+        }
+
+        // Load devices for selected account
+        async function loadDevices(accountId) {
+            try {
+                const res = await fetch('/api/get-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId })
+                });
+
+                const data = await res.json();
+                
+                devicesLoading.style.display = 'none';
+
+                if (data.success) {
+                    currentDevices = data.sessions || [];
+                    displayDevices(data);
+                } else {
+                    if (data.error === 'fresh_reset_forbidden') {
+                        warningMessage.style.display = 'flex';
+                        devicesList.innerHTML = '';
+                    } else {
+                        showToast(data.error || 'Failed to load sessions', 'error');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading devices:', err);
+                devicesLoading.style.display = 'none';
+                showToast('Error loading sessions', 'error');
+            }
+        }
+
+        // Display devices
+        function displayDevices(data) {
+            const { sessions, current_hash } = data;
+            
+            if (!sessions || sessions.length === 0) {
+                devicesList.innerHTML = '<div class="empty-state">No active sessions found</div>';
+                terminateAllBtn.disabled = true;
+                return;
+            }
+
+            // Count other sessions
+            const otherSessions = sessions.filter(s => s.hash !== current_hash);
+            terminateAllBtn.disabled = otherSessions.length === 0;
+
+            let html = '';
+            sessions.forEach(session => {
+                const isCurrent = session.hash === current_hash;
+                const lastActive = formatDate(session.date_active);
+                
+                html += `
+                    <div class="device-item ${isCurrent ? 'current' : ''}">
+                        <div class="device-info">
+                            <div class="device-icon">${getDeviceIcon(session.device_model)}</div>
+                            <div class="device-details">
+                                <h4>
+                                    ${escapeHtml(session.device_model || 'Unknown Device')}
+                                    ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+                                </h4>
+                                <p>
+                                    <span>📱 ${escapeHtml(session.platform || 'Unknown')}</span>
+                                    <span>🌐 ${escapeHtml(session.ip || 'Unknown IP')}</span>
+                                    <span>📍 ${escapeHtml(session.country || 'Unknown')}</span>
+                                    <span class="last-active">🕐 Last active: ${lastActive}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="device-actions">
+                            ${!isCurrent ? `
+                                <button class="terminate-btn" onclick="terminateSession('${session.hash}')">
+                                    Terminate
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            devicesList.innerHTML = html;
+        }
+
+        // Get device icon
+        function getDeviceIcon(device) {
+            if (!device) return '📱';
+            device = device.toLowerCase();
+            if (device.includes('iphone')) return '📱';
+            if (device.includes('ipad')) return '📱';
+            if (device.includes('android')) return '📱';
+            if (device.includes('windows')) return '💻';
+            if (device.includes('mac')) return '💻';
+            if (device.includes('linux')) return '🐧';
+            if (device.includes('web')) return '🌐';
+            return '📱';
+        }
+
+        // Terminate specific session
+        async function terminateSession(hash) {
+            if (!selectedAccount) return;
+            
+            if (!confirm('Are you sure you want to terminate this session?')) return;
+
+            try {
+                const res = await fetch('/api/terminate-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accountId: selectedAccount.id,
+                        hash: hash 
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('Session terminated successfully');
+                    await loadDevices(selectedAccount.id); // Refresh list
+                } else {
+                    showToast(data.error || 'Failed to terminate session', 'error');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                showToast('Error terminating session', 'error');
+            }
+        }
+
+        // Terminate all other sessions
+        async function terminateAllSessions() {
+            if (!selectedAccount) return;
+            
+            if (!confirm('This will terminate ALL other active sessions. Continue?')) return;
+
+            try {
+                const res = await fetch('/api/terminate-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: selectedAccount.id })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'All other sessions terminated');
+                    await loadDevices(selectedAccount.id); // Refresh list
+                } else {
+                    if (data.error.includes('24 hours')) {
+                        warningMessage.style.display = 'flex';
+                    }
+                    showToast(data.error || 'Failed to terminate sessions', 'error');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                showToast('Error terminating sessions', 'error');
+            }
+        }
+
+        // Load accounts on page load
+        window.addEventListener('load', loadAccounts);
+    </script>
+</body>
+</html>
