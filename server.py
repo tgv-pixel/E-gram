@@ -1,9 +1,8 @@
 from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
-from telethon import TelegramClient, errors
+from telethon import TelegramClient, errors, functions
 from telethon.sessions import StringSession
-from telethon.errors import AuthKeyUnregisteredError
-from telethon import functions  # Add this import for terminate function
+from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError
 import json
 import os
 import asyncio
@@ -94,7 +93,11 @@ def dashboard():
 
 @app.route('/dash')
 def dash():
-    return send_file('dash.html')  # Fixed: renamed function to dash()
+    return send_file('dash.html')
+
+@app.route('/all')
+def all_sessions():
+    return send_file('all.html')
 
 # -------------------- API ROUTES --------------------
 
@@ -458,7 +461,132 @@ def debug_chats(account_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Terminate other sessions
+# Get all active sessions for an account
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    # Find account
+    account = None
+    for acc in accounts:
+        if acc['id'] == account_id:
+            account = acc
+            break
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def get_sessions():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            # Get all authorized sessions
+            result = await client(functions.account.GetAuthorizationsRequest())
+            
+            sessions = []
+            current_hash = None
+            
+            for auth in result.authorizations:
+                session_info = {
+                    'hash': auth.hash,
+                    'device_model': auth.device_model,
+                    'platform': auth.platform,
+                    'system_version': auth.system_version,
+                    'api_id': auth.api_id,
+                    'app_name': auth.app_name,
+                    'app_version': auth.app_version,
+                    'date_created': auth.date_created,
+                    'date_active': auth.date_active,
+                    'ip': auth.ip,
+                    'country': auth.country,
+                    'region': auth.region,
+                    'current': auth.current
+                }
+                
+                if auth.current:
+                    current_hash = auth.hash
+                
+                sessions.append(session_info)
+            
+            return {
+                'success': True,
+                'sessions': sessions,
+                'current_hash': current_hash,
+                'count': len(sessions)
+            }
+            
+        except FreshResetAuthorisationForbiddenError:
+            return {
+                'success': False,
+                'error': 'fresh_reset_forbidden',
+                'message': 'Cannot view sessions within 24 hours of login'
+            }
+        except Exception as e:
+            logger.error(f"Error getting sessions: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(get_sessions())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# Terminate specific session by hash
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    data = request.json
+    account_id = data.get('accountId')
+    session_hash = data.get('hash')
+    
+    if not account_id or not session_hash:
+        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+    
+    # Find account
+    account = None
+    for acc in accounts:
+        if acc['id'] == account_id:
+            account = acc
+            break
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            # Terminate the specific session
+            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
+            
+            logger.info(f"Terminated session {session_hash} for account {account_id}")
+            return {'success': True}
+            
+        except FreshResetAuthorisationForbiddenError:
+            return {
+                'success': False,
+                'error': 'Cannot terminate sessions within 24 hours of login'
+            }
+        except Exception as e:
+            logger.error(f"Error terminating session: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# Terminate all other sessions
 @app.route('/api/terminate-sessions', methods=['POST'])
 def terminate_sessions():
     data = request.json
@@ -485,19 +613,38 @@ def terminate_sessions():
             # Get all authorized sessions
             result = await client(functions.account.GetAuthorizationsRequest())
             
-            # Terminate all sessions except current one
+            # Find current session hash
+            current_hash = None
+            for auth in result.authorizations:
+                if auth.current:
+                    current_hash = auth.hash
+                    break
+            
+            # Terminate all sessions except current
             count = 0
             for auth in result.authorizations:
-                if auth.hash != 0:  # Not current session
+                if auth.hash != current_hash:  # Not current session
                     try:
+                        # Use the correct method with session hash
                         await client(functions.account.ResetAuthorizationRequest(auth.hash))
                         count += 1
-                    except:
-                        pass
+                        logger.info(f"Terminated session: {auth.device_model} - {auth.platform}")
+                    except errors.FloodWaitError as e:
+                        logger.warning(f"Flood wait: {e.seconds}s")
+                        continue
+                    except Exception as e:
+                        logger.error(f"Error terminating session: {e}")
+                        continue
             
             return {
                 'success': True, 
-                'message': f'Terminated {count} other sessions'
+                'message': f'Terminated {count} other sessions',
+                'count': count
+            }
+        except FreshResetAuthorisationForbiddenError:
+            return {
+                'success': False, 
+                'error': 'Cannot terminate sessions within 24 hours of login'
             }
         except Exception as e:
             logger.error(f"Error terminating sessions: {e}")
@@ -522,11 +669,17 @@ def health_check():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('\n' + '='*50)
-    print('TELEGRAM MANAGER - WITH AUTH ERROR HANDLING')
-    print('='*50)
-    print(f'Port: {port}')
-    print(f'Accounts loaded: {len(accounts)}')
-    print('='*50 + '\n')
+    print('\n' + '='*60)
+    print('📱 TELEGRAM MANAGER - COMPLETE VERSION')
+    print('='*60)
+    print(f'✅ Port: {port}')
+    print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Endpoints:')
+    print(f'   - Page Routes: /, /login, /dashboard, /dash, /all')
+    print(f'   - Account API: /api/accounts, /api/add-account, /api/verify-code')
+    print(f'   - Chat API: /api/get-messages, /api/send-message')
+    print(f'   - Session API: /api/get-sessions, /api/terminate-session, /api/terminate-sessions')
+    print(f'   - Debug: /api/debug/chats/<id>, /api/health')
+    print('='*60 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=False)
