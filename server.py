@@ -91,6 +91,9 @@ def login():
 def dashboard():
     return send_file('dashboard.html')
 
+@app.route('/dash')
+def dashboard():
+    return send_file('dash.html')
 # -------------------- API ROUTES --------------------
 
 # Get all accounts
@@ -452,7 +455,43 @@ def debug_chats(account_id):
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
+#terminate
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    # Find account
+    account = None
+    for acc in accounts:
+        if acc['id'] == account_id:
+            account = acc
+            break
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            # This terminates ALL other sessions
+            await client(functions.account.ResetAuthorizationRequest(account['id']))
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
