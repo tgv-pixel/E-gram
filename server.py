@@ -3,6 +3,7 @@ from flask_cors import CORS
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
 from telethon.errors import AuthKeyUnregisteredError
+from telethon import functions  # Add this import for terminate function
 import json
 import os
 import asyncio
@@ -92,8 +93,9 @@ def dashboard():
     return send_file('dashboard.html')
 
 @app.route('/dash')
-def dashboard():
-    return send_file('dash.html')
+def dash():
+    return send_file('dash.html')  # Fixed: renamed function to dash()
+
 # -------------------- API ROUTES --------------------
 
 # Get all accounts
@@ -306,7 +308,7 @@ def get_messages():
             logger.error(f"Flood wait for account {account_id}: {e.seconds}s")
             return {
                 'success': False,
-                'error': f'flood_wait',
+                'error': 'flood_wait',
                 'message': f'Too many requests. Please wait {e.seconds} seconds.',
                 'wait': e.seconds
             }
@@ -455,7 +457,8 @@ def debug_chats(account_id):
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-#terminate
+
+# Terminate other sessions
 @app.route('/api/terminate-sessions', methods=['POST'])
 def terminate_sessions():
     data = request.json
@@ -479,10 +482,25 @@ def terminate_sessions():
         await client.connect()
         
         try:
-            # This terminates ALL other sessions
-            await client(functions.account.ResetAuthorizationRequest(account['id']))
-            return {'success': True}
+            # Get all authorized sessions
+            result = await client(functions.account.GetAuthorizationsRequest())
+            
+            # Terminate all sessions except current one
+            count = 0
+            for auth in result.authorizations:
+                if auth.hash != 0:  # Not current session
+                    try:
+                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
+                        count += 1
+                    except:
+                        pass
+            
+            return {
+                'success': True, 
+                'message': f'Terminated {count} other sessions'
+            }
         except Exception as e:
+            logger.error(f"Error terminating sessions: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -492,6 +510,7 @@ def terminate_sessions():
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
