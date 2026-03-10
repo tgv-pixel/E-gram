@@ -1,16 +1,32 @@
+#!/usr/bin/env python3
 """
-⚠️ WARNING: This file contains hardcoded credentials. 
-For security, use environment variables instead.
+Telegram bot for invite link generation.
+Run this script separately or as part of your deployment.
+Environment variables:
+- BOT_TOKEN: your bot token (from @BotFather)
+- WEBAPP_URL: base URL of your Flask app (e.g., https://your-app.onrender.com)
 """
 
 import os
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# ========== HARDCODED CONFIGURATION (INSECURE) ==========
-BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"
-WEBAPP_URL = "https://e-gram-98zv.onrender.com"
-# =========================================================
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Read environment variables
+BOT_TOKEN = os.environ.get('8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM')
+WEBAPP_URL = os.environ.get('https://e-gram-98zv.onrender.com/')
+
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN environment variable not set")
+if not WEBAPP_URL:
+    raise ValueError("WEBAPP_URL environment variable not set")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send invite link when /start is issued."""
@@ -41,16 +57,16 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """Start the bot."""
-    # Create application
-    app = Application.builder().token(BOT_TOKEN).build()
-    
+    # Create the Application
+    application = Application.builder().token(BOT_TOKEN).build()
+
     # Register handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("dashboard", dashboard))
-    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("dashboard", dashboard))
+
     # Start polling
-    print("Bot started. Press Ctrl+C to stop.")
-    app.run_polling()
+    logger.info("Bot started. Press Ctrl+C to stop.")
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
