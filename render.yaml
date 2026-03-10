@@ -1,18 +1,22 @@
 services:
   - type: web
-    name: telegram-web
+    name: e-gram-web
     runtime: python
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python web.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.10.12
 
   - type: worker
-    name: telegram-bot
+    name: e-gram-bot
     runtime: python
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.10.12
