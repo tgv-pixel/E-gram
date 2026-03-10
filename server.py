@@ -1,8 +1,6 @@
 """
 UNIFIED SERVER: Flask + Telegram Bot (one service)
-- All API endpoints for account management
-- Telegram bot with channel join requirement (@Abe_army)
-- Background bot thread with error logging
+All endpoints included – ready to deploy.
 """
 
 import os
@@ -21,15 +19,14 @@ from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationFor
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ChatMemberStatus
-import telegram
 
-# ==================== HARDCODED CONFIGURATION (INSECURE) ====================
+# ==================== CONFIGURATION (REPLACE WITH YOUR VALUES) ====================
 API_ID = 33465589
 API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"
 BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ REVOKE AND REPLACE!
 WEBAPP_URL = "https://e-gram-98zv.onrender.com"
 REQUIRED_CHANNEL = "@Abe_army"
-# ============================================================================
+# ===================================================================================
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -107,6 +104,11 @@ async def bot_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     logger.info(f"User {user_id} (@{user.username}) started the bot.")
 
+    # Test command
+    if context.args and context.args[0] == "ping":
+        await update.message.reply_text("pong")
+        return
+
     if not await is_member(user_id, context):
         keyboard = [[InlineKeyboardButton("📢 Join Channel", url="https://t.me/Abe_army")]]
         await update.message.reply_text(
@@ -139,14 +141,16 @@ async def bot_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"📊 Your dashboard:\n{dash_link}")
 
 def run_bot():
-    """Runs the bot in a separate thread."""
+    """Runs the bot in a separate thread with its own event loop."""
     try:
         logger.info("Starting bot thread...")
-        # Delete any existing webhook
-        asyncio.run(telegram.Bot(BOT_TOKEN).delete_webhook())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         app_bot = Application.builder().token(BOT_TOKEN).build()
         app_bot.add_handler(CommandHandler("start", bot_start))
         app_bot.add_handler(CommandHandler("dashboard", bot_dashboard))
+
         logger.info("Bot started polling")
         app_bot.run_polling()
     except Exception as e:
@@ -177,10 +181,7 @@ def all_sessions():
 def user_dashboard():
     return send_file('user-dashboard.html')
 
-# -------------------- API Endpoints (all your existing endpoints) --------------------
-# (Copy all your API endpoints from the previous version – they are unchanged)
-# For brevity, I'm including them in full below.
-
+# -------------------- API Endpoints --------------------
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     formatted = [{'id': a['id'], 'phone': a.get('phone',''), 'name': a.get('name','Unknown')} for a in accounts]
@@ -562,7 +563,7 @@ def health_check():
 
 # -------------------- Start Bot Thread --------------------
 def start_bot_thread():
-    time.sleep(2)  # Let Flask initialise
+    time.sleep(2)
     thread = threading.Thread(target=run_bot, daemon=True)
     thread.start()
     logger.info(f"Bot thread started (alive: {thread.is_alive()})")
@@ -576,7 +577,7 @@ if __name__ == '__main__':
     print('='*60)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
-    print(f'Bot token: {BOT_TOKEN[:10]}... (HARDCODED – REVOKE IT!)')
+    print(f'Bot token: {BOT_TOKEN[:10]}... (REPLACE THIS!)')
     print(f'Channel: {REQUIRED_CHANNEL}')
     print('='*60 + '\n')
     app.run(host='0.0.0.0', port=port, debug=False)
