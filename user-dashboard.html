@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Invited Accounts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #0e1621;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .nav-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #3a4a5a;
+        }
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        .account-card {
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s;
+        }
+        .account-card:hover {
+            transform: translateY(-2px);
+            border-color: #4c9ce0;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        .info p {
+            color: #8e9fad;
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: #17212b;
+            border-radius: 16px;
+            border: 1px solid #2b3945;
+            color: #8e9fad;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e9fad;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #17212b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: 1px solid #2b3945;
+            display: none;
+        }
+        .toast.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 My Invited Accounts</h1>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="nav-btn">Main Dashboard</a>
+            </div>
+        </div>
+        <div id="accountsContainer">
+            <div class="loading">Loading accounts...</div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const toast = document.getElementById('toast');
+        function showToast(msg, type = 'success') {
+            toast.textContent = msg;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviter = urlParams.get('inviter');
+        if (!inviter) {
+            document.getElementById('accountsContainer').innerHTML = '<div class="empty-state">No inviter specified. Please use the link from the bot.</div>';
+        } else {
+            fetch('/api/accounts-by-inviter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inviter })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.accounts.length) {
+                    let html = '<div class="accounts-grid">';
+                    data.accounts.forEach(acc => {
+                        const initial = (acc.name || '?').charAt(0).toUpperCase();
+                        html += `
+                            <div class="account-card">
+                                <div class="avatar">${initial}</div>
+                                <div class="info">
+                                    <h3>${escapeHtml(acc.name)}</h3>
+                                    <p>${escapeHtml(acc.phone)}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    document.getElementById('accountsContainer').innerHTML = html;
+                } else {
+                    document.getElementById('accountsContainer').innerHTML = '<div class="empty-state">No accounts found for this invite link.</div>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('accountsContainer').innerHTML = '<div class="empty-state">Error loading accounts. Please try again later.</div>';
+                showToast('Failed to load accounts', 'error');
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
