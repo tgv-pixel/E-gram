@@ -1,6 +1,8 @@
+"""
+Simple Telegram Bot - Works with Python 3.10+
+"""
 import os
 import logging
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -24,11 +26,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await update.message.reply_text(
-            f"🔗 **Your invite link:**\n{invite_link}\n\n"
-            "Share this link with others. When they add an account via this link, "
-            "you'll see it in your private dashboard.",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
+            f"🔗 Your invite link:\n{invite_link}\n\n"
+            "Share this link to let others add accounts under your invite.",
+            reply_markup=reply_markup
         )
         logger.info(f"Sent invite link to user {user_id}")
     except Exception as e:
@@ -39,15 +39,10 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send link to private dashboard."""
     try:
         user_id = update.effective_user.id
-        username = update.effective_user.username or "Unknown"
-        logger.info(f"User {user_id} (@{username}) requested dashboard")
+        logger.info(f"User {user_id} requested dashboard")
         
         dash_link = f"{WEBAPP_URL}/user-dashboard?inviter={user_id}"
-        await update.message.reply_text(
-            f"📊 **Your private dashboard:**\n{dash_link}\n\n"
-            "Here you can see all accounts added via your invite links.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text(f"📊 Your dashboard:\n{dash_link}")
         logger.info(f"Sent dashboard link to user {user_id}")
     except Exception as e:
         logger.error(f"Error in dashboard handler: {e}")
@@ -57,10 +52,8 @@ def main():
     """Start the bot."""
     try:
         logger.info("Starting bot...")
-        logger.info(f"Bot token: {BOT_TOKEN[:10]}...")
-        logger.info(f"Web app URL: {WEBAPP_URL}")
         
-        # Create the Application
+        # Create application
         app = Application.builder().token(BOT_TOKEN).build()
         
         # Add handlers
@@ -68,11 +61,10 @@ def main():
         app.add_handler(CommandHandler("dashboard", dashboard))
         
         logger.info("Bot is polling...")
-        # Start polling
         app.run_polling()
         
     except Exception as e:
-        logger.error(f"Fatal error in main: {e}", exc_info=True)
+        logger.error(f"Fatal error: {e}", exc_info=True)
 
 if __name__ == "__main__":
     main()
