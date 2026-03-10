@@ -27,7 +27,7 @@ from telegram.constants import ChatMemberStatus
 # ==================== HARDCODED CONFIGURATION (INSECURE) ====================
 API_ID = 33465589                          # Your API ID
 API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"  # Your API hash
-BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOSED – REVOKE NOW!
+BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOShdED – REVOKE NOW!
 WEBAPP_URL = "https://e-gram-98zv.onrender.com"                 # Your Flask app URL
 REQUIRED_CHANNEL = "@Abe_army"                                   # Channel to join
 # ============================================================================
