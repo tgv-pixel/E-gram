@@ -1,9 +1,9 @@
 """
 UNIFIED SERVER (Flask + Telegram Bot) – ONE SERVICE
-Includes: 
+Includes:
 - All API endpoints for account management
 - Telegram bot with channel join requirement (@Abe_army)
-- Background bot thread
+- Background bot thread with error logging and webhook cleanup
 - Hardcoded credentials (as requested – INSECURE, revoke token!)
 """
 
@@ -23,11 +23,12 @@ from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationFor
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ChatMemberStatus
+import telegram
 
 # ==================== HARDCODED CONFIGURATION (INSECURE) ====================
 API_ID = 33465589                          # Your API ID
 API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"  # Your API hash
-BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOShdED – REVOKE NOW!
+BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOSED – REVOKE NOW!
 WEBAPP_URL = "https://e-gram-98zv.onrender.com"                 # Your Flask app URL
 REQUIRED_CHANNEL = "@Abe_army"                                   # Channel to join
 # ============================================================================
@@ -164,12 +165,21 @@ async def bot_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def run_bot():
-    """Starts the Telegram bot in a separate thread."""
-    application = Application.builder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", bot_start))
-    application.add_handler(CommandHandler("dashboard", bot_dashboard))
-    logger.info("🤖 Bot started")
-    application.run_polling()
+    """Starts the Telegram bot in a separate thread with error handling."""
+    try:
+        # Delete any existing webhook to ensure polling works
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(telegram.Bot(BOT_TOKEN).delete_webhook())
+        loop.close()
+
+        application = Application.builder().token(BOT_TOKEN).build()
+        application.add_handler(CommandHandler("start", bot_start))
+        application.add_handler(CommandHandler("dashboard", bot_dashboard))
+        logger.info("🤖 Bot started, polling...")
+        application.run_polling()
+    except Exception as e:
+        logger.error(f"Bot thread crashed: {e}", exc_info=True)
 
 # -------------------- Flask Routes (Pages) --------------------
 @app.route('/')
@@ -591,6 +601,8 @@ def health_check():
 
 # -------------------- Start Bot in Background Thread --------------------
 def start_bot_thread():
+    # Small delay to let Flask start
+    time.sleep(2)
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
     logger.info("Bot thread started")
