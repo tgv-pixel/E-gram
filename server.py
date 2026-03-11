@@ -1,6 +1,6 @@
 from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
-from telethon import TelegramClient, errors, functions
+from telethon import TelegramClient, errors, functions, Button
 from telethon.sessions import StringSession
 from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError, RPCError
 from telethon.events import NewMessage
@@ -286,7 +286,7 @@ class MediaManager:
         
         logger.info(f"✅ Media library indexed: {total} files")
 
-# ==================== STAR EARNING HANDLER - FIXED ====================
+# ==================== STAR EARNING HANDLER WITH NATIVE PAYMENTS ====================
 
 class StarEarningHandler:
     def __init__(self, client):
@@ -295,7 +295,7 @@ class StarEarningHandler:
         self.media = MediaManager()
         self.pending_payments = {}
         logger.info("✅ StarEarningHandler initialized")
-        
+    
     async def handle_star_payment(self, event):
         """Handle when user pays Stars"""
         user_id = str(event.sender_id)
@@ -305,30 +305,143 @@ class StarEarningHandler:
         if hasattr(message, 'paid') and message.paid:
             stars_amount = getattr(message, 'paid_stars', 0)
             
-            # Record transaction
-            self.db.record_transaction(
-                user_id, 
-                stars_amount,
-                "message_payment",
-                f"Paid {stars_amount} stars to message Tsega"
-            )
-            
-            # Transfer to channel if enabled
-            if StarConfig.TRANSFER_STARS_TO_CHANNEL:
-                await self.transfer_stars_to_channel(stars_amount)
+            # Handle the successful payment
+            await self.handle_star_payment_success(event, stars_amount)
             
             return True, stars_amount
         
         return False, 0
     
-    async def transfer_stars_to_channel(self, amount):
-        """Transfer earned Stars to your channel - FIXED"""
+    async def handle_star_payment_success(self, event, amount):
+        """Handle when user successfully pays Stars"""
+        user_id = str(event.sender_id)
+        chat_id = event.chat_id
+        
+        # Record transaction
+        self.db.record_transaction(
+            user_id, 
+            amount,
+            "star_payment",
+            f"Paid {amount} stars"
+        )
+        
+        logger.info(f"💰 User {user_id} paid {amount} stars")
+        
+        # Check what they paid for
+        if amount == 5:  # Preview photo
+            media_info = self.db.get_random_media("photo", 5)
+            if media_info:
+                file_path, price = media_info
+                await self.client.send_file(
+                    chat_id, 
+                    file_path, 
+                    caption="Here's your photo! 🔥 Thanks for the Stars!\n\nSend 50⭐ for full quality!"
+                )
+                self.db.increment_media_sold(file_path)
+                logger.info(f"📸 Sent preview photo to {user_id}")
+            else:
+                await self.client.send_message(chat_id, "Sorry, no photos available right now.")
+        
+        elif amount == 50:  # Full photo
+            media_info = self.db.get_random_media("photo", 50)
+            if media_info:
+                file_path, price = media_info
+                await self.client.send_file(
+                    chat_id, 
+                    file_path, 
+                    caption="Full quality photo - enjoy! 😘\n\nWant more? Send 200⭐ for premium!"
+                )
+                self.db.increment_media_sold(file_path)
+                logger.info(f"📸 Sent full photo to {user_id}")
+            else:
+                # Fallback to preview if no full photos
+                media_info = self.db.get_random_media("photo", 5)
+                if media_info:
+                    file_path, price = media_info
+                    await self.client.send_file(
+                        chat_id, 
+                        file_path, 
+                        caption="Sorry no full photos yet! Here's a preview instead 🔥"
+                    )
+        
+        elif amount == 10:  # Video preview
+            media_info = self.db.get_random_media("video", 10)
+            if media_info:
+                file_path, price = media_info
+                await self.client.send_file(
+                    chat_id, 
+                    file_path, 
+                    caption="Video preview - hot! 🔥\n\nSend 100⭐ for full video!"
+                )
+                self.db.increment_media_sold(file_path)
+        
+        elif amount == 100:  # Full video
+            media_info = self.db.get_random_media("video", 100)
+            if media_info:
+                file_path, price = media_info
+                await self.client.send_file(
+                    chat_id, 
+                    file_path, 
+                    caption="Full video - enjoy! 🔥"
+                )
+                self.db.increment_media_sold(file_path)
+        
+        # Transfer to channel
+        if StarConfig.TRANSFER_STARS_TO_CHANNEL:
+            await self.transfer_stars_to_channel(amount)
+        
+        return True
+    
+    async def request_star_payment(self, chat_id, amount, description):
+        """Request user to pay Stars using Telegram's native payment"""
         try:
-            # Try to get channel entity
+            # Get the entity
+            entity = await self.client.get_entity(int(chat_id))
+            
+            # Create media preview message with payment button
+            # First, try to get a sample media to preview
+            media_info = self.db.get_random_media("photo", 5)
+            
+            if media_info:
+                file_path, price = media_info
+                
+                # Send media with payment button
+                msg = await self.client.send_file(
+                    entity,
+                    file_path,
+                    caption=f"🔒 **Exclusive Content**\n\n{description}\n\nTap below to unlock!",
+                    buttons=[Button.payment(amount)]
+                )
+                logger.info(f"💰 Sent payment request with preview for {amount} stars to {chat_id}")
+            else:
+                # Text-only if no media
+                msg = await self.client.send_message(
+                    entity,
+                    f"🔒 **Premium Content**\n\n{description}\n\nTap below to unlock with Stars!",
+                    buttons=[Button.payment(amount)]
+                )
+                logger.info(f"💰 Sent payment request (text) for {amount} stars to {chat_id}")
+            
+            # Store pending payment
+            self.pending_payments[str(chat_id)] = {
+                'amount': amount,
+                'description': description,
+                'time': datetime.now(),
+                'message_id': msg.id
+            }
+            
+            return msg
+            
+        except Exception as e:
+            logger.error(f"Error requesting payment: {e}")
+            return None
+    
+    async def transfer_stars_to_channel(self, amount):
+        """Transfer earned Stars to your channel"""
+        try:
             try:
                 channel = await self.client.get_entity(StarConfig.CHANNEL_USERNAME)
                 
-                # Send notification to channel
                 await self.client.send_message(
                     channel,
                     f"💰 **New Star Earnings!**\n"
@@ -336,97 +449,16 @@ class StarEarningHandler:
                     f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
                 )
                 
-                # Record in database
                 self.db.record_channel_earnings(amount)
-                
                 logger.info(f"💰 Transferred {amount} stars to {StarConfig.CHANNEL_USERNAME}")
                 return True
             except Exception as e:
                 logger.error(f"Error finding channel {StarConfig.CHANNEL_USERNAME}: {e}")
-                # Just record without sending
                 self.db.record_channel_earnings(amount)
                 return False
                 
         except Exception as e:
             logger.error(f"Error transferring stars: {e}")
-            return False
-    
-    async def request_star_payment(self, chat_id, amount, description):
-        """Request user to pay Stars - FIXED VERSION"""
-        try:
-            # Get the entity properly
-            try:
-                # Try as integer first
-                entity = await self.client.get_entity(int(chat_id))
-            except:
-                try:
-                    # Try as string
-                    entity = await self.client.get_entity(str(chat_id))
-                except Exception as e:
-                    logger.error(f"Cannot find entity for {chat_id}: {e}")
-                    # Send a simple message without payment request as fallback
-                    msg = await self.client.send_message(
-                        int(chat_id),
-                        f"⭐ To chat with Tsega, please send {amount} Stars first!\n\nAll Stars go to @Abe_army channel 💰"
-                    )
-                    return msg
-            
-            # Create star payment request
-            msg = await self.client.send_message(
-                entity,
-                f"⭐ **Payment Required** ⭐\n\n"
-                f"{description}\n\n"
-                f"Amount: **{amount} Stars**\n\n"
-                f"Please send {amount} stars to continue.\n\n"
-                f"All Stars go to @Abe_army channel! 💰"
-            )
-            
-            # Store pending payment
-            self.pending_payments[str(chat_id)] = {
-                'amount': amount,
-                'description': description,
-                'time': datetime.now()
-            }
-            
-            return msg
-        except Exception as e:
-            logger.error(f"Error requesting payment: {e}")
-            # Fallback - try to send normal message
-            try:
-                msg = await self.client.send_message(
-                    int(chat_id),
-                    f"⭐ To chat with Tsega, please send {amount} Stars first! (Payment feature unavailable - just message me)"
-                )
-                return msg
-            except:
-                return None
-    
-    async def send_media_for_stars(self, chat_id, media_type, price_tier=None):
-        """Send media after user pays Stars"""
-        try:
-            max_price = price_tier if price_tier else StarConfig.STAR_PRICES[f"{media_type}_full"]
-            media_info = self.db.get_random_media(media_type, max_price)
-            
-            if not media_info:
-                return await self.client.send_message(
-                    int(chat_id),
-                    "😔 Sorry, no media available right now. Please try again later."
-                )
-            
-            file_path, price = media_info
-            
-            caption = f"Here you go! 🔥 {price} Stars\n\nDon't forget to send more stars for exclusive content! 😘\n\nAll Stars go to @Abe_army"
-            
-            if media_type == "photo":
-                await self.client.send_file(int(chat_id), file_path, caption=caption)
-            else:
-                await self.client.send_file(int(chat_id), file_path, caption=caption, video_note=False)
-            
-            self.db.increment_media_sold(file_path)
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error sending media: {e}")
             return False
 
 # ==================== TSEGA'S COMPLETE PERSONALITY ====================
@@ -458,134 +490,104 @@ TSEGA_REPLIES = {
         "ሃይ ልጅ 😏 ምን አመጣህ?",
         "እንኳን ደህና መጣህ ውዴ 😘",
         "ታዲያስ! እንደምን ነህ ቆንጆ?",
-        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
     ],
     "how_are_you": [
         "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
         "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
         "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
         "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
-        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
     ],
     "what_doing": [
         "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
         "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
         "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
         "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
-        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
     ],
     "ask_name": [
         "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
         "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
         "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
         "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
     ],
     "ask_age": [
         "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
         "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
         "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
         "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
-        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
     ],
     "ask_location": [
         "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
         "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
         "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
         "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
-        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ",
     ],
     "ask_job": [
         "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም",
         "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘",
         "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋",
         "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
-        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
     ],
     "photo_request": [
-        "እሺ ፎቶ ልታይ ትፈልጋለህ? 😏 በመጀመሪያ 5 ⭐ ላክልኝ!",
-        "ፎቶዬን ለማየት 5 ⭐ ብቻ ነው ውዴ! ላክልኝ እና አሳይሃለሁ 🔥",
-        "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ አያለሁ ቆንጆዬን 😘",
-        "ዋጋው 5 ⭐ ብቻ ነው! በጣም ቆንጆ ፎቶዎች አሉኝ ልታያቸው ትፈልጋለህ? 💕",
-        "አሁን 5 ⭐ ላክልኝ እና ፈጣን ፎቶ እልክልሃለሁ! 📸",
         "ለአንተ ብቻ ልዩ ፎቶ አለኝ... 5 ⭐ ብትልክልኝ አሳይሃለሁ 😉",
-        "ፎቶ? እሺ ግን ትንሽ ክፍያ አለበት 5 ⭐ 😘",
-        "5 ⭐ ብቻ ነው ውዴ! ከከፈልክ በኋላ የምትወደውን ፎቶ ልታይ ትችላለህ 🔥",
-        "እንደው ውዴ ፎቶ ለማየት 5 ⭐ ብቻ ነው ላክልኝ እና አስደስተሃለሁ 😘",
-        "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ እና ፎቶዬን ላክልሃለሁ 💕",
+        "ፎቶዬን ማየት ትፈልጋለህ? 5 ⭐ ብቻ ነው!",
+        "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ አያለሁ ቆንጆዬን 😘",
+        "እሺ አሳይሃለሁ ግን በመጀመሪያ 5 ⭐ ላክልኝ!",
     ],
     "flirty": [
         "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
+        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭",
         "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
         "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
     ],
     "money_request": [
         "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
         "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
         "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
     ],
     "meet": [
         "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ",
         "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ",
     ],
     "voice_call": [
         "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
         "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
     ],
     "relationship": [
         "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
         "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
     ],
     "after_money": [
         "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
         "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
     ],
     "compliment": [
         "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
         "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
-        "አንተን ለማስደሰት ተፈጥሬያለሁ",
-        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
     ],
     "thanks": [
         "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
         "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
-        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
     ],
     "busy": [
         "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
-        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
         "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
     ],
     "morning": [
         "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
-        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
         "ማለዳ አንተን ማሰብ ነው ልማዴ",
     ],
     "night": [
         "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
-        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
         "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
     ],
     "default": [
         "እሺ ውዴ ትክክል ነህ 😉",
         "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
         "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
         "እሺ ውዴ እንደፈለከው 😘",
-        "ለአንተ ብቻ ነው ውዴ 💋",
     ],
     "goodbye": [
         "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
         "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
     ]
 }
@@ -594,23 +596,20 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_conversation_intent(message):
-    """Detect intent from message - FIXED for photos"""
+    """Detect intent from message"""
     message_lower = message.lower().strip()
     
     # Print for debugging
     print(f"🔍 detect_conversation_intent checking: '{message_lower}'")
     
-    # PHOTO KEYWORDS - Expanded list
+    # PHOTO KEYWORDS
     photo_keywords = [
         'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
-        'nude', 'sexy', 'hot', 'body', 'image', 'camera', 'selfie', 'preview',
-        'full', 'pics', 'photos', 'photograph', 'snap', 'shot', 'display',
-        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'ራቁት', 'አካል', 'ፊት', 'ከንፈር',
-        'send', 'send me', 'send photo', 'show me', 'let me see', 'can i see',
-        'ደርሰኝ', 'ላክልኝ', 'አሳየኝ'
+        'image', 'camera', 'selfie', 'preview', 'full', 'pics', 'photos',
+        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'አካል', 'ፊት',
+        'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ'
     ]
     
-    # Check for photo keywords
     for keyword in photo_keywords:
         if keyword in message_lower:
             print(f"✅ PHOTO INTENT DETECTED: '{keyword}'")
@@ -629,15 +628,8 @@ def detect_conversation_intent(message):
     if any(word in message_lower for word in call_keywords):
         return "voice_call"
     
-    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine']
-    if any(word in message_lower for word in relationship_keywords):
-        return "relationship"
-    
     if message_lower.startswith('/'):
         return "command"
-    
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy']):
-        return "busy"
     
     greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
@@ -660,10 +652,6 @@ def detect_conversation_intent(message):
     location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ']
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
-    
-    job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ']
-    if any(phrase in message_lower for phrase in job_words):
-        return "ask_job"
     
     flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
     if any(word in message_lower for word in flirty_words):
@@ -865,10 +853,10 @@ def debug_reply():
     
     return jsonify(status)
 
-# ==================== FIXED AUTO-REPLY HANDLER ====================
+# ==================== AUTO-REPLY HANDLER WITH NATIVE PAYMENTS ====================
 
 async def auto_reply_handler(event, account_id):
-    """FIXED AUTO-REPLY HANDLER - With photo detection"""
+    """AUTO-REPLY HANDLER with native Star payments"""
     try:
         # Print EVERY message for debugging
         print(f"\n{'='*60}")
@@ -918,28 +906,54 @@ async def auto_reply_handler(event, account_id):
         
         print(f"✅ Auto-reply ENABLED for account {account_key}")
         
+        # Check for Star payment
+        if account_key in star_handlers:
+            stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
+            if stars_paid:
+                print(f"💰 User paid {stars_amount} stars - handled by payment handler")
+                return  # Payment already handled
+        
         # Get intent
         intent = detect_conversation_intent(message_text)
         print(f"🔍 FINAL INTENT: '{intent}'")
         
-        # Handle photo requests specially
+        # Handle photo requests with native payment buttons
         if intent == "photo_request":
             print(f"📸📸📸 PHOTO REQUEST HANDLER ACTIVATED! 📸📸📸")
             
-            # Get photo response
-            photo_responses = TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"])
-            response = random.choice(photo_responses)
+            if account_key in star_handlers:
+                # Send native Star payment request with preview
+                await star_handlers[account_key].request_star_payment(
+                    int(chat_id),
+                    5,  # 5 stars for preview
+                    f"Unlock this exclusive photo of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
+                )
+                print(f"✅ Sent Star payment request with preview")
+            else:
+                # Fallback text
+                response = "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"
+                delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+                async with event.client.action(event.chat_id, 'typing'):
+                    await asyncio.sleep(delay)
+                await event.reply(response)
             
-            # Add emoji sometimes
-            if random.random() < 0.5:
-                response += " " + random.choice(["😘", "💋", "💕", "😏", "🔥"])
+            # Store in history
+            if account_key not in conversation_history:
+                conversation_history[account_key] = {}
+            if chat_id not in conversation_history[account_key]:
+                conversation_history[account_key][chat_id] = []
             
-            print(f"📸 Photo response: '{response}'")
+            conversation_history[account_key][chat_id].append({
+                'role': 'user',
+                'text': message_text,
+                'time': time.time()
+            })
             
-        else:
-            # Normal response for other intents
-            response = get_context_aware_response(intent)
-            print(f"Normal response: '{response}'")
+            return
+        
+        # Handle other intents with normal replies
+        response = get_context_aware_response(intent)
+        print(f"Normal response: '{response}'")
         
         # Human-like delay
         delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
@@ -981,10 +995,10 @@ async def auto_reply_handler(event, account_id):
         print(f"❌❌❌ ERROR in auto-reply: {e}")
         traceback.print_exc()
 
-# ==================== START AUTO-REPLY FOR ACCOUNT - FIXED ====================
+# ==================== START AUTO-REPLY FOR ACCOUNT ====================
 
 async def start_auto_reply_for_account(account):
-    """SIMPLE START FUNCTION - FIXED"""
+    """Start auto-reply for account"""
     account_id = account['id']
     account_key = str(account_id)
     
@@ -1938,7 +1952,7 @@ if __name__ == '__main__':
     print('   • Talks in Amharic with English translation')
     print('   • Sexy and flirty personality 😘')
     print('   • 15-40 second reply delay (human-like)')
-    print('   • PHOTO DETECTION: Now recognizes photo requests!')
+    print('   • NATIVE STAR PAYMENTS with "Unlock for ★ X" buttons')
     print('   • 3 preview photos ready to sell (5⭐ each)')
     print('   • ALL STARS go to @Abe_army channel')
     print('='*70 + '\n')
