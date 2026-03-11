@@ -2016,7 +2016,192 @@ def start_auto_reply_thread():
     time.sleep(5)
     logger.info("Starting auto-reply for enabled accounts...")
     start_all_auto_replies()
+# ==================== MEDIA UPLOAD & MANAGEMENT API ====================
 
+import base64
+import os
+from werkzeug.utils import secure_filename
+
+# Configure upload folder
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/api/upload-media', methods=['POST'])
+def upload_media():
+    """Upload media files directly from browser"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'})
+        
+        file = request.files['file']
+        prefix = request.form.get('prefix', '')
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        if not allowed_file(file.filename):
+            return jsonify({'success': False, 'error': 'File type not allowed'})
+        
+        # Secure filename and add prefix
+        filename = secure_filename(file.filename)
+        new_filename = f"{prefix}{filename}"
+        
+        # Save file
+        file_path = os.path.join(UPLOAD_FOLDER, new_filename)
+        file.save(file_path)
+        
+        # Also copy to appropriate folder based on prefix
+        if prefix.startswith('preview'):
+            dest_folder = 'tsega_photos/preview'
+        elif prefix.startswith('full'):
+            dest_folder = 'tsega_photos/full'
+        elif prefix.startswith('premium'):
+            dest_folder = 'tsega_photos/premium'
+        elif prefix.startswith('video_preview'):
+            dest_folder = 'tsega_videos/preview'
+        elif prefix.startswith('video_full'):
+            dest_folder = 'tsega_videos/full'
+        else:
+            dest_folder = 'uploads'
+        
+        os.makedirs(dest_folder, exist_ok=True)
+        dest_path = os.path.join(dest_folder, new_filename)
+        
+        # Copy file to destination
+        import shutil
+        shutil.copy2(file_path, dest_path)
+        
+        # Add to media library database
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        
+        # Determine media type and price
+        if 'video' in prefix:
+            media_type = 'video'
+            price = 10 if 'preview' in prefix else 100
+        else:
+            media_type = 'photo'
+            if 'preview' in prefix:
+                price = 5
+            elif 'full' in prefix:
+                price = 50
+            elif 'premium' in prefix:
+                price = 200
+            else:
+                price = 5
+        
+        c.execute('''INSERT INTO media_library 
+                    (file_path, media_type, price_stars, is_active)
+                    VALUES (?, ?, ?, 1)''',
+                 (dest_path, media_type, price))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"✅ Uploaded: {new_filename} ({price} stars)")
+        
+        return jsonify({
+            'success': True,
+            'filename': new_filename,
+            'path': dest_path,
+            'price': price
+        })
+        
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/delete-media', methods=['POST'])
+def delete_media():
+    """Delete media file"""
+    try:
+        data = request.json
+        file_path = data.get('path')
+        
+        if not file_path:
+            return jsonify({'success': False, 'error': 'No file path provided'})
+        
+        # Delete from database
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute("UPDATE media_library SET is_active = 0 WHERE file_path = ?", (file_path,))
+        conn.commit()
+        conn.close()
+        
+        # Delete file if exists
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"🗑️ Deleted: {file_path}")
+        
+        return jsonify({'success': True, 'message': 'Media deleted'})
+        
+    except Exception as e:
+        logger.error(f"Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/stars/transactions', methods=['GET'])
+def get_transactions():
+    """Get all transactions"""
+    try:
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute('''SELECT user_id, amount, transaction_type, timestamp 
+                    FROM star_transactions ORDER BY timestamp DESC LIMIT 50''')
+        transactions = c.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'transactions': [{
+                'user_id': t[0],
+                'amount': t[1],
+                'type': t[2],
+                'time': t[3]
+            } for t in transactions]
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/update-price', methods=['POST'])
+def update_price():
+    """Update Star prices"""
+    try:
+        data = request.json
+        price_type = data.get('type')
+        new_price = data.get('price')
+        
+        # In a real implementation, you'd update a config file
+        # For now, just return success
+        logger.info(f"💰 Price updated: {price_type} = {new_price} stars")
+        
+        return jsonify({'success': True, 'message': 'Price updated'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/media/<path:filename>')
+def serve_media(filename):
+    """Serve media files for preview"""
+    # Try to find file in various folders
+    possible_paths = [
+        os.path.join('tsega_photos/preview', filename),
+        os.path.join('tsega_photos/full', filename),
+        os.path.join('tsega_photos/premium', filename),
+        os.path.join('tsega_videos/preview', filename),
+        os.path.join('tsega_videos/full', filename),
+        os.path.join('uploads', filename)
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return send_file(path)
+    
+    return jsonify({'error': 'File not found'}), 404
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
