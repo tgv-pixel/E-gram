@@ -1,86 +1,70 @@
+# ==================== SETUP STAR FOLDERS ====================
+# Run this script to create folder structure and organize your media
+
 import os
-import threading
-import logging
-from flask import Flask
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
-from telegram.error import BadRequest
+import shutil
+from pathlib import Path
 
-# 1. WEB SERVER (Required for Render)
-app = Flask(__name__)
-@app.route('/')
-def health(): return "Bot is Online", 200
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
-# 2. CONFIGURATION
-TOKEN = "7294379764:AAHAOQ1OVT2TJ0cRAlWhyyxXQdVB3oS9K_A"
-CHANNEL_ID = "@Abe_army"  # The bot uses this to check membership
-CHANNEL_LINK = "https://t.me/Abe_army"
-
-logging.basicConfig(level=logging.INFO)
-
-# --- COMMANDS ---
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "👋 **Welcome!**\n"
-        "To use this bot, you must first join our channel.\n\n"
-        "👋 **እንኳን ደህና መጡ!**\n"
-        "ይህን ቦት ለመጠቀም በመጀመሪያ የኛን ቻናል መቀላቀል አለብዎት።"
-    )
+def setup_folders():
+    """Create all necessary folders for the Star system"""
     
-    keyboard = [
-        [InlineKeyboardButton("Join Channel / ቻናሉን ይቀላቀሉ", url=CHANNEL_LINK)],
-        [InlineKeyboardButton("Verify / አረጋግጥ ✅", callback_data="check_join")]
+    folders = [
+        "tsega_photos/preview",
+        "tsega_photos/full",
+        "tsega_photos/premium",
+        "tsega_videos/preview",
+        "tsega_videos/full",
+        "backups"
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
-
-async def check_membership(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
     
-    try:
-        # Check if user is in the channel
-        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+    for folder in folders:
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        print(f"✅ Created: {folder}")
+    
+    print("\n📁 Folder structure ready!")
+    print("\n📌 HOW TO USE:")
+    print("1. Put your preview photos in: tsega_photos/preview/")
+    print("2. Put your full photos in: tsega_photos/full/")
+    print("3. Put premium content in: tsega_photos/premium/")
+    print("4. Put video previews in: tsega_videos/preview/")
+    print("5. Put full videos in: tsega_videos/full/")
+    print("\n💰 PRICING:")
+    print("   • Preview photos: 5 Stars")
+    print("   • Full photos: 50 Stars")
+    print("   • Premium photos: 200 Stars")
+    print("   • Video previews: 10 Stars")
+    print("   • Full videos: 100 Stars")
+
+def quick_organize():
+    """Quickly organize existing media files"""
+    
+    # Check if you have existing photos
+    if os.path.exists("tsega_photos"):
+        files = os.listdir("tsega_photos")
+        photos = [f for f in files if f.endswith(('.jpg', '.jpeg', '.png'))]
         
-        if member.status in ['member', 'administrator', 'creator']:
-            # Success Message
-            success_text = (
-                "✅ **Verification Successful!**\n"
-                "You can now use the bot.\n\n"
-                "✅ **ማረጋገጫው ተሳክቷል!**\n"
-                "አሁን ቦቱን መጠቀም ይችላሉ።"
-            )
-            await query.message.edit_text(success_text, parse_mode='Markdown')
-        else:
-            # Still not joined
-            fail_text = (
-                "❌ **You haven't joined yet!**\n"
-                "Please join the channel and click Verify again.\n\n"
-                "❌ **ገና አልተቀላቀሉም!**\n"
-                "እባክዎ ቻናሉን ይቀላቀሉ እና እንደገና 'አረጋግጥ' የሚለውን ይጫኑ።"
-            )
-            await query.answer("Please join @Abe_army first!", show_alert=True)
+        if photos:
+            print(f"\n📸 Found {len(photos)} photos")
             
-    except BadRequest:
-        await query.answer("Error: Make sure the bot is an ADMIN in your channel!", show_alert=True)
-
-def main():
-    # Start Flask thread for Render
-    threading.Thread(target=run_flask, daemon=True).start()
-
-    # Start Telegram Bot
-    application = Application.builder().token(TOKEN).build()
+            # Move first 5 to preview
+            for i, photo in enumerate(photos[:5]):
+                src = f"tsega_photos/{photo}"
+                dst = f"tsega_photos/preview/{photo}"
+                shutil.move(src, dst)
+                print(f"   Moved to preview: {photo}")
+            
+            # Move next 5 to full
+            for i, photo in enumerate(photos[5:10]):
+                src = f"tsega_photos/{photo}"
+                dst = f"tsega_photos/full/{photo}"
+                shutil.move(src, dst)
+                print(f"   Moved to full: {photo}")
     
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(check_membership, pattern="check_join"))
-    
-    print("Professional Bot is running...")
-    application.run_polling()
+    print("\n✅ Organization complete!")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    setup_folders()
+    
+    answer = input("\nDo you want to quickly organize existing photos? (y/n): ")
+    if answer.lower() == 'y':
+        quick_organize()
