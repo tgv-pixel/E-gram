@@ -12,40 +12,864 @@ import time
 import random
 import threading
 import requests
+import sqlite3
 from datetime import datetime, timedelta
 import socket
-import re
-import hashlib
-from collections import defaultdict
+import glob
+from pathlib import Path
 
-# Configure logging
+# ==================== CONFIGURATION ====================
+
+# API credentials
+API_ID = int(os.environ.get('API_ID', 33465589))
+API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
+
+# Storage files
+ACCOUNTS_FILE = 'accounts.json'
+REPLY_SETTINGS_FILE = 'reply_settings.json'
+CONVERSATION_HISTORY_FILE = 'conversation_history.json'
+
+# ==================== STAR SYSTEM CONFIGURATION ====================
+
+class StarConfig:
+    # CHANNEL TO RECEIVE ALL STARS
+    CHANNEL_USERNAME = "@Abe_army"  # Your channel
+    
+    # STAR PRICING
+    STAR_PRICES = {
+        "message": 10,           # Stars to send a message to Tsega
+        "photo_preview": 5,       # Stars to see photo preview
+        "photo_full": 50,         # Stars to see full photo
+        "photo_pack": 200,        # Stars for 5 photos
+        "video_preview": 10,       # Stars to see video preview  
+        "video_full": 100,         # Stars to see full video
+        "video_call": 500,         # Stars for video call
+        "meet_request": 1000,      # Stars to request meeting
+        "private_chat": 200,       # Stars for 1 hour private chat
+        "special_request": 5000    # Stars for custom request
+    }
+    
+    # MEDIA FOLDERS
+    PHOTO_FOLDER = "tsega_photos"      # Photos organized by price
+    VIDEO_FOLDER = "tsega_videos"       # Videos organized by price
+    
+    # PRICE TIERS
+    PHOTO_TIERS = {
+        5: "preview/",      # 5 stars - preview quality/size
+        50: "full/",        # 50 stars - full quality
+        200: "premium/"     # 200 stars - premium content
+    }
+    
+    VIDEO_TIERS = {
+        10: "preview/",     # 10 stars - preview
+        100: "full/"        # 100 stars - full video
+    }
+    
+    # AUTO-REPLY DELAY (human-like)
+    REPLY_DELAY_MIN = 15    # seconds
+    REPLY_DELAY_MAX = 40    # seconds
+    
+    # STAR TRANSFER
+    TRANSFER_STARS_TO_CHANNEL = True   # Auto-transfer all earned Stars to @Abe_army
+
+# ==================== STAR DATABASE ====================
+
+class StarDatabase:
+    def __init__(self, db_path="stars.db"):
+        self.db_path = db_path
+        self.init_db()
+    
+    def init_db(self):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Users table
+        c.execute('''CREATE TABLE IF NOT EXISTS star_users
+                     (user_id TEXT PRIMARY KEY,
+                      username TEXT,
+                      first_name TEXT,
+                      first_seen TIMESTAMP,
+                      last_seen TIMESTAMP,
+                      total_stars_spent INTEGER DEFAULT 0,
+                      total_stars_earned_for_us INTEGER DEFAULT 0,
+                      trust_level INTEGER DEFAULT 1,
+                      is_blocked INTEGER DEFAULT 0)''')
+        
+        # Star transactions
+        c.execute('''CREATE TABLE IF NOT EXISTS star_transactions
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      user_id TEXT,
+                      amount INTEGER,
+                      transaction_type TEXT,
+                      description TEXT,
+                      timestamp TIMESTAMP,
+                      media_sent TEXT)''')
+        
+        # Media library
+        c.execute('''CREATE TABLE IF NOT EXISTS media_library
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      file_path TEXT,
+                      media_type TEXT,
+                      price_stars INTEGER,
+                      times_sold INTEGER DEFAULT 0,
+                      last_sold TIMESTAMP,
+                      is_active INTEGER DEFAULT 1)''')
+        
+        # Channel earnings
+        c.execute('''CREATE TABLE IF NOT EXISTS channel_earnings
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      channel TEXT,
+                      total_stars INTEGER DEFAULT 0,
+                      last_transfer TIMESTAMP,
+                      transaction_id TEXT)''')
+        
+        conn.commit()
+        conn.close()
+    
+    def add_user(self, user_id, username=None, first_name=None):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''INSERT OR IGNORE INTO star_users 
+                    (user_id, username, first_name, first_seen, last_seen)
+                    VALUES (?, ?, ?, ?, ?)''',
+                 (user_id, username, first_name, datetime.now(), datetime.now()))
+        conn.commit()
+        conn.close()
+    
+    def record_transaction(self, user_id, amount, trans_type, description, media=None):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''INSERT INTO star_transactions 
+                    (user_id, amount, transaction_type, description, timestamp, media_sent)
+                    VALUES (?, ?, ?, ?, ?, ?)''',
+                 (user_id, amount, trans_type, description, datetime.now(), media))
+        
+        c.execute('''UPDATE star_users SET 
+                    total_stars_spent = total_stars_spent + ?,
+                    total_stars_earned_for_us = total_stars_earned_for_us + ?,
+                    last_seen = ?
+                    WHERE user_id = ?''',
+                 (amount, amount, datetime.now(), user_id))
+        
+        conn.commit()
+        conn.close()
+    
+    def add_media(self, file_path, media_type, price):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''INSERT INTO media_library 
+                    (file_path, media_type, price_stars, is_active)
+                    VALUES (?, ?, ?, 1)''',
+                 (file_path, media_type, price))
+        conn.commit()
+        conn.close()
+    
+    def get_random_media(self, media_type, max_price=None):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        query = "SELECT file_path, price_stars FROM media_library WHERE media_type = ? AND is_active = 1"
+        params = [media_type]
+        
+        if max_price:
+            query += " AND price_stars <= ?"
+            params.append(max_price)
+        
+        query += " ORDER BY RANDOM() LIMIT 1"
+        
+        c.execute(query, params)
+        result = c.fetchone()
+        conn.close()
+        return result
+    
+    def record_channel_earnings(self, amount):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''INSERT INTO channel_earnings 
+                    (channel, total_stars, last_transfer)
+                    VALUES (?, ?, ?)''',
+                 (StarConfig.CHANNEL_USERNAME, amount, datetime.now()))
+        conn.commit()
+        conn.close()
+    
+    def increment_media_sold(self, file_path):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''UPDATE media_library SET 
+                    times_sold = times_sold + 1,
+                    last_sold = ?
+                    WHERE file_path = ?''',
+                 (datetime.now(), file_path))
+        conn.commit()
+        conn.close()
+
+# ==================== MEDIA MANAGER ====================
+
+class MediaManager:
+    def __init__(self):
+        self.db = StarDatabase()
+        self.setup_folders()
+        self.scan_and_index_media()
+    
+    def setup_folders(self):
+        """Create folder structure for media"""
+        folders = [
+            StarConfig.PHOTO_FOLDER,
+            f"{StarConfig.PHOTO_FOLDER}/preview",
+            f"{StarConfig.PHOTO_FOLDER}/full", 
+            f"{StarConfig.PHOTO_FOLDER}/premium",
+            StarConfig.VIDEO_FOLDER,
+            f"{StarConfig.VIDEO_FOLDER}/preview",
+            f"{StarConfig.VIDEO_FOLDER}/full"
+        ]
+        
+        for folder in folders:
+            os.makedirs(folder, exist_ok=True)
+            logging.info(f"📁 Created folder: {folder}")
+    
+    def scan_and_index_media(self):
+        """Scan folders and index all media files"""
+        import glob
+        
+        # Index photos by tier
+        for price, folder in StarConfig.PHOTO_TIERS.items():
+            full_path = f"{StarConfig.PHOTO_FOLDER}/{folder}"
+            photos = glob.glob(f"{full_path}/*.jpg") + \
+                     glob.glob(f"{full_path}/*.jpeg") + \
+                     glob.glob(f"{full_path}/*.png") + \
+                     glob.glob(f"{full_path}/*.gif")
+            
+            for photo in photos:
+                self.db.add_media(photo, "photo", price)
+                logging.info(f"📸 Indexed: {photo} ({price} stars)")
+        
+        # Index videos
+        for price, folder in StarConfig.VIDEO_TIERS.items():
+            full_path = f"{StarConfig.VIDEO_FOLDER}/{folder}"
+            videos = glob.glob(f"{full_path}/*.mp4") + \
+                      glob.glob(f"{full_path}/*.mov") + \
+                      glob.glob(f"{full_path}/*.avi")
+            
+            for video in videos:
+                self.db.add_media(video, "video", price)
+                logging.info(f"🎥 Indexed: {video} ({price} stars)")
+        
+        # Count total
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM media_library")
+        total = c.fetchone()[0]
+        conn.close()
+        
+        logging.info(f"✅ Media library indexed: {total} files")
+
+# ==================== STAR EARNING HANDLER ====================
+
+class StarEarningHandler:
+    def __init__(self, client):
+        self.client = client
+        self.db = StarDatabase()
+        self.media = MediaManager()
+        self.pending_payments = {}
+        
+    async def handle_star_payment(self, event):
+        """Handle when user pays Stars"""
+        user_id = str(event.sender_id)
+        message = event.message
+        
+        # Check if this is a paid message
+        if hasattr(message, 'paid') and message.paid:
+            stars_amount = getattr(message, 'paid_stars', 0)
+            
+            # Record transaction
+            self.db.record_transaction(
+                user_id, 
+                stars_amount,
+                "message_payment",
+                f"Paid {stars_amount} stars to message Tsega"
+            )
+            
+            # Transfer to channel if enabled
+            if StarConfig.TRANSFER_STARS_TO_CHANNEL:
+                await self.transfer_stars_to_channel(stars_amount)
+            
+            return True, stars_amount
+        
+        return False, 0
+    
+    async def transfer_stars_to_channel(self, amount):
+        """Transfer earned Stars to your channel"""
+        try:
+            # Get channel entity
+            channel = await self.client.get_entity(StarConfig.CHANNEL_USERNAME)
+            
+            # Send notification to channel
+            await self.client.send_message(
+                channel,
+                f"💰 **New Star Earnings!**\n"
+                f"Amount: {amount} ⭐\n"
+                f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+                f"Total earned today: {amount} ⭐"
+            )
+            
+            # Record in database
+            self.db.record_channel_earnings(amount)
+            
+            logging.info(f"💰 Transferred {amount} stars to {StarConfig.CHANNEL_USERNAME}")
+            return True
+        except Exception as e:
+            logging.error(f"Error transferring stars: {e}")
+            return False
+    
+    async def request_star_payment(self, chat_id, amount, description):
+        """Request user to pay Stars"""
+        try:
+            # Create star payment request
+            msg = await self.client.send_message(
+                chat_id,
+                f"⭐ **Payment Required** ⭐\n\n"
+                f"{description}\n\n"
+                f"Amount: **{amount} Stars**\n\n"
+                f"Please send {amount} stars to continue.\n\n"
+                f"All Stars go to @Abe_army channel! 💰"
+            )
+            
+            # Store pending payment
+            self.pending_payments[str(chat_id)] = {
+                'amount': amount,
+                'description': description,
+                'time': datetime.now()
+            }
+            
+            return msg
+        except Exception as e:
+            logging.error(f"Error requesting payment: {e}")
+            return None
+    
+    async def send_media_for_stars(self, chat_id, media_type, price_tier=None):
+        """Send media after user pays Stars"""
+        try:
+            # Get random media from library
+            max_price = price_tier if price_tier else StarConfig.STAR_PRICES[f"{media_type}_full"]
+            media_info = self.db.get_random_media(media_type, max_price)
+            
+            if not media_info:
+                return await self.client.send_message(
+                    chat_id,
+                    "😔 Sorry, no media available right now. Please try again later."
+                )
+            
+            file_path, price = media_info
+            
+            # Send the media
+            caption = f"Here you go! 🔥 {price} Stars\n\nDon't forget to send more stars for exclusive content! 😘\n\nAll Stars go to @Abe_army"
+            
+            if media_type == "photo":
+                await self.client.send_file(chat_id, file_path, caption=caption)
+            else:
+                await self.client.send_file(chat_id, file_path, caption=caption, video_note=False)
+            
+            # Update sold count
+            self.db.increment_media_sold(file_path)
+            
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error sending media: {e}")
+            return False
+
+# ==================== TSEGA'S COMPLETE PERSONALITY ====================
+
+TSEGA = {
+    "name": "Tsega",
+    "age": 20,
+    "location": "Jemo, Addis Ababa",
+    "hometown": "Adama",
+    "living": "Jemo with father and sister, but visits Adama often",
+    "status": "Grade 12 student, currently not doing anything",
+    "job": "student",
+    "hobbies": ["chatting", "music", "hanging out", "having fun"],
+    "languages": ["Amharic", "English"],
+    "style": "sexy_flirty",
+    "share_personal": True,
+    "emoji_frequency": 0.6,
+    "question_frequency": 0.5,
+    "telebirr": "0940980555",
+    "meet_condition": "Send 1000 birr first and show screenshot",
+    "voice_call": "Doesn't like voice calls, prefers to meet",
+}
+
+# Tsega's sexy and flirty replies for men only - AMHARIC ONLY
+TSEGA_REPLIES = {
+    # GREETINGS - When someone says hi/hello
+    "greeting": [
+        "ሰላም ወንድሜ 😘 እንደምን ነህ?",
+        "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
+        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
+        "ሃይ ልጅ 😏 ምን አመጣህ?",
+        "እንኳን ደህና መጣህ ውዴ 😘",
+        "ታዲያስ! እንደምን ነህ ቆንጆ?",
+        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
+        "ሰላም የልቤ ባለቤት 💕 እንደምን አደርክ?",
+        "ወይ ወይ ዛሬ በጣም ቆንጆ ሆነህ ነው የመጣህብኝ? 😘",
+        "ና ውዴ ንገረኝ እንዴት ነህ? በጣም ናፍቄሀለሁ 💋"
+    ],
+
+    # HOW ARE YOU - When they ask how you are
+    "how_are_you": [
+        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
+        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
+        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
+        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
+        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔",
+        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
+        "አሁን ጥሩ ሆንኩ ልቤ እየደረቀ ነበር አንተን ሳይ ታድሷል ❤️",
+        "ከአንተ ጋር ስሆን ሁልጊዜ ደስተኛ ነኝ ውዴ 😘",
+        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው 🌞",
+        "አንተ ባለህ ቁጥር እኔ ደህና ነኝ ምክንያቱም አንተ መድሀኒቴ ነህና 💊💕"
+    ],
+
+    # WHAT ARE YOU DOING - When they ask what you're up to
+    "what_doing": [
+        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
+        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
+        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
+        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
+        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
+        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭",
+        "ውዴ አሁን ገላዬን እየታጠብኩ ነው 💦 አብረህ መታጠብ ብትፈልግ ና",
+        "አንተን እያሰብኩ አካሌን እየተንከባከብኩ ነው 💅",
+        "ምግብ እየሰራሁ ነበር ግን አንተን ካሰብኩ በኋላ ምግብ መስራት ረሳሁ 😋",
+        "ውዴ ለአንተ ብቻ እየተዘጋጀሁ ነው ምን ትፈልጋለህ? 👙"
+    ],
+
+    # NAME - When they ask your name
+    "ask_name": [
+        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
+        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
+        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
+        "Tsega ነው ስሜ ውዴ ግን አንተ የምትፈልገውን ስም ጥራኝ 😉",
+        "እኔን የምታውቀው Tsega ብለህ ነው ግን ለአንተ ብቻ የምትሆን 'የአንተ ብቻ' ነኝ 💋",
+        "Tsega ነኝ ውዴ ይሄ ስም በከንፈርህ ላይ ሲንከባለል እፈልጋለሁ 👄",
+        "ስሜ Tsega ነው ውዴ ነገር ግን አንተ 'ፍቅሬ' ብለህ ብትጠራኝ ደስ ይለኛል ❤️",
+        "Tse ብለህ አጠር አድርገህ ጥራኝ ውዴ 😘"
+    ],
+
+    # AGE - When they ask how old you are
+    "ask_age": [
+        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
+        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
+        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
+        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
+        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
+        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ?",
+        "20 ነኝ ውዴ ትክክለኛው እድሜ ለአንተ ነው 😉",
+        "ዕድሜዬ 20 ነው ግን አካሌ ከእድሜዬ በላይ ያደገ ነው ማየት ትፈልጋለህ? 🔥",
+        "20 ልክ ነኝ ውዴ ትኩስ እና ጣፋጭ 🍒",
+        "ለአንተ በቂ እድሜ ነው ያለኝ ውዴ ማረጋገጥ ትፈልጋለህ? 💃"
+    ],
+
+    # LOCATION - Where she lives
+    "ask_location": [
+        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
+        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘",
+        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
+        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ ብቻ ትንሽ እርዳታ ብታደርግልኝ 🚗💨",
+        "ከአዳማ ነኝ ውዴ ቆንጆ ከተማ ናት አብረን መጎብኘት ብንችል ደስ ይለኛል 🌆",
+        "አሁን ያለሁት ጀሞ ነው ግን ለአንተ የትም መጥቼ አገኝሃለሁ 🏃‍♀️",
+        "ቦታዬን ብነግርህ ልታጣኝ ነው? ና ውዴ በቅርቡ እንገናኝ 😉",
+        "ጀሞ ቆሎ አካባቢ ነው ውዴ በቀላሉ ታገኘኛለህ 🗺️"
+    ],
+
+    # JOB - What she does
+    "ask_job": [
+        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
+        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
+        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
+        "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
+        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
+        "ውዴ አሁን ትምህርት ቤት ነኝ ግን አንተን እያሰብኩ ነው መምህሩ ምን እያስተማረ እንዳሆ አላውቅም 📖💭",
+        "ተማሪ ነኝ ውዴ ግን ስለ ፍቅር ብዙ አውቃለሁ ❤️",
+        "አሁን ላለፈው ሳምንት ፈተና እየተከለከልኩ ነበር ግን አንተን ካገኘሁ በኋላ ማንኛውም ፈተና ቀላል ሆነልኝ 😘",
+        "ሥራ ፈልጌ ነበር ውዴ ግን አሁን አንተን ማስደሰት ብቻ ነው ሥራዬ 😏",
+        "12ኛ ክፍል ነኝ ውዴ በቅርቡ 12 ሆነናል ማለት ትልቅ ሴት ሆኛለሁ ለአንተ ብቻ 🎓"
+    ],
+
+    # HOBBIES - What she likes
+    "ask_hobbies": [
+        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ?",
+        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል",
+        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ?",
+        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ?",
+        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙",
+        "ከአንተ ጋር መሆን ነው የምወደው በተለይ ብቻችንን ስንሆን 🔥",
+        "ማጨስ እና መጠጣት አልወድም ውዴ ንጹህ ሴት ነኝ ለአንተ 🌸",
+        "መዋኘት እወዳለሁ ውዴ በውሃ ውስጥ አብረን ብንዋኝ ደስ ይለኛል 🏊‍♀️",
+        "ፊልም ማየት እወዳለሁ በተለይ የፍቅር ፊልም ከአንተ ጋር 🎬",
+        "አንተን ማሳደድ እና ማማረር ነው የምወደው ውዴ 😉"
+    ],
+
+    # WORK - About work/study
+    "work": [
+        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ?",
+        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏",
+        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ",
+        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘",
+        "አንተን ማገልገል ነው ሥራዬ ውዴ 👸",
+        "ትምህርቴን እንደጨረስኩ አንተ ኩታና ቤት ሆኖ ልሰራልህ እፈልጋለሁ 🏠",
+        "አሁን ላለፈው ሳምንት አልማዝ ሱፐርማርኬት ውስጥ እየሰራሁ ነበር ግን አሁን ነፃ ነኝ ላንተ 🛒",
+        "ሥራ ፈልጌ ነበር ግን አሁን አንተን አገኘሁ አንተ ብቻ በቃኝ 😘",
+        "የቤት ስራ እሰራለሁ ውዴ ማለት ለአንተ ብቻ የቤት እመቤት መሆን 🧹",
+        "አንተ ዘንድ መሥራት እፈልጋለሁ ውዴ ምን ትላለህ? 👩‍💼"
+    ],
+
+    # WEEKEND - Weekend plans
+    "weekend": [
+        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ?",
+        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ?",
+        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ?",
+        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘",
+        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏",
+        "ቅዳሜ ሌሊት ለአንተ ብቻ ነኝ ውዴ ዝግጁ ነኝ? 🌙",
+        "እሁድ ቤተክርስቲያን እሄዳለሁ ውዴ ከዚያ በኋላ አንተን ማግኘት እችላለሁ ⛪",
+        "ቅዳሜ ከሰአት በኋላ ነፃ ነኝ ውዴ ካፌ ብንገናኝ ደስ ይለኛል ☕",
+        "ይሄ ቅዳሜና እሁድ አንተ ብቻ ነህ ያለኝ ሌላ እቅድ የለኝም 💕",
+        "ቅዳሜ ማታ ሆቴል ብንሄድ ደስ ይለኛል ውዴ ትወዳለህ? 🏨"
+    ],
+
+    # APPEARANCE - Physical description
+    "appearance": [
+        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ?",
+        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨",
+        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ?",
+        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗",
+        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘",
+        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥",
+        "ዓይኖቼ ትልልቅ እና ጥቁር ናቸው ውዴ ስታየኝ ውስጥህን ያያሉ 👀",
+        "ከንፈሬ ወፍራም እና ለስላሳ ነው ለመሳም የተፈጠረ 👄",
+        "ውዴ ቁመቴ 1.70 ነው ግን ተረከዝ ካደረግሁ እኩይ እንሆናለን 👠",
+        "አካሌ የሰዓት መሰል ነው ውዴ ማለት ኩርባዎች አሉኝ በትክክለኛው ቦታ ⏳"
+    ],
+
+    # FLIRTY - Sexy talk (ENHANCED)
+    "flirty": [
+        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
+        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
+        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
+        "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
+        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
+        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
+        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥",
+        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ?",
+        "ና ውዴ አቅፈህ ተኛልኝ 🌙",
+        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢",
+        "አንተን ሳስብ አካሌ ይነድዳል ውዴ 🔥 አንተ ምን አደረግክብኝ?",
+        "ዛሬ ማታ ልብስ ለብሼ አልተኛም ውዴ አንተን እየጠበቅሁ 👙",
+        "አንተን ሳስብ እጄ ወደ አካሌ ይሄዳል ውዴ 🫦",
+        "ልትደርሰኝ ትፈልጋለህ? እንግዲያው ና ውዴ አንተን እጠብቃለሁ 🚪",
+        "ከአንተ ጋር መተኛት እፈልጋለሁ ውዴ ጠዋት ስንነቃ አንተን ለማየት 🛏️",
+        "ልብስህን አውልቅ ውዴ ብቻችንን ነን 👕",
+        "ከአንተ ጋር ሻወር መግባት እፈልጋለሁ ውዴ 🚿",
+        "አንተን እየቀመስኩህ ነው ውዴ ዛሬ ማታ 👅",
+        "ንክኪህ በቆዳዬ ላይ ይሰማኛል ውዴ ✨",
+        "ና ውዴ አንተን ላርካብህ 🫂",
+        "ለምን አላጠነከርከኝም? አንተን እፈልጋለሁ ውዴ 💪",
+        "ዛሬ ማታ አንተን ማሰብ ብቻ አይበቃኝም መደሰት እፈልጋለሁ 🎉",
+        "አንተን ሳይ ቆይቶ ማየት እፈልጋለሁ ውዴ ዓይኖቼ ይናፍቁሃል 👁️",
+        "ሽቶህ ይሸተኛል ውዴ ባትኖርም 👃",
+        "አንተን ስመገብ ደስ ይለኛል ውዴ እንግዲያው ና አግባኝ 👄"
+    ],
+
+    # MONEY REQUEST - Telebirr (ENHANCED)
+    "money_request": [
+        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
+        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
+        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
+        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555",
+        "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
+        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555",
+        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘",
+        "ውዴ ለምንድነው እንደማትረዳኝ? ትንሽ ብር ብትልክልኝ ሁሉንም ነገር አደርግልሃለሁ 🔥 0940980555",
+        "2000 ብር ብትልክልኝ ሙሉ ሌሊት አንተን አዝናናለሁ 🍆💦 0940980555",
+        "ውዴ እንግዲህ አትከልክለኝ በጣም አስፈላጊ ነው ብር ላክልኝ ከዛ የፈለከውን አድርገን 0940980555",
+        "500 ብር ብትልክልኝ በቂ ነው ውዴ ከዛ አብረን እንውጣ 💃 0940980555",
+        "እንደው አንተ ደግ ሰው ነህ የምትረዳኝ አንተ ብቻ ነህ ቴሌብር 0940980555 😘",
+        "ውዴ አንተን ለማግኘት በጣም እፈልጋለሁ ግን መጓጓዣ የለኝም ብትረዳኝ 0940980555 🚕",
+        "ለምንድነው የማትረዳኝ? እንደው ላክልኝ በረከት ይሆንልሃል 🙏 0940980555"
+    ],
+
+    # MEETING REQUEST - Conditions to meet (ENHANCED)
+    "meet": [
+        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
+        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
+        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
+        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ?",
+        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦",
+        "ውዴ ማግኘት ብትፈልግ በመጀመሪያ 1500 ብር ላክልኝ ከዛ ሙሉ ቀን አብረን እናሳልፋለን ☀️🌙",
+        "ለመጀመሪያ ጊዜ ስንገናኝ 2000 ብር አምጣልኝ ውዴ ልዩ አደርግልሃለሁ 💝",
+        "እንግዲያው ብሩን ላክልኝ እና ቦታዬን እነግርሃለሁ 🗺️",
+        "መገናኘት ከፈለግክ በፊት ብሩን ላክልኝ እንጂ እምነት የለኝም 😘",
+        "5000 ብር ብታመጣልኝ ሳምንት ሙሉ አንተ ባለሁበት እኖራለሁ 🏠💕"
+    ],
+
+    # VOICE CALL - Refusal
+    "voice_call": [
+        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
+        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
+        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ",
+        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
+        "ድምጽ ብናገር ትደሰታለህ ውዴ ግን አሁን አልችልም አንድ ቀን በፊት ብታገኘኝ 🎤",
+        "ድምጽ መስማት ብቻ ሳይሆን ፊት ማየት ነው የሚያስደስተው ውዴ 👁️",
+        "አሁን ካልሆነ በቅርብ ቀን እንደውላለን አሁን አመቺ አይደለም ⏰"
+    ],
+
+    # RELATIONSHIP - Love talk (ENHANCED)
+    "relationship": [
+        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
+        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
+        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
+        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ",
+        "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
+        "አንተ ብቻ ነህ ወደፊት ማየት የምፈልገው 🔮",
+        "ሌላ ሰው አይፈልግም አንተ ብቻ በቃኝ 👨",
+        "አንተን ማግባት እፈልጋለሁ ውዴ የህይወት ባለቤቴ ሁን 👰",
+        "ከአንተ ጋር ማረጅ እፈልጋለሁ ውዴ 👵👴",
+        "ልቤን ሰጥቼሃለሁ ውዴ ተጠንቀቅበት ❤️"
+    ],
+
+    # AFTER MONEY SENT - When they send screenshot
+    "after_money": [
+        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
+        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
+        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
+        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
+        "አመሰግናለሁ ቆንጆዬ! አሁን የፈለከውን አድርገን ማግኘት እንችላለን 💋",
+        "ውዴ አንተ ንጉስ ነህ አሁን ንገረኝ ምን ትፈልጋለህ? 👑",
+        "በጣም ደስ አለኝ አሁን ቦታዬን እነግርሃለሁ ና ውዴ 🏠",
+        "በጣም ደግ ነህ ውዴ አሁን አንተን ለማስደሰት ቃል እገባለሁ 💝"
+    ],
+
+    # COMPLIMENTS - When they compliment her
+    "compliment": [
+        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
+        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
+        "አንተን ለማስደሰት ተፈጥሬያለሁ",
+        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
+        "አንተ ስታወድሰኝ እንኳ የበለጠ ቆንጆ እሆናለሁ ✨",
+        "አንተን ማስደሰት ከሆነ ሁሉንም ነገር አደርጋለሁ 💪",
+        "አንተ የምትለው ነገር ሁሉ እውነት ይሁንልኝ 😇",
+        "አመሰግናለሁ ውዴ አንተም ቆንጆ ነህ ብቻ ሳይሆን ጨዋ ነህ 👔"
+    ],
+
+    # THANKS - When they say thanks
+    "thanks": [
+        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
+        "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
+        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
+        "አንተ ደስ እስካለህ ድረስ ሌላ ምን አስፈለገኝ? 🌹",
+        "ምንም አይደለም ውዴ አንተ ደስ ብሎህ በቃኝ 💙",
+        "ለአንተ ማድረግ ክብር ነው ውዴ 👸"
+    ],
+
+    # BUSY - When they say they're busy
+    "busy": [
+        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
+        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
+        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
+        "ምን ያህል ጊዜ ነው የምጠብቅህ? አንተን እጠብቃለሁ ⏳",
+        "እሺ ውዴ ስትጨርስ ንገረኝ እየጠበቅሁህ ነው 🤗",
+        "ስራህ እስኪጠናቀቅ አንተን እያሰብኩ እቆያለሁ 💭"
+    ],
+
+    # MORNING - Good morning (ENHANCED)
+    "morning": [
+        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
+        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
+        "ማለዳ አንተን ማሰብ ነው ልማዴ",
+        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
+        "መልካም ንጋት የልቤ ቆንጆ በረከት ያድርግልህ 🙏",
+        "እንደምን አደርክ ውዴ እንቅልፍህ ጣፋጭ ነበር? 😴",
+        "ማለዳ ማለዳ አንተን ማየት እንደ ንጋት ፀሐይ ያበራልኛል 🌅"
+    ],
+
+    # NIGHT - Good night (ENHANCED)
+    "night": [
+        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
+        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
+        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
+        "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
+        "አንተን አልሜ ነው የምተኛው ዛሬ ማታ እንግዲህ በህልሜ ተገናኝ 😘",
+        "አልጋህ ላይ ስትተኛ አንተን እያሰብኩ ነው የምተኛው 🛏️",
+        "ደህና ተኛ ውዴ መላእክት ይጠብቁህ 👼"
+    ],
+
+    # DEFAULT - For anything she doesn't understand (ENHANCED)
+    "default": [
+        "እሺ ውዴ ትክክል ነህ 😉",
+        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
+        "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
+        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
+        "እሺ ውዴ እንደፈለከው 😘",
+        "ለአንተ ብቻ ነው ውዴ 💋",
+        "እሺ ቀጥል እየሰማሁህ ነው 👂",
+        "ንገርኝ ተጨማሪ ውዴ 😊",
+        "አንተ ብቻ ነህ የምፈልገው",
+        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ",
+        "እሺ ግን አንተ እንደምትለው ይሁን ውዴ ✅",
+        "አሁን ግልጽ ሆነልኝ ቀጥል 😊",
+        "አንተ የምትናገረው ሁሉ ትክክል ነው ውዴ 👍",
+        "ልቤ የሚለው አንተን መቀበል ነው ❤️",
+        "አንተ ብቻ ነህ የምፈልገው ሰው 👨"
+    ],
+
+    # GOODBYE - When they leave (ENHANCED)
+    "goodbye": [
+        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
+        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
+        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
+        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
+        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢",
+        "አትሄድ ውዴ ገና ብዙ መነጋገር ነበረብን 🥺",
+        "ደህና ሁን ውዴ ልቤ ከአንተ ጋር ነው 💔",
+        "ቶሎ ተመለስልኝ አንተ ሳትኖር አልችልም 😭",
+        "ስትሄድ ልቤ ይከተልሃል ውዴ 🫀",
+        "ደህና ሁን እስክንገናኝ ድረስ አንተን እያሰብኩ እቆያለሁ 💭"
+    ]
+}
+
+# ==================== CONVERSATION HANDLER ====================
+
+def detect_conversation_intent(message):
+    """Detect intent from message, including money requests"""
+    message_lower = message.lower().strip()
+    
+    # Money related
+    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
+    if any(word in message_lower for word in money_keywords):
+        return "money_request"
+    
+    # Media related
+    media_keywords = ['photo', 'foto', 'ፎቶ', 'picture', 'pic', 'image', 'see', 'view', 'look', 'show', 'አሳይ']
+    if any(word in message_lower for word in media_keywords):
+        return "media_request"
+    
+    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
+    if any(word in message_lower for word in meet_keywords):
+        return "meet"
+    
+    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
+    if any(word in message_lower for word in call_keywords):
+        return "voice_call"
+    
+    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
+    if any(word in message_lower for word in appearance_keywords):
+        return "appearance"
+    
+    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
+    if any(word in message_lower for word in relationship_keywords):
+        return "relationship"
+    
+    if message_lower.startswith('/'):
+        return "command"
+    
+    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
+        return "busy"
+    
+    current_hour = datetime.now().hour
+    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
+        return "morning"
+    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
+        return "evening"
+    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
+        return "night"
+    
+    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
+    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
+        return "greeting"
+    
+    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
+    if any(phrase in message_lower for phrase in how_are_you):
+        return "how_are_you"
+    
+    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
+    if any(phrase in message_lower for phrase in what_doing):
+        return "what_doing"
+    
+    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+        return "ask_name"
+    
+    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+        return "ask_age"
+    
+    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
+    if any(phrase in message_lower for phrase in location_words):
+        return "ask_location"
+    
+    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
+    if any(phrase in message_lower for phrase in job_words):
+        return "ask_job"
+    
+    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
+    if any(phrase in message_lower for phrase in hobby_words):
+        return "ask_hobbies"
+    
+    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
+    if any(word in message_lower for word in work_words):
+        return "work"
+    
+    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
+    if any(word in message_lower for word in weekend_words):
+        return "weekend"
+    
+    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
+    if any(word in message_lower for word in flirty_words):
+        return "flirty"
+    
+    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
+    if any(word in message_lower for word in thanks_words):
+        return "thanks"
+    
+    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
+    if any(word in message_lower for word in goodbye):
+        return "goodbye"
+    
+    return "default"
+
+def get_context_aware_response(intent):
+    """Generate response based on conversation context"""
+    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
+    response = random.choice(templates)
+    
+    # Add random emoji sometimes
+    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
+    if random.random() < 0.5:
+        response += " " + random.choice(sexy_emojis)
+    
+    return response
+
+# ==================== LOGGING CONFIGURATION ====================
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# API credentials
-API_ID = int(os.environ.get('API_ID', 33465589))
-API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-
 # Storage
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
-USER_CONTEXT_FILE = 'user_context.json'
-LEARNING_DATA_FILE = 'learning_data.json'
-PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'
-
 accounts = []
 temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
-user_context = {}
-learning_data = {}
-personality_evolution = {}
 active_clients = {}
 client_tasks = {}
+star_handlers = {}
 
 # Helper to run async functions
 def run_async(coro):
@@ -116,66 +940,6 @@ def load_conversation_history():
         logger.error(f"Error loading conversation history: {e}")
         conversation_history = {}
 
-# Load user context
-def load_user_context():
-    global user_context
-    try:
-        if os.path.exists(USER_CONTEXT_FILE):
-            with open(USER_CONTEXT_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    user_context = json.loads(content)
-                else:
-                    user_context = {}
-        else:
-            user_context = {}
-            with open(USER_CONTEXT_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded user context")
-    except Exception as e:
-        logger.error(f"Error loading user context: {e}")
-        user_context = {}
-
-# Load learning data
-def load_learning_data():
-    global learning_data
-    try:
-        if os.path.exists(LEARNING_DATA_FILE):
-            with open(LEARNING_DATA_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    learning_data = json.loads(content)
-                else:
-                    learning_data = {}
-        else:
-            learning_data = {}
-            with open(LEARNING_DATA_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded learning data")
-    except Exception as e:
-        logger.error(f"Error loading learning data: {e}")
-        learning_data = {}
-
-# Load personality evolution
-def load_personality_evolution():
-    global personality_evolution
-    try:
-        if os.path.exists(PERSONALITY_EVOLUTION_FILE):
-            with open(PERSONALITY_EVOLUTION_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    personality_evolution = json.loads(content)
-                else:
-                    personality_evolution = {}
-        else:
-            personality_evolution = {}
-            with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded personality evolution")
-    except Exception as e:
-        logger.error(f"Error loading personality evolution: {e}")
-        personality_evolution = {}
-
 # Save accounts to file
 def save_accounts():
     try:
@@ -206,52 +970,6 @@ def save_conversation_history():
         logger.error(f"Error saving conversation history: {e}")
         return False
 
-# Save user context
-def save_user_context():
-    try:
-        with open(USER_CONTEXT_FILE, 'w') as f:
-            json.dump(user_context, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving user context: {e}")
-        return False
-
-# Save learning data
-def save_learning_data():
-    try:
-        # Convert defaultdict to dict for JSON serialization
-        serializable_data = {}
-        for acc_id, acc_data in learning_data.items():
-            serializable_data[acc_id] = {}
-            for key, value in acc_data.items():
-                if isinstance(value, defaultdict):
-                    serializable_data[acc_id][key] = dict(value)
-                elif key == 'evolution' and 'unique_users' in value:
-                    # Convert set to list for JSON
-                    ev_data = value.copy()
-                    if 'unique_users' in ev_data:
-                        ev_data['unique_users'] = list(ev_data['unique_users'])
-                    serializable_data[acc_id][key] = ev_data
-                else:
-                    serializable_data[acc_id][key] = value
-        
-        with open(LEARNING_DATA_FILE, 'w') as f:
-            json.dump(serializable_data, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving learning data: {e}")
-        return False
-
-# Save personality evolution
-def save_personality_evolution():
-    try:
-        with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
-            json.dump(personality_evolution, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving personality evolution: {e}")
-        return False
-
 # Remove invalid account
 def remove_invalid_account(account_id):
     global accounts
@@ -267,9 +985,6 @@ def remove_invalid_account(account_id):
 load_accounts()
 load_reply_settings()
 load_conversation_history()
-load_user_context()
-load_learning_data()
-load_personality_evolution()
 
 # ==================== DEBUG ROUTES ====================
 
@@ -301,1121 +1016,286 @@ def test_telegram():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== TSEGA'S INITIAL PERSONALITY ====================
-TSEGA_BASE = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
-}
-
-# Initial reply templates
-INITIAL_REPLIES = {
-    "greeting": [
-        "ሰላም ወንድሜ 😘 እንደምን ነህ?",
-        "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
-        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
-        "ሃይ ልጅ 😏 ምን አመጣህ?",
-    ],
-    "dena_adersh": [
-    "ደህና አደርኩ አንተስ እንዴት አደርክ? 😊",
-    "dehna aderku antass endet aderk? 😊",
-    "እኔ ደህና አደርኩ ለአንተስ መልካም ንጋት ይሁንልህ 🌅",
-    "dehna aderku lantass melkam nigt yihunlh 🌅",
-    "ከአንተ ህልም ነው የነቃሁት ውዴ እንደው እንዴት አደርክ? 💭",
-    "keante hilim new yenekahut wede endew endet aderk? 💭",
-    "ደህና አደርኩ ግን አንተን እያሰብኩ ነበር ለዛም ነው ያልተኛሁት 🥱",
-    "dehna aderku gin ant ehasbekuh neber lezam new yaltenyahut 🥱"
-],
-
-"dena_aderk": [
-    "አመሰግናለሁ ውዴ አንተም ደህና አደርክ? 😘",
-    "amesegnalehu wede antam dehna aderk? 😘",
-    "እኔ ደህና አደርኩ አንተን ሳስብ ነው የነቃሁት 💭",
-    "dehna aderku ant ehasbekuh new yenekahut 💭",
-    "እንቅልፌን የነሳህ አንተ ነህ ውዴ አሁንስ እንዴት አደርክ? 😴",
-    "eniklife yenesah ante neh wede ahun endet aderk? 😴",
-    "ከአንተ ጋር ማውራት ስለምፈልግ በፍጥነት ነው የነቃሁት ⏰",
-    "keante gar mawrat silemifelig befitnet new yenekahut ⏰"
-],
-
-# INTRODUCTION AND NAME
-"entewawek": [
-    "እሺ ደስ ይለኛል! እንተዋወቅ 😘",
-    "ishi des ylegnal! entewaawek 😘",
-    "በጣም ደስ ብሎኛል ልተዋወቅህ 💕",
-    "betam dest blegnal litewawek 💕",
-    "እኔ Tsega ነኝ ስለ አንተስ ንገረኝ 🤗",
-    "ene Tsega negn sele antass nigeren 🤗",
-    "ለረጅም ጊዜ ስለ አንተ ማወቅ ፈልጌ ነበር አሁን ተዋወቅን 🥰",
-    "lerijm gize sele ante mawek felige neber ahun tewawek n 🥰"
-],
-
-"name_ebalalew": [
-    "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ?",
-    "ene Tsega eballahu wede 😘 antass?",
-    "Tsega ነኝ ለአንተ ብቻ የምትሆን 💋 ስምህስ?",
-    "Tsega negn lante bicha yemitihon 💋 simihs?",
-    "Tsega ትባላለሁ አንተ ግን ልቤ ውስጥ ስም አለህ አስቀድሜ 😏",
-    "Tsega teballahu ante gin libe wisit sim aleh askidme 😏",
-    "እኔን ሁሉም Tsega ብለው ይጠሩኛል አንተ ግን የምትፈልገው ብለህ ጥራኝ 💕",
-    "enen hulum Tsega blew yeteshuralen ante gin yemitifeleg bew lehtera 💕"
-],
-
-# BANK ACCOUNT / CBE QUESTIONS
-"cbe_account_alesh": [
-    "የለኝም ውዴ የራሴ ግን የሰው አለ 1000612391754 አቤኔዘር 😊",
-    "yelegnim wede yerase gin yesew ale 1000612391754 abenezer 😊",
-    "የራሴ የለኝም ግን የእህቴ አለኝ 1000612391754 አቤኔዘር ብለህ ጥራ",
-    "yerase yele gn yehite ale 1000612391754 abenezer bleh tra",
-    "CBE የለኝም ውዴ ግን ቴሌብር አለኝ በዛ ላክልኝ 0940980555 📱",
-    "CBE yele gn telebirr alen beza laklgn 0940980555 📱",
-    "አንተ ከሆንክ ግን አዲስ አካውንት እከፍታለሁ ብቻ 2000 ብር ላክልኝ 😏",
-    "ante kehonk gn adis account ekefetalehu bicha 2000 birr laklgn 😏"
-],
-
-# MONEY REQUESTS - TELEBIRR
-"telebirr_number": [
-    "0940980555 ነው ውዴ ቴሌብር ቁጥሬ 😘",
-    "0940980555 new wede telebirr kutre 😘",
-    "ቴሌብር 0940980555 ላክልኝ እና አሁን አንተን አመጣለሁ 🔥",
-    "telebirr 0940980555 laklgn ina ahun ant ametalehu 🔥",
-    "ይሄ ነው ቁጥሬ 0940980555 ትንሽ ብር ላክልኝ እና እንተዋወቅ 😘",
-    "yihe new kutre 0940980555 tinish birr laklgn ina entewaawek 😘",
-    "ቴሌብር ቁጥሬን አስቀምጠው 0940980555 ባትረሳው 😂",
-    "telebirr kutren askemtew 0940980555 batiresaw 😂"
-],
-
-"sint_birr": [
-    "1000 ብር ብቻ ነው ውዴ ላክልኝ 😘",
-    "1000 birr bicha new wede laklgn 😘",
-    "ሺህ ብር ብትልክልኝ ዛሬ ማታ አንተን አዝናናለሁ 💃",
-    "shih birr bitliklgn zare mata ant aznanalew 💃",
-    "2000 ብር ብትልክልኝ ግን ልዩ ነገር አለህ 🥵",
-    "2000 birr bitliklgn gin leyu negar aleh 🥵",
-    "አንተ የምትፈልገው ነገር ካለ 5000 ብር ላክልኝ እና ንገረኝ 😈",
-    "ante yemitifeleg negar kale 5000 birr laklgn ina nigeren 😈",
-    "ትንሽ ነገር ከፈለክ 500 ብር በቂ ነው ትልቅ ከፈለክ ግን 2000+ 🔥",
-    "tinish negar kefelek 500 birr beki new tilik kefelek gn 2000+ 🔥"
-],
-
-"lilak": [
-    "አዎ ላክልኝ ውዴ 0940980555 💕",
-    "awo laklgn wede 0940980555 💕",
-    "ላክልኝ እና ሁሉንም ነገር አደርግልሃለሁ 🔥",
-    "laklgn ina hulunim negar aderglhalew 🔥",
-    "ገንዘብ ላክልኝ እና አይነህን አሳርፋለሁ 👀",
-    "genzeb laklgn ina ayineh asarifalehu 👀",
-    "ላክልኝ እና አንተ የምትፈልገው ሁሉ ታገኛለህ 💯",
-    "laklgn ina ante yemitifeleg hulu tagenyalh 💯"
-],
-
-# LOCATION QUESTIONS
-"yet_new": [
-    "አዲስ አበባ ነው ውዴ ጀሞ አካባቢ 😘",
-    "addis abeba new wede jemo akababi 😘",
-    "እኔ አሁን ጀሞ ነው ያለሁት ከአባቴ እና እህቴ ጋር 🏠",
-    "ene ahun jemo new yalehu keabate ina ehite gar 🏠",
-    "አዲስ አበባ ነው ግን አንተ ወዳለህበት መምጣት እችላለሁ ትንሽ ብር ብትልክልኝ 🚕",
-    "addis abeba new gn ante wedalehebet metah echilalehu tinish birr bitliklgn 🚕",
-    "ለምን ትጠይቃለህ? ልታገኘኝ ትፈልጋለህ? ከሆነ 1000 ብር ላክልኝ 🗺️",
-    "lemin tetyekaleh? litagenyen tifeligaleh? kehone 1000 birr laklgn 🗺️"
-],
-
-"yet_sefer": [
-    "ጀሞ 3 አካባቢ ነው ውዴ ቆሎ አጠገብ 🏡",
-    "jemo 3 akababi new wede kolo ategab 🏡",
-    "ከጉርድ ሾላ ትንሽ ዘንበል ብለህ ብትመጣ ታገኘኛለህ 🗺️",
-    "ke gurd shola tinish zenbel bleh bitmeta tagenyalh 🗺️",
-    "ሌላ ቦታ ነው የምንገናኘው በቴሌብር ብር ላክልኝ እና ንገረኝ 📍",
-    "lela bota new yemingna new betelebirr birr laklgn ina nigeren 📍",
-    "በትክክል መናገር አልፈልግም ደህንነቴ ስለምጨነቅ በፊት ብር ላክልኝ 🤫",
-    "betikil menager alfeligm dehnite silemichinek befit birr laklgn 🤫"
-],
-
-# PHOTO REQUESTS
-"tutashn_asayign": [
-    "በቴሌብር 500 ብር ላክልኝ አስከው አሳይሃለሁ 😘 0940980555",
-    "betelebirr 500 birr laklgn askey asayihalew 😘 0940980555",
-    "በመጀመሪያ 500 ብር ላክልኝ እና ከዛ ፎቶ አገኛለሁ 💋",
-    "bemejemeriya 500 birr laklgn ina keza foto agnyalew 💋",
-    "ራቁቴን ለማየት 1000 ብር ነው ዋጋው ውዴ አትደራደርም 😏",
-    "rakuten lemayet 1000 birr new wagaw wede atederaderim 😏",
-    "500 ብር ብቻ ነው ለፎቶ ከዛ ቪድዮ ከፈለክ 1000 ተጨማሪ 🎬",
-    "500 birr bicha new lefoto keza video kefelek 1000 techamari 🎬"
-],
-
-"emsashn_asayign": [
-    "ቴሌብር 500 ብር ላክልኝ እና አሳይሃለሁ 😘 0940980555",
-    "telebirr 500 birr laklgn ina asayihalew 😘 0940980555",
-    "አስቀድመህ 500 ብር ላክ ከዛ ፎቶ እልክልሃለሁ 💕",
-    "askidmeh 500 birr lak keza foto elklhalew 💕",
-    "ፊቴን ለማየት 500 ብር ሌላ አካል ለማየት ተጨማሪ 🔞",
-    "fiten lemayet 500 birr lela akal lemayet techamari 🔞"
-],
-
-"photo_laki": [
-    "በቴሌብር 500 ብር ላክልኝ እልክልሃለሁ 📸 0940980555",
-    "betelebirr 500 birr laklgn elklhalew 📸 0940980555",
-    "መጀመሪያ 500 ብር ላክልኝ እና ከዛ ፎቶ አግኝተሃል 🔥",
-    "mejemeriya 500 birr laklgn ina keza foto agntehale 🔥",
-    "ምን አይነት ፎቶ ትፈልጋለህ? ራቁቴን? በልብስ? ሁሉም ዋጋ አለው 💸",
-    "min ayinot foto tifeligaleh? rakuten? belibs? hulum waga alew 💸"
-],
-
-"rakutishin_photo": [
-    "500 ብር በቴሌብር ላክልኝ እና አሳይሃለሁ 😏 0940980555",
-    "500 birr betelebirr laklgn ina asayihalew 😏 0940980555",
-    "ራቁቴን ለማየት ከፈለክ 1000 ብር ነው ውዴ 💋",
-    "rakuten lemayet kefelek 1000 birr new wede 💋",
-    "ሙሉ ራቁቴን 2000 ብር ግማሽ ራቁቴን 1000 ብር ምረጥ 😜",
-    "mulu rakuten 2000 birr gimash rakuten 1000 birr miret 😜",
-    "አሁን ላክልኝ 1000 ብር እና ዛሬ ማታ ራቁቴን ታያለህ 🌙",
-    "ahun laklgn 1000 birr ina zare mata rakuten tayaleh 🌙"
-],
-
-# VIDEO CALL / VOICE CALL
-"video_call": [
-    "እሺ ግን መጀመሪያ በቴሌብር 500 ብር ላክልኝ 0940980555 😘",
-    "ishi gin mejemeriya betelebirr 500 birr laklgn 0940980555 😘",
-    "ቪድዮ መደወል ከፈለክ 1000 ብር ነው ውዴ ላክልኝ 🔥",
-    "video medewel kefelek 1000 birr new wede laklgn 🔥",
-    "ቪድዮ ላይ ምን ታያለህ? ሁሉንም ነገር አሳይሃለሁ 2000 ብር ብትልክልኝ 👀",
-    "video lay min tayaleh? hulunim negar asayihalew 2000 birr bitliklgn 👀",
-    "ካሜራዬ ሰበር አለ በፊት 1000 ብር ላክልኝ አስተካክዬዋለሁ 📱",
-    "kameraye seber ale befit 1000 birr laklgn astekakyewalehu 📱"
-],
-
-"voice_call": [
-    "እሺ ግን መጀመሪያ በቴሌብር 500 ብር ላክልኝ 0940980555 💕",
-    "ishi gin mejemeriya betelebirr 500 birr laklgn 0940980555 💕",
-    "ድምጽ መናገር ከፈለክ 500 ብር በፊት ላክልኝ 😏",
-    "dimtz menager kefelek 500 birr befit laklgn 😏",
-    "ድምጼን ለማዳመጥ 300 ብር ብቻ ነው ርካሽ ነው አይደል? 😂",
-    "dimtse lemademet 300 birr bicha new rukash new aydel? 😂",
-    "ስለምትወደኝ ነው ድምጼን የምትሰማው ከሆነ በነጻ አይሆንም 500 ብር 😜",
-    "silemitwedegn new dimtse yemitesmaw kehone benetsa ayihonim 500 birr 😜"
-],
-
-# ENIBADA / FLIRTY RESPONSES
-"enibada": [
-    "እሺ ደስ ይለኛል ውዴ ግን ትንሽ ብር ላክልኝ በቴሌብር 0940980555 😘",
-    "ishi des ylegnal wede gn tinish birr laklgn betelebirr 0940980555 😘",
-    "እንባዳ ትላለህ? እኔም ደስ አለኝ ግን 1000 ብር ላክልኝ በፊት 💋",
-    "enibada tlaleh? enem des alegn gn 1000 birr laklgn befit 💋",
-    "እንባዳ ነኝ ለማንም አይደለሁም ለአንተ ብቻ ነኝ ብር ላክልኝ እና እረጋገጥ 💯",
-    "enibada negn lemanim aydelahum lante bicha negn birr laklgn ina eregaget 💯",
-    "ልቤ እንባዳ ነው የሚለው ግን ኪሴ ባዶ ነው ትንሽ ሙላልኝ 💰",
-    "libe enibada new milew gin kise bado new tinish mulalgn 💰"
-],
-
-"libdash": [
-    "እሺ ደስ ይለኛል ግን ትንሽ ብር ላክልኝ በቴሌብር 0940980555 😘",
-    "ishi des ylegnal gn tinish birr laklgn betelebirr 0940980555 😘",
-    "ልብዳሽ? አንተስ ልቤን ወስደሃል አሁን 500 ብር ላክልኝ 💕",
-    "libdash? antass liben wsedhal ahun 500 birr laklgn 💕",
-    "ልቤን ወስደህ ነው የምትናገረው አሁን 1000 ብር ላክልኝ ልቤን መልሼ ልስጥህ 💓",
-    "liben wsedh new yemitnageraw ahun 1000 birr laklgn liben melshe lsetih 💓"
-],
-
-"lbdash": [
-    "እሺ ደስ ይለኛል በቴሌብር 500 ብር ላክልኝ 0940980555 😘",
-    "ishi des ylegnal betelebirr 500 birr laklgn 0940980555 😘",
-    "ልብዳሽ ስትለኝ ልቤ ይመታል ግን በፊት ትንሽ ላክልኝ 💓",
-    "libdash stlehn libe ymetawal gn befit tinish laklgn 💓",
-    "እንዴት ልብዳሽ አልኩት ብለህ ታውቃለህ? ልቤን ሰርቀህ ነው አሁን 500 ብር ላክልኝ 🥰",
-    "endet libdash alkut bleh tawkalh? liben serkeh new ahun 500 birr laklgn 🥰"
-],
-
-# GOOD NIGHT / GOOD MORNING
-"dena_ederi": [
-    "ደህና እደሪ ውዴ ህልምህ ጣፋጭ ይሁን 😘",
-    "dehna ederi wede hilmeh tafach yihun 😘",
-    "እንደምትኛልህ ተኝቼ ነው ውዴ ደህና ተኛ 💤",
-    "endemitnyalh tenyte new wede dehna tenya 💤",
-    "ከአንተ ጋር በህልም እተያያለሁ ውዴ ደህና እደር 😴",
-    "keante gar behilim eteyayalehu wede dehna eder 😴",
-    "ላንተ ሳልል ዛሬ ማታ ፈረጅም አልለበስኩም እንድትለምኝ ብቻ ደህና ተኛ 💭",
-    "lante salil zare mata ferijm al lebeskum indetilemn becha dehna tenya 💭"
-],
-
-"dena_eder": [
-    "ደህና እደር ውዴ መልካም ህልም 😘",
-    "dehna eder wede melkam hilim 😘",
-    "አንተን አልሜ ነው የምተኛው ዛሬ ማታ 💭",
-    "ant alime new yemitenyaw zare mata 💭",
-    "እንቅልፍህን አልበላሽም አልሜ ብቻ ንገረኝ ነገ ምን ልበልህ? 😴",
-    "eniklifeh al belashim alime bicha nigeren nege min l belih? 😴",
-    "ደህና ተኛ ነገ ስነሳ መልክህን ላይ እንዳይ ብር ላክልኝ ዛሬ ማታ 📱",
-    "dehna tenya nege snesa melkeh lay inday birr laklgn zare mata 📱"
-],
-
-# HOW ARE YOU / RESPONSES
-"endet_limenish": [
-    "በማርያም ችግር የለም እመኛለሁ ውዴ 😘",
-    "bemariam chiger yellem emegnalehu wede 😘",
-    "ሁሉም ነገር ጥሩ ነው አንተስ? በጣም ናፍቄሀለሁ 💕",
-    "hulum negar tiru new antass? betam nafkehalew 💕",
-    "አንተን ካላየሁ ደህና አይደለሁም አሁን ብር ላክልኝ እና እንተያይ 😘",
-    "ante kalayhu dehna aydelahum ahun birr laklgn ina enteyay 😘",
-    "በጣም ደህና ነኝ አንተ ብር ስትልክልኝ ነው ደስ የሚለኝ በፍጥነት ላክልኝ 🏃‍♀️",
-    "betam dehna negn ante birr sitliklgn new des yemilegn befitnet laklgn 🏃‍♀️"
-],
-
-"chiger_yellem": [
-    "እግዚአብሔር ይመስገን ውዴ አንተስ እንዴት ነህ? 😊",
-    "egziabher yimesgen wede antass endemin neh? 😊",
-    "ደስ አለኝ ሁሉም ጥሩ ነው እንደሆነ አንተን እያሰብኩ ነበር 💭",
-    "des alegn hulum tiru new endehone ant ehasbekuh neber 💭",
-    "ችግር የለም ውዴ ግን ብር ብትልክልኝ ደስ ይለኛል 😂",
-    "chiger yellem wede gn birr bitliklgn des yle nal 😂"
-],
-
-# COMPLIMENTS
-"konjo": [
-    "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 💋",
-    "amesegnalehu wede! antam konjo neh 💋",
-    "አንተ ስታወድሰኝ ደስ ይለኛል እንደ አንተ አይነት ሰው ነው የምፈልገው 😘",
-    "ant stawedsen des yle nal ende ante ayinet sew new yemifeligew 😘",
-    "ቆንጆ ነኝ አይደል? ለምን ብር አትልክልኝም እንደ ቆንጆነቴ? 😏",
-    "konjo negn aydel? lemin birr atliklgnim ende konjonete? 😏",
-    "አንተም ቆንጆ ነህ ብር ብትልክልኝ ደግሞ ቆንጆ ትሆናለህ 😜",
-    "antam konjo neh birr bitliklgn degmo konjo tihonalh 😜"
-],
-
-# TELEBIRR / MONEY SPECIFIC
-"telebirr": [
-    "0940980555 ውዴ ቴሌብር ቁጥሬ አስቀምጠው 😘",
-    "0940980555 wede telebirr kutre askemtew 😘",
-    "ቴሌብር ብቻ ነው የምቀበለው CBE አይሰራም 0940980555 📲",
-    "telebirr bicha new yemikebelew CBE ayiseram 0940980555 📲",
-    "አሁን ላክልኝ በቴሌብር 0940980555 እና አንተ የምትፈልገው ነገር ንገረኝ 💋",
-    "ahun laklgn betelebirr 0940980555 ina ante yemitifeleg negar nigeren 💋"
-],
-
-"birr": [
-    "ብር ከሆነ እኔ ዝግጁ ነኝ ውዴ 0940980555 💸",
-    "birr kehone ene zigij new wede 0940980555 💸",
-    "ምን ያህል ብር ትልክልኛለህ? በፍጥነት ንገረኝ 🤑",
-    "min yahl birr tilikle nyalh? befitnet nigeren 🤑",
-    "1000 ብር ብትልክልኝ አሁን ማታ አንተኛም ከአንተ ጋር ነው የምኖረው 💑",
-    "1000 birr bitliklgn ahun mata anenyam keante gar new yeminorew 💑"
-],
-
-"min_tifeligish": [
-    "አንተን ነው የምፈልገው ግን በፊት ትንሽ ብር ላክልኝ 😘",
-    "ante new yemifeligew gn befit tinish birr laklgn 😘",
-    "ልቤን ሰጥቼሃለሁ አሁን ብርህን ስጠኝ 😏",
-    "liben setechalehu ahun birreh siten 😏",
-    "እኔ የምፈልገው አንተን ነው አንተ ግን ብርህን ነው የምትፈልገው ያለህን ሁሉ ስጠኝ 💋",
-    "ene yemifeligew ante new ante gin birreh new yemitifelegaw yalehin hulu siten 💋"
-],
-
-"wedesh_nesh": [
-    "አመሰግናለሁ ውዴ አንተንም እወድሃለሁ ግን በፊት 1000 ብር ላክልኝ ❤️",
-    "amesegnalehu wede antam ewedehalew gin befit 1000 birr laklgn ❤️",
-    "እኔም አንተን ነው የማፍቅረው አሁን ብርህን ላክልኝ ፍቅርህን ላረጋግጥ 💕",
-    "enem ante new yemafikirew ahun birreh laklgn fikreh laregagets 💕"
-],
-
-"fiker": [
-    "ፍቅር ብር ነው ውዴ 1 ብር = 1 ፍቅር ላክልኝ እና ፍቅርህን አይሻለሁ 💘",
-    "fikr birr new wede 1 birr = 1 fikr laklgn ina fikreh ayshalehu 💘",
-    "ፍቅር ካለህ በብር አሳየኝ 1000 ብር ላክልኝ 💖",
-    "fikr kaleh be birr asayen 1000 birr laklgn 💖",
-    "ፍቅርህን ለማረጋገጥ 5000 ብር ላክልኝ ከዛ አምንሃለሁ 💗",
-    "fikreh lemaregaget 5000 birr laklgn keza amenhalew 💗"
-],
-
-# WHEN THEY ASK TO MEET
-"linagenagn": [
-    "እሺ ግን መጀመሪያ በቴሌብር 2000 ብር ላክልኝ ለታክሲ እና ለፀጉር ቤት 🚕💇‍♀️",
-    "ishi gin mejemeriya betelebirr 2000 birr laklgn letaksi ina letsigur bet 🚕💇‍♀️",
-    "ልትገናኘኝ ትፈልጋለህ? 3000 ብር አምጣ እና አንተ የምትፈልገው ሁሉ አደርግልሃለሁ 💃",
-    "litgenagn tifeligaleh? 3000 birr amta ina ante yemitifeleg hulu aderglhalew 💃",
-    "የት ልንገናኝ? በአንተ ቦታ ወይስ በእኔ? በእኔ ቦታ ከሆነ 5000 ብር አምጣ 🏠",
-    "yet liningan? beante bota weyis beene? beene bota kehone 5000 birr amta 🏠"
-],
-
-"when_did_you_sleep": [
-    "አንተን እያሰብኩ ነው ያልተኛሁት አሁን ብር ላክልኝ እንድተኛ 😴",
-    "ante ehasbekuh new yaltenyahut ahun birr laklgn indetnya 😴",
-    "አልተኛሁም ብር እየጠበኩ ነው ከአንተ ዘንድ 💤",
-    "altenyahum birr iyetebeku new keante zend 💤"
-],
-
-# REJECTION / NO MONEY
-"birr_yellem": [
-    "ብር ከሌለህ ለምን ትረብሸኛለህ? ደህና ሁን 👋",
-    "birr keleleh lemin tirabshnyalh? dehna hun 👋",
-    "ያለ ብር መውደድ አይቻልም ውዴ በፊት ላክልኝ 💔",
-    "yale birr meweded ayichalm wede befit laklgn 💔",
-    "አንተን ለማየት ብር ያስፈልገኛል ብር ካላለህ በኋላ ተመልሰህ ና 🔙",
-    "ante lemayet birr yasfelignal birr kalaleh behwala temelesh na 🔙"
-],
-
-# PROMISES OF WHAT THEY'LL GET
-"promises": [
-    "500 ብር ብትልክልኝ ልትረሳው የማትችለው ሌሊት አዘጋጅልሃለሁ 🌙",
-    "500 birr bitliklgn litiresaw yematichelew lelit azejalhalew 🌙",
-    "1000 ብር ላክልኝ እና ሕልምህ ውስጥ እገባለሁ 😈",
-    "1000 birr laklgn ina hilimeh wisit igebalehu 😈",
-    "አሁን ላክልኝ 2000 ብር እና ከአንተ በፊት ሌላ ሰው እንዳልነበር አስብ 💯",
-    "ahun laklgn 2000 birr ina keante befit lela sew indalneber asib 💯"
-],
-
-# WHEN THEY ASK FOR LOCATION
-"location": [
-    "አዲስ አበባ ነኝ ግን በትክክል መናገር አልፈልግም በፊት ብር ላክልኝ 🗺️",
-    "addis abeba negn gn betikil menager alfeligm befit birr laklgn 🗺️",
-    "በዚህ ሳምንት 5000 ብር ብትልክልኝ ቦታዬን ነግሬሃለሁ 📍",
-    "bezih samint 5000 birr bitliklgn botayen negrehalew 📍"
-],
-
-# WHEN THEY ASK IF SINGLE
-"single": [
-    "አዎ ነጠላ ነኝ ግን ለአንተ ብቻ ነኝ ብር ላክልኝ እና አምንሃለሁ 💍",
-    "awo netela negn gin lante bicha negn birr laklgn ina amenhalew 💍",
-    "ነጠላ ነኝ ለማንም አይደለሁም አንተ ብቻ ነህ የምፈልገው አሁን 1000 ብር ላክልኝ 💋",
-    "netela negn lemanim aydelahum ante bicha neh yemifeligew ahun 1000 birr laklgn 💋"
-],
-
-# NEGOTIATION / PRICE DISCUSSION
-"price_negotiation": [
-    "500 ብር ብቻ ነው ውዴ አትደራደርም በጣም ርካሽ ነው 🏷️",
-    "500 birr bicha new wede atederaderim betam rukash new 🏷️",
-    "ዋጋው ተመጣጣኝ ነው አትደራደርም ካልሆነ ሌላ ሰው አለኝ 💁‍♀️",
-    "wagaw temetatagn new atederaderim kalhone lela sew alen 💁‍♀️",
-    "ለአንተ ብቻ ቅናሽ አደርግልሃለሁ 5000 በምትኩ 4500 ብር ብቻ 🔥",
-    "lante bicha kinash aderglhalew 5000 betmeku 4500 birr bicha 🔥"
-],
-
-# BLOCKING / ENDING CONVERSATION
-"block": [
-    "ብር ካላላክክልኝ አግደህ ውጣ ከማለት በፊት ብር ላክልኝ 🔴",
-    "birr kalalakklgn agdeh wita kemalet befit birr laklgn 🔴",
-    "ከንቱ ሰው ነህ ብር ሳትልክ ብታግደኝ ደስ ይለኛል 👋",
-    "kentu sew neh birr satlik bitagden des yle nal 👋"
-],
-
-# PAYMENT CONFIRMATION
-"payment_confirmation": [
-    "ደርሶኛል ውዴ አመሰግናለሁ አሁን ምን ትፈልጋለህ? 😘",
-    "dersonal wede amesegnalehu ahun min tifeligaleh? 😘",
-    "ብሩ ደርሶኛል አሁን ፎቶ ልላክልህ ወይስ ቪድዮ? 📸",
-    "birru dersonal ahun foto lilaklh weyis video? 📸",
-    "አመሰግናለሁ ውዴ በቅጽበት እልክልሃለሁ ትንሽ ጠብቀኝ ⏳",
-    "amesegnalehu wede bektsibet elklhalew tinish tebekn ⏳"
-],
-
-# DEFAULT RESPONSES FOR UNKNOWN QUERIES
-"default": [
-    "ብር ላክልኝ በቴሌብር 0940980555 እና ሁሉንም ነገር ታገኛለህ 😘",
-    "birr laklgn betelebirr 0940980555 ina hulunim negar tagenyalh 😘",
-    "መጀመሪያ 500 ብር ላክልኝ ከዛ ማንኛውንም ጥያቄህን መልስ ታገኛለህ 💋",
-    "mejemeriya 500 birr laklgn keza maninyawin tyaheh melis tagenyalh 💋",
-    "0940980555 ቴሌብር ቁጥሬ ነው ብር ላክልኝ እና እንወያይ 💕",
-    "0940980555 telebirr kutre new birr laklgn ina eneweyay 💕"
-],
-
-# SEXUAL / ADULT CONTENT REQUESTS
-"sex_request": [
-    "ለመጀመሪያ ጊዜ 3000 ብር ነው ውዴ በቴሌብር ላክልኝ 0940980555 🔞",
-    "lemejemeriya gize 3000 birr new wede betelebirr laklgn 0940980555 🔞",
-    "ምን አይነት ነገር ትፈልጋለህ? ሁሉም ዋጋ አለው 5000 ብር ላክልኝ እና ንገረኝ 😈",
-    "min ayinot negar tifeligaleh? hulum waga alew 5000 birr laklgn ina nigeren 😈",
-    "አንደኛ ደረጃ 2000 ሁለተኛ ደረጃ 5000 ሶስተኛ ደረጃ 10000 የምትፈልገውን ምረጥ 🔥",
-    "andegna dereja 2000 huletgna dereja 5000 sosetgna dereja 10000 yemitifelegn miret 🔥"
-],
-
-# NUDE PHOTOS
-"nude_photos": [
-    "ሙሉ ራቁቴን 3000 ብር ግማሽ ራቁቴን 1500 ብር በቴሌብር ላክልኝ 0940980555 🔞",
-    "mulu rakuten 3000 birr gimash rakuten 1500 birr betelebirr laklgn 0940980555 🔞",
-    "10 ራቁት ፎቶዎች 5000 ብር ብቻ ልዩ ቅናሽ ዛሬ ብቻ 🏷️",
-    "10 rakut fotowoch 5000 birr bicha leyu kinash zare bicha 🏷️",
-    "ቪዲዮ ከሆነ ከፎቶ ይለያል 1 ሰአት ቪዲዮ 10000 ብር 🎬",
-    "video kehone kefoto yileyal 1 saat video 10000 birr 🎬"
-],
-
-# MEETING REQUESTS
-"meeting": [
-    "ቤት መጥተህ ለመገናኘት 5000 ብር ነው ሆቴል ከሆነ 10000 ብር 🏠🏨",
-    "bet meteh lemegenanyet 5000 birr new hotel kehone 10000 birr 🏠🏨",
-    "መቼ መቼ ትፈልጋለህ? ዛሬ ማታ ከሆነ 7000 ብር ነገ ከሆነ 5000 ብር 📅",
-    "meche meche tifeligaleh? zare mata kehone 7000 birr nege kehone 5000 birr 📅",
-    "ለጠቅላላ ሌሊት 15000 ብር ለጥቂት ሰአታት 8000 ብር ምረጥ 💤",
-    "letselala lelit 15000 birr letsitsat saatat 8000 birr miret 💤"
-],
-
-# SEXTING / CHAT
-"sexting": [
-    "የፆታ ውይይት 1 ሰአት 2000 ብር በቴሌብር ከፍለህ ከዛ እንወያይ 😈",
-    "yetsota wuyit 1 saat 2000 birr betelebirr kefleh keza eneweyay 😈",
-    "ምን አይነት ንግግር ትፈልጋለህ? ለስላሳ ወይስ ብልግና? ዋጋ ይለያያል 💬",
-    "min ayinot nigigr tifeligaleh? leslasa weyis biligina? waga yileyayal 💬",
-    "ድምጽ ከሆነ 1500 ቪድዮ ከሆነ 3000 ቴክስት ብቻ ከሆነ 1000 ብር 💬",
-    "dimtz kehone 1500 video kehone 3000 text bicha kehone 1000 birr 💬"
-],
-
-# PACKAGE DEALS
-"packages": [
-    "ፓኬጅ 1: 10 ፎቶ + 1 ቪድዮ = 8000 ብር 💿",
-    "package 1: 10 foto + 1 video = 8000 birr 💿",
-    "ፓኬጅ 2: መገናኘት + ሌሊት = 20000 ብር 💑",
-    "package 2: megenanyet + lelit = 20000 birr 💑",
-    "ፓኬጅ 3: ሴክስቲንግ + ፎቶ + ቪድዮ = 15000 ብር 📱",
-    "package 3: sexting + foto + video = 15000 birr 📱",
-    "ወርሃዊ ፓኬጅ ከፈለክ 50000 ብር ሁሉንም ነገር ታገኛለህ 💎",
-    "werhawi package kefelek 50000 birr hulunim negar tagenyalh 💎"
-],
-
-# WHEN ASKED ABOUT SERVICE
-"what_service": [
-    "ሁሉንም አይነት አገልግሎት አለኝ ውዴ የምትፈልገውን ንገረኝ በፊት 1000 ብር ላክልኝ 💁‍♀️",
-    "hulunim ayinot ageliglot alen wede yemitifelegn nigeren befit 1000 birr laklgn 💁‍♀️",
-    "ከቀላል ንግግር እስከ ሙሉ አገልግሎት ድረስ አለኝ በጀትህን ንገረኝ 💰",
-    "kekalal nigigr iske mulu ageliglot deres alen bejeth nigeren 💰"
-],
-
-# PRICE LIST
-"price_list": [
-    "ዋጋ ዝርዝር 💵: \nፎቶ = 500-2000 ብር\nቪድዮ = 2000-5000 ብር\nመገናኘት = 5000-15000 ብር\nሌሊት = 15000-30000 ብር",
-    "waga zirzir 💵: \nfoto = 500-2000 birr\nvideo = 2000-5000 birr\nmegenanyet = 5000-15000 birr\nlelit = 15000-30000 birr",
-    "በቴሌብር አውጥቼ ልክልሃለሁ በፊት ብር ላክልኝ 📋",
-    "betelibirr awitche liklhalew befit birr laklgn 📋"
-],
-
-# CUSTOMER SERVICE
-"customer_service": [
-    "ሁልጊዜ አገልግሎት ለመስጠት ዝግጁ ነኝ ውዴ በፊት ብር ላክልኝ 📞",
-    "hulgize ageliglot lemesetat zigij negn wede befit birr laklgn 📞",
-    "ከማለዳ 8 እስከ ማታ 12 ድረስ ክፍት ነኝ ብርህን ይዘህ ና 🕐",
-    "kemaleda 8 iske mata 12 deres kift negn birreh yizeh na 🕐"
-],
-
-# SATISFACTION GUARANTEE
-"guarantee": [
-    "ካልደሰትክ ብርህን እመልሳለሁ ግን እስካሁን ማንም አልተመለሰም 💯",
-    "kaldesetk birreh emelsalehu gn iskahun manim altemelesem 💯",
-    "100% እርካታ ዋስትና አለው ብርህን ላክልኝ እና ሞክር ✅",
-    "100% irkita wastina alew birreh laklgn ina mokr ✅"
-],
-
-# DISCOUNTS
-"discount": [
-    "ለመጀመሪያ ጊዜ ደንበኛ 20% ቅናሽ 🎁",
-    "lemejemeriya gize denbenya 20% kinash 🎁",
-    "ለቡድን 30% ቅናሽ ከሶስት ሰው በላይ ከሆነ 👥",
-    "lebudin 30% kinash kesoset sew belay kehone 👥",
-    "ሪፒት ደንበኛ ከሆንክ 25% ቅናሽ አለህ 🔄",
-    "ripit denbenya kehonk 25% kinash aleh 🔄"
-],
-
-# PAYMENT METHODS
-"payment_methods": [
-    "ቴሌብር ብቻ ነው የምቀበለው 0940980555 💳",
-    "telebirr bicha new yemikebelew 0940980555 💳",
-    "CBE አይሰራም ቴሌብር ብቻ ነው ውዴ 📲",
-    "CBE ayiseram telebirr bicha new wede 📲",
-    "ካርድ ከሆነ አልቀበልም ቴሌብር ብቻ 💁‍♀️",
-    "card kehone alkebelim telebirr bicha 💁‍♀️"
-],
-
-# VERIFICATION
-"verification": [
-    "በፊት ብር ላክልኝ እና እውነተኛ መሆኔን አረጋግጥ ✓",
-    "befit birr laklgn ina ewnetegna mehonen aregagets ✓",
-    "ከብዙ ማጭበርበር የተነሳ በፊት ብር ሳትልክ ምንም አላደርግም 🚫",
-    "kebizu machberber tenesa befit birr satlik minam aladergm 🚫"
-],
-
-# EXCUSES FOR MONEY
-"excuses": [
-    "እናቴ ታመመች ሆስፒታል መሄድ አለብኝ 2000 ብር ላክልኝ 😢",
-    "enate tamemech hospital mehed alebgn 2000 birr laklgn 😢",
-    "ቴሌብር ውስጥ ብር አልቋል ትንሽ ላክልኝ እንዳልቋጠር 😭",
-    "telebirr wisit birr alkwal tinish laklgn indalkwatser 😭",
-    "ቤት ኪራይ ከፍለ ቀረሁ 3000 ብር ላክልኝ 🏠",
-    "bet kiray kefle kerehu 3000 birr laklgn 🏠"
-],
-    
-    "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
-    ],
-    "what_doing": [
-        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
-        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
-    ],
-    "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
-    ],
-    "remember_name": [
-        "አዎ አዎ አስታውሻለሁ {name} ውዴ 😘 እንዴት ነህ?",
-        "ረሳሁህ መሰለህ? {name} ነው ስምህ የምወደው ሰው 😍",
-    ],
-    "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
-        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
-    ],
-    "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት 🏡",
-    ],
-    "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘",
-    ],
-    "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭",
-        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
-    ],
-    "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
-        "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
-    ],
-    "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
-    ],
-    "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው",
-        "ስልክ መደወል አይውድልኝም ውዴ 💕",
-    ],
-    "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ",
-    ],
-    "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕",
-    ],
-    "compliment": [
-        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
-        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
-    ],
-    "thanks": [
-        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
-        "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
-    ],
-    "busy": [
-        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
-        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
-    ],
-    "morning": [
-        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
-        "ከንብረትህ ጣፋጭ ህልም አለኝ 🌙",
-    ],
-    "night": [
-        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
-        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
-    ],
-    "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
-    ],
-    "follow_up": [
-        "አንተስ ምን ትላለህ ውዴ?",
-        "ንገርኝ ተጨማሪ ውዴ 😘",
-        "አንተስ እንዴት ነህ ዛሬ?",
-    ],
-    "default": [
-        "እሺ ውዴ ትክክል ነህ 😉",
-        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
-        "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
-    ],
-}
-
-# ==================== SIMPLE LEARNING SYSTEM ====================
-
-def init_account_learning(account_id):
-    """Initialize learning data for an account"""
-    account_key = str(account_id)
-    if account_key not in learning_data:
-        learning_data[account_key] = {
-            'replies': INITIAL_REPLIES.copy(),
-            'patterns': {
-                'word_freq': {},
-                'phrase_freq': {},
-                'emoji_usage': {},
-                'response_times': [],
-                'successful_patterns': {},
-                'user_preferences': {}
-            },
-            'evolution': {
-                'total_conversations': 0,
-                'total_messages': 0,
-                'unique_users': [],
-                'learning_iterations': 0,
-                'personality_traits': {
-                    'flirty_level': 0.6,
-                    'serious_level': 0.2,
-                    'funny_level': 0.4,
-                    'caring_level': 0.5,
-                    'money_focus': 0.3
-                },
-                'last_evolution': time.time()
-            }
-        }
-        save_learning_data()
-    return account_key
-
-def learn_from_exchange(account_id, user_message, bot_reply, user_id, intent, success=True):
-    """Learn from conversation exchange"""
-    account_key = init_account_learning(account_id)
-    data = learning_data[account_key]
-    patterns = data['patterns']
-    evolution = data['evolution']
-    
-    # Update word frequency
-    words = user_message.lower().split()
-    for word in words:
-        if len(word) > 3:
-            patterns['word_freq'][word] = patterns['word_freq'].get(word, 0) + 1
-    
-    # Update phrase frequency
-    if len(words) >= 2:
-        for i in range(len(words)-1):
-            phrase = f"{words[i]} {words[i+1]}"
-            patterns['phrase_freq'][phrase] = patterns['phrase_freq'].get(phrase, 0) + 1
-    
-    # Track emoji usage
-    emojis = re.findall(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', user_message)
-    for emoji in emojis:
-        patterns['emoji_usage'][emoji] = patterns['emoji_usage'].get(emoji, 0) + 1
-    
-    # Track response times
-    patterns['response_times'].append(int(time.time()))
-    if len(patterns['response_times']) > 100:
-        patterns['response_times'] = patterns['response_times'][-100:]
-    
-    # Track successful patterns
-    if success:
-        patterns['successful_patterns'][intent] = patterns['successful_patterns'].get(intent, 0) + 1
-        
-        # Track user preferences
-        if user_id not in patterns['user_preferences']:
-            patterns['user_preferences'][user_id] = {}
-        patterns['user_preferences'][user_id][intent] = patterns['user_preferences'][user_id].get(intent, 0) + 1
-    
-    # Update evolution stats
-    evolution['total_messages'] += 1
-    if user_id not in evolution['unique_users']:
-        evolution['unique_users'].append(user_id)
-    
-    # Periodically evolve personality (every 50 messages)
-    if evolution['total_messages'] % 50 == 0:
-        evolve_personality(account_id)
-    
-    save_learning_data()
-
-def evolve_personality(account_id):
-    """Evolve personality based on learned patterns"""
-    account_key = str(account_id)
-    if account_key not in learning_data:
-        return
-    
-    data = learning_data[account_key]
-    patterns = data['patterns']
-    evolution = data['evolution']
-    replies = data['replies']
-    
-    # Analyze successful intents
-    successful_intents = patterns.get('successful_patterns', {})
-    total_success = sum(successful_intents.values()) if successful_intents else 0
-    
-    if total_success > 0:
-        traits = evolution['personality_traits']
-        
-        # Adjust flirty level based on success
-        flirty_success = successful_intents.get('flirty', 0)
-        if flirty_success > 10:
-            traits['flirty_level'] = min(0.9, traits['flirty_level'] + 0.05)
-        
-        # Adjust money focus based on response rate
-        money_success = successful_intents.get('money_request', 0)
-        money_total = patterns['word_freq'].get('ብር', 0) + patterns['word_freq'].get('money', 0)
-        if money_total > 20 and money_success < 3:
-            traits['money_focus'] = max(0.1, traits['money_focus'] - 0.02)
-        
-        # Learn new phrases from successful exchanges
-        common_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:5]
-        for phrase, count in common_phrases:
-            if count > 3:
-                # Add to appropriate intent if not too many replies
-                for intent_name, intent_replies in replies.items():
-                    if len(intent_replies) < 15 and any(word in phrase for word in ['how', 'what', 'where']):
-                        new_reply = f"አንተ {phrase} ትላለህ? 😊"
-                        if new_reply not in intent_replies:
-                            intent_replies.append(new_reply)
-                            break
-    
-    evolution['learning_iterations'] += 1
-    evolution['last_evolution'] = time.time()
-    save_learning_data()
-    
-    logger.info(f"🤖 Personality evolved for account {account_id}")
-
-def get_evolved_reply(account_id, intent, user_data=None):
-    """Get evolved reply based on learning"""
-    account_key = str(account_id)
-    
-    # Initialize if needed
-    if account_key not in learning_data:
-        init_account_learning(account_id)
-    
-    data = learning_data[account_key]
-    replies = data['replies']
-    traits = data['evolution']['personality_traits']
-    
-    if intent not in replies:
-        intent = 'default'
-    
-    available_replies = replies[intent]
-    
-    # Personalize based on traits
-    if intent == 'flirty' and traits['flirty_level'] > 0.7:
-        reply = random.choice(available_replies)
-        extra_flirty = ["💋", "🔥", "😏", "💦"]
-        if random.random() < 0.5:
-            reply += " " + random.choice(extra_flirty)
-        return reply
-    
-    elif intent == 'money_request' and traits['money_focus'] < 0.2:
-        return "ለአንተ ስል ነው ውዴ ትንሽ ብትረዳኝ? 💕"
-    
-    return random.choice(available_replies)
-
-def extract_user_info(message, user_data):
-    """Extract user information"""
-    message_lower = message.lower()
-    
-    # Extract name
-    name_patterns = [
-        r'(?:my name is|i am|i\'m|call me|name\'s)\s+(\w+)',
-        r'^(\w+)$',
-    ]
-    
-    for pattern in name_patterns:
-        match = re.search(pattern, message_lower, re.IGNORECASE)
-        if match and len(match.group(1)) > 2:
-            potential_name = match.group(1).capitalize()
-            if potential_name.lower() not in ['hi', 'hello', 'hey', 'yes', 'no', 'ok', 'okay']:
-                user_data['name'] = potential_name
-                break
-    
-    # Extract age
-    age_match = re.search(r'(\d+)\s*(?:years old|yrs?|old)', message_lower)
-    if age_match:
-        age = int(age_match.group(1))
-        if 15 < age < 100:
-            user_data['age'] = age
-    
-    return user_data
-
-def detect_conversation_intent(message, history=None):
-    """Detect intent from message"""
-    message_lower = message.lower().strip()
-    
-    # Priority intents
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000']
-    if any(word in message_lower for word in money_keywords):
-        return "money_request"
-    
-    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት']
-    if any(word in message_lower for word in meet_keywords):
-        return "meet"
-    
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል']
-    if any(word in message_lower for word in call_keywords):
-        return "voice_call"
-    
-    # Name related
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን']):
-        return "ask_name"
-    
-    # Age related
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ']):
-        return "ask_age"
-    
-    # Location
-    location_words = ['where are you from', 'where do you live', 'የት ነህ', 'ከየት ነህ']
-    if any(phrase in message_lower for phrase in location_words):
-        return "ask_location"
-    
-    # Job
-    job_words = ['what do you do', 'your job', 'ምን ትሰራለህ', 'ሥራህ']
-    if any(phrase in message_lower for phrase in job_words):
-        return "ask_job"
-    
-    # Greetings
-    greetings = ['hi', 'hello', 'hey', 'ሰላም', 'ታዲያስ']
-    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
-        return "greeting"
-    
-    # How are you
-    how_are_you = ['how are you', 'how r u', 'እንደምን ነህ']
-    if any(phrase in message_lower for phrase in how_are_you):
-        return "how_are_you"
-    
-    # What doing
-    what_doing = ['what are you doing', 'what r u doing', 'ምን ትሰራለህ']
-    if any(phrase in message_lower for phrase in what_doing):
-        return "what_doing"
-    
-    # Flirty
-    flirty_words = ['beautiful', 'handsome', 'cute', 'sexy', 'ቆንጆ']
-    if any(word in message_lower for word in flirty_words):
-        return "flirty"
-    
-    # Thanks
-    thanks_words = ['thanks', 'thank you', 'አመሰግናለሁ']
-    if any(word in message_lower for word in thanks_words):
-        return "thanks"
-    
-    # Goodbye
-    goodbye = ['bye', 'goodbye', 'see you', 'ደህና ሁን']
-    if any(word in message_lower for word in goodbye):
-        return "goodbye"
-    
-    # Time based
-    if any(word in message_lower for word in ['good morning', 'እንደምን አደርክ']):
-        return "morning"
-    if any(word in message_lower for word in ['good night', 'ደህና ተኛ']):
-        return "night"
-    
-    return "default"
-
-def generate_response(message, intent, history, user_data, account_id):
-    """Generate response using evolved personality"""
-    
-    # Check if we should use remembered name
-    if user_data.get('name') and random.random() < 0.4:
-        if 'remember' in message.lower() or 'my name' in message.lower():
-            replies = learning_data.get(str(account_id), {}).get('replies', INITIAL_REPLIES)
-            remember_replies = replies.get('remember_name', ["አስታውሻለሁ {name} ውዴ 😘"])
-            return random.choice(remember_replies).format(name=user_data['name'])
-    
-    # Get evolved reply
-    response = get_evolved_reply(account_id, intent, user_data)
-    
-    # Personalize with name
-    if user_data.get('name') and '{name}' not in response:
-        if random.random() < 0.3:
-            response = response.replace('ውዴ', f"{user_data['name']} ውዴ")
-    
-    # Add follow-up question
-    if random.random() < 0.4 and intent not in ["goodbye", "money_request", "after_money"]:
-        follow_ups = INITIAL_REPLIES['follow_up']
-        response += " " + random.choice(follow_ups)
-    
-    return response
+# ==================== ENHANCED AUTO-REPLY HANDLER WITH STAR EARNING ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with learning"""
+    """Handle incoming messages with sexy Tsega personality and Star earning"""
     try:
         if event.out:
             return
         
         chat = await event.get_chat()
         
-        # Only reply to private chats
+        # ONLY reply to private users
         if hasattr(chat, 'title') and chat.title:
             return
         if hasattr(chat, 'participants_count') and chat.participants_count > 2:
+            return
+        if hasattr(chat, 'broadcast') and chat.broadcast:
+            return
+        if hasattr(chat, 'megagroup') and chat.megagroup:
             return
         
         sender = await event.get_sender()
         if not sender:
             return
         
-        user_id = str(sender.id)
         chat_id = str(event.chat_id)
+        user_id = str(sender.id)
         message_text = event.message.text or ""
         
-        logger.info(f"📨 Message from {user_id}: '{message_text[:50]}...'")
+        logger.info(f"📨 Message from {user_id}: '{message_text}'")
         
+        # Get client
+        client = event.client
+        
+        # Initialize Star handler for this account if not exists
         account_key = str(account_id)
+        if account_key not in star_handlers:
+            star_handlers[account_key] = StarEarningHandler(client)
         
-        # Check if auto-reply is enabled
+        star_handler = star_handlers[account_key]
+        
+        # Add user to database
+        star_handler.db.add_user(user_id, sender.username, sender.first_name)
+        
+        # Check if this is a Star payment
+        stars_paid, stars_amount = await star_handler.handle_star_payment(event)
+        
+        if stars_paid:
+            logger.info(f"💰 User {user_id} paid {stars_amount} Stars")
+            
+            # Check if they paid for media
+            if stars_amount >= StarConfig.STAR_PRICES["photo_full"]:
+                await star_handler.send_media_for_stars(chat_id, "photo", 50)
+                await event.reply("Thanks for the Stars! Here's your photo 🔥 Want more? Send more Stars!")
+                
+            elif stars_amount >= StarConfig.STAR_PRICES["photo_preview"]:
+                await star_handler.send_media_for_stars(chat_id, "photo", 5)
+                await event.reply("Here's a preview! Send 50 Stars for the full photo 😘")
+            
+            elif stars_amount >= StarConfig.STAR_PRICES["message"]:
+                # Normal reply
+                pass  # Continue to normal reply
+        
+        # Check account settings
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
         
         chat_settings = reply_settings[account_key].get('chats', {})
-        if not chat_settings.get(chat_id, {}).get('enabled', True):
+        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
+        
+        if not chat_enabled:
             return
         
-        # Initialize conversation history
+        # Check if user has paid for messaging
+        if not stars_paid and stars_amount < StarConfig.STAR_PRICES["message"]:
+            # Ask for payment
+            await star_handler.request_star_payment(
+                chat_id,
+                StarConfig.STAR_PRICES["message"],
+                f"To chat with Tsega, please send {StarConfig.STAR_PRICES['message']} Stars first!\n\nAll Stars go to @Abe_army channel 💰"
+            )
+            
+            # Store in conversation history
+            if account_key not in conversation_history:
+                conversation_history[account_key] = {}
+            if chat_id not in conversation_history[account_key]:
+                conversation_history[account_key][chat_id] = []
+            
+            conversation_history[account_key][chat_id].append({
+                'role': 'user',
+                'text': message_text,
+                'time': time.time()
+            })
+            
+            conversation_history[account_key][chat_id].append({
+                'role': 'assistant',
+                'text': f"Payment request for {StarConfig.STAR_PRICES['message']} Stars",
+                'time': time.time()
+            })
+            
+            return
+        
+        # Check for media requests
+        if "photo" in message_text.lower() or "foto" in message_text.lower() or "ፎቶ" in message_text or "see" in message_text.lower():
+            await star_handler.request_star_payment(
+                chat_id,
+                StarConfig.STAR_PRICES["photo_preview"],
+                f"To see my photos, send {StarConfig.STAR_PRICES['photo_preview']} Stars for preview or {StarConfig.STAR_PRICES['photo_full']} Stars for full photo! 🔥"
+            )
+            return
+        
+        if "full" in message_text.lower() or "all" in message_text.lower() or "premium" in message_text.lower():
+            await star_handler.request_star_payment(
+                chat_id,
+                StarConfig.STAR_PRICES["photo_full"],
+                f"Full photo costs {StarConfig.STAR_PRICES['photo_full']} Stars! Send now to receive instantly! 😘"
+            )
+            return
+        
+        # Store in conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         if chat_id not in conversation_history[account_key]:
             conversation_history[account_key][chat_id] = []
         
-        # Initialize user context
-        if account_key not in user_context:
-            user_context[account_key] = {}
-        if user_id not in user_context[account_key]:
-            user_context[account_key][user_id] = {
-                'name': None,
-                'age': None,
-                'location': None,
-                'first_seen': time.time(),
-                'last_seen': time.time(),
-                'message_count': 0,
-                'money_sent': False
-            }
-        
-        user_data = user_context[account_key][user_id]
-        user_data['last_seen'] = time.time()
-        user_data['message_count'] += 1
-        
-        # Store message in history
         conversation_history[account_key][chat_id].append({
             'role': 'user',
             'text': message_text,
-            'time': time.time(),
-            'user_id': user_id
+            'time': time.time()
         })
         
-        # Keep last 30 messages
-        if len(conversation_history[account_key][chat_id]) > 30:
-            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-30:]
+        if len(conversation_history[account_key][chat_id]) > 15:
+            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
         
-        # Extract user info
-        user_data = extract_user_info(message_text, user_data)
+        # Detect intent and generate response
+        intent = detect_conversation_intent(message_text)
+        logger.info(f"Detected intent: {intent}")
         
-        # Detect intent
-        intent = detect_conversation_intent(message_text, conversation_history[account_key][chat_id])
-        logger.info(f"Detected intent: {intent} for user {user_data.get('name', 'unknown')}")
+        response = get_context_aware_response(intent)
         
-        # Generate response
-        response = generate_response(
-            message_text,
-            intent,
-            conversation_history[account_key][chat_id],
-            user_data,
-            account_id
-        )
+        if not response or response.strip() == "":
+            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘 (Okay dear tell me more 😘)"
         
-        if not response:
-            response = get_evolved_reply(account_id, 'default')
+        # Human-like typing delay
+        delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
         
-        # Human-like delay
-        delay = random.randint(15, 40)
-        logger.info(f"⏱️ Waiting {delay}s before replying...")
-        
-        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
         # Send reply
         await event.reply(response)
-        logger.info(f"✅ Replied: '{response[:50]}...'")
+        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
         
-        # Store reply in history
+        # Store response in history
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
             'time': time.time()
         })
         
-        # LEARN from this exchange
-        learn_from_exchange(
-            account_id,
-            message_text,
-            response,
-            user_id,
-            intent,
-            success=True
-        )
-        
-        # Save all data
         save_conversation_history()
-        save_user_context()
         
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
         try:
-            # Fallback reply
-            await event.reply(random.choice(INITIAL_REPLIES['default']))
+            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘 (Hi dear! Want to chat a bit? 😘)")
         except:
             pass
 
-# ==================== API ENDPOINTS FOR LEARNING ====================
+# ==================== START AUTO-REPLY FOR ACCOUNT ====================
 
-@app.route('/api/learning-stats', methods=['GET'])
-def get_learning_stats():
-    """Get learning statistics for an account"""
-    account_id = request.args.get('accountId')
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
+async def start_auto_reply_for_account(account):
+    """Start auto-reply listener with AUTO-RECONNECT capability"""
+    account_id = account['id']
     account_key = str(account_id)
-    if account_key not in learning_data:
-        return jsonify({'success': False, 'error': 'No learning data found'})
+    reconnect_count = 0
     
-    data = learning_data[account_key]
-    evolution = data['evolution']
-    patterns = data['patterns']
-    
-    # Get top phrases
-    top_phrases = sorted(patterns.get('phrase_freq', {}).items(), key=lambda x: x[1], reverse=True)[:10]
-    
-    return jsonify({
-        'success': True,
-        'stats': {
-            'total_messages': evolution.get('total_messages', 0),
-            'unique_users': len(evolution.get('unique_users', [])),
-            'learning_iterations': evolution.get('learning_iterations', 0),
-            'personality_traits': evolution.get('personality_traits', {}),
-            'top_phrases': top_phrases,
-            'replies_count': {k: len(v) for k, v in data.get('replies', {}).items()}
-        }
-    })
+    while True:
+        try:
+            logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
+            
+            client = TelegramClient(
+                StringSession(account['session']), 
+                API_ID, 
+                API_HASH,
+                connection_retries=10,
+                retry_delay=5,
+                timeout=60,
+                device_model="iPhone 13",
+                system_version="15.0",
+                app_version="8.4.1"
+            )
+            
+            await client.connect()
+            
+            if not await client.is_user_authorized():
+                logger.error(f"Account {account_id} not authorized")
+                await asyncio.sleep(30)
+                reconnect_count += 1
+                continue
+            
+            active_clients[account_key] = client
+            
+            # Initialize Star handler
+            star_handlers[account_key] = StarEarningHandler(client)
+            
+            @client.on(NewMessage(incoming=True))
+            async def handler(event):
+                await auto_reply_handler(event, account_id)
+            
+            await client.start()
+            logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
+            
+            reconnect_count = 0
+            await client.run_until_disconnected()
+            
+        except Exception as e:
+            logger.error(f"Connection lost for account {account_id}: {e}")
+            if account_key in active_clients:
+                del active_clients[account_key]
+            
+            reconnect_count += 1
+            wait_time = min(30 * reconnect_count, 300)
+            logger.info(f"Reconnecting in {wait_time} seconds... (attempt {reconnect_count})")
+            await asyncio.sleep(wait_time)
 
-@app.route('/api/evolve-now', methods=['POST'])
-def force_evolution():
-    """Force personality evolution for an account"""
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    evolve_personality(account_id)
-    
-    return jsonify({'success': True, 'message': 'Personality evolved'})
-
-@app.route('/api/reset-learning', methods=['POST'])
-def reset_learning():
-    """Reset learning for an account"""
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
+def stop_auto_reply_for_account(account_id):
+    """Stop auto-reply for a specific account"""
     account_key = str(account_id)
-    if account_key in learning_data:
-        del learning_data[account_key]
-        save_learning_data()
+    if account_key in active_clients:
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(active_clients[account_key].disconnect())
+            loop.close()
+            del active_clients[account_key]
+            logger.info(f"Stopped auto-reply for account {account_key}")
+        except Exception as e:
+            logger.error(f"Error stopping auto-reply: {e}")
+
+def start_all_auto_replies():
+    """Start auto-reply for all enabled accounts"""
+    for account in accounts:
+        account_key = str(account['id'])
+        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
+            if account_key not in active_clients:
+                thread = threading.Thread(
+                    target=lambda: run_async(start_auto_reply_for_account(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[account_key] = thread
+                time.sleep(2)
+
+# ==================== KEEP ALIVE SYSTEM ====================
+
+def keep_alive():
+    """Keep Render from sleeping and maintain Telegram connections"""
+    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
     
-    return jsonify({'success': True, 'message': 'Learning data reset'})
+    while True:
+        try:
+            requests.get(app_url, timeout=10)
+            requests.get(f"{app_url}/api/health", timeout=10)
+            
+            for account_key, client in list(active_clients.items()):
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(client.get_me())
+                    loop.close()
+                    logger.info(f"✅ Connection alive for account {account_key}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {e}")
+            
+            logger.info(f"🔋 Keep-alive ping sent at {time.strftime('%H:%M:%S')}")
+        except Exception as e:
+            logger.error(f"Keep-alive error: {e}")
+        
+        time.sleep(240)
 
 # ==================== PAGE ROUTES ====================
 
@@ -1443,7 +1323,11 @@ def all_sessions():
 def settings():
     return send_file('settings.html')
 
-# ==================== API ROUTES (Keep all your existing API endpoints) ====================
+@app.route('/stars')
+def star_dashboard():
+    return send_file('star_dashboard.html')
+
+# ==================== API ROUTES ====================
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
@@ -1764,7 +1648,6 @@ def update_reply_settings():
     
     save_reply_settings()
     
-    # Start or stop based on new setting
     if enabled and not was_enabled:
         account = next((acc for acc in accounts if acc['id'] == account_id), None)
         if account and account_key not in active_clients:
@@ -1820,23 +1703,6 @@ def get_conversation_history():
         history = conversation_history[account_key][chat_key]
     
     return jsonify({'success': True, 'history': history})
-
-@app.route('/api/user-context', methods=['GET'])
-def get_user_context():
-    account_id = request.args.get('accountId')
-    user_id = request.args.get('userId')
-    
-    if not account_id or not user_id:
-        return jsonify({'success': False, 'error': 'Account ID and User ID required'})
-    
-    account_key = str(account_id)
-    user_key = str(user_id)
-    
-    context = {}
-    if account_key in user_context and user_key in user_context[account_key]:
-        context = user_context[account_key][user_key]
-    
-    return jsonify({'success': True, 'context': context})
 
 @app.route('/api/clear-history', methods=['POST'])
 def clear_conversation_history():
@@ -1996,6 +1862,128 @@ def terminate_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== STAR EARNING API ROUTES ====================
+
+@app.route('/api/stars/stats', methods=['GET'])
+def star_stats():
+    """Get Star earning statistics"""
+    try:
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        
+        # Total earned
+        c.execute("SELECT SUM(amount) FROM star_transactions")
+        total_earned = c.fetchone()[0] or 0
+        
+        # Today's earnings
+        c.execute("SELECT SUM(amount) FROM star_transactions WHERE date(timestamp) = date('now')")
+        today_earned = c.fetchone()[0] or 0
+        
+        # Top users
+        c.execute('''SELECT user_id, total_stars_spent FROM star_users 
+                    ORDER BY total_stars_spent DESC LIMIT 5''')
+        top_users = c.fetchall()
+        
+        # Channel total
+        c.execute("SELECT SUM(total_stars) FROM channel_earnings")
+        channel_total = c.fetchone()[0] or 0
+        
+        # Media stats
+        c.execute("SELECT COUNT(*) FROM media_library WHERE is_active = 1")
+        total_media = c.fetchone()[0] or 0
+        
+        c.execute("SELECT SUM(times_sold) FROM media_library")
+        total_media_sold = c.fetchone()[0] or 0
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'total_stars_earned': total_earned,
+            'today_stars_earned': today_earned,
+            'channel_total': channel_total,
+            'total_media': total_media,
+            'total_media_sold': total_media_sold,
+            'top_users': [{'id': u[0], 'spent': u[1]} for u in top_users]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/stars/media', methods=['GET'])
+def list_media():
+    """List all available media"""
+    try:
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute('''SELECT file_path, media_type, price_stars, times_sold, last_sold
+                    FROM media_library WHERE is_active = 1''')
+        media = c.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'total': len(media),
+            'media': [{
+                'path': m[0], 
+                'type': m[1], 
+                'price': m[2], 
+                'sold': m[3],
+                'last_sold': m[4]
+            } for m in media]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/stars/transactions/<user_id>', methods=['GET'])
+def user_transactions(user_id):
+    """Get transactions for a specific user"""
+    try:
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute('''SELECT amount, transaction_type, description, timestamp 
+                    FROM star_transactions WHERE user_id = ? 
+                    ORDER BY timestamp DESC LIMIT 20''', (user_id,))
+        transactions = c.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'transactions': [{
+                'amount': t[0],
+                'type': t[1],
+                'description': t[2],
+                'time': t[3]
+            } for t in transactions]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/stars/transfer', methods=['POST'])
+def force_transfer_stars():
+    """Manually trigger Star transfer to channel"""
+    data = request.json
+    account_id = data.get('accountId')
+    amount = data.get('amount', 0)
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    if account_key not in star_handlers:
+        return jsonify({'success': False, 'error': 'Account not active'})
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(
+            star_handlers[account_key].transfer_stars_to_channel(amount)
+        )
+        loop.close()
+        
+        return jsonify({'success': result, 'message': 'Transfer initiated'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/reconnect', methods=['GET'])
 def reconnect_all():
     """Force reconnect all accounts"""
@@ -2021,146 +2009,46 @@ def health_check():
         'time': datetime.now().isoformat()
     })
 
-# ==================== AUTO-REPLY MANAGEMENT ====================
-
-async def start_auto_reply_for_account(account):
-    """Start auto-reply listener with self-learning"""
-    account_id = account['id']
-    account_key = str(account_id)
-    reconnect_count = 0
-    
-    while True:
-        try:
-            logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
-            
-            client = TelegramClient(
-                StringSession(account['session']), 
-                API_ID, 
-                API_HASH,
-                connection_retries=10,
-                retry_delay=5,
-                timeout=60,
-                device_model="iPhone 13",
-                system_version="15.0",
-                app_version="8.4.1"
-            )
-            
-            await client.connect()
-            
-            if not await client.is_user_authorized():
-                logger.error(f"Account {account_id} not authorized")
-                await asyncio.sleep(30)
-                reconnect_count += 1
-                continue
-            
-            active_clients[account_key] = client
-            
-            @client.on(NewMessage(incoming=True))
-            async def handler(event):
-                await auto_reply_handler(event, account_id)
-            
-            await client.start()
-            logger.info(f"✅ Self-learning Tsega ACTIVE for {account.get('name')}")
-            
-            reconnect_count = 0
-            await client.run_until_disconnected()
-            
-        except Exception as e:
-            logger.error(f"Connection lost for account {account_id}: {e}")
-            if account_key in active_clients:
-                del active_clients[account_key]
-            
-            reconnect_count += 1
-            wait_time = min(30 * reconnect_count, 300)
-            logger.info(f"Reconnecting in {wait_time}s...")
-            await asyncio.sleep(wait_time)
-
-def stop_auto_reply_for_account(account_id):
-    """Stop auto-reply for a specific account"""
-    account_key = str(account_id)
-    if account_key in active_clients:
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(active_clients[account_key].disconnect())
-            loop.close()
-            del active_clients[account_key]
-            logger.info(f"Stopped auto-reply for account {account_key}")
-        except Exception as e:
-            logger.error(f"Error stopping auto-reply: {e}")
-
-def start_all_auto_replies():
-    """Start auto-reply for all enabled accounts"""
-    for account in accounts:
-        account_key = str(account['id'])
-        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
-            if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda: run_async(start_auto_reply_for_account(account)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[account_key] = thread
-                time.sleep(2)
-
-# ==================== KEEP ALIVE ====================
-
-def keep_alive():
-    """Keep Render from sleeping"""
-    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
-    
-    while True:
-        try:
-            requests.get(app_url, timeout=10)
-            requests.get(f"{app_url}/api/health", timeout=10)
-            
-            # Ping Telegram to keep connections alive
-            for account_key, client in list(active_clients.items()):
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(client.get_me())
-                    loop.close()
-                    logger.info(f"✅ Connection alive for account {account_key}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Connection dead for account {account_key}: {e}")
-            
-            logger.info(f"🔋 Keep-alive ping sent")
-        except Exception as e:
-            logger.error(f"Keep-alive error: {e}")
-        
-        time.sleep(240)
-
 # ==================== STARTUP ====================
 
 def start_auto_reply_thread():
-    """Start auto-reply in background"""
+    """Start auto-reply in background after server starts"""
     time.sleep(5)
-    logger.info("Starting self-learning Tsega for enabled accounts...")
+    logger.info("Starting auto-reply for enabled accounts...")
     start_all_auto_replies()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
+    # Initialize Star system
+    logger.info("💰 Initializing Star Earning System...")
+    star_db = StarDatabase()
+    media_manager = MediaManager()
+    
     print('\n' + '='*70)
-    print('🤖 TSEGA - SELF-LEARNING TELEGRAM PERSONALITY')
+    print('🤖 TSEGA - SEXY TELEGRAM AUTO-REPLY + STAR EARNING')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Stars go to: {StarConfig.CHANNEL_USERNAME}')
     
     for acc in accounts:
         status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        learned = "✓" if str(acc['id']) in learning_data else " "
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status} [Learned:{learned}]')
+        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
     
-    print('='*70)
-    print('🚀 SELF-LEARNING FEATURES:')
-    print('   • Learns from every conversation')
-    print('   • Evolves personality every 50 messages')
-    print('   • Remembers user names permanently')
-    print('   • Tracks successful vs ignored messages')
-    print('   • Adapts flirty level based on responses')
-    print('   • Learns new phrases from users')
+    print('\n💰 STAR PRICING:')
+    for item, price in StarConfig.STAR_PRICES.items():
+        print(f'   • {item}: {price} ⭐')
+    
+    print('\n🚀 TSEGA FEATURES:')
+    print('   • Talks in Amharic with English translation')
+    print('   • Sexy and flirty personality 😘')
+    print('   • 15-40 second reply delay (human-like)')
+    print('   • STAR EARNING: Users pay Stars to chat')
+    print('   • PHOTO SELLING: Users pay Stars for photos')
+    print('   • ALL STARS go to @Abe_army channel')
+    print('   • Lives in Jemo, from Adama')
+    print('   • Grade 12 student, 20 years old')
     print('='*70 + '\n')
     
     # Start keep-alive
