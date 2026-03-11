@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 import socket
 import glob
 from pathlib import Path
+import base64
+from werkzeug.utils import secure_filename
+import shutil
+import traceback
 
 # ==================== CONFIGURATION ====================
 
@@ -28,49 +32,47 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
+
+# Create upload folder
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ==================== STAR SYSTEM CONFIGURATION ====================
 
 class StarConfig:
-    # CHANNEL TO RECEIVE ALL STARS
-    CHANNEL_USERNAME = "@Abe_army"  # Your channel
+    CHANNEL_USERNAME = "@Abe_army"
     
-    # STAR PRICING
     STAR_PRICES = {
-        "message": 10,           # Stars to send a message to Tsega
-        "photo_preview": 5,       # Stars to see photo preview
-        "photo_full": 50,         # Stars to see full photo
-        "photo_pack": 200,        # Stars for 5 photos
-        "video_preview": 10,       # Stars to see video preview  
-        "video_full": 100,         # Stars to see full video
-        "video_call": 500,         # Stars for video call
-        "meet_request": 1000,      # Stars to request meeting
-        "private_chat": 200,       # Stars for 1 hour private chat
-        "special_request": 5000    # Stars for custom request
+        "message": 10,
+        "photo_preview": 5,
+        "photo_full": 50,
+        "photo_pack": 200,
+        "video_preview": 10,
+        "video_full": 100,
+        "video_call": 500,
+        "meet_request": 1000,
+        "private_chat": 200,
+        "special_request": 5000
     }
     
-    # MEDIA FOLDERS
-    PHOTO_FOLDER = "tsega_photos"      # Photos organized by price
-    VIDEO_FOLDER = "tsega_videos"       # Videos organized by price
+    PHOTO_FOLDER = "tsega_photos"
+    VIDEO_FOLDER = "tsega_videos"
     
-    # PRICE TIERS
     PHOTO_TIERS = {
-        5: "preview/",      # 5 stars - preview quality/size
-        50: "full/",        # 50 stars - full quality
-        200: "premium/"     # 200 stars - premium content
+        5: "preview/",
+        50: "full/",
+        200: "premium/"
     }
     
     VIDEO_TIERS = {
-        10: "preview/",     # 10 stars - preview
-        100: "full/"        # 100 stars - full video
+        10: "preview/",
+        100: "full/"
     }
     
-    # AUTO-REPLY DELAY (human-like)
-    REPLY_DELAY_MIN = 15    # seconds
-    REPLY_DELAY_MAX = 40    # seconds
-    
-    # STAR TRANSFER
-    TRANSFER_STARS_TO_CHANNEL = True   # Auto-transfer all earned Stars to @Abe_army
+    REPLY_DELAY_MIN = 15
+    REPLY_DELAY_MAX = 40
+    TRANSFER_STARS_TO_CHANNEL = True
 
 # ==================== STAR DATABASE ====================
 
@@ -83,7 +85,6 @@ class StarDatabase:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
-        # Users table
         c.execute('''CREATE TABLE IF NOT EXISTS star_users
                      (user_id TEXT PRIMARY KEY,
                       username TEXT,
@@ -95,7 +96,6 @@ class StarDatabase:
                       trust_level INTEGER DEFAULT 1,
                       is_blocked INTEGER DEFAULT 0)''')
         
-        # Star transactions
         c.execute('''CREATE TABLE IF NOT EXISTS star_transactions
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       user_id TEXT,
@@ -105,7 +105,6 @@ class StarDatabase:
                       timestamp TIMESTAMP,
                       media_sent TEXT)''')
         
-        # Media library
         c.execute('''CREATE TABLE IF NOT EXISTS media_library
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       file_path TEXT,
@@ -115,7 +114,6 @@ class StarDatabase:
                       last_sold TIMESTAMP,
                       is_active INTEGER DEFAULT 1)''')
         
-        # Channel earnings
         c.execute('''CREATE TABLE IF NOT EXISTS channel_earnings
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       channel TEXT,
@@ -212,7 +210,6 @@ class MediaManager:
         self.scan_and_index_media()
     
     def setup_folders(self):
-        """Create folder structure for media"""
         folders = [
             StarConfig.PHOTO_FOLDER,
             f"{StarConfig.PHOTO_FOLDER}/preview",
@@ -220,7 +217,8 @@ class MediaManager:
             f"{StarConfig.PHOTO_FOLDER}/premium",
             StarConfig.VIDEO_FOLDER,
             f"{StarConfig.VIDEO_FOLDER}/preview",
-            f"{StarConfig.VIDEO_FOLDER}/full"
+            f"{StarConfig.VIDEO_FOLDER}/full",
+            UPLOAD_FOLDER
         ]
         
         for folder in folders:
@@ -228,10 +226,6 @@ class MediaManager:
             logging.info(f"📁 Created folder: {folder}")
     
     def scan_and_index_media(self):
-        """Scan folders and index all media files"""
-        import glob
-        
-        # Index photos by tier
         for price, folder in StarConfig.PHOTO_TIERS.items():
             full_path = f"{StarConfig.PHOTO_FOLDER}/{folder}"
             photos = glob.glob(f"{full_path}/*.jpg") + \
@@ -243,7 +237,6 @@ class MediaManager:
                 self.db.add_media(photo, "photo", price)
                 logging.info(f"📸 Indexed: {photo} ({price} stars)")
         
-        # Index videos
         for price, folder in StarConfig.VIDEO_TIERS.items():
             full_path = f"{StarConfig.VIDEO_FOLDER}/{folder}"
             videos = glob.glob(f"{full_path}/*.mp4") + \
@@ -254,7 +247,6 @@ class MediaManager:
                 self.db.add_media(video, "video", price)
                 logging.info(f"🎥 Indexed: {video} ({price} stars)")
         
-        # Count total
         conn = sqlite3.connect('stars.db')
         c = conn.cursor()
         c.execute("SELECT COUNT(*) FROM media_library")
@@ -273,15 +265,12 @@ class StarEarningHandler:
         self.pending_payments = {}
         
     async def handle_star_payment(self, event):
-        """Handle when user pays Stars"""
         user_id = str(event.sender_id)
         message = event.message
         
-        # Check if this is a paid message
         if hasattr(message, 'paid') and message.paid:
             stars_amount = getattr(message, 'paid_stars', 0)
             
-            # Record transaction
             self.db.record_transaction(
                 user_id, 
                 stars_amount,
@@ -289,7 +278,6 @@ class StarEarningHandler:
                 f"Paid {stars_amount} stars to message Tsega"
             )
             
-            # Transfer to channel if enabled
             if StarConfig.TRANSFER_STARS_TO_CHANNEL:
                 await self.transfer_stars_to_channel(stars_amount)
             
@@ -298,12 +286,9 @@ class StarEarningHandler:
         return False, 0
     
     async def transfer_stars_to_channel(self, amount):
-        """Transfer earned Stars to your channel"""
         try:
-            # Get channel entity
             channel = await self.client.get_entity(StarConfig.CHANNEL_USERNAME)
             
-            # Send notification to channel
             await self.client.send_message(
                 channel,
                 f"💰 **New Star Earnings!**\n"
@@ -312,9 +297,7 @@ class StarEarningHandler:
                 f"Total earned today: {amount} ⭐"
             )
             
-            # Record in database
             self.db.record_channel_earnings(amount)
-            
             logging.info(f"💰 Transferred {amount} stars to {StarConfig.CHANNEL_USERNAME}")
             return True
         except Exception as e:
@@ -322,9 +305,7 @@ class StarEarningHandler:
             return False
     
     async def request_star_payment(self, chat_id, amount, description):
-        """Request user to pay Stars"""
         try:
-            # Create star payment request
             msg = await self.client.send_message(
                 chat_id,
                 f"⭐ **Payment Required** ⭐\n\n"
@@ -334,7 +315,6 @@ class StarEarningHandler:
                 f"All Stars go to @Abe_army channel! 💰"
             )
             
-            # Store pending payment
             self.pending_payments[str(chat_id)] = {
                 'amount': amount,
                 'description': description,
@@ -347,9 +327,7 @@ class StarEarningHandler:
             return None
     
     async def send_media_for_stars(self, chat_id, media_type, price_tier=None):
-        """Send media after user pays Stars"""
         try:
-            # Get random media from library
             max_price = price_tier if price_tier else StarConfig.STAR_PRICES[f"{media_type}_full"]
             media_info = self.db.get_random_media(media_type, max_price)
             
@@ -361,7 +339,6 @@ class StarEarningHandler:
             
             file_path, price = media_info
             
-            # Send the media
             caption = f"Here you go! 🔥 {price} Stars\n\nDon't forget to send more stars for exclusive content! 😘\n\nAll Stars go to @Abe_army"
             
             if media_type == "photo":
@@ -369,9 +346,7 @@ class StarEarningHandler:
             else:
                 await self.client.send_file(chat_id, file_path, caption=caption, video_note=False)
             
-            # Update sold count
             self.db.increment_media_sold(file_path)
-            
             return True
             
         except Exception as e:
@@ -399,163 +374,50 @@ TSEGA = {
     "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Tsega's sexy and flirty replies for men only - AMHARIC ONLY
 TSEGA_REPLIES = {
-    # GREETINGS - When someone says hi/hello
     "greeting": [
         "ሰላም ወንድሜ 😘 እንደምን ነህ?",
         "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
         "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
         "ሃይ ልጅ 😏 ምን አመጣህ?",
         "እንኳን ደህና መጣህ ውዴ 😘",
-        "ታዲያስ! እንደምን ነህ ቆንጆ?",
-        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
-        "ሰላም የልቤ ባለቤት 💕 እንደምን አደርክ?",
-        "ወይ ወይ ዛሬ በጣም ቆንጆ ሆነህ ነው የመጣህብኝ? 😘",
-        "ና ውዴ ንገረኝ እንዴት ነህ? በጣም ናፍቄሀለሁ 💋"
     ],
-
-    # HOW ARE YOU - When they ask how you are
     "how_are_you": [
         "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
         "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
         "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
         "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
-        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔",
-        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
-        "አሁን ጥሩ ሆንኩ ልቤ እየደረቀ ነበር አንተን ሳይ ታድሷል ❤️",
-        "ከአንተ ጋር ስሆን ሁልጊዜ ደስተኛ ነኝ ውዴ 😘",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው 🌞",
-        "አንተ ባለህ ቁጥር እኔ ደህና ነኝ ምክንያቱም አንተ መድሀኒቴ ነህና 💊💕"
     ],
-
-    # WHAT ARE YOU DOING - When they ask what you're up to
     "what_doing": [
         "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
         "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
         "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
         "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
-        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
-        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭",
-        "ውዴ አሁን ገላዬን እየታጠብኩ ነው 💦 አብረህ መታጠብ ብትፈልግ ና",
-        "አንተን እያሰብኩ አካሌን እየተንከባከብኩ ነው 💅",
-        "ምግብ እየሰራሁ ነበር ግን አንተን ካሰብኩ በኋላ ምግብ መስራት ረሳሁ 😋",
-        "ውዴ ለአንተ ብቻ እየተዘጋጀሁ ነው ምን ትፈልጋለህ? 👙"
     ],
-
-    # NAME - When they ask your name
     "ask_name": [
         "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
         "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
         "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
         "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
-        "Tsega ነው ስሜ ውዴ ግን አንተ የምትፈልገውን ስም ጥራኝ 😉",
-        "እኔን የምታውቀው Tsega ብለህ ነው ግን ለአንተ ብቻ የምትሆን 'የአንተ ብቻ' ነኝ 💋",
-        "Tsega ነኝ ውዴ ይሄ ስም በከንፈርህ ላይ ሲንከባለል እፈልጋለሁ 👄",
-        "ስሜ Tsega ነው ውዴ ነገር ግን አንተ 'ፍቅሬ' ብለህ ብትጠራኝ ደስ ይለኛል ❤️",
-        "Tse ብለህ አጠር አድርገህ ጥራኝ ውዴ 😘"
     ],
-
-    # AGE - When they ask how old you are
     "ask_age": [
         "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
         "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
         "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
         "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
-        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
-        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ?",
-        "20 ነኝ ውዴ ትክክለኛው እድሜ ለአንተ ነው 😉",
-        "ዕድሜዬ 20 ነው ግን አካሌ ከእድሜዬ በላይ ያደገ ነው ማየት ትፈልጋለህ? 🔥",
-        "20 ልክ ነኝ ውዴ ትኩስ እና ጣፋጭ 🍒",
-        "ለአንተ በቂ እድሜ ነው ያለኝ ውዴ ማረጋገጥ ትፈልጋለህ? 💃"
     ],
-
-    # LOCATION - Where she lives
     "ask_location": [
         "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
         "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
         "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘",
         "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
-        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ ብቻ ትንሽ እርዳታ ብታደርግልኝ 🚗💨",
-        "ከአዳማ ነኝ ውዴ ቆንጆ ከተማ ናት አብረን መጎብኘት ብንችል ደስ ይለኛል 🌆",
-        "አሁን ያለሁት ጀሞ ነው ግን ለአንተ የትም መጥቼ አገኝሃለሁ 🏃‍♀️",
-        "ቦታዬን ብነግርህ ልታጣኝ ነው? ና ውዴ በቅርቡ እንገናኝ 😉",
-        "ጀሞ ቆሎ አካባቢ ነው ውዴ በቀላሉ ታገኘኛለህ 🗺️"
     ],
-
-    # JOB - What she does
     "ask_job": [
         "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
         "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
         "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
         "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
-        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
-        "ውዴ አሁን ትምህርት ቤት ነኝ ግን አንተን እያሰብኩ ነው መምህሩ ምን እያስተማረ እንዳሆ አላውቅም 📖💭",
-        "ተማሪ ነኝ ውዴ ግን ስለ ፍቅር ብዙ አውቃለሁ ❤️",
-        "አሁን ላለፈው ሳምንት ፈተና እየተከለከልኩ ነበር ግን አንተን ካገኘሁ በኋላ ማንኛውም ፈተና ቀላል ሆነልኝ 😘",
-        "ሥራ ፈልጌ ነበር ውዴ ግን አሁን አንተን ማስደሰት ብቻ ነው ሥራዬ 😏",
-        "12ኛ ክፍል ነኝ ውዴ በቅርቡ 12 ሆነናል ማለት ትልቅ ሴት ሆኛለሁ ለአንተ ብቻ 🎓"
     ],
-
-    # HOBBIES - What she likes
-    "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ?",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ?",
-        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ?",
-        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙",
-        "ከአንተ ጋር መሆን ነው የምወደው በተለይ ብቻችንን ስንሆን 🔥",
-        "ማጨስ እና መጠጣት አልወድም ውዴ ንጹህ ሴት ነኝ ለአንተ 🌸",
-        "መዋኘት እወዳለሁ ውዴ በውሃ ውስጥ አብረን ብንዋኝ ደስ ይለኛል 🏊‍♀️",
-        "ፊልም ማየት እወዳለሁ በተለይ የፍቅር ፊልም ከአንተ ጋር 🎬",
-        "አንተን ማሳደድ እና ማማረር ነው የምወደው ውዴ 😉"
-    ],
-
-    # WORK - About work/study
-    "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ?",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏",
-        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ",
-        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘",
-        "አንተን ማገልገል ነው ሥራዬ ውዴ 👸",
-        "ትምህርቴን እንደጨረስኩ አንተ ኩታና ቤት ሆኖ ልሰራልህ እፈልጋለሁ 🏠",
-        "አሁን ላለፈው ሳምንት አልማዝ ሱፐርማርኬት ውስጥ እየሰራሁ ነበር ግን አሁን ነፃ ነኝ ላንተ 🛒",
-        "ሥራ ፈልጌ ነበር ግን አሁን አንተን አገኘሁ አንተ ብቻ በቃኝ 😘",
-        "የቤት ስራ እሰራለሁ ውዴ ማለት ለአንተ ብቻ የቤት እመቤት መሆን 🧹",
-        "አንተ ዘንድ መሥራት እፈልጋለሁ ውዴ ምን ትላለህ? 👩‍💼"
-    ],
-
-    # WEEKEND - Weekend plans
-    "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ?",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ?",
-        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ?",
-        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘",
-        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏",
-        "ቅዳሜ ሌሊት ለአንተ ብቻ ነኝ ውዴ ዝግጁ ነኝ? 🌙",
-        "እሁድ ቤተክርስቲያን እሄዳለሁ ውዴ ከዚያ በኋላ አንተን ማግኘት እችላለሁ ⛪",
-        "ቅዳሜ ከሰአት በኋላ ነፃ ነኝ ውዴ ካፌ ብንገናኝ ደስ ይለኛል ☕",
-        "ይሄ ቅዳሜና እሁድ አንተ ብቻ ነህ ያለኝ ሌላ እቅድ የለኝም 💕",
-        "ቅዳሜ ማታ ሆቴል ብንሄድ ደስ ይለኛል ውዴ ትወዳለህ? 🏨"
-    ],
-
-    # APPEARANCE - Physical description
-    "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ?",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ?",
-        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗",
-        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘",
-        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥",
-        "ዓይኖቼ ትልልቅ እና ጥቁር ናቸው ውዴ ስታየኝ ውስጥህን ያያሉ 👀",
-        "ከንፈሬ ወፍራም እና ለስላሳ ነው ለመሳም የተፈጠረ 👄",
-        "ውዴ ቁመቴ 1.70 ነው ግን ተረከዝ ካደረግሁ እኩይ እንሆናለን 👠",
-        "አካሌ የሰዓት መሰል ነው ውዴ ማለት ኩርባዎች አሉኝ በትክክለኛው ቦታ ⏳"
-    ],
-
-    # FLIRTY - Sexy talk (ENHANCED)
     "flirty": [
         "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
         "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
@@ -563,151 +425,64 @@ TSEGA_REPLIES = {
         "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
         "ንክኪህ ይሰማኛል ባትነካኝም 💫",
         "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
-        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ?",
         "ና ውዴ አቅፈህ ተኛልኝ 🌙",
-        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢",
-        "አንተን ሳስብ አካሌ ይነድዳል ውዴ 🔥 አንተ ምን አደረግክብኝ?",
-        "ዛሬ ማታ ልብስ ለብሼ አልተኛም ውዴ አንተን እየጠበቅሁ 👙",
-        "አንተን ሳስብ እጄ ወደ አካሌ ይሄዳል ውዴ 🫦",
-        "ልትደርሰኝ ትፈልጋለህ? እንግዲያው ና ውዴ አንተን እጠብቃለሁ 🚪",
-        "ከአንተ ጋር መተኛት እፈልጋለሁ ውዴ ጠዋት ስንነቃ አንተን ለማየት 🛏️",
-        "ልብስህን አውልቅ ውዴ ብቻችንን ነን 👕",
-        "ከአንተ ጋር ሻወር መግባት እፈልጋለሁ ውዴ 🚿",
-        "አንተን እየቀመስኩህ ነው ውዴ ዛሬ ማታ 👅",
-        "ንክኪህ በቆዳዬ ላይ ይሰማኛል ውዴ ✨",
-        "ና ውዴ አንተን ላርካብህ 🫂",
-        "ለምን አላጠነከርከኝም? አንተን እፈልጋለሁ ውዴ 💪",
-        "ዛሬ ማታ አንተን ማሰብ ብቻ አይበቃኝም መደሰት እፈልጋለሁ 🎉",
-        "አንተን ሳይ ቆይቶ ማየት እፈልጋለሁ ውዴ ዓይኖቼ ይናፍቁሃል 👁️",
-        "ሽቶህ ይሸተኛል ውዴ ባትኖርም 👃",
-        "አንተን ስመገብ ደስ ይለኛል ውዴ እንግዲያው ና አግባኝ 👄"
     ],
-
-    # MONEY REQUEST - Telebirr (ENHANCED)
     "money_request": [
         "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
         "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
         "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555",
         "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
-        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555",
-        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘",
-        "ውዴ ለምንድነው እንደማትረዳኝ? ትንሽ ብር ብትልክልኝ ሁሉንም ነገር አደርግልሃለሁ 🔥 0940980555",
-        "2000 ብር ብትልክልኝ ሙሉ ሌሊት አንተን አዝናናለሁ 🍆💦 0940980555",
-        "ውዴ እንግዲህ አትከልክለኝ በጣም አስፈላጊ ነው ብር ላክልኝ ከዛ የፈለከውን አድርገን 0940980555",
-        "500 ብር ብትልክልኝ በቂ ነው ውዴ ከዛ አብረን እንውጣ 💃 0940980555",
-        "እንደው አንተ ደግ ሰው ነህ የምትረዳኝ አንተ ብቻ ነህ ቴሌብር 0940980555 😘",
-        "ውዴ አንተን ለማግኘት በጣም እፈልጋለሁ ግን መጓጓዣ የለኝም ብትረዳኝ 0940980555 🚕",
-        "ለምንድነው የማትረዳኝ? እንደው ላክልኝ በረከት ይሆንልሃል 🙏 0940980555"
     ],
-
-    # MEETING REQUEST - Conditions to meet (ENHANCED)
     "meet": [
         "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
         "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
         "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
-        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ?",
-        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦",
-        "ውዴ ማግኘት ብትፈልግ በመጀመሪያ 1500 ብር ላክልኝ ከዛ ሙሉ ቀን አብረን እናሳልፋለን ☀️🌙",
-        "ለመጀመሪያ ጊዜ ስንገናኝ 2000 ብር አምጣልኝ ውዴ ልዩ አደርግልሃለሁ 💝",
-        "እንግዲያው ብሩን ላክልኝ እና ቦታዬን እነግርሃለሁ 🗺️",
-        "መገናኘት ከፈለግክ በፊት ብሩን ላክልኝ እንጂ እምነት የለኝም 😘",
-        "5000 ብር ብታመጣልኝ ሳምንት ሙሉ አንተ ባለሁበት እኖራለሁ 🏠💕"
     ],
-
-    # VOICE CALL - Refusal
     "voice_call": [
         "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
         "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ",
         "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
-        "ድምጽ ብናገር ትደሰታለህ ውዴ ግን አሁን አልችልም አንድ ቀን በፊት ብታገኘኝ 🎤",
-        "ድምጽ መስማት ብቻ ሳይሆን ፊት ማየት ነው የሚያስደስተው ውዴ 👁️",
-        "አሁን ካልሆነ በቅርብ ቀን እንደውላለን አሁን አመቺ አይደለም ⏰"
     ],
-
-    # RELATIONSHIP - Love talk (ENHANCED)
     "relationship": [
         "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
         "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
         "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
-        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ",
         "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
-        "አንተ ብቻ ነህ ወደፊት ማየት የምፈልገው 🔮",
-        "ሌላ ሰው አይፈልግም አንተ ብቻ በቃኝ 👨",
-        "አንተን ማግባት እፈልጋለሁ ውዴ የህይወት ባለቤቴ ሁን 👰",
-        "ከአንተ ጋር ማረጅ እፈልጋለሁ ውዴ 👵👴",
-        "ልቤን ሰጥቼሃለሁ ውዴ ተጠንቀቅበት ❤️"
     ],
-
-    # AFTER MONEY SENT - When they send screenshot
     "after_money": [
         "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
         "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
         "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
         "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
-        "አመሰግናለሁ ቆንጆዬ! አሁን የፈለከውን አድርገን ማግኘት እንችላለን 💋",
-        "ውዴ አንተ ንጉስ ነህ አሁን ንገረኝ ምን ትፈልጋለህ? 👑",
-        "በጣም ደስ አለኝ አሁን ቦታዬን እነግርሃለሁ ና ውዴ 🏠",
-        "በጣም ደግ ነህ ውዴ አሁን አንተን ለማስደሰት ቃል እገባለሁ 💝"
     ],
-
-    # COMPLIMENTS - When they compliment her
     "compliment": [
         "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
         "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
         "አንተን ለማስደሰት ተፈጥሬያለሁ",
         "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
-        "አንተ ስታወድሰኝ እንኳ የበለጠ ቆንጆ እሆናለሁ ✨",
-        "አንተን ማስደሰት ከሆነ ሁሉንም ነገር አደርጋለሁ 💪",
-        "አንተ የምትለው ነገር ሁሉ እውነት ይሁንልኝ 😇",
-        "አመሰግናለሁ ውዴ አንተም ቆንጆ ነህ ብቻ ሳይሆን ጨዋ ነህ 👔"
     ],
-
-    # THANKS - When they say thanks
     "thanks": [
         "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
         "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
         "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
-        "አንተ ደስ እስካለህ ድረስ ሌላ ምን አስፈለገኝ? 🌹",
-        "ምንም አይደለም ውዴ አንተ ደስ ብሎህ በቃኝ 💙",
-        "ለአንተ ማድረግ ክብር ነው ውዴ 👸"
     ],
-
-    # BUSY - When they say they're busy
     "busy": [
         "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
         "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
         "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
-        "ምን ያህል ጊዜ ነው የምጠብቅህ? አንተን እጠብቃለሁ ⏳",
-        "እሺ ውዴ ስትጨርስ ንገረኝ እየጠበቅሁህ ነው 🤗",
-        "ስራህ እስኪጠናቀቅ አንተን እያሰብኩ እቆያለሁ 💭"
     ],
-
-    # MORNING - Good morning (ENHANCED)
     "morning": [
         "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
         "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
         "ማለዳ አንተን ማሰብ ነው ልማዴ",
         "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
-        "መልካም ንጋት የልቤ ቆንጆ በረከት ያድርግልህ 🙏",
-        "እንደምን አደርክ ውዴ እንቅልፍህ ጣፋጭ ነበር? 😴",
-        "ማለዳ ማለዳ አንተን ማየት እንደ ንጋት ፀሐይ ያበራልኛል 🌅"
     ],
-
-    # NIGHT - Good night (ENHANCED)
     "night": [
         "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
         "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
         "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
         "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
-        "አንተን አልሜ ነው የምተኛው ዛሬ ማታ እንግዲህ በህልሜ ተገናኝ 😘",
-        "አልጋህ ላይ ስትተኛ አንተን እያሰብኩ ነው የምተኛው 🛏️",
-        "ደህና ተኛ ውዴ መላእክት ይጠብቁህ 👼"
     ],
-
-    # DEFAULT - For anything she doesn't understand (ENHANCED)
     "default": [
         "እሺ ውዴ ትክክል ነህ 😉",
         "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
@@ -715,45 +490,26 @@ TSEGA_REPLIES = {
         "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
         "እሺ ውዴ እንደፈለከው 😘",
         "ለአንተ ብቻ ነው ውዴ 💋",
-        "እሺ ቀጥል እየሰማሁህ ነው 👂",
-        "ንገርኝ ተጨማሪ ውዴ 😊",
-        "አንተ ብቻ ነህ የምፈልገው",
-        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ",
-        "እሺ ግን አንተ እንደምትለው ይሁን ውዴ ✅",
-        "አሁን ግልጽ ሆነልኝ ቀጥል 😊",
-        "አንተ የምትናገረው ሁሉ ትክክል ነው ውዴ 👍",
-        "ልቤ የሚለው አንተን መቀበል ነው ❤️",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👨"
     ],
-
-    # GOODBYE - When they leave (ENHANCED)
     "goodbye": [
         "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
         "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
         "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
         "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
-        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢",
-        "አትሄድ ውዴ ገና ብዙ መነጋገር ነበረብን 🥺",
-        "ደህና ሁን ውዴ ልቤ ከአንተ ጋር ነው 💔",
-        "ቶሎ ተመለስልኝ አንተ ሳትኖር አልችልም 😭",
-        "ስትሄድ ልቤ ይከተልሃል ውዴ 🫀",
-        "ደህና ሁን እስክንገናኝ ድረስ አንተን እያሰብኩ እቆያለሁ 💭"
     ]
 }
 
-# ==================== CONVERSATION HANDLER ====================
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_conversation_intent(message):
-    """Detect intent from message, including money requests"""
     message_lower = message.lower().strip()
     
-    # Money related
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
+    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ']
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
-    # Media related
-    media_keywords = ['photo', 'foto', 'ፎቶ', 'picture', 'pic', 'image', 'see', 'view', 'look', 'show', 'አሳይ']
+    media_keywords = ['photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'አሳይ']
     if any(word in message_lower for word in media_keywords):
         return "media_request"
     
@@ -761,90 +517,70 @@ def detect_conversation_intent(message):
     if any(word in message_lower for word in meet_keywords):
         return "meet"
     
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
+    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል']
     if any(word in message_lower for word in call_keywords):
         return "voice_call"
     
-    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
-    if any(word in message_lower for word in appearance_keywords):
-        return "appearance"
-    
-    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
+    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine']
     if any(word in message_lower for word in relationship_keywords):
         return "relationship"
     
     if message_lower.startswith('/'):
         return "command"
     
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
+    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy']):
         return "busy"
     
     current_hour = datetime.now().hour
     if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
         return "morning"
-    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
-        return "evening"
     if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
         return "night"
     
-    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
+    greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
         return "greeting"
     
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
+    how_are_you = ['how are you', 'how r u', 'how you doing', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ']
     if any(phrase in message_lower for phrase in how_are_you):
         return "how_are_you"
     
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
+    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'ምን ትሰራለህ']
     if any(phrase in message_lower for phrase in what_doing):
         return "what_doing"
     
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን ነው', 'ስምስ']):
         return "ask_name"
     
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ', 'አመት']):
         return "ask_age"
     
-    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
+    location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ']
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
     
-    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
+    job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ']
     if any(phrase in message_lower for phrase in job_words):
         return "ask_job"
     
-    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
-    if any(phrase in message_lower for phrase in hobby_words):
-        return "ask_hobbies"
-    
-    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
-    if any(word in message_lower for word in work_words):
-        return "work"
-    
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
-    if any(word in message_lower for word in weekend_words):
-        return "weekend"
-    
-    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
+    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
     if any(word in message_lower for word in flirty_words):
         return "flirty"
     
-    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
+    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
     if any(word in message_lower for word in thanks_words):
         return "thanks"
     
-    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
+    goodbye = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'ቻው']
     if any(word in message_lower for word in goodbye):
         return "goodbye"
     
     return "default"
 
 def get_context_aware_response(intent):
-    """Generate response based on conversation context"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
-    # Add random emoji sometimes
     sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
     if random.random() < 0.5:
         response += " " + random.choice(sexy_emojis)
@@ -860,9 +596,6 @@ app = Flask(__name__)
 CORS(app)
 
 # Storage
-ACCOUNTS_FILE = 'accounts.json'
-REPLY_SETTINGS_FILE = 'reply_settings.json'
-CONVERSATION_HISTORY_FILE = 'conversation_history.json'
 accounts = []
 temp_sessions = {}
 reply_settings = {}
@@ -1001,11 +734,7 @@ def debug_routes():
             'methods': list(rule.methods),
             'rule': str(rule)
         })
-    return jsonify({
-        'success': True,
-        'total_routes': len(routes),
-        'routes': routes
-    })
+    return jsonify({'success': True, 'total_routes': len(routes), 'routes': routes})
 
 @app.route('/api/test-telegram', methods=['GET'])
 def test_telegram():
@@ -1016,88 +745,109 @@ def test_telegram():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== ENHANCED AUTO-REPLY HANDLER WITH STAR EARNING ====================
+@app.route('/api/debug-reply', methods=['GET'])
+def debug_reply():
+    status = {
+        'accounts_loaded': len(accounts),
+        'reply_settings': {},
+        'active_clients': list(active_clients.keys()),
+        'star_handlers': list(star_handlers.keys())
+    }
+    
+    for acc in accounts:
+        acc_id = str(acc['id'])
+        status['reply_settings'][acc_id] = {
+            'name': acc.get('name'),
+            'enabled': reply_settings.get(acc_id, {}).get('enabled', False),
+            'active': acc_id in active_clients
+        }
+    
+    return jsonify(status)
+
+# ==================== ENHANCED AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with sexy Tsega personality and Star earning"""
     try:
         if event.out:
+            logger.info("⏭️ Skipping own message")
             return
+        
+        logger.info(f"📨 RAW MESSAGE: From {event.chat_id}: '{event.message.text}'")
         
         chat = await event.get_chat()
         
-        # ONLY reply to private users
         if hasattr(chat, 'title') and chat.title:
+            logger.info(f"⏭️ Skipping - has title: {chat.title}")
             return
         if hasattr(chat, 'participants_count') and chat.participants_count > 2:
+            logger.info(f"⏭️ Skipping - group with {chat.participants_count} participants")
             return
         if hasattr(chat, 'broadcast') and chat.broadcast:
-            return
-        if hasattr(chat, 'megagroup') and chat.megagroup:
+            logger.info("⏭️ Skipping - broadcast channel")
             return
         
         sender = await event.get_sender()
         if not sender:
+            logger.info("⏭️ Skipping - no sender")
             return
         
         chat_id = str(event.chat_id)
         user_id = str(sender.id)
         message_text = event.message.text or ""
         
-        logger.info(f"📨 Message from {user_id}: '{message_text}'")
+        logger.info(f"✅ VALID MESSAGE from user {user_id}: '{message_text}'")
         
-        # Get client
-        client = event.client
-        
-        # Initialize Star handler for this account if not exists
         account_key = str(account_id)
-        if account_key not in star_handlers:
-            star_handlers[account_key] = StarEarningHandler(client)
         
-        star_handler = star_handlers[account_key]
-        
-        # Add user to database
-        star_handler.db.add_user(user_id, sender.username, sender.first_name)
-        
-        # Check if this is a Star payment
-        stars_paid, stars_amount = await star_handler.handle_star_payment(event)
-        
-        if stars_paid:
-            logger.info(f"💰 User {user_id} paid {stars_amount} Stars")
-            
-            # Check if they paid for media
-            if stars_amount >= StarConfig.STAR_PRICES["photo_full"]:
-                await star_handler.send_media_for_stars(chat_id, "photo", 50)
-                await event.reply("Thanks for the Stars! Here's your photo 🔥 Want more? Send more Stars!")
-                
-            elif stars_amount >= StarConfig.STAR_PRICES["photo_preview"]:
-                await star_handler.send_media_for_stars(chat_id, "photo", 5)
-                await event.reply("Here's a preview! Send 50 Stars for the full photo 😘")
-            
-            elif stars_amount >= StarConfig.STAR_PRICES["message"]:
-                # Normal reply
-                pass  # Continue to normal reply
-        
-        # Check account settings
-        if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
+        if account_key not in reply_settings:
+            logger.info(f"⏭️ No settings for account {account_key}")
             return
+        
+        if not reply_settings[account_key].get('enabled', False):
+            logger.info(f"⏭️ Auto-reply DISABLED for account {account_key}")
+            return
+        
+        logger.info(f"✅ Auto-reply ENABLED for account {account_key}")
         
         chat_settings = reply_settings[account_key].get('chats', {})
         chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
         
         if not chat_enabled:
+            logger.info(f"⏭️ Replies disabled for this chat {chat_id}")
             return
         
-        # Check if user has paid for messaging
+        logger.info(f"✅ Chat {chat_id} is enabled for replies")
+        
+        if account_key not in star_handlers:
+            logger.info(f"Creating Star handler for {account_key}")
+            star_handlers[account_key] = StarEarningHandler(event.client)
+        
+        star_handler = star_handlers[account_key]
+        
+        star_handler.db.add_user(user_id, sender.username, sender.first_name)
+        
+        stars_paid, stars_amount = await star_handler.handle_star_payment(event)
+        
+        if stars_paid:
+            logger.info(f"💰 User {user_id} paid {stars_amount} Stars")
+        
+        if message_text and ("photo" in message_text.lower() or "foto" in message_text.lower() or "ፎቶ" in message_text or "see" in message_text.lower()):
+            logger.info(f"💰 Media request detected")
+            await star_handler.request_star_payment(
+                chat_id,
+                StarConfig.STAR_PRICES["photo_preview"],
+                f"To see my photos, send {StarConfig.STAR_PRICES['photo_preview']} Stars for preview or {StarConfig.STAR_PRICES['photo_full']} Stars for full photo! 🔥"
+            )
+            return
+        
         if not stars_paid and stars_amount < StarConfig.STAR_PRICES["message"]:
-            # Ask for payment
+            logger.info(f"💰 Requesting {StarConfig.STAR_PRICES['message']} Stars from user")
             await star_handler.request_star_payment(
                 chat_id,
                 StarConfig.STAR_PRICES["message"],
                 f"To chat with Tsega, please send {StarConfig.STAR_PRICES['message']} Stars first!\n\nAll Stars go to @Abe_army channel 💰"
             )
             
-            # Store in conversation history
             if account_key not in conversation_history:
                 conversation_history[account_key] = {}
             if chat_id not in conversation_history[account_key]:
@@ -1109,32 +859,25 @@ async def auto_reply_handler(event, account_id):
                 'time': time.time()
             })
             
-            conversation_history[account_key][chat_id].append({
-                'role': 'assistant',
-                'text': f"Payment request for {StarConfig.STAR_PRICES['message']} Stars",
-                'time': time.time()
-            })
-            
             return
         
-        # Check for media requests
-        if "photo" in message_text.lower() or "foto" in message_text.lower() or "ፎቶ" in message_text or "see" in message_text.lower():
-            await star_handler.request_star_payment(
-                chat_id,
-                StarConfig.STAR_PRICES["photo_preview"],
-                f"To see my photos, send {StarConfig.STAR_PRICES['photo_preview']} Stars for preview or {StarConfig.STAR_PRICES['photo_full']} Stars for full photo! 🔥"
-            )
-            return
+        intent = detect_conversation_intent(message_text)
+        logger.info(f"Detected intent: {intent}")
         
-        if "full" in message_text.lower() or "all" in message_text.lower() or "premium" in message_text.lower():
-            await star_handler.request_star_payment(
-                chat_id,
-                StarConfig.STAR_PRICES["photo_full"],
-                f"Full photo costs {StarConfig.STAR_PRICES['photo_full']} Stars! Send now to receive instantly! 😘"
-            )
-            return
+        response = get_context_aware_response(intent)
         
-        # Store in conversation history
+        if not response or response.strip() == "":
+            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘"
+        
+        delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
+        
+        async with event.client.action(event.chat_id, 'typing'):
+            await asyncio.sleep(delay)
+        
+        await event.reply(response)
+        logger.info(f"✅✅✅ REPLIED: '{response}'")
+        
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         if chat_id not in conversation_history[account_key]:
@@ -1146,30 +889,6 @@ async def auto_reply_handler(event, account_id):
             'time': time.time()
         })
         
-        if len(conversation_history[account_key][chat_id]) > 15:
-            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
-        
-        # Detect intent and generate response
-        intent = detect_conversation_intent(message_text)
-        logger.info(f"Detected intent: {intent}")
-        
-        response = get_context_aware_response(intent)
-        
-        if not response or response.strip() == "":
-            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘 (Okay dear tell me more 😘)"
-        
-        # Human-like typing delay
-        delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
-        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
-        
-        async with event.client.action(event.chat_id, 'typing'):
-            await asyncio.sleep(delay)
-        
-        # Send reply
-        await event.reply(response)
-        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
-        
-        # Store response in history
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
@@ -1179,16 +898,12 @@ async def auto_reply_handler(event, account_id):
         save_conversation_history()
         
     except Exception as e:
-        logger.error(f"Error in auto-reply: {e}")
-        try:
-            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘 (Hi dear! Want to chat a bit? 😘)")
-        except:
-            pass
+        logger.error(f"❌ ERROR in auto-reply: {e}")
+        traceback.print_exc()
 
 # ==================== START AUTO-REPLY FOR ACCOUNT ====================
 
 async def start_auto_reply_for_account(account):
-    """Start auto-reply listener with AUTO-RECONNECT capability"""
     account_id = account['id']
     account_key = str(account_id)
     reconnect_count = 0
@@ -1218,8 +933,6 @@ async def start_auto_reply_for_account(account):
                 continue
             
             active_clients[account_key] = client
-            
-            # Initialize Star handler
             star_handlers[account_key] = StarEarningHandler(client)
             
             @client.on(NewMessage(incoming=True))
@@ -1243,7 +956,6 @@ async def start_auto_reply_for_account(account):
             await asyncio.sleep(wait_time)
 
 def stop_auto_reply_for_account(account_id):
-    """Stop auto-reply for a specific account"""
     account_key = str(account_id)
     if account_key in active_clients:
         try:
@@ -1257,11 +969,17 @@ def stop_auto_reply_for_account(account_id):
             logger.error(f"Error stopping auto-reply: {e}")
 
 def start_all_auto_replies():
-    """Start auto-reply for all enabled accounts"""
+    logger.info("🚀 Starting auto-reply for enabled accounts...")
+    
     for account in accounts:
         account_key = str(account['id'])
-        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
+        settings = reply_settings.get(account_key, {})
+        
+        logger.info(f"Checking account {account.get('name')}: enabled={settings.get('enabled', False)}")
+        
+        if settings.get('enabled', False):
             if account_key not in active_clients:
+                logger.info(f"✅ Starting auto-reply for {account.get('name')}")
                 thread = threading.Thread(
                     target=lambda: run_async(start_auto_reply_for_account(account)),
                     daemon=True
@@ -1269,11 +987,12 @@ def start_all_auto_replies():
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
+            else:
+                logger.info(f"⏭️ Auto-reply already active for {account.get('name')}")
 
 # ==================== KEEP ALIVE SYSTEM ====================
 
 def keep_alive():
-    """Keep Render from sleeping and maintain Telegram connections"""
     app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
     
     while True:
@@ -1384,17 +1103,12 @@ def add_account():
                 return {'success': True, 'session_id': session_id}
                 
             except errors.FloodWaitError as e:
-                logger.warning(f"Flood wait for {phone}: {e.seconds}s")
                 return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
             except errors.PhoneNumberInvalidError:
                 return {'success': False, 'error': 'Invalid phone number'}
             except errors.PhoneNumberBannedError:
                 return {'success': False, 'error': 'This phone number is banned'}
-            except (OSError, ConnectionError, TimeoutError) as e:
-                logger.error(f"Network error for {phone}: {e}")
-                return {'success': False, 'error': 'Network error. Cannot reach Telegram servers.'}
             except Exception as e:
-                logger.error(f"Unexpected error for {phone}: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
@@ -1862,33 +1576,177 @@ def terminate_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== STAR EARNING API ROUTES ====================
+# ==================== MEDIA UPLOAD & MANAGEMENT API ====================
+
+@app.route('/api/upload-media', methods=['POST'])
+def upload_media():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'})
+        
+        file = request.files['file']
+        prefix = request.form.get('prefix', '')
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        if not allowed_file(file.filename):
+            return jsonify({'success': False, 'error': 'File type not allowed'})
+        
+        filename = secure_filename(file.filename)
+        new_filename = f"{prefix}{filename}"
+        
+        file_path = os.path.join(UPLOAD_FOLDER, new_filename)
+        file.save(file_path)
+        
+        if 'preview' in prefix:
+            dest_folder = 'tsega_photos/preview'
+            price = 5
+        elif 'full' in prefix and 'video' not in prefix:
+            dest_folder = 'tsega_photos/full'
+            price = 50
+        elif 'premium' in prefix:
+            dest_folder = 'tsega_photos/premium'
+            price = 200
+        elif 'video_preview' in prefix:
+            dest_folder = 'tsega_videos/preview'
+            price = 10
+        elif 'video_full' in prefix:
+            dest_folder = 'tsega_videos/full'
+            price = 100
+        else:
+            dest_folder = 'uploads'
+            price = 5
+        
+        os.makedirs(dest_folder, exist_ok=True)
+        dest_path = os.path.join(dest_folder, new_filename)
+        
+        shutil.copy2(file_path, dest_path)
+        
+        media_type = 'video' if 'video' in prefix else 'photo'
+        
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute('''INSERT INTO media_library 
+                    (file_path, media_type, price_stars, is_active)
+                    VALUES (?, ?, ?, 1)''',
+                 (dest_path, media_type, price))
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"✅ Uploaded: {new_filename} ({price} stars)")
+        
+        return jsonify({
+            'success': True,
+            'filename': new_filename,
+            'path': dest_path,
+            'price': price
+        })
+        
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/delete-media', methods=['POST'])
+def delete_media():
+    try:
+        data = request.json
+        file_path = data.get('path')
+        
+        if not file_path:
+            return jsonify({'success': False, 'error': 'No file path provided'})
+        
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute("UPDATE media_library SET is_active = 0 WHERE file_path = ?", (file_path,))
+        conn.commit()
+        conn.close()
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"🗑️ Deleted: {file_path}")
+        
+        return jsonify({'success': True, 'message': 'Media deleted'})
+        
+    except Exception as e:
+        logger.error(f"Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/stars/transactions', methods=['GET'])
+def get_transactions():
+    try:
+        conn = sqlite3.connect('stars.db')
+        c = conn.cursor()
+        c.execute('''SELECT user_id, amount, transaction_type, timestamp 
+                    FROM star_transactions ORDER BY timestamp DESC LIMIT 50''')
+        transactions = c.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'transactions': [{
+                'user_id': t[0],
+                'amount': t[1],
+                'type': t[2],
+                'time': t[3]
+            } for t in transactions]
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/update-price', methods=['POST'])
+def update_price():
+    try:
+        data = request.json
+        price_type = data.get('type')
+        new_price = data.get('price')
+        
+        logger.info(f"💰 Price updated: {price_type} = {new_price} stars")
+        
+        return jsonify({'success': True, 'message': 'Price updated'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/media/<path:filename>')
+def serve_media(filename):
+    possible_paths = [
+        os.path.join('tsega_photos/preview', filename),
+        os.path.join('tsega_photos/full', filename),
+        os.path.join('tsega_photos/premium', filename),
+        os.path.join('tsega_videos/preview', filename),
+        os.path.join('tsega_videos/full', filename),
+        os.path.join('uploads', filename)
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return send_file(path)
+    
+    return jsonify({'error': 'File not found'}), 404
+
+# ==================== STAR STATS API ====================
 
 @app.route('/api/stars/stats', methods=['GET'])
 def star_stats():
-    """Get Star earning statistics"""
     try:
         conn = sqlite3.connect('stars.db')
         c = conn.cursor()
         
-        # Total earned
         c.execute("SELECT SUM(amount) FROM star_transactions")
         total_earned = c.fetchone()[0] or 0
         
-        # Today's earnings
         c.execute("SELECT SUM(amount) FROM star_transactions WHERE date(timestamp) = date('now')")
         today_earned = c.fetchone()[0] or 0
         
-        # Top users
         c.execute('''SELECT user_id, total_stars_spent FROM star_users 
                     ORDER BY total_stars_spent DESC LIMIT 5''')
         top_users = c.fetchall()
         
-        # Channel total
         c.execute("SELECT SUM(total_stars) FROM channel_earnings")
         channel_total = c.fetchone()[0] or 0
         
-        # Media stats
         c.execute("SELECT COUNT(*) FROM media_library WHERE is_active = 1")
         total_media = c.fetchone()[0] or 0
         
@@ -1911,7 +1769,6 @@ def star_stats():
 
 @app.route('/api/stars/media', methods=['GET'])
 def list_media():
-    """List all available media"""
     try:
         conn = sqlite3.connect('stars.db')
         c = conn.cursor()
@@ -1934,59 +1791,8 @@ def list_media():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/stars/transactions/<user_id>', methods=['GET'])
-def user_transactions(user_id):
-    """Get transactions for a specific user"""
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute('''SELECT amount, transaction_type, description, timestamp 
-                    FROM star_transactions WHERE user_id = ? 
-                    ORDER BY timestamp DESC LIMIT 20''', (user_id,))
-        transactions = c.fetchall()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'transactions': [{
-                'amount': t[0],
-                'type': t[1],
-                'description': t[2],
-                'time': t[3]
-            } for t in transactions]
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/stars/transfer', methods=['POST'])
-def force_transfer_stars():
-    """Manually trigger Star transfer to channel"""
-    data = request.json
-    account_id = data.get('accountId')
-    amount = data.get('amount', 0)
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    if account_key not in star_handlers:
-        return jsonify({'success': False, 'error': 'Account not active'})
-    
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(
-            star_handlers[account_key].transfer_stars_to_channel(amount)
-        )
-        loop.close()
-        
-        return jsonify({'success': result, 'message': 'Transfer initiated'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 @app.route('/api/reconnect', methods=['GET'])
 def reconnect_all():
-    """Force reconnect all accounts"""
     for account_key in list(active_clients.keys()):
         stop_auto_reply_for_account(int(account_key))
     
@@ -2012,200 +1818,13 @@ def health_check():
 # ==================== STARTUP ====================
 
 def start_auto_reply_thread():
-    """Start auto-reply in background after server starts"""
     time.sleep(5)
     logger.info("Starting auto-reply for enabled accounts...")
     start_all_auto_replies()
-# ==================== MEDIA UPLOAD & MANAGEMENT API ====================
 
-import base64
-import os
-from werkzeug.utils import secure_filename
-
-# Configure upload folder
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/api/upload-media', methods=['POST'])
-def upload_media():
-    """Upload media files directly from browser"""
-    try:
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file provided'})
-        
-        file = request.files['file']
-        prefix = request.form.get('prefix', '')
-        
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        if not allowed_file(file.filename):
-            return jsonify({'success': False, 'error': 'File type not allowed'})
-        
-        # Secure filename and add prefix
-        filename = secure_filename(file.filename)
-        new_filename = f"{prefix}{filename}"
-        
-        # Save file
-        file_path = os.path.join(UPLOAD_FOLDER, new_filename)
-        file.save(file_path)
-        
-        # Also copy to appropriate folder based on prefix
-        if prefix.startswith('preview'):
-            dest_folder = 'tsega_photos/preview'
-        elif prefix.startswith('full'):
-            dest_folder = 'tsega_photos/full'
-        elif prefix.startswith('premium'):
-            dest_folder = 'tsega_photos/premium'
-        elif prefix.startswith('video_preview'):
-            dest_folder = 'tsega_videos/preview'
-        elif prefix.startswith('video_full'):
-            dest_folder = 'tsega_videos/full'
-        else:
-            dest_folder = 'uploads'
-        
-        os.makedirs(dest_folder, exist_ok=True)
-        dest_path = os.path.join(dest_folder, new_filename)
-        
-        # Copy file to destination
-        import shutil
-        shutil.copy2(file_path, dest_path)
-        
-        # Add to media library database
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        
-        # Determine media type and price
-        if 'video' in prefix:
-            media_type = 'video'
-            price = 10 if 'preview' in prefix else 100
-        else:
-            media_type = 'photo'
-            if 'preview' in prefix:
-                price = 5
-            elif 'full' in prefix:
-                price = 50
-            elif 'premium' in prefix:
-                price = 200
-            else:
-                price = 5
-        
-        c.execute('''INSERT INTO media_library 
-                    (file_path, media_type, price_stars, is_active)
-                    VALUES (?, ?, ?, 1)''',
-                 (dest_path, media_type, price))
-        
-        conn.commit()
-        conn.close()
-        
-        logger.info(f"✅ Uploaded: {new_filename} ({price} stars)")
-        
-        return jsonify({
-            'success': True,
-            'filename': new_filename,
-            'path': dest_path,
-            'price': price
-        })
-        
-    except Exception as e:
-        logger.error(f"Upload error: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/delete-media', methods=['POST'])
-def delete_media():
-    """Delete media file"""
-    try:
-        data = request.json
-        file_path = data.get('path')
-        
-        if not file_path:
-            return jsonify({'success': False, 'error': 'No file path provided'})
-        
-        # Delete from database
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute("UPDATE media_library SET is_active = 0 WHERE file_path = ?", (file_path,))
-        conn.commit()
-        conn.close()
-        
-        # Delete file if exists
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            logger.info(f"🗑️ Deleted: {file_path}")
-        
-        return jsonify({'success': True, 'message': 'Media deleted'})
-        
-    except Exception as e:
-        logger.error(f"Delete error: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/stars/transactions', methods=['GET'])
-def get_transactions():
-    """Get all transactions"""
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute('''SELECT user_id, amount, transaction_type, timestamp 
-                    FROM star_transactions ORDER BY timestamp DESC LIMIT 50''')
-        transactions = c.fetchall()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'transactions': [{
-                'user_id': t[0],
-                'amount': t[1],
-                'type': t[2],
-                'time': t[3]
-            } for t in transactions]
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/update-price', methods=['POST'])
-def update_price():
-    """Update Star prices"""
-    try:
-        data = request.json
-        price_type = data.get('type')
-        new_price = data.get('price')
-        
-        # In a real implementation, you'd update a config file
-        # For now, just return success
-        logger.info(f"💰 Price updated: {price_type} = {new_price} stars")
-        
-        return jsonify({'success': True, 'message': 'Price updated'})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/media/<path:filename>')
-def serve_media(filename):
-    """Serve media files for preview"""
-    # Try to find file in various folders
-    possible_paths = [
-        os.path.join('tsega_photos/preview', filename),
-        os.path.join('tsega_photos/full', filename),
-        os.path.join('tsega_photos/premium', filename),
-        os.path.join('tsega_videos/preview', filename),
-        os.path.join('tsega_videos/full', filename),
-        os.path.join('uploads', filename)
-    ]
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            return send_file(path)
-    
-    return jsonify({'error': 'File not found'}), 404
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
-    # Initialize Star system
     logger.info("💰 Initializing Star Earning System...")
     star_db = StarDatabase()
     media_manager = MediaManager()
@@ -2232,14 +1851,10 @@ if __name__ == '__main__':
     print('   • STAR EARNING: Users pay Stars to chat')
     print('   • PHOTO SELLING: Users pay Stars for photos')
     print('   • ALL STARS go to @Abe_army channel')
-    print('   • Lives in Jemo, from Adama')
-    print('   • Grade 12 student, 20 years old')
     print('='*70 + '\n')
     
-    # Start keep-alive
     threading.Thread(target=keep_alive, daemon=True).start()
     
-    # Start auto-reply
     threading.Thread(target=start_auto_reply_thread, daemon=True).start()
     
     app.run(host='0.0.0.0', port=port, debug=False)
