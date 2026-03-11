@@ -16,8 +16,7 @@ from datetime import datetime, timedelta
 import socket
 import re
 import hashlib
-from collections import defaultdict, Counter
-import numpy as np
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,16 +34,16 @@ ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
 USER_CONTEXT_FILE = 'user_context.json'
-LEARNING_DATA_FILE = 'learning_data.json'  # NEW: Store learned patterns
-PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'  # NEW: Track personality changes
+LEARNING_DATA_FILE = 'learning_data.json'
+PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'
 
 accounts = []
 temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
 user_context = {}
-learning_data = {}  # NEW: Learning patterns per account
-personality_evolution = {}  # NEW: Track personality changes
+learning_data = {}
+personality_evolution = {}
 active_clients = {}
 client_tasks = {}
 
@@ -220,8 +219,24 @@ def save_user_context():
 # Save learning data
 def save_learning_data():
     try:
+        # Convert defaultdict to dict for JSON serialization
+        serializable_data = {}
+        for acc_id, acc_data in learning_data.items():
+            serializable_data[acc_id] = {}
+            for key, value in acc_data.items():
+                if isinstance(value, defaultdict):
+                    serializable_data[acc_id][key] = dict(value)
+                elif key == 'evolution' and 'unique_users' in value:
+                    # Convert set to list for JSON
+                    ev_data = value.copy()
+                    if 'unique_users' in ev_data:
+                        ev_data['unique_users'] = list(ev_data['unique_users'])
+                    serializable_data[acc_id][key] = ev_data
+                else:
+                    serializable_data[acc_id][key] = value
+        
         with open(LEARNING_DATA_FILE, 'w') as f:
-            json.dump(learning_data, f, indent=2)
+            json.dump(serializable_data, f, indent=2)
         return True
     except Exception as e:
         logger.error(f"Error saving learning data: {e}")
@@ -280,7 +295,6 @@ def debug_routes():
 @app.route('/api/test-telegram', methods=['GET'])
 def test_telegram():
     try:
-        # Test connection to Telegram's DC
         sock = socket.create_connection(('149.154.167.50', 443), timeout=10)
         sock.close()
         return jsonify({'success': True, 'message': 'Telegram reachable'})
@@ -307,7 +321,7 @@ TSEGA_BASE = {
     "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Initial reply templates (will evolve over time)
+# Initial reply templates
 INITIAL_REPLIES = {
     "greeting": [
         "ሰላም ወንድሜ 😘 እንደምን ነህ?",
@@ -404,170 +418,168 @@ INITIAL_REPLIES = {
     ],
 }
 
-# ==================== SELF-LEARNING SYSTEM ====================
+# ==================== SIMPLE LEARNING SYSTEM ====================
 
-class PersonalityLearner:
-    """Self-learning system that evolves Tsega's personality based on conversations"""
-    
-    def __init__(self, account_id):
-        self.account_id = str(account_id)
-        self.load_or_init()
-    
-    def load_or_init(self):
-        """Load existing learning data or initialize new"""
-        if self.account_id not in learning_data:
-            learning_data[self.account_id] = {
-                'replies': INITIAL_REPLIES.copy(),
-                'patterns': {
-                    'word_freq': defaultdict(int),
-                    'phrase_freq': defaultdict(int),
-                    'emoji_usage': defaultdict(int),
-                    'response_times': [],
-                    'successful_patterns': defaultdict(int),
-                    'user_preferences': defaultdict(lambda: defaultdict(int))
+def init_account_learning(account_id):
+    """Initialize learning data for an account"""
+    account_key = str(account_id)
+    if account_key not in learning_data:
+        learning_data[account_key] = {
+            'replies': INITIAL_REPLIES.copy(),
+            'patterns': {
+                'word_freq': {},
+                'phrase_freq': {},
+                'emoji_usage': {},
+                'response_times': [],
+                'successful_patterns': {},
+                'user_preferences': {}
+            },
+            'evolution': {
+                'total_conversations': 0,
+                'total_messages': 0,
+                'unique_users': [],
+                'learning_iterations': 0,
+                'personality_traits': {
+                    'flirty_level': 0.6,
+                    'serious_level': 0.2,
+                    'funny_level': 0.4,
+                    'caring_level': 0.5,
+                    'money_focus': 0.3
                 },
-                'evolution': {
-                    'total_conversations': 0,
-                    'total_messages': 0,
-                    'unique_users': set(),
-                    'learning_iterations': 0,
-                    'personality_traits': {
-                        'flirty_level': 0.6,
-                        'serious_level': 0.2,
-                        'funny_level': 0.4,
-                        'caring_level': 0.5,
-                        'money_focus': 0.3
-                    },
-                    'last_evolution': time.time()
-                }
+                'last_evolution': time.time()
             }
-            save_learning_data()
-    
-    def learn_from_exchange(self, user_message, bot_reply, user_id, intent, success=True):
-        """Learn from each conversation exchange"""
-        data = learning_data[self.account_id]
-        patterns = data['patterns']
-        evolution = data['evolution']
-        
-        # Update word frequency
-        words = user_message.lower().split()
-        for word in words:
-            if len(word) > 3:
-                patterns['word_freq'][word] += 1
-        
-        # Update phrase frequency (2-3 word combinations)
-        if len(words) >= 2:
-            for i in range(len(words)-1):
-                phrase = f"{words[i]} {words[i+1]}"
-                patterns['phrase_freq'][phrase] += 1
-        
-        # Track emoji usage
-        emojis = re.findall(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', user_message)
-        for emoji in emojis:
-            patterns['emoji_usage'][emoji] += 1
-        
-        # Track response time
-        patterns['response_times'].append(int(time.time()))
-        if len(patterns['response_times']) > 100:
-            patterns['response_times'] = patterns['response_times'][-100:]
-        
-        # If successful conversation, reinforce patterns
-        if success:
-            patterns['successful_patterns'][intent] += 1
-            patterns['user_preferences'][user_id][intent] += 1
-        
-        # Update evolution stats
-        evolution['total_messages'] += 1
-        evolution['unique_users'].add(user_id)
-        
-        # Periodically evolve personality
-        if time.time() - evolution['last_evolution'] > 3600:  # Every hour
-            self.evolve_personality()
-    
-    def evolve_personality(self):
-        """Evolve personality based on learned patterns"""
-        data = learning_data[self.account_id]
-        patterns = data['patterns']
-        evolution = data['evolution']
-        replies = data['replies']
-        
-        # Analyze successful intents
-        successful_intents = patterns['successful_patterns']
-        total_success = sum(successful_intents.values())
-        
-        if total_success > 0:
-            # Adjust personality traits based on what works
-            traits = evolution['personality_traits']
-            
-            # If flirty messages get more responses, increase flirty level
-            flirty_success = successful_intents.get('flirty', 0)
-            if flirty_success > 10:
-                traits['flirty_level'] = min(0.9, traits['flirty_level'] + 0.05)
-            
-            # If money requests get ignored, reduce frequency
-            money_success = successful_intents.get('money_request', 0)
-            money_total = patterns['word_freq'].get('ብር', 0) + patterns['word_freq'].get('money', 0)
-            if money_total > 20 and money_success < 3:
-                traits['money_focus'] = max(0.1, traits['money_focus'] - 0.02)
-            
-            # Learn new phrases from successful exchanges
-            common_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
-            for phrase, count in common_phrases:
-                if count > 5 and phrase not in str(replies):
-                    # Add learned phrase to appropriate intent
-                    for intent in replies:
-                        if any(word in phrase for word in ['how', 'what', 'where', 'when']):
-                            if len(replies[intent]) < 10:  # Limit growth
-                                new_reply = f"አንተ {phrase} ትላለህ? 😊"
-                                replies[intent].append(new_reply)
-        
-        evolution['learning_iterations'] += 1
-        evolution['last_evolution'] = time.time()
-        
-        # Save changes
+        }
         save_learning_data()
-        save_personality_evolution()
-        
-        logger.info(f"🤖 Personality evolved for account {self.account_id} (iteration {evolution['learning_iterations']})")
-    
-    def get_evolved_reply(self, intent, user_data=None):
-        """Get an evolved reply based on learned patterns"""
-        data = learning_data[self.account_id]
-        replies = data['replies']
-        traits = data['evolution']['personality_traits']
-        
-        if intent not in replies:
-            intent = 'default'
-        
-        available_replies = replies[intent]
-        
-        # Weight replies based on personality traits
-        if intent == 'flirty' and traits['flirty_level'] > 0.7:
-            # Add extra flirty touches
-            reply = random.choice(available_replies)
-            extra_flirty = ["💋", "🔥", "😏", "💦"]
-            if random.random() < 0.5:
-                reply += " " + random.choice(extra_flirty)
-            return reply
-        
-        elif intent == 'money_request' and traits['money_focus'] < 0.2:
-            # Less aggressive money requests
-            return "ለአንተ ስል ነው ውዴ ትንሽ ብትረዳኝ? 💕"
-        
-        # Normal reply with personality weighting
-        return random.choice(available_replies)
-    
-    def add_learned_phrase(self, intent, phrase):
-        """Add a new learned phrase to the reply database"""
-        data = learning_data[self.account_id]
-        if intent in data['replies'] and len(data['replies'][intent]) < 15:
-            data['replies'][intent].append(phrase)
-            save_learning_data()
+    return account_key
 
-# ==================== ENHANCED MESSAGE HANDLER WITH LEARNING ====================
+def learn_from_exchange(account_id, user_message, bot_reply, user_id, intent, success=True):
+    """Learn from conversation exchange"""
+    account_key = init_account_learning(account_id)
+    data = learning_data[account_key]
+    patterns = data['patterns']
+    evolution = data['evolution']
+    
+    # Update word frequency
+    words = user_message.lower().split()
+    for word in words:
+        if len(word) > 3:
+            patterns['word_freq'][word] = patterns['word_freq'].get(word, 0) + 1
+    
+    # Update phrase frequency
+    if len(words) >= 2:
+        for i in range(len(words)-1):
+            phrase = f"{words[i]} {words[i+1]}"
+            patterns['phrase_freq'][phrase] = patterns['phrase_freq'].get(phrase, 0) + 1
+    
+    # Track emoji usage
+    emojis = re.findall(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', user_message)
+    for emoji in emojis:
+        patterns['emoji_usage'][emoji] = patterns['emoji_usage'].get(emoji, 0) + 1
+    
+    # Track response times
+    patterns['response_times'].append(int(time.time()))
+    if len(patterns['response_times']) > 100:
+        patterns['response_times'] = patterns['response_times'][-100:]
+    
+    # Track successful patterns
+    if success:
+        patterns['successful_patterns'][intent] = patterns['successful_patterns'].get(intent, 0) + 1
+        
+        # Track user preferences
+        if user_id not in patterns['user_preferences']:
+            patterns['user_preferences'][user_id] = {}
+        patterns['user_preferences'][user_id][intent] = patterns['user_preferences'][user_id].get(intent, 0) + 1
+    
+    # Update evolution stats
+    evolution['total_messages'] += 1
+    if user_id not in evolution['unique_users']:
+        evolution['unique_users'].append(user_id)
+    
+    # Periodically evolve personality (every 50 messages)
+    if evolution['total_messages'] % 50 == 0:
+        evolve_personality(account_id)
+    
+    save_learning_data()
+
+def evolve_personality(account_id):
+    """Evolve personality based on learned patterns"""
+    account_key = str(account_id)
+    if account_key not in learning_data:
+        return
+    
+    data = learning_data[account_key]
+    patterns = data['patterns']
+    evolution = data['evolution']
+    replies = data['replies']
+    
+    # Analyze successful intents
+    successful_intents = patterns.get('successful_patterns', {})
+    total_success = sum(successful_intents.values()) if successful_intents else 0
+    
+    if total_success > 0:
+        traits = evolution['personality_traits']
+        
+        # Adjust flirty level based on success
+        flirty_success = successful_intents.get('flirty', 0)
+        if flirty_success > 10:
+            traits['flirty_level'] = min(0.9, traits['flirty_level'] + 0.05)
+        
+        # Adjust money focus based on response rate
+        money_success = successful_intents.get('money_request', 0)
+        money_total = patterns['word_freq'].get('ብር', 0) + patterns['word_freq'].get('money', 0)
+        if money_total > 20 and money_success < 3:
+            traits['money_focus'] = max(0.1, traits['money_focus'] - 0.02)
+        
+        # Learn new phrases from successful exchanges
+        common_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:5]
+        for phrase, count in common_phrases:
+            if count > 3:
+                # Add to appropriate intent if not too many replies
+                for intent_name, intent_replies in replies.items():
+                    if len(intent_replies) < 15 and any(word in phrase for word in ['how', 'what', 'where']):
+                        new_reply = f"አንተ {phrase} ትላለህ? 😊"
+                        if new_reply not in intent_replies:
+                            intent_replies.append(new_reply)
+                            break
+    
+    evolution['learning_iterations'] += 1
+    evolution['last_evolution'] = time.time()
+    save_learning_data()
+    
+    logger.info(f"🤖 Personality evolved for account {account_id}")
+
+def get_evolved_reply(account_id, intent, user_data=None):
+    """Get evolved reply based on learning"""
+    account_key = str(account_id)
+    
+    # Initialize if needed
+    if account_key not in learning_data:
+        init_account_learning(account_id)
+    
+    data = learning_data[account_key]
+    replies = data['replies']
+    traits = data['evolution']['personality_traits']
+    
+    if intent not in replies:
+        intent = 'default'
+    
+    available_replies = replies[intent]
+    
+    # Personalize based on traits
+    if intent == 'flirty' and traits['flirty_level'] > 0.7:
+        reply = random.choice(available_replies)
+        extra_flirty = ["💋", "🔥", "😏", "💦"]
+        if random.random() < 0.5:
+            reply += " " + random.choice(extra_flirty)
+        return reply
+    
+    elif intent == 'money_request' and traits['money_focus'] < 0.2:
+        return "ለአንተ ስል ነው ውዴ ትንሽ ብትረዳኝ? 💕"
+    
+    return random.choice(available_replies)
 
 def extract_user_info(message, user_data):
-    """Extract user information like name, age, location from messages"""
+    """Extract user information"""
     message_lower = message.lower()
     
     # Extract name
@@ -591,34 +603,11 @@ def extract_user_info(message, user_data):
         if 15 < age < 100:
             user_data['age'] = age
     
-    # Extract location
-    location_keywords = ['from', 'live in', 'living in', 'based in']
-    for keyword in location_keywords:
-        if keyword in message_lower:
-            parts = message_lower.split(keyword)
-            if len(parts) > 1:
-                location = parts[1].strip().split()[0]
-                if len(location) > 2:
-                    user_data['location'] = location.capitalize()
-    
     return user_data
 
-def detect_intent_with_learning(message, history, user_data, learner):
-    """Detect intent with context awareness and learning"""
+def detect_conversation_intent(message, history=None):
+    """Detect intent from message"""
     message_lower = message.lower().strip()
-    
-    # Check if user is answering a previous question
-    if history and len(history) > 1:
-        last_bot_msg = None
-        for msg in reversed(history):
-            if msg.get('role') == 'assistant':
-                last_bot_msg = msg.get('text', '')
-                break
-        
-        if last_bot_msg and '?' in last_bot_msg:
-            if 'ስም' in last_bot_msg or 'name' in last_bot_msg:
-                if user_data.get('name'):
-                    return "greeting"  # Already have name
     
     # Priority intents
     money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000']
@@ -636,9 +625,6 @@ def detect_intent_with_learning(message, history, user_data, learner):
     # Name related
     if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን']):
         return "ask_name"
-    
-    if any(phrase in message_lower for phrase in ['my name is', 'i am', 'i\'m']):
-        return "greeting"
     
     # Age related
     if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ']):
@@ -690,51 +676,35 @@ def detect_intent_with_learning(message, history, user_data, learner):
     if any(word in message_lower for word in ['good night', 'ደህና ተኛ']):
         return "night"
     
-    # If we've learned this user's preferences
-    if user_data.get('user_id'):
-        user_prefs = learner.patterns['user_preferences'].get(user_data['user_id'], {})
-        if user_prefs:
-            # Return most common intent for this user
-            return max(user_prefs.items(), key=lambda x: x[1])[0]
-    
     return "default"
 
-def generate_evolved_response(message, intent, history, user_data, learner):
+def generate_response(message, intent, history, user_data, account_id):
     """Generate response using evolved personality"""
     
     # Check if we should use remembered name
     if user_data.get('name') and random.random() < 0.4:
         if 'remember' in message.lower() or 'my name' in message.lower():
-            return random.choice(learner.replies['remember_name']).format(name=user_data['name'])
+            replies = learning_data.get(str(account_id), {}).get('replies', INITIAL_REPLIES)
+            remember_replies = replies.get('remember_name', ["አስታውሻለሁ {name} ውዴ 😘"])
+            return random.choice(remember_replies).format(name=user_data['name'])
     
     # Get evolved reply
-    response = learner.get_evolved_reply(intent, user_data)
+    response = get_evolved_reply(account_id, intent, user_data)
     
     # Personalize with name
     if user_data.get('name') and '{name}' not in response:
         if random.random() < 0.3:
             response = response.replace('ውዴ', f"{user_data['name']} ውዴ")
     
-    # Add follow-up question for conversation flow
-    traits = learner.evolution['personality_traits']
-    if random.random() < traits.get('question_frequency', 0.5):
-        if intent not in ["goodbye", "money_request", "after_money"]:
-            follow_up = random.choice(learner.replies['follow_up'])
-            response += " " + follow_up
-    
-    # Add emojis based on learned preferences
-    if random.random() < traits.get('flirty_level', 0.6):
-        common_emojis = ['😘', '💋', '💕', '🔥']
-        if learner.patterns['emoji_usage']:
-            # Use emojis that get good responses
-            top_emojis = sorted(learner.patterns['emoji_usage'].items(), key=lambda x: x[1], reverse=True)[:3]
-            common_emojis = [e[0] for e in top_emojis]
-        response += " " + random.choice(common_emojis)
+    # Add follow-up question
+    if random.random() < 0.4 and intent not in ["goodbye", "money_request", "after_money"]:
+        follow_ups = INITIAL_REPLIES['follow_up']
+        response += " " + random.choice(follow_ups)
     
     return response
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with self-learning personality"""
+    """Handle incoming messages with learning"""
     try:
         if event.out:
             return
@@ -767,9 +737,6 @@ async def auto_reply_handler(event, account_id):
         if not chat_settings.get(chat_id, {}).get('enabled', True):
             return
         
-        # Initialize learner for this account
-        learner = PersonalityLearner(account_id)
-        
         # Initialize conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
@@ -787,8 +754,7 @@ async def auto_reply_handler(event, account_id):
                 'first_seen': time.time(),
                 'last_seen': time.time(),
                 'message_count': 0,
-                'money_sent': False,
-                'preferred_intents': defaultdict(int)
+                'money_sent': False
             }
         
         user_data = user_context[account_key][user_id]
@@ -803,35 +769,30 @@ async def auto_reply_handler(event, account_id):
             'user_id': user_id
         })
         
-        # Keep last 30 messages for better context
+        # Keep last 30 messages
         if len(conversation_history[account_key][chat_id]) > 30:
             conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-30:]
         
         # Extract user info
         user_data = extract_user_info(message_text, user_data)
         
-        # Detect intent with learning
-        intent = detect_intent_with_learning(
-            message_text, 
-            conversation_history[account_key][chat_id], 
-            user_data,
-            learner
-        )
+        # Detect intent
+        intent = detect_conversation_intent(message_text, conversation_history[account_key][chat_id])
         logger.info(f"Detected intent: {intent} for user {user_data.get('name', 'unknown')}")
         
-        # Generate evolved response
-        response = generate_evolved_response(
+        # Generate response
+        response = generate_response(
             message_text,
             intent,
             conversation_history[account_key][chat_id],
             user_data,
-            learner
+            account_id
         )
         
         if not response:
-            response = learner.get_evolved_reply('default')
+            response = get_evolved_reply(account_id, 'default')
         
-        # Human-like delay (15-40 seconds)
+        # Human-like delay
         delay = random.randint(15, 40)
         logger.info(f"⏱️ Waiting {delay}s before replying...")
         
@@ -851,16 +812,14 @@ async def auto_reply_handler(event, account_id):
         })
         
         # LEARN from this exchange
-        learner.learn_from_exchange(
+        learn_from_exchange(
+            account_id,
             message_text,
             response,
             user_id,
             intent,
             success=True
         )
-        
-        # Update user's preferred intents
-        user_data['preferred_intents'][intent] += 1
         
         # Save all data
         save_conversation_history()
@@ -870,12 +829,11 @@ async def auto_reply_handler(event, account_id):
         logger.error(f"Error in auto-reply: {e}")
         try:
             # Fallback reply
-            learner = PersonalityLearner(account_id)
-            await event.reply(learner.get_evolved_reply('default'))
+            await event.reply(random.choice(INITIAL_REPLIES['default']))
         except:
             pass
 
-# ==================== API ENDPOINTS FOR LEARNING SYSTEM ====================
+# ==================== API ENDPOINTS FOR LEARNING ====================
 
 @app.route('/api/learning-stats', methods=['GET'])
 def get_learning_stats():
@@ -890,23 +848,20 @@ def get_learning_stats():
     
     data = learning_data[account_key]
     evolution = data['evolution']
+    patterns = data['patterns']
     
-    # Convert set to list for JSON
-    if 'unique_users' in evolution:
-        evolution['unique_users'] = list(evolution['unique_users'])
-    
-    # Get top learned phrases
-    top_phrases = sorted(data['patterns']['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
+    # Get top phrases
+    top_phrases = sorted(patterns.get('phrase_freq', {}).items(), key=lambda x: x[1], reverse=True)[:10]
     
     return jsonify({
         'success': True,
         'stats': {
-            'total_messages': evolution['total_messages'],
-            'unique_users': len(evolution['unique_users']),
-            'learning_iterations': evolution['learning_iterations'],
-            'personality_traits': evolution['personality_traits'],
+            'total_messages': evolution.get('total_messages', 0),
+            'unique_users': len(evolution.get('unique_users', [])),
+            'learning_iterations': evolution.get('learning_iterations', 0),
+            'personality_traits': evolution.get('personality_traits', {}),
             'top_phrases': top_phrases,
-            'replies_count': {k: len(v) for k, v in data['replies'].items()}
+            'replies_count': {k: len(v) for k, v in data.get('replies', {}).items()}
         }
     })
 
@@ -919,8 +874,7 @@ def force_evolution():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    learner = PersonalityLearner(account_id)
-    learner.evolve_personality()
+    evolve_personality(account_id)
     
     return jsonify({'success': True, 'message': 'Personality evolved'})
 
@@ -940,7 +894,6 @@ def reset_learning():
     
     return jsonify({'success': True, 'message': 'Learning data reset'})
 
-# [Keep all the existing page routes and other API endpoints exactly the same]
 # ==================== PAGE ROUTES ====================
 
 @app.route('/')
@@ -967,7 +920,584 @@ def all_sessions():
 def settings():
     return send_file('settings.html')
 
-# [Keep all other API endpoints from your original code]
+# ==================== API ROUTES (Keep all your existing API endpoints) ====================
+
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    formatted = []
+    for acc in accounts:
+        account_key = str(acc['id'])
+        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
+        formatted.append({
+            'id': acc.get('id'),
+            'phone': acc.get('phone', ''),
+            'name': acc.get('name', 'Unknown'),
+            'auto_reply_enabled': has_reply
+        })
+    return jsonify({'success': True, 'accounts': formatted})
+
+@app.route('/api/add-account', methods=['POST'])
+def add_account():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No JSON data received'})
+        
+        phone = data.get('phone')
+        if not phone:
+            return jsonify({'success': False, 'error': 'Phone number required'})
+        
+        if not phone.startswith('+'):
+            phone = '+' + phone
+        
+        logger.info(f"Adding account for phone: {phone}")
+        
+        async def send_code():
+            client = TelegramClient(
+                StringSession(), 
+                API_ID, 
+                API_HASH,
+                connection_retries=3,
+                retry_delay=1,
+                timeout=15
+            )
+            try:
+                await client.connect()
+                logger.info(f"Connected to Telegram for {phone}")
+                
+                result = await client.send_code_request(phone)
+                logger.info(f"Code sent successfully to {phone}")
+                
+                session_id = str(int(time.time()))
+                temp_sessions[session_id] = {
+                    'phone': phone,
+                    'hash': result.phone_code_hash,
+                    'session': client.session.save()
+                }
+                return {'success': True, 'session_id': session_id}
+                
+            except errors.FloodWaitError as e:
+                logger.warning(f"Flood wait for {phone}: {e.seconds}s")
+                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
+            except errors.PhoneNumberInvalidError:
+                return {'success': False, 'error': 'Invalid phone number'}
+            except errors.PhoneNumberBannedError:
+                return {'success': False, 'error': 'This phone number is banned'}
+            except (OSError, ConnectionError, TimeoutError) as e:
+                logger.error(f"Network error for {phone}: {e}")
+                return {'success': False, 'error': 'Network error. Cannot reach Telegram servers.'}
+            except Exception as e:
+                logger.error(f"Unexpected error for {phone}: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(send_code())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in add_account: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
+
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    data = request.json
+    code = data.get('code')
+    session_id = data.get('session_id')
+    password = data.get('password', '')
+    
+    if not code or not session_id:
+        return jsonify({'success': False, 'error': 'Missing code or session'})
+    
+    if session_id not in temp_sessions:
+        return jsonify({'success': False, 'error': 'Session expired'})
+    
+    session_data = temp_sessions[session_id]
+    
+    async def verify():
+        client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            try:
+                await client.sign_in(
+                    session_data['phone'], 
+                    code, 
+                    phone_code_hash=session_data['hash']
+                )
+            except errors.SessionPasswordNeededError:
+                if not password:
+                    return {'need_password': True}
+                await client.sign_in(password=password)
+            
+            me = await client.get_me()
+            
+            new_id = 1
+            if accounts:
+                new_id = max([a['id'] for a in accounts]) + 1
+            
+            new_account = {
+                'id': new_id,
+                'phone': me.phone or session_data['phone'],
+                'name': me.first_name or 'User',
+                'session': client.session.save()
+            }
+            
+            accounts.append(new_account)
+            save_accounts()
+            
+            return {'success': True}
+            
+        except errors.PhoneCodeInvalidError:
+            return {'success': False, 'error': 'Invalid code'}
+        except errors.PhoneCodeExpiredError:
+            return {'success': False, 'error': 'Code expired'}
+        except errors.PasswordHashInvalidError:
+            return {'success': False, 'error': 'Invalid password'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(verify())
+        
+        if session_id in temp_sessions:
+            del temp_sessions[session_id]
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def fetch():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            
+            dialogs = await client.get_dialogs()
+            
+            chats = []
+            for dialog in dialogs:
+                if not dialog:
+                    continue
+                
+                chat_type = 'user'
+                if dialog.is_group:
+                    chat_type = 'group'
+                elif dialog.is_channel:
+                    chat_type = 'channel'
+                
+                chat = {
+                    'id': str(dialog.id),
+                    'title': dialog.name or 'Unknown',
+                    'type': chat_type,
+                    'unread': dialog.unread_count or 0,
+                    'lastMessage': '',
+                    'lastMessageDate': 0
+                }
+                
+                if dialog.message:
+                    if dialog.message.text:
+                        chat['lastMessage'] = dialog.message.text[:50]
+                    elif dialog.message.media:
+                        chat['lastMessage'] = '📎 Media'
+                    
+                    if dialog.message.date:
+                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                
+                chats.append(chat)
+            
+            return {'success': True, 'chats': chats}
+            
+        except AuthKeyUnregisteredError:
+            remove_invalid_account(account_id)
+            return {'success': False, 'error': 'auth_key_unregistered'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(fetch())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    message = data.get('message')
+    
+    if not account_id or not chat_id or not message:
+        return jsonify({'success': False, 'error': 'Missing required fields'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def send():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            
+            try:
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
+                    entity = await client.get_entity(chat_id)
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
+            
+            await client.send_message(entity, message)
+            return {'success': True}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(send())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/remove-account', methods=['POST'])
+def remove_account():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    global accounts
+    
+    stop_auto_reply_for_account(account_id)
+    
+    original_len = len(accounts)
+    accounts = [acc for acc in accounts if acc['id'] != account_id]
+    
+    if len(accounts) < original_len:
+        save_accounts()
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Account not found'})
+
+@app.route('/api/reply-settings', methods=['GET'])
+def get_reply_settings():
+    account_id = request.args.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    settings = reply_settings.get(account_key, {
+        'enabled': False,
+        'chats': {}
+    })
+    
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/reply-settings', methods=['POST'])
+def update_reply_settings():
+    data = request.json
+    account_id = data.get('accountId')
+    enabled = data.get('enabled', False)
+    chat_settings = data.get('chats', {})
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    
+    if account_key not in reply_settings:
+        reply_settings[account_key] = {}
+    
+    was_enabled = reply_settings[account_key].get('enabled', False)
+    reply_settings[account_key]['enabled'] = enabled
+    reply_settings[account_key]['chats'] = chat_settings
+    
+    save_reply_settings()
+    
+    # Start or stop based on new setting
+    if enabled and not was_enabled:
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if account and account_key not in active_clients:
+            thread = threading.Thread(
+                target=lambda: run_async(start_auto_reply_for_account(account)),
+                daemon=True
+            )
+            thread.start()
+            client_tasks[account_key] = thread
+            logger.info(f"Started auto-reply for account {account_id}")
+    elif not enabled and was_enabled:
+        stop_auto_reply_for_account(account_id)
+    
+    return jsonify({'success': True, 'message': 'Settings updated'})
+
+@app.route('/api/toggle-chat-reply', methods=['POST'])
+def toggle_chat_reply():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    enabled = data.get('enabled', True)
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    
+    if account_key not in reply_settings:
+        reply_settings[account_key] = {'enabled': False, 'chats': {}}
+    
+    if 'chats' not in reply_settings[account_key]:
+        reply_settings[account_key]['chats'] = {}
+    
+    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
+    
+    save_reply_settings()
+    
+    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
+
+@app.route('/api/conversation-history', methods=['GET'])
+def get_conversation_history():
+    account_id = request.args.get('accountId')
+    chat_id = request.args.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    history = []
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        history = conversation_history[account_key][chat_key]
+    
+    return jsonify({'success': True, 'history': history})
+
+@app.route('/api/user-context', methods=['GET'])
+def get_user_context():
+    account_id = request.args.get('accountId')
+    user_id = request.args.get('userId')
+    
+    if not account_id or not user_id:
+        return jsonify({'success': False, 'error': 'Account ID and User ID required'})
+    
+    account_key = str(account_id)
+    user_key = str(user_id)
+    
+    context = {}
+    if account_key in user_context and user_key in user_context[account_key]:
+        context = user_context[account_key][user_key]
+    
+    return jsonify({'success': True, 'context': context})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_conversation_history():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        conversation_history[account_key][chat_key] = []
+        save_conversation_history()
+    
+    return jsonify({'success': True, 'message': 'History cleared'})
+
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def get_sessions():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            result = await client(functions.account.GetAuthorizationsRequest())
+            
+            sessions = []
+            current_hash = None
+            
+            for auth in result.authorizations:
+                session_info = {
+                    'hash': auth.hash,
+                    'device_model': auth.device_model,
+                    'platform': auth.platform,
+                    'system_version': auth.system_version,
+                    'api_id': auth.api_id,
+                    'app_name': auth.app_name,
+                    'app_version': auth.app_version,
+                    'date_created': auth.date_created,
+                    'date_active': auth.date_active,
+                    'ip': auth.ip,
+                    'country': auth.country,
+                    'region': auth.region,
+                    'current': auth.current
+                }
+                
+                if auth.current:
+                    current_hash = auth.hash
+                
+                sessions.append(session_info)
+            
+            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
+            
+        except FreshResetAuthorisationForbiddenError:
+            return {'success': False, 'error': 'fresh_reset_forbidden'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(get_sessions())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    data = request.json
+    account_id = data.get('accountId')
+    session_hash = data.get('hash')
+    
+    if not account_id or not session_hash:
+        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            result = await client(functions.account.GetAuthorizationsRequest())
+            
+            current_hash = None
+            for auth in result.authorizations:
+                if auth.current:
+                    current_hash = auth.hash
+                    break
+            
+            count = 0
+            for auth in result.authorizations:
+                if auth.hash != current_hash:
+                    try:
+                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
+                        count += 1
+                    except:
+                        continue
+            
+            return {'success': True, 'message': f'Terminated {count} sessions'}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/reconnect', methods=['GET'])
+def reconnect_all():
+    """Force reconnect all accounts"""
+    for account_key in list(active_clients.keys()):
+        stop_auto_reply_for_account(int(account_key))
+    
+    time.sleep(2)
+    start_all_auto_replies()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Reconnecting all accounts',
+        'active': len(active_clients)
+    })
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'auto_reply_active': len(active_clients),
+        'active_accounts': list(active_clients.keys()),
+        'time': datetime.now().isoformat()
+    })
+
 # ==================== AUTO-REPLY MANAGEMENT ====================
 
 async def start_auto_reply_for_account(account):
@@ -1094,7 +1624,6 @@ if __name__ == '__main__':
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Learning data: {len(learning_data)} accounts')
     
     for acc in accounts:
         status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
@@ -1104,13 +1633,11 @@ if __name__ == '__main__':
     print('='*70)
     print('🚀 SELF-LEARNING FEATURES:')
     print('   • Learns from every conversation')
-    print('   • Evolves personality based on what works')
-    print('   • Remembers user preferences per user')
+    print('   • Evolves personality every 50 messages')
+    print('   • Remembers user names permanently')
     print('   • Tracks successful vs ignored messages')
     print('   • Adapts flirty level based on responses')
     print('   • Learns new phrases from users')
-    print('   • Hourly personality evolution')
-    print('   • Tracks emoji effectiveness')
     print('='*70 + '\n')
     
     # Start keep-alive
