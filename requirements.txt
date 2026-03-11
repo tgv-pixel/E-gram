@@ -1,4 +1,4 @@
-python-telegram-bot
+
 Flask==2.3.3
 Flask-CORS==4.0.0
 Telethon==1.34.0
