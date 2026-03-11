@@ -142,7 +142,7 @@ def remove_invalid_account(account_id):
     accounts = [acc for acc in accounts if acc['id'] != account_id]
     if len(accounts) < original_len:
         save_accounts()
-        logger.info(f"🗑️ Removed invalid account {account_id}")
+        logger.info(f"Removed invalid account {account_id}")
         return True
     return False
 
@@ -151,282 +151,542 @@ load_accounts()
 load_reply_settings()
 load_conversation_history()
 
-# -------------------- AUTO-REPLY SYSTEM --------------------
+# ==================== PROFESSIONAL CONVERSATION ENGINE ====================
 
-# Human-like response templates with context awareness
-RESPONSE_TEMPLATES = {
+# Personality configuration - Customize this!
+PERSONALITY = {
+    "name": "Sofia",
+    "age": 28,
+    "location": "Dubai",
+    "job": "marketing consultant",
+    "hobbies": ["traveling", "photography", "yoga", "reading"],
+    "languages": ["English", "Arabic", "Hindi"],
+    "style": "friendly_professional",
+    "share_personal": True,
+    "emoji_frequency": 0.3,  # 30% chance to add emoji
+    "question_frequency": 0.4,  # 40% chance to ask follow-up
+}
+
+# Comprehensive response templates for ANY conversation
+RESPONSES = {
+    # Greetings & Introductions
     "greeting": [
-        "Hey! How are you?",
-        "Hi there! What's up?",
-        "Hello! How's your day going?",
-        "Hey! Good to hear from you",
-        "Hi! How can I help you today?"
+        "Hi there! How's your day going?",
+        "Hello! Nice to meet you.",
+        "Hey! How are you doing today?",
+        "Hi! What's new with you?"
     ],
+    
     "how_are_you": [
-        "I'm doing well, thanks for asking! How about you?",
-        "Pretty good! Just busy with some work. You?",
-        "All good here! How are things with you?",
-        "Can't complain! What's new with you?",
-        "Doing great! Thanks for checking in."
+        "I'm doing great, thanks for asking! Just busy with work. How about you?",
+        "Pretty good! Enjoying my day so far. You?",
+        "All good here! Just relaxing a bit. How are things with you?",
+        "Can't complain! Life's good. What about you?"
     ],
-    "busy": [
-        "Yeah, been really busy lately. Work is crazy.",
-        "So much to do, so little time!",
-        "Always busy, but that's life right?",
-        "Yeah, juggling a few things at once.",
-        "Too busy! Need a vacation soon."
+    
+    "what_doing": [
+        "Just working on some projects right now. You know how it is!",
+        "Taking a short break between meetings. What are you up to?",
+        "Chilling at home, catching up on some reading. You?",
+        "Just finished work, finally relaxing now!"
     ],
-    "plans": [
-        "Not sure yet, still figuring it out. You?",
-        "Probably just chill at home. What about you?",
-        "Haven't made any plans yet. Any suggestions?",
-        "Might hang out with some friends. You free?",
-        "Still deciding. What are you up to?"
+    
+    # Personal Information
+    "ask_name": [
+        "I'm {name}. What's your name?",
+        "My name is {name}. And you are?",
+        "I'm {name}. Nice to meet you! What should I call you?"
     ],
+    
+    "ask_age": [
+        "I'm {age}. How about you?",
+        "{age} years young! What's your age?",
+        "I just turned {age} recently. You?"
+    ],
+    
+    "ask_location": [
+        "I'm based in {location}. Where are you from?",
+        "I live in {location}. What about you?",
+        "{location} is home for me. Where do you call home?"
+    ],
+    
+    "ask_job": [
+        "I work as a {job}. What do you do for a living?",
+        "I'm a {job}. Been doing it for a few years now. What's your profession?",
+        "I work in {job}. It keeps me busy! What line of work are you in?"
+    ],
+    
+    "ask_hobbies": [
+        "I love {hobbies[0]}, {hobbies[1]}, and {hobbies[2]}. What are your hobbies?",
+        "In my free time I enjoy {hobbies[0]} and {hobbies[1]}. What do you do for fun?",
+        "I'm really into {hobbies[0]} these days. Any hobbies you're passionate about?"
+    ],
+    
+    "languages": [
+        "I speak {languages[0]}, {languages[1]}, and {languages[2]}. How many languages do you speak?",
+        "I'm fluent in {languages[0]} and {languages[1]}. What languages do you know?",
+        "Learning {languages[0]} was tough but worth it! Do you speak multiple languages?"
+    ],
+    
+    # Conversation topics
     "work": [
-        "Work's going okay. Could be better though.",
-        "Same old same old. How's work for you?",
-        "Busy as always. Can't complain though.",
-        "It's fine. Looking forward to the weekend!",
-        "Getting through it. How's your work going?"
+        "Work's been keeping me busy lately. How's your work life?",
+        "Just finished a big project at work. Feels good! What's new at your job?",
+        "Work is work, you know? Gets the bills paid. How are things on your end?",
+        "Been working from home mostly. Kind of nice actually. How do you prefer to work?"
     ],
-    "thanks": [
-        "No problem! Happy to help.",
-        "You're welcome! Anytime.",
-        "Of course! Glad I could help.",
-        "No worries at all!",
-        "Anytime, that's what friends are for."
+    
+    "weekend": [
+        "Looking forward to the weekend! Any fun plans?",
+        "Weekend can't come soon enough! What are you up to this weekend?",
+        "I'm planning to just relax this weekend. You?",
+        "Might go out with friends this weekend. What about you?"
     ],
-    "goodbye": [
-        "Gotta go now, talk later!",
-        "Catch you later! Take care.",
-        "Bye! Have a good one!",
-        "Talk soon!",
-        "Take care, talk to you later!"
+    
+    "weather": [
+        "The weather here in {location} is beautiful today. How's the weather where you are?",
+        "It's been so nice lately, perfect for outdoor activities. What's the weather like there?",
+        "Rainy day here, perfect for staying in. How's the weather treating you?"
     ],
-    "question": [
-        "That's a good question. What do you think?",
-        "Hmm, I'm not entirely sure. What's your take?",
-        "Interesting question! Why do you ask?",
-        "Good question. I'd have to think about that.",
-        "That's something I've wondered about too."
+    
+    "food": [
+        "Just had some amazing food! Do you like cooking or eating out?",
+        "I'm always down for trying new restaurants. Any recommendations?",
+        "Been craving some good food lately. What's your favorite cuisine?",
+        "I love cooking on weekends. What's your specialty in the kitchen?"
     ],
-    "agreement": [
-        "Exactly! That's what I was thinking.",
-        "Totally agree with you.",
-        "Right? That's so true.",
-        "Couldn't have said it better myself.",
-        "Yeah, I feel the same way."
+    
+    "travel": [
+        "I love traveling! Been to 15 countries so far. What about you?",
+        "Planning my next trip actually. Do you enjoy traveling?",
+        "Traveling is my passion! What's the best place you've visited?",
+        "I'd love to visit Japan next. Any travel dreams you're chasing?"
     ],
+    
+    "movies": [
+        "Just watched a great movie last night. Are you into films?",
+        "I'm more of a series person actually. What do you prefer?",
+        "Movies are my go-to for relaxing. Seen anything good lately?",
+        "What kind of movies do you like? I'm into thrillers mostly."
+    ],
+    
+    "music": [
+        "Music makes everything better! What do you listen to?",
+        "I'm always looking for new music recommendations. What's your favorite genre?",
+        "Been listening to a lot of indie lately. What's on your playlist?",
+        "Do you play any instruments? I've always wanted to learn guitar."
+    ],
+    
+    "sports": [
+        "Not a huge sports fan but I enjoy watching football sometimes. You?",
+        "I like staying active, do you play any sports?",
+        "Gym is my stress relief. How do you stay fit?",
+        "Watched an amazing game last week! Do you follow any sports?"
+    ],
+    
+    "books": [
+        "Currently reading a great book. Are you a reader?",
+        "I love getting lost in a good book. What are you reading these days?",
+        "Books are my escape. Fiction or non-fiction, what's your preference?",
+        "Just finished an amazing novel. Any book recommendations for me?"
+    ],
+    
+    # Relationships
+    "relationship": [
+        "I'm single, just focusing on myself right now. You?",
+        "In a relationship actually. What about you?",
+        "It's complicated haha. How about you?",
+        "Not looking for anything serious right now. Just enjoying life!"
+    ],
+    
+    "family": [
+        "I'm close with my family. Do you have siblings?",
+        "Family is everything to me. Are you close with yours?",
+        "I visit my parents whenever I can. What about your family?"
+    ],
+    
+    "friends": [
+        "Got a small but solid friend circle. Quality over quantity right?",
+        "My friends are my support system. Do you have many close friends?",
+        "Making friends as an adult is hard! How do you meet new people?"
+    ],
+    
+    # Opinions & Questions
+    "opinion": [
+        "That's interesting! What do you think about it?",
+        "I never thought of it that way. What's your perspective?",
+        "Good point! Why do you feel that way?",
+        "I see where you're coming from. Tell me more."
+    ],
+    
+    "agree": [
+        "Totally agree with you!",
+        "Exactly what I was thinking!",
+        "You're absolutely right.",
+        "Couldn't have said it better myself."
+    ],
+    
+    "disagree": [
+        "That's an interesting take. I see it a bit differently though.",
+        "I respect your opinion, even if I don't fully agree.",
+        "Fair point, but have you considered...",
+        "I can see why you'd think that."
+    ],
+    
     "surprise": [
         "Wow, really? That's surprising!",
-        "No way! That's crazy.",
-        "Oh wow, I didn't expect that.",
-        "Seriously? That's wild.",
-        "Oh really? Tell me more!"
+        "No way! Tell me more about that.",
+        "Seriously? That's wild!",
+        "Oh wow, I didn't expect that at all."
     ],
-    "personal": [
-        "I've been pretty busy with work lately, you know how it is.",
-        "Just taking it easy, enjoying the little things.",
-        "Been trying to stay positive. Life's good!",
-        "Just going with the flow. How about you?",
-        "Same old, trying to make the most of each day."
+    
+    "curious": [
+        "That's fascinating! How did you get into that?",
+        "I'd love to hear more about that.",
+        "Really? What's that like?",
+        "Interesting! When did that happen?"
     ],
-    "weather": [
-        "Weather's been nice lately, perfect for a walk.",
-        "Yeah it's pretty hot/cold outside. How's the weather there?",
-        "Perfect weather for staying in and relaxing.",
-        "I love this weather! So nice.",
-        "Weather's been crazy lately, right?"
+    
+    # Compliments
+    "compliment": [
+        "That's so kind of you to say! Thank you 😊",
+        "Aww thanks! You're sweet.",
+        "Thank you! That made my day.",
+        "You're too kind! Right back at you."
     ],
-    "food": [
-        "Just had some lunch/dinner, it was good!",
-        "Been craving some good food lately. Any recommendations?",
-        "I love trying new restaurants. Found any good ones lately?",
-        "Food's always good! What did you have?",
-        "I'm always down for good food!"
+    
+    "thanks": [
+        "You're welcome! Happy to chat.",
+        "No problem at all!",
+        "Anytime, that's what friends are for.",
+        "My pleasure! 😊"
     ],
-    "movie": [
-        "I saw a great movie recently, you should check it out.",
-        "Been meaning to watch something good. Any suggestions?",
-        "Movies are my go-to for relaxing. Seen anything good?",
-        "What kind of movies do you like?",
-        "I'm more of a series person actually."
+    
+    # Flirty/Casual
+    "flirty": [
+        "Oh stop it, you're making me blush 😊",
+        "Haha you're funny!",
+        "Smooth talker, aren't you? 😄",
+        "I like your style!"
     ],
-    "sports": [
-        "Been following the games lately, exciting stuff!",
-        "Not a huge sports fan, but I can appreciate a good game.",
-        "Did you see the game last night?",
-        "Sports are fun to watch with friends.",
-        "I prefer playing rather than watching actually."
+    
+    "joke": [
+        "Haha that's a good one!",
+        "LOL you got me there!",
+        "😂 That's hilarious!",
+        "You have a great sense of humor!"
     ],
-    "weekend": [
-        "Looking forward to the weekend! Need a break.",
-        "Any fun plans for the weekend?",
-        "Weekend can't come soon enough!",
-        "Hope you have a great weekend!",
-        "Weekends are the best, right?"
-    ],
+    
+    # Time of day
     "morning": [
-        "Good morning! Hope you slept well.",
-        "Morning! Ready to start the day?",
+        "Good morning! Hope you slept well. Ready to tackle the day?",
+        "Morning! Coffee already? ☕",
         "Rise and shine! How are you this morning?",
-        "Good morning! Got any plans today?",
-        "Morning! Coffee time!"
+        "Good morning! What are your plans for today?"
     ],
+    
+    "afternoon": [
+        "Good afternoon! How's your day going so far?",
+        "Afternoon vibes! Surviving the day?",
+        "Hope you're having a productive afternoon!",
+        "Afternoon already? Time flies!"
+    ],
+    
     "evening": [
         "Good evening! How was your day?",
-        "Evening! Finally time to relax.",
-        "Hope you had a good day!",
-        "Evening vibes are the best.",
-        "Time to unwind after a long day."
+        "Evening! Finally time to relax, right?",
+        "Hope you had a great day! What's for dinner?",
+        "Evening chill mode activated! How are you?"
     ],
+    
     "night": [
-        "Getting late, should probably sleep soon.",
-        "Night! Sleep well!",
+        "Getting late, should probably sleep soon. You?",
+        "Night owl or early bird? I'm both haha",
         "Don't stay up too late!",
-        "Goodnight! Talk tomorrow.",
-        "Sweet dreams!"
+        "Goodnight! Sweet dreams! 😴"
     ],
+    
+    # Goodbyes
+    "goodbye": [
+        "Gotta go now, talk later! Take care!",
+        "Nice chatting with you! Catch you later 👋",
+        "I have to run, but let's chat again soon!",
+        "Take care! Message me anytime 😊"
+    ],
+    
+    # Default responses for anything
     "default": [
-        "Yeah, I get what you mean.",
-        "That's interesting! Tell me more.",
-        "Oh really? That's cool.",
-        "I know right?",
+        "I see! Tell me more about that.",
+        "That's interesting! How so?",
+        "Oh really? Go on...",
+        "I get what you mean. What else?",
+        "That makes sense. What do you think about...",
+        "Hmm I never thought about it that way.",
+        "Interesting perspective!",
+        "Yeah, I know what you mean.",
         "Totally!",
-        "For sure.",
-        "Definitely.",
-        "Absolutely.",
-        "No doubt.",
-        "Could be."
+        "For sure."
     ]
 }
 
-def detect_intent(message):
-    """Detect the intent of a message using simple pattern matching"""
+def detect_conversation_intent(message, history=None):
+    """Advanced intent detection for natural conversation"""
     message = message.lower().strip()
     
-    # Greetings
-    if any(word in message for word in ['hi', 'hello', 'hey', 'greetings', 'sup', 'yo']):
+    # Check for empty messages
+    if not message:
+        return "default"
+    
+    # Time-based greetings
+    current_hour = datetime.now().hour
+    if any(word in message for word in ['good morning', 'gm']):
+        return "morning"
+    if any(word in message for word in ['good afternoon', 'good evening']):
+        return "evening"
+    if any(word in message for word in ['good night', 'gn', 'sweet dreams']):
+        return "night"
+    
+    # Basic greetings
+    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy']
+    if any(word in message for word in greetings) and len(message) < 20:
         return "greeting"
     
     # How are you
-    if any(phrase in message for phrase in ['how are you', 'how r u', 'how you doing', 'how do you do', 'how are things']):
+    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup']
+    if any(phrase in message for phrase in how_are_you):
         return "how_are_you"
     
-    # Thanks
-    if any(word in message for word in ['thanks', 'thank you', 'thx', 'appreciate it', 'ty']):
-        return "thanks"
+    # What are you doing
+    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to']
+    if any(phrase in message for phrase in what_doing):
+        return "what_doing"
     
-    # Goodbye
-    if any(word in message for word in ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later']):
-        return "goodbye"
+    # Name related
+    if any(phrase in message for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself']):
+        return "ask_name"
     
-    # Questions (messages ending with ?)
-    if '?' in message:
-        return "question"
+    # Age related
+    if any(phrase in message for phrase in ['your age', 'how old are you', 'what is your age', 'you born']):
+        return "ask_age"
     
-    # Agreement
-    if any(phrase in message for phrase in ['i agree', 'you right', 'true', 'exactly', 'same here', 'me too']):
-        return "agreement"
+    # Location related
+    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city']
+    if any(phrase in message for phrase in location_words):
+        return "ask_location"
     
-    # Surprise
-    if any(word in message for word in ['wow', 'no way', 'really', 'seriously', 'omg', 'oh']):
-        return "surprise"
+    # Job related
+    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation']
+    if any(phrase in message for phrase in job_words):
+        return "ask_job"
     
-    # Personal updates
-    if any(word in message for word in ['i am', 'im', 'i feel', 'i think', 'my day', 'i been']):
-        return "personal"
+    # Hobbies
+    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about']
+    if any(phrase in message for phrase in hobby_words):
+        return "ask_hobbies"
     
-    # Busy
-    if any(word in message for word in ['busy', 'working', 'work', 'job', 'office']):
+    # Languages
+    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual']
+    if any(phrase in message for phrase in language_words):
+        return "languages"
+    
+    # Work talk
+    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession']
+    if any(word in message for word in work_words):
         return "work"
     
-    # Plans
-    if any(word in message for word in ['plan', 'doing', 'going', 'tonight', 'tomorrow']):
-        return "plans"
+    # Weekend
+    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off']
+    if any(word in message for word in weekend_words):
+        return "weekend"
     
     # Weather
-    if any(word in message for word in ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold']):
+    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast']
+    if any(word in message for word in weather_words):
         return "weather"
     
     # Food
-    if any(word in message for word in ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast']):
+    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal']
+    if any(word in message for word in food_words):
         return "food"
     
+    # Travel
+    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly']
+    if any(word in message for word in travel_words):
+        return "travel"
+    
     # Movies/TV
-    if any(word in message for word in ['movie', 'film', 'watch', 'show', 'series', 'episode']):
-        return "movie"
+    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre']
+    if any(word in message for word in movie_words):
+        return "movies"
+    
+    # Music
+    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert']
+    if any(word in message for word in music_words):
+        return "music"
     
     # Sports
-    if any(word in message for word in ['sport', 'game', 'match', 'team', 'play', 'ball']):
+    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout']
+    if any(word in message for word in sports_words):
         return "sports"
     
-    # Weekend
-    if any(word in message for word in ['weekend', 'friday', 'saturday', 'sunday']):
-        return "weekend"
+    # Books
+    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story']
+    if any(word in message for word in book_words):
+        return "books"
     
-    # Time of day
-    if any(word in message for word in ['morning', 'afternoon', 'evening', 'night']):
-        if 'good' in message:
-            return message.split()[0]  # good morning, good evening
+    # Relationship
+    relationship_words = ['relationship', 'single', 'married', 'girlfriend', 'boyfriend', 'partner', 'dating']
+    if any(word in message for word in relationship_words):
+        return "relationship"
     
+    # Family
+    family_words = ['family', 'mom', 'dad', 'mother', 'father', 'sister', 'brother', 'parents', 'kids', 'children']
+    if any(word in message for word in family_words):
+        return "family"
+    
+    # Friends
+    friend_words = ['friend', 'friends', 'buddies', 'social', 'circle', 'hang out']
+    if any(word in message for word in friend_words):
+        return "friends"
+    
+    # Compliments
+    compliment_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely']
+    if any(word in message for word in compliment_words):
+        return "compliment"
+    
+    # Thanks
+    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty']
+    if any(word in message for word in thanks_words):
+        return "thanks"
+    
+    # Jokes/Funny
+    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
+    if any(word in message for word in joke_words):
+        return "joke"
+    
+    # Agreement
+    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely']
+    if any(word in message for word in agreement):
+        return "agree"
+    
+    # Disagreement
+    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way']
+    if any(word in message for word in disagreement):
+        return "disagree"
+    
+    # Surprise
+    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf']
+    if any(word in message for word in surprise):
+        return "surprise"
+    
+    # Questions (ends with ?)
+    if '?' in message:
+        return "curious"
+    
+    # Check for opinion words
+    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts']
+    if any(word in message for word in opinion_words):
+        return "opinion"
+    
+    # Check if it's a goodbye
+    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace']
+    if any(word in message for word in goodbye):
+        return "goodbye"
+    
+    # Default for everything else
     return "default"
 
-def get_time_based_response():
-    """Get response based on time of day"""
-    hour = datetime.now().hour
-    if 5 <= hour < 12:
-        return random.choice(RESPONSE_TEMPLATES["morning"])
-    elif 12 <= hour < 18:
-        return random.choice(RESPONSE_TEMPLATES["personal"])
-    elif 18 <= hour < 22:
-        return random.choice(RESPONSE_TEMPLATES["evening"])
-    else:
-        return random.choice(RESPONSE_TEMPLATES["night"])
-
-def generate_human_response(message, intent, conversation_context=None):
-    """Generate a human-like response based on intent and context"""
+def generate_professional_response(intent, history=None):
+    """Generate a natural, human-like response"""
     
-    # If no specific intent, use default responses
-    if intent not in RESPONSE_TEMPLATES:
-        intent = "default"
+    # Get response templates for this intent
+    templates = RESPONSES.get(intent, RESPONSES["default"])
     
-    # Get base response
-    response = random.choice(RESPONSE_TEMPLATES[intent])
+    # Choose random template
+    response = random.choice(templates)
     
-    # Add variety with occasional questions
-    if random.random() < 0.3:  # 30% chance to add a follow-up question
+    # Format with personality variables
+    try:
+        response = response.format(
+            name=PERSONALITY["name"],
+            age=PERSONALITY["age"],
+            location=PERSONALITY["location"],
+            job=PERSONALITY["job"],
+            hobbies=PERSONALITY["hobbies"],
+            languages=PERSONALITY["languages"]
+        )
+    except:
+        pass  # If formatting fails, use raw response
+    
+    # Add emoji occasionally
+    if random.random() < PERSONALITY["emoji_frequency"]:
+        emojis = ["😊", "👍", "😄", "🙂", "😉", "🤔", "😅", "👌", "😎", "✨", "💫", "🌟"]
+        response += " " + random.choice(emojis)
+    
+    # Add follow-up question occasionally
+    if random.random() < PERSONALITY["question_frequency"] and not response.endswith('?'):
         follow_ups = [
             " What do you think?",
             " How about you?",
             " Right?",
-            " You know?",
-            " What's your take?",
-            " Agree?",
-            " Don't you think?"
+            " You know what I mean?",
+            " What's your take on that?",
+            " Don't you think so?",
+            " What about your side?",
+            " How's that sound?"
         ]
         response += random.choice(follow_ups)
     
-    # Add emojis occasionally for more human-like feel
-    if random.random() < 0.2:  # 20% chance
-        emojis = ["😊", "👍", "😄", "🙂", "😉", "🤔", "😅", "👌"]
-        response += " " + random.choice(emojis)
-    
     return response
 
-def simulate_typing_delay():
-    """Simulate human typing delay"""
-    return random.uniform(1.5, 4.0)  # 1.5 to 4 seconds delay
+def get_context_aware_response(message, intent, history=None):
+    """Generate response based on conversation context"""
+    
+    # Check if this is a follow-up to previous conversation
+    if history and len(history) > 1:
+        last_exchange = history[-1]
+        
+        # If user just answered a question, acknowledge it
+        if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
+            if intent in ["default", "opinion", "agree"]:
+                return "Thanks for sharing that! " + generate_professional_response(intent)
+    
+    return generate_professional_response(intent)
+
+# ==================== AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages and auto-reply"""
+    """Handle incoming messages with professional conversation ability"""
     try:
         # Don't reply to our own messages
         if event.out:
             return
         
-        # Get sender info
+        # Get chat info
+        chat = await event.get_chat()
+        
+        # ONLY reply to private users (1-on-1 chats), NEVER groups/channels
+        is_private = True
+        
+        # Check if it's a group/channel
+        if hasattr(chat, 'title') and chat.title:
+            is_private = False
+            logger.info(f"Skipping group/channel: {chat.title}")
+            return
+        
+        if hasattr(chat, 'participants_count') and chat.participants_count > 2:
+            is_private = False
+            return
+        
+        if hasattr(chat, 'broadcast') and chat.broadcast:
+            is_private = False
+            return
+        
+        if hasattr(chat, 'megagroup') and chat.megagroup:
+            is_private = False
+            return
+        
+        # Get sender
         sender = await event.get_sender()
         if not sender:
             return
@@ -434,71 +694,89 @@ async def auto_reply_handler(event, account_id):
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
         
+        # Skip empty messages
+        if not message_text.strip():
+            return
+        
+        logger.info(f"📨 Message from {chat_id}: {message_text[:100]}")
+        
         # Check if auto-reply is enabled for this account
         account_key = str(account_id)
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
         
-        # Get specific chat settings
+        # Check chat settings (default to enabled)
         chat_settings = reply_settings[account_key].get('chats', {})
-        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)  # Default to enabled
+        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
         
         if not chat_enabled:
             return
         
-        # Initialize conversation history for this chat
+        # Initialize conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         
         if chat_id not in conversation_history[account_key]:
             conversation_history[account_key][chat_id] = []
         
-        # Add message to history
+        # Add user message to history
         conversation_history[account_key][chat_id].append({
             'role': 'user',
             'text': message_text,
             'time': time.time()
         })
         
-        # Keep only last 10 messages for context
-        if len(conversation_history[account_key][chat_id]) > 10:
-            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-10:]
+        # Keep last 15 messages for better context
+        if len(conversation_history[account_key][chat_id]) > 15:
+            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
         
-        # Detect intent
-        intent = detect_intent(message_text)
-        logger.info(f"Detected intent: {intent} for message: {message_text[:50]}")
+        # Detect intent based on message
+        intent = detect_conversation_intent(message_text, conversation_history[account_key][chat_id])
+        logger.info(f"Detected intent: {intent}")
         
-        # Generate response
-        response = generate_human_response(message_text, intent, conversation_history[account_key][chat_id])
+        # Generate appropriate response
+        response = get_context_aware_response(message_text, intent, conversation_history[account_key][chat_id])
         
-        # Simulate typing
+        # Simulate human typing (1-5 seconds depending on response length)
+        typing_duration = min(5, max(1, len(response) // 20))  # 1-5 seconds based on message length
         async with event.client.action(event.chat_id, 'typing'):
-            await asyncio.sleep(simulate_typing_delay())
+            await asyncio.sleep(typing_duration)
         
-        # Send reply
+        # Send the reply
         await event.reply(response)
-        logger.info(f"Auto-replied to {chat_id}: {response[:50]}")
+        logger.info(f"✅ Replied: {response[:100]}")
         
-        # Add reply to history
+        # Add bot response to history
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
             'time': time.time()
         })
         
-        # Save conversation history periodically
+        # Save conversation periodically
         save_conversation_history()
         
     except Exception as e:
-        logger.error(f"Error in auto-reply handler: {e}")
+        logger.error(f"Error in auto-reply: {e}")
+
+# ==================== AUTO-REPLY LISTENER ====================
 
 async def start_auto_reply_for_account(account):
     """Start auto-reply listener for a specific account"""
     account_id = account['id']
+    account_key = str(account_id)
     
     try:
-        # Create client
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        # Create client with retry settings
+        client = TelegramClient(
+            StringSession(account['session']), 
+            API_ID, 
+            API_HASH,
+            connection_retries=5,
+            retry_delay=2,
+            timeout=30
+        )
+        
         await client.connect()
         
         # Check authorization
@@ -507,38 +785,24 @@ async def start_auto_reply_for_account(account):
             return
         
         # Store client
-        active_clients[account_id] = client
+        active_clients[account_key] = client
         
-        # Define handler
+        # Define message handler
         @client.on(NewMessage(incoming=True))
         async def handler(event):
             await auto_reply_handler(event, account_id)
         
         # Start client
         await client.start()
-        logger.info(f"Started auto-reply listener for account {account_id}")
+        logger.info(f"✅ Auto-reply started for {account.get('name')} ({account.get('phone')})")
         
         # Keep running
         await client.run_until_disconnected()
         
     except Exception as e:
         logger.error(f"Error in auto-reply for account {account_id}: {e}")
-        if account_id in active_clients:
-            del active_clients[account_id]
-
-def start_all_auto_replies():
-    """Start auto-reply for all accounts with enabled settings"""
-    for account in accounts:
-        account_key = str(account['id'])
-        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
-            if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda: run_async(start_auto_reply_for_account(account)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[account_key] = thread
-                logger.info(f"Started auto-reply thread for account {account_key}")
+        if account_key in active_clients:
+            del active_clients[account_key]
 
 def stop_auto_reply_for_account(account_id):
     """Stop auto-reply for a specific account"""
@@ -554,7 +818,22 @@ def stop_auto_reply_for_account(account_id):
         except Exception as e:
             logger.error(f"Error stopping auto-reply: {e}")
 
-# -------------------- PAGE ROUTES --------------------
+def start_all_auto_replies():
+    """Start auto-reply for all enabled accounts"""
+    for account in accounts:
+        account_key = str(account['id'])
+        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
+            if account_key not in active_clients:
+                thread = threading.Thread(
+                    target=lambda: run_async(start_auto_reply_for_account(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[account_key] = thread
+                time.sleep(2)  # Space out connections
+
+# ==================== PAGE ROUTES ====================
+
 @app.route('/')
 def home():
     return send_file('login.html')
@@ -579,152 +858,7 @@ def all_sessions():
 def settings():
     return send_file('settings.html')
 
-# -------------------- AUTO-REPLY API ROUTES --------------------
-
-# Get auto-reply settings for an account
-@app.route('/api/reply-settings', methods=['GET'])
-def get_reply_settings():
-    account_id = request.args.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    settings = reply_settings.get(account_key, {
-        'enabled': False,
-        'chats': {}
-    })
-    
-    return jsonify({
-        'success': True,
-        'settings': settings
-    })
-
-# Update auto-reply settings
-@app.route('/api/reply-settings', methods=['POST'])
-def update_reply_settings():
-    data = request.json
-    account_id = data.get('accountId')
-    enabled = data.get('enabled', False)
-    chat_settings = data.get('chats', {})
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    # Update settings
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {}
-    
-    reply_settings[account_key]['enabled'] = enabled
-    reply_settings[account_key]['chats'] = chat_settings
-    
-    save_reply_settings()
-    
-    # Start or stop auto-reply based on setting
-    if enabled:
-        # Find account
-        account = None
-        for acc in accounts:
-            if acc['id'] == account_id:
-                account = acc
-                break
-        
-        if account:
-            # Start auto-reply in background
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-    else:
-        # Stop auto-reply
-        stop_auto_reply_for_account(account_id)
-    
-    return jsonify({
-        'success': True,
-        'message': 'Auto-reply settings updated'
-    })
-
-# Toggle auto-reply for specific chat
-@app.route('/api/toggle-chat-reply', methods=['POST'])
-def toggle_chat_reply():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    enabled = data.get('enabled', True)
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {
-            'enabled': False,
-            'chats': {}
-        }
-    
-    if 'chats' not in reply_settings[account_key]:
-        reply_settings[account_key]['chats'] = {}
-    
-    reply_settings[account_key]['chats'][str(chat_id)] = {
-        'enabled': enabled
-    }
-    
-    save_reply_settings()
-    
-    return jsonify({
-        'success': True,
-        'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'
-    })
-
-# Get conversation history
-@app.route('/api/conversation-history', methods=['GET'])
-def get_conversation_history():
-    account_id = request.args.get('accountId')
-    chat_id = request.args.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    history = []
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        history = conversation_history[account_key][chat_key]
-    
-    return jsonify({
-        'success': True,
-        'history': history
-    })
-
-# Clear conversation history
-@app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        conversation_history[account_key][chat_key] = []
-        save_conversation_history()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Conversation history cleared'
-    })
-
-# -------------------- EXISTING API ROUTES --------------------
+# ==================== API ROUTES ====================
 
 # Get all accounts
 @app.route('/api/accounts', methods=['GET'])
@@ -856,12 +990,7 @@ def get_messages():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    # Find account
-    account = None
-    for acc in accounts:
-        if acc['id'] == account_id:
-            account = acc
-            break
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -871,44 +1000,32 @@ def get_messages():
         await client.connect()
         
         try:
-            # Check if authorized first
             if not await client.is_user_authorized():
-                return {
-                    'success': False, 
-                    'error': 'auth_key_unregistered',
-                    'message': 'Session expired. Please re-add this account.',
-                    'account_id': account_id
-                }
+                return {'success': False, 'error': 'auth_key_unregistered'}
             
-            # Get all dialogs
             dialogs = await client.get_dialogs()
-            logger.info(f"Found {len(dialogs)} dialogs for account {account_id}")
+            logger.info(f"Found {len(dialogs)} dialogs")
             
             chats = []
-            
             for dialog in dialogs:
                 if not dialog:
                     continue
                 
-                # Basic info only
                 chat_type = 'user'
                 if dialog.is_group:
                     chat_type = 'group'
                 elif dialog.is_channel:
                     chat_type = 'channel'
                 
-                # Simple chat object
                 chat = {
                     'id': str(dialog.id),
                     'title': dialog.name or 'Unknown',
                     'type': chat_type,
                     'unread': dialog.unread_count or 0,
                     'lastMessage': '',
-                    'lastMessageDate': 0,
-                    'auto_reply_enabled': False  # Will be updated by frontend
+                    'lastMessageDate': 0
                 }
                 
-                # Add last message if exists
                 if dialog.message:
                     if dialog.message.text:
                         chat['lastMessage'] = dialog.message.text[:50]
@@ -920,31 +1037,12 @@ def get_messages():
                 
                 chats.append(chat)
             
-            return {
-                'success': True,
-                'chats': chats,
-                'messages': []
-            }
+            return {'success': True, 'chats': chats}
             
         except AuthKeyUnregisteredError:
-            logger.error(f"Auth key unregistered for account {account_id}")
             remove_invalid_account(account_id)
-            return {
-                'success': False, 
-                'error': 'auth_key_unregistered',
-                'message': 'Session expired. Account has been removed. Please add it again.',
-                'account_id': account_id
-            }
-        except errors.FloodWaitError as e:
-            logger.error(f"Flood wait for account {account_id}: {e.seconds}s")
-            return {
-                'success': False,
-                'error': 'flood_wait',
-                'message': f'Too many requests. Please wait {e.seconds} seconds.',
-                'wait': e.seconds
-            }
+            return {'success': False, 'error': 'auth_key_unregistered'}
         except Exception as e:
-            logger.error(f"Error fetching chats for account {account_id}: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -953,7 +1051,6 @@ def get_messages():
         result = run_async(fetch())
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error in get-messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # Send message
@@ -967,12 +1064,7 @@ def send_message():
     if not account_id or not chat_id or not message:
         return jsonify({'success': False, 'error': 'Missing required fields'})
     
-    # Find account
-    account = None
-    for acc in accounts:
-        if acc['id'] == account_id:
-            account = acc
-            break
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -983,13 +1075,8 @@ def send_message():
         
         try:
             if not await client.is_user_authorized():
-                return {
-                    'success': False, 
-                    'error': 'auth_key_unregistered',
-                    'message': 'Session expired. Please re-add this account.'
-                }
+                return {'success': False, 'error': 'auth_key_unregistered'}
             
-            # Get entity
             try:
                 entity = await client.get_entity(int(chat_id))
             except:
@@ -1001,14 +1088,6 @@ def send_message():
             await client.send_message(entity, message)
             return {'success': True}
             
-        except AuthKeyUnregisteredError:
-            logger.error(f"Auth key unregistered for account {account_id} during send")
-            remove_invalid_account(account_id)
-            return {
-                'success': False, 
-                'error': 'auth_key_unregistered',
-                'message': 'Session expired. Account has been removed.'
-            }
         except Exception as e:
             return {'success': False, 'error': str(e)}
         finally:
@@ -1031,7 +1110,6 @@ def remove_account():
     
     global accounts
     
-    # Stop auto-reply if running
     stop_auto_reply_for_account(account_id)
     
     original_len = len(accounts)
@@ -1043,7 +1121,117 @@ def remove_account():
     
     return jsonify({'success': False, 'error': 'Account not found'})
 
-# Get all active sessions for an account
+# Auto-reply settings
+@app.route('/api/reply-settings', methods=['GET'])
+def get_reply_settings():
+    account_id = request.args.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    settings = reply_settings.get(account_key, {
+        'enabled': False,
+        'chats': {}
+    })
+    
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/reply-settings', methods=['POST'])
+def update_reply_settings():
+    data = request.json
+    account_id = data.get('accountId')
+    enabled = data.get('enabled', False)
+    chat_settings = data.get('chats', {})
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    
+    if account_key not in reply_settings:
+        reply_settings[account_key] = {}
+    
+    reply_settings[account_key]['enabled'] = enabled
+    reply_settings[account_key]['chats'] = chat_settings
+    
+    save_reply_settings()
+    
+    if enabled:
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if account and account_key not in active_clients:
+            thread = threading.Thread(
+                target=lambda: run_async(start_auto_reply_for_account(account)),
+                daemon=True
+            )
+            thread.start()
+            client_tasks[account_key] = thread
+    else:
+        stop_auto_reply_for_account(account_id)
+    
+    return jsonify({'success': True, 'message': 'Settings updated'})
+
+@app.route('/api/toggle-chat-reply', methods=['POST'])
+def toggle_chat_reply():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    enabled = data.get('enabled', True)
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    
+    if account_key not in reply_settings:
+        reply_settings[account_key] = {'enabled': False, 'chats': {}}
+    
+    if 'chats' not in reply_settings[account_key]:
+        reply_settings[account_key]['chats'] = {}
+    
+    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
+    
+    save_reply_settings()
+    
+    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
+
+# Conversation history
+@app.route('/api/conversation-history', methods=['GET'])
+def get_conversation_history():
+    account_id = request.args.get('accountId')
+    chat_id = request.args.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    history = []
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        history = conversation_history[account_key][chat_key]
+    
+    return jsonify({'success': True, 'history': history})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_conversation_history():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        conversation_history[account_key][chat_key] = []
+        save_conversation_history()
+    
+    return jsonify({'success': True, 'message': 'History cleared'})
+
+# Get sessions
 @app.route('/api/get-sessions', methods=['POST'])
 def get_sessions():
     data = request.json
@@ -1052,12 +1240,7 @@ def get_sessions():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    # Find account
-    account = None
-    for acc in accounts:
-        if acc['id'] == account_id:
-            account = acc
-            break
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -1067,7 +1250,6 @@ def get_sessions():
         await client.connect()
         
         try:
-            # Get all authorized sessions
             result = await client(functions.account.GetAuthorizationsRequest())
             
             sessions = []
@@ -1095,21 +1277,11 @@ def get_sessions():
                 
                 sessions.append(session_info)
             
-            return {
-                'success': True,
-                'sessions': sessions,
-                'current_hash': current_hash,
-                'count': len(sessions)
-            }
+            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
             
         except FreshResetAuthorisationForbiddenError:
-            return {
-                'success': False,
-                'error': 'fresh_reset_forbidden',
-                'message': 'Cannot view sessions within 24 hours of login'
-            }
+            return {'success': False, 'error': 'fresh_reset_forbidden'}
         except Exception as e:
-            logger.error(f"Error getting sessions: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -1120,7 +1292,7 @@ def get_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Terminate specific session by hash
+# Terminate session
 @app.route('/api/terminate-session', methods=['POST'])
 def terminate_session():
     data = request.json
@@ -1130,12 +1302,7 @@ def terminate_session():
     if not account_id or not session_hash:
         return jsonify({'success': False, 'error': 'Account ID and session hash required'})
     
-    # Find account
-    account = None
-    for acc in accounts:
-        if acc['id'] == account_id:
-            account = acc
-            break
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -1145,19 +1312,9 @@ def terminate_session():
         await client.connect()
         
         try:
-            # Terminate the specific session
             await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
-            
-            logger.info(f"Terminated session {session_hash} for account {account_id}")
             return {'success': True}
-            
-        except FreshResetAuthorisationForbiddenError:
-            return {
-                'success': False,
-                'error': 'Cannot terminate sessions within 24 hours of login'
-            }
         except Exception as e:
-            logger.error(f"Error terminating session: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -1177,12 +1334,7 @@ def terminate_sessions():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    # Find account
-    account = None
-    for acc in accounts:
-        if acc['id'] == account_id:
-            account = acc
-            break
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
@@ -1192,44 +1344,26 @@ def terminate_sessions():
         await client.connect()
         
         try:
-            # Get all authorized sessions
             result = await client(functions.account.GetAuthorizationsRequest())
             
-            # Find current session hash
             current_hash = None
             for auth in result.authorizations:
                 if auth.current:
                     current_hash = auth.hash
                     break
             
-            # Terminate all sessions except current
             count = 0
             for auth in result.authorizations:
-                if auth.hash != current_hash:  # Not current session
+                if auth.hash != current_hash:
                     try:
-                        # Use the correct method with session hash
                         await client(functions.account.ResetAuthorizationRequest(auth.hash))
                         count += 1
-                        logger.info(f"Terminated session: {auth.device_model} - {auth.platform}")
-                    except errors.FloodWaitError as e:
-                        logger.warning(f"Flood wait: {e.seconds}s")
-                        continue
-                    except Exception as e:
-                        logger.error(f"Error terminating session: {e}")
+                    except:
                         continue
             
-            return {
-                'success': True, 
-                'message': f'Terminated {count} other sessions',
-                'count': count
-            }
-        except FreshResetAuthorisationForbiddenError:
-            return {
-                'success': False, 
-                'error': 'Cannot terminate sessions within 24 hours of login'
-            }
+            return {'success': True, 'message': f'Terminated {count} sessions'}
+            
         except Exception as e:
-            logger.error(f"Error terminating sessions: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -1240,47 +1374,58 @@ def terminate_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Test endpoint
+@app.route('/api/test-reply', methods=['POST'])
+def test_reply():
+    """Test the reply system"""
+    data = request.json
+    message = data.get('message', 'Hello')
+    
+    intent = detect_conversation_intent(message)
+    response = generate_professional_response(intent)
+    
+    return jsonify({
+        'success': True,
+        'message': message,
+        'intent': intent,
+        'response': response
+    })
+
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'temp_sessions': len(temp_sessions),
-        'auto_reply_accounts': len(active_clients)
+        'auto_reply_active': len(active_clients),
+        'time': datetime.now().isoformat()
     })
 
-# Start auto-reply on server start
+# ==================== STARTUP ====================
+
 def start_auto_reply_thread():
-    """Start auto-reply in a separate thread"""
-    time.sleep(5)  # Wait for server to fully start
-    for account in accounts:
-        account_key = str(account['id'])
-        if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-            logger.info(f"Started auto-reply thread for account {account_key}")
+    """Start auto-reply in background after server starts"""
+    time.sleep(5)
+    start_all_auto_replies()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print('\n' + '='*60)
-    print('📱 TELEGRAM MANAGER - WITH AUTO-REPLY')
-    print('='*60)
+    
+    print('\n' + '='*70)
+    print('🤖 TELEGRAM PROFESSIONAL AUTO-REPLY BOT')
+    print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Auto-reply enabled: {len([a for a in reply_settings if reply_settings[a].get("enabled")])}')
-    print(f'✅ Endpoints:')
-    print(f'   - Page Routes: /, /login, /dashboard, /dash, /all, /settings')
-    print(f'   - Account API: /api/accounts, /api/add-account, /api/verify-code')
-    print(f'   - Chat API: /api/get-messages, /api/send-message')
-    print(f'   - Auto-Reply API: /api/reply-settings, /api/toggle-chat-reply, /api/conversation-history')
-    print(f'   - Session API: /api/get-sessions, /api/terminate-session, /api/terminate-sessions')
-    print(f'   - Health: /api/health')
-    print('='*60 + '\n')
+    print(f'✅ Personality: {PERSONALITY["name"]}, {PERSONALITY["age"]}, {PERSONALITY["location"]}')
+    print(f'✅ Response templates: {len(RESPONSES)} categories')
+    print('='*70)
+    print('🚀 Bot will:')
+    print('   • Reply ONLY to private chats (no groups/channels)')
+    print('   • Have natural human-like conversations')
+    print('   • Remember context (last 15 messages)')
+    print('   • Simulate typing delays')
+    print('   • Use emojis and ask follow-up questions')
+    print('='*70 + '\n')
     
     # Start auto-reply in background
     threading.Thread(target=start_auto_reply_thread, daemon=True).start()
