@@ -1,14 +1,29 @@
-<!-- Add this to your dashboard as a new tab/page -->
 <!DOCTYPE html>
 <html>
 <head>
     <title>Star Earnings Dashboard</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
         body {
             background: #0e1621;
             color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #FFD700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .stats-grid {
             display: grid;
@@ -20,8 +35,13 @@
             background: #17212b;
             border: 1px solid #2b3945;
             border-radius: 12px;
-            padding: 20px;
+            padding: 25px;
             text-align: center;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #FFD700;
         }
         .stat-value {
             font-size: 2.5rem;
@@ -30,7 +50,17 @@
         }
         .stat-label {
             color: #8e9fad;
-            margin-top: 5px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+        .channel-badge {
+            background: #2b5278;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.9rem;
         }
         table {
             width: 100%;
@@ -38,77 +68,165 @@
             border-collapse: collapse;
             border-radius: 12px;
             overflow: hidden;
+            margin-top: 20px;
         }
         th {
             background: #2b3945;
-            padding: 12px;
+            padding: 15px;
             text-align: left;
             color: #FFD700;
         }
         td {
-            padding: 10px 12px;
+            padding: 12px 15px;
             border-bottom: 1px solid #2b3945;
+        }
+        tr:hover {
+            background: #242f3d;
         }
         .star-icon {
             color: #FFD700;
+            font-size: 1.2rem;
+        }
+        .refresh-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+        .refresh-btn:hover {
+            background: #3a4a5a;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>⭐ Star Earnings Dashboard</h1>
-    <p>All earnings go to @Abe_army channel</p>
-    
-    <div class="stats-grid" id="stats"></div>
-    
-    <h2>📸 Media Library</h2>
-    <div id="mediaTable"></div>
-    
+    <div class="container">
+        <div class="header">
+            <h1>⭐ Star Earnings Dashboard</h1>
+            <button class="refresh-btn" onclick="loadAllData()">↻ Refresh</button>
+        </div>
+        
+        <div class="channel-badge">💰 All Stars go to @Abe_army</div>
+        
+        <div class="stats-grid" id="stats"></div>
+        
+        <h2 style="margin: 30px 0 15px;">📸 Media Library</h2>
+        <div id="mediaTable"></div>
+        
+        <h2 style="margin: 30px 0 15px;">👑 Top Spenders</h2>
+        <div id="topUsers"></div>
+    </div>
+
     <script>
         async function loadStats() {
-            const res = await fetch('/api/stars/stats');
-            const data = await res.json();
-            
-            document.getElementById('stats').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${data.total_stars_earned || 0}</div>
-                    <div class="stat-label">Total Stars Earned</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.today_stars_earned || 0}</div>
-                    <div class="stat-label">Today's Earnings</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.channel_total || 0}</div>
-                    <div class="stat-label">Stars to @Abe_army</div>
-                </div>
-            `;
+            try {
+                const res = await fetch('/api/stars/stats');
+                const data = await res.json();
+                
+                if (!data.success) {
+                    document.getElementById('stats').innerHTML = '<div class="stat-card">Error loading stats</div>';
+                    return;
+                }
+                
+                document.getElementById('stats').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${data.total_stars_earned || 0} ⭐</div>
+                        <div class="stat-label">Total Stars Earned</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.today_stars_earned || 0} ⭐</div>
+                        <div class="stat-label">Today's Earnings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.channel_total || 0} ⭐</div>
+                        <div class="stat-label">Sent to @Abe_army</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.total_media || 0}</div>
+                        <div class="stat-label">Media Files</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.total_media_sold || 0}</div>
+                        <div class="stat-label">Media Sales</div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
         }
         
         async function loadMedia() {
-            const res = await fetch('/api/stars/media');
-            const data = await res.json();
-            
-            if (!data.media || data.media.length === 0) {
-                document.getElementById('mediaTable').innerHTML = '<p>No media indexed yet</p>';
-                return;
+            try {
+                const res = await fetch('/api/stars/media');
+                const data = await res.json();
+                
+                if (!data.success || !data.media || data.media.length === 0) {
+                    document.getElementById('mediaTable').innerHTML = '<p style="color:#8e9fad; padding:20px;">No media indexed yet. Add photos to tsega_photos/ folder.</p>';
+                    return;
+                }
+                
+                let html = '<table><tr><th>Type</th><th>Price</th><th>Times Sold</th><th>Last Sold</th></tr>';
+                data.media.forEach(m => {
+                    const lastSold = m.last_sold ? new Date(m.last_sold).toLocaleString() : 'Never';
+                    html += `<tr>
+                        <td>${m.type === 'photo' ? '📸' : '🎥'} ${m.type}</td>
+                        <td>${m.price} ⭐</td>
+                        <td>${m.sold}</td>
+                        <td>${lastSold}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                
+                document.getElementById('mediaTable').innerHTML = html;
+            } catch (err) {
+                console.error('Error loading media:', err);
             }
-            
-            let html = '<table><tr><th>Type</th><th>Price</th><th>Times Sold</th></tr>';
-            data.media.forEach(m => {
-                html += `<tr>
-                    <td>${m.type === 'photo' ? '📸' : '🎥'} ${m.type}</td>
-                    <td>${m.price} ⭐</td>
-                    <td>${m.sold}</td>
-                </tr>`;
-            });
-            html += '</table>';
-            
-            document.getElementById('mediaTable').innerHTML = html;
         }
         
-        loadStats();
-        loadMedia();
-        setInterval(loadStats, 30000); // Refresh every 30s
+        async function loadTopUsers() {
+            try {
+                const res = await fetch('/api/stars/stats');
+                const data = await res.json();
+                
+                if (!data.success || !data.top_users || data.top_users.length === 0) {
+                    document.getElementById('topUsers').innerHTML = '<p style="color:#8e9fad; padding:20px;">No users yet</p>';
+                    return;
+                }
+                
+                let html = '<table><tr><th>User ID</th><th>Stars Spent</th></tr>';
+                data.top_users.forEach(u => {
+                    html += `<tr>
+                        <td>${u.id}</td>
+                        <td>${u.spent} ⭐</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                
+                document.getElementById('topUsers').innerHTML = html;
+            } catch (err) {
+                console.error('Error loading top users:', err);
+            }
+        }
+        
+        function loadAllData() {
+            loadStats();
+            loadMedia();
+            loadTopUsers();
+        }
+        
+        // Load on page load
+        window.addEventListener('load', loadAllData);
+        
+        // Auto refresh every 30 seconds
+        setInterval(loadAllData, 30000);
     </script>
 </body>
 </html>
