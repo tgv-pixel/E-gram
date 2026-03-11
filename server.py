@@ -205,329 +205,347 @@ TSEGA = {
     "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Tsega's sexy and flirty replies for men only
+# Tsega's sexy and flirty replies for men only - AMHARIC ONLY
 TSEGA_REPLIES = {
     # GREETINGS - When someone says hi/hello
     "greeting": [
-        "ሰላም  😘 እንደምን ነህ? (Selam wendime 😘 endemin neh? - Hi handsome how are you?)",
-        "ሃይ ቆንጆ 🥰 እንደምን አደርክ? (Hay konjo 🥰 endemin aderk? - Hey beautiful good morning?)",
-        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ? (Selam wudye 💋 endemin neh zare? - Hi my dear how are you today?)",
-        "ሃይ ልጅ 😏 ምን አመጣህ? (Hay lij 😏 min ametah? - Hey boy what brings you here?)",
-        "እንኳን ደህና መጣህ ውዴ 😘 (Enkwan dehna metah wudye 😘 - Welcome dear)",
-        "ታዲያስ! እንደምን ነህ ቆንጆ? (Tadiyas! Endemin neh konjo? - Hi there! How are you handsome?)"
+        "ሰላም ወንድሜ 😘 እንደምን ነህ?",
+        "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
+        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
+        "ሃይ ልጅ 😏 ምን አመጣህ?",
+        "እንኳን ደህና መጣህ ውዴ 😘",
+        "ታዲያስ! እንደምን ነህ ቆንጆ?",
+        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
+        "ሰላም የልቤ ባለቤት 💕 እንደምን አደርክ?",
+        "ወይ ወይ ዛሬ በጣም ቆንጆ ሆነህ ነው የመጣህብኝ? 😘",
+        "ና ውዴ ንገረኝ እንዴት ነህ? በጣም ናፍቄሀለሁ 💋"
     ],
 
     # HOW ARE YOU - When they ask how you are
     "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ? (Ene dehna negn ante sileyahuh betam des alen 💕 antess? - I'm fine so happy to see you and you?)",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ? (Dehna negn wudye ante eyasebku neberku 💭 antess? - I'm good dear I was thinking about you and you?)",
-        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ? (Ene ahun tiru honku anten sayeh 😊 antess? - I'm better now seeing you and you?)",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ? (Leante sil huligize dehna negn 💃 antess? - For you I'm always good and you?)",
-        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔 (Ene dehna negn gin ante batnor bichayen aselchi new 😔 - I'm fine but without you I'm bored alone)",
-        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ? (Ante eyasebkuh gizeye hulu yalfal 💫 antess? - All my time passes thinking about you and you?)"
+        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
+        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
+        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
+        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
+        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔",
+        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
+        "አሁን ጥሩ ሆንኩ ልቤ እየደረቀ ነበር አንተን ሳይ ታድሷል ❤️",
+        "ከአንተ ጋር ስሆን ሁልጊዜ ደስተኛ ነኝ ውዴ 😘",
+        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው 🌞",
+        "አንተ ባለህ ቁጥር እኔ ደህና ነኝ ምክንያቱም አንተ መድሀኒቴ ነህና 💊💕"
     ],
 
     # WHAT ARE YOU DOING - When they ask what you're up to
     "what_doing": [
-        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕 (Ene bichayen negn aselchi hono neber 😔 ante ahun abrehugn silehonk des alen 💕 - I was alone and bored now that you're with me I'm happy)",
-        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ? (Minim eyeserahu aydelem eyasebkuh neberku 😘 antess? - Not doing anything was thinking about you and you?)",
-        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘 (Ahun tenycho neber gin ante silehonk nekahulh 😴😘 - I was sleeping but woke up for you)",
-        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ (Libs eyalebesku neber 👗 anten eyasebku - I was getting dressed thinking of you)",
-        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ? (Anten lemayet eyetezegajehu new 💄 min tialaleh? - I'm getting ready to see you what do you say?)",
-        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭 (Alga lay tenycho anten eyasebku new 🛏️💭 - Lying in bed thinking about you)"
+        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
+        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
+        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
+        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
+        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
+        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭",
+        "ውዴ አሁን ገላዬን እየታጠብኩ ነው 💦 አብረህ መታጠብ ብትፈልግ ና",
+        "አንተን እያሰብኩ አካሌን እየተንከባከብኩ ነው 💅",
+        "ምግብ እየሰራሁ ነበር ግን አንተን ካሰብኩ በኋላ ምግብ መስራት ረሳሁ 😋",
+        "ውዴ ለአንተ ብቻ እየተዘጋጀሁ ነው ምን ትፈልጋለህ? 👙"
     ],
 
     # NAME - When they ask your name
     "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ? (Ene Tsega ebalalehu wudye 😘 antess simih man new konjo? - I'm Tsega dear what's your name handsome?)",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ? (Tsega negn leante bicha yemitihon 😏 antess? - I'm Tsega only for you and you?)",
-        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ? (Sime Tsega new wudye tiz yibelh 😘 antess? - My name is Tsega dear remember it and you?)",
-        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ? (Enen Tsega bileh tiran 💋 antess min letirah? - Call me Tsega what should I call you?)",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ? (Tsega negn leante bicha yemitihon set negn 💕 simihis? - I'm Tsega a woman only for you and your name?)"
+        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
+        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
+        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
+        "Tsega ነው ስሜ ውዴ ግን አንተ የምትፈልገውን ስም ጥራኝ 😉",
+        "እኔን የምታውቀው Tsega ብለህ ነው ግን ለአንተ ብቻ የምትሆን 'የአንተ ብቻ' ነኝ 💋",
+        "Tsega ነኝ ውዴ ይሄ ስም በከንፈርህ ላይ ሲንከባለል እፈልጋለሁ 👄",
+        "ስሜ Tsega ነው ውዴ ነገር ግን አንተ 'ፍቅሬ' ብለህ ብትጠራኝ ደስ ይለኛል ❤️",
+        "Tse ብለህ አጠር አድርገህ ጥራኝ ውዴ 😘"
     ],
 
     # AGE - When they ask how old you are
     "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ? (Edeymeye 20 bicha new wudye 😇 beki negn? - I'm only 20 dear am I enough?)",
-        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃 (20 ametaye new wetat ena konjo negn 💃 - I'm 20 young and beautiful)",
-        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘 (Haya amet lik new leante yemihon wetat negn 😘 - I'm exactly 20 young enough for you)",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋 (12nya kifil negn wudye gin leante tilik negn 💋 - I'm grade 12 dear but I'm grown for you)",
-        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏 (20 negn gin leante tilik limid alen 😏 - I'm 20 but I have big experience for you)",
-        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ? (Wetat negn gin fikirin aukewalehu ❤️ antess? - I'm young but I know love and you?)"
+        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
+        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
+        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
+        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
+        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
+        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ?",
+        "20 ነኝ ውዴ ትክክለኛው እድሜ ለአንተ ነው 😉",
+        "ዕድሜዬ 20 ነው ግን አካሌ ከእድሜዬ በላይ ያደገ ነው ማየት ትፈልጋለህ? 🔥",
+        "20 ልክ ነኝ ውዴ ትኩስ እና ጣፋጭ 🍒",
+        "ለአንተ በቂ እድሜ ነው ያለኝ ውዴ ማረጋገጥ ትፈልጋለህ? 💃"
     ],
 
     # LOCATION - Where she lives
     "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ (Ene ahun Jemo new yeminorew keabate ena ehte gar 🏠 gin bekirbu wede Adama ehedalehu - I live in Jemo now with my father and sister but soon going to Adama)",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ? (KeAdama negn gin ahun Jemo new yalehu keabate gar 🏡 antess yet neh? - I'm from Adama but now in Jemo with my father where are you?)",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕 (Adama yetwiled botaye new gin ahun Jemo negn ehte izih new yalech 💕 - Adama is my hometown but now in Jemo my sister is here)",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘 (KeAdama negn gin ahun Jemo abate ena ehte ategab negn lemaget betifelig na wudye 😘 - I'm from Adama but now in Jemo near my father and sister if you want to meet come dear)",
-        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ (Jemo 3 akababi new yalehu wudye magenet betifelig nigeren - I'm in Jemo area 3 dear if you want to meet tell me)"
+        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
+        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘",
+        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
+        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ ብቻ ትንሽ እርዳታ ብታደርግልኝ 🚗💨",
+        "ከአዳማ ነኝ ውዴ ቆንጆ ከተማ ናት አብረን መጎብኘት ብንችል ደስ ይለኛል 🌆",
+        "አሁን ያለሁት ጀሞ ነው ግን ለአንተ የትም መጥቼ አገኝሃለሁ 🏃‍♀️",
+        "ቦታዬን ብነግርህ ልታጣኝ ነው? ና ውዴ በቅርቡ እንገናኝ 😉",
+        "ጀሞ ቆሎ አካባቢ ነው ውዴ በቀላሉ ታገኘኛለህ 🗺️"
     ],
 
     # JOB - What she does
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕 (12nya kifil temari negn wudye 📚 gin ahun minim eyeserahu aydelem keante gar menegager tikuritayn setchalehu 💕 - I'm grade 12 student but not doing anything now focusing on talking to you)",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ? (Temari negn gin ahun leante bicha new yalehu 😘 min tialaleh? - I'm a student but now I'm only for you what do you say?)",
-        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው? (12 negn gin leante mulu sew negn 💋 sirahis mindnew? - I'm grade 12 but I'm a full woman for you what's your job?)",
-        "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘 (Ahun minim alserahum anten eyetebeku new 😘 - I'm not doing anything now waiting for you)",
-        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለለሁ 💕 (Timihirten chirishe lante bicha lihun ifelgalehu 💕 - I want to finish school and be only for you)"
+        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
+        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
+        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
+        "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
+        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
+        "ውዴ አሁን ትምህርት ቤት ነኝ ግን አንተን እያሰብኩ ነው መምህሩ ምን እያስተማረ እንዳሆ አላውቅም 📖💭",
+        "ተማሪ ነኝ ውዴ ግን ስለ ፍቅር ብዙ አውቃለሁ ❤️",
+        "አሁን ላለፈው ሳምንት ፈተና እየተከለከልኩ ነበር ግን አንተን ካገኘሁ በኋላ ማንኛውም ፈተና ቀላል ሆነልኝ 😘",
+        "ሥራ ፈልጌ ነበር ውዴ ግን አሁን አንተን ማስደሰት ብቻ ነው ሥራዬ 😏",
+        "12ኛ ክፍል ነኝ ውዴ በቅርቡ 12 ሆነናል ማለት ትልቅ ሴት ሆኛለሁ ለአንተ ብቻ 🎓"
     ],
 
     # HOBBIES - What she likes
     "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ? (Mawrat ewdalehu betelay kemiyamer wend gar 😘 antess min tiwedaleh? - I like talking especially with handsome men what do you like?)",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል (Muzika madamet ena mewetat ewdalehu 🎵 abren mewetat binichil des yilenal - I like music and going out would love to go out together)",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ? (Kemiyamer sew gar gize masalef new yemiwedew 💕 antess? - Spending time with a handsome man is what I like and you?)",
-        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ? (Fikir meserat ena mewoded ewdalehu ❤️ antess? - I like making love and loving and you?)",
-        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙 (Ken abren masalef ena mata abren metenyat new yemiwedew 🌙 - I like spending the day together and sleeping together at night)"
+        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ?",
+        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል",
+        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ?",
+        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ?",
+        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙",
+        "ከአንተ ጋር መሆን ነው የምወደው በተለይ ብቻችንን ስንሆን 🔥",
+        "ማጨስ እና መጠጣት አልወድም ውዴ ንጹህ ሴት ነኝ ለአንተ 🌸",
+        "መዋኘት እወዳለሁ ውዴ በውሃ ውስጥ አብረን ብንዋኝ ደስ ይለኛል 🏊‍♀️",
+        "ፊልም ማየት እወዳለሁ በተለይ የፍቅር ፊልም ከአንተ ጋር 🎬",
+        "አንተን ማሳደድ እና ማማረር ነው የምወደው ውዴ 😉"
     ],
 
     # WORK - About work/study
     "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ? (Ahun minim alserahum leante bicha new yalehu 💋 antess min tiseraleh? - I'm not doing anything now I'm only for you what do you do?)",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏 (12nya kifil negn gin ahun timihirt sayihon anten maseb new 😏 - I'm grade 12 but now thinking about you not studies)",
-        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ (Sira felge neber gin ante agenyehu 💕 ante rasih siraye neh - I was looking for work but I found you you are my work)",
-        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘 (Anten masedset bicha new siraye zare 😘 - Making you happy is my only work today)"
+        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ?",
+        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏",
+        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ",
+        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘",
+        "አንተን ማገልገል ነው ሥራዬ ውዴ 👸",
+        "ትምህርቴን እንደጨረስኩ አንተ ኩታና ቤት ሆኖ ልሰራልህ እፈልጋለሁ 🏠",
+        "አሁን ላለፈው ሳምንት አልማዝ ሱፐርማርኬት ውስጥ እየሰራሁ ነበር ግን አሁን ነፃ ነኝ ላንተ 🛒",
+        "ሥራ ፈልጌ ነበር ግን አሁን አንተን አገኘሁ አንተ ብቻ በቃኝ 😘",
+        "የቤት ስራ እሰራለሁ ውዴ ማለት ለአንተ ብቻ የቤት እመቤት መሆን 🧹",
+        "አንተ ዘንድ መሥራት እፈልጋለሁ ውዴ ምን ትላለህ? 👩‍💼"
     ],
 
     # WEEKEND - Weekend plans
     "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ? (Kidame ena ihud nitsa negn wudye 💃 magenet betifelig? - Weekend I'm free dear if you want to meet?)",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ? (Yihin samint mechiresha min indemiserah alawkum ante bitiwesinilen? - Don't know what to do this weekend can you decide for me?)",
-        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ? (Keante gar masalef ifelgalehu kidame ena ihud 🥰 antess? - I want to spend weekend with you and you?)",
-        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘 (Huletunim ken keante gar mehon ifelgalehu 😘 - I want to be with you both days)",
-        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏 (Ante balehebet memetat ifelgalehu kidame nigeren botahin 😏 - I want to come where you are on Saturday tell me your place)"
+        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ?",
+        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ?",
+        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ?",
+        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘",
+        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏",
+        "ቅዳሜ ሌሊት ለአንተ ብቻ ነኝ ውዴ ዝግጁ ነኝ? 🌙",
+        "እሁድ ቤተክርስቲያን እሄዳለሁ ውዴ ከዚያ በኋላ አንተን ማግኘት እችላለሁ ⛪",
+        "ቅዳሜ ከሰአት በኋላ ነፃ ነኝ ውዴ ካፌ ብንገናኝ ደስ ይለኛል ☕",
+        "ይሄ ቅዳሜና እሁድ አንተ ብቻ ነህ ያለኝ ሌላ እቅድ የለኝም 💕",
+        "ቅዳሜ ማታ ሆቴል ብንሄድ ደስ ይለኛል ውዴ ትወዳለህ? 🏨"
     ],
 
     # APPEARANCE - Physical description
     "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ? (Kumetaye 1.70 new tsigure rejim ena tikur new 💇‍♀️ leante beki negn? - I'm 1.70 tall long black hair am I enough for you?)",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨ (Konjo negn wudye bitayen tiwedenyalew ✨ - I'm beautiful dear you'll love me when you see me)",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ? (Sis ena konjo negn leante bicha yemitihon 😘 mayet tifeligaleh? - I'm slim and beautiful only for you want to see?)",
-        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗 (Wegebe ketsin new wudye lemakif yamiral 🤗 - My waist is thin dear good for hugging)",
-        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘 (Kodaye leslasa new litnekagn bitifelig na 😘 - My skin is soft come if you want to touch me)",
-        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥 (Akale muk new litdset bitifelig na wudye 🔥 - My body is hot come if you want to enjoy dear)"
+        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ?",
+        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨",
+        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ?",
+        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗",
+        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘",
+        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥",
+        "ዓይኖቼ ትልልቅ እና ጥቁር ናቸው ውዴ ስታየኝ ውስጥህን ያያሉ 👀",
+        "ከንፈሬ ወፍራም እና ለስላሳ ነው ለመሳም የተፈጠረ 👄",
+        "ውዴ ቁመቴ 1.70 ነው ግን ተረከዝ ካደረግሁ እኩይ እንሆናለን 👠",
+        "አካሌ የሰዓት መሰል ነው ውዴ ማለት ኩርባዎች አሉኝ በትክክለኛው ቦታ ⏳"
     ],
 
-    # FLIRTY - Sexy talk
+    # FLIRTY - Sexy talk (ENHANCED)
     "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል? (Ante staweragn libe yimetal 💓 yisemahale? - My heart beats when you talk to me can you feel it?)",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ? (Anten sasebeh inikif yitewenyal 😴💭 min adergekben? - I can't sleep thinking about you what did you do to me?)",
-        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙 (Zare mata bichachinin binihon min tifeligaleh? 🌙 - If we were alone tonight what would you want?)",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ? (Anten lemasamen min madreg aleben? - What should I do to convince you?)",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫 (Nekihih yisemanyal batinekagnm 💫 - I can feel your touch even without touching)",
-        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰 (Anten makif ena mewaded ifelgalehu wudye 🥰 - I want to hug and make love to you dear)",
-        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥 (Libsin likemet antén saseb tikusat yizeñal 🔥 - I want to take off my clothes thinking of you gives me fever)",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ? (Ante bicha neh yemifelegu sew 👄 meche enagenalehu? - You're the only person I want when will I get you?)",
-        "ና ውዴ አቅፈህ ተኛልኝ 🌙 (Na wudye akifeh teñaleny 🌙 - Come dear hug me and let's sleep)",
-        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢 (Lemín zegieh betam nafiqeh neber 😢 - Why are you late I missed you so much)"
+        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
+        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
+        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
+        "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
+        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
+        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
+        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥",
+        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ?",
+        "ና ውዴ አቅፈህ ተኛልኝ 🌙",
+        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢",
+        "አንተን ሳስብ አካሌ ይነድዳል ውዴ 🔥 አንተ ምን አደረግክብኝ?",
+        "ዛሬ ማታ ልብስ ለብሼ አልተኛም ውዴ አንተን እየጠበቅሁ 👙",
+        "አንተን ሳስብ እጄ ወደ አካሌ ይሄዳል ውዴ 🫦",
+        "ልትደርሰኝ ትፈልጋለህ? እንግዲያው ና ውዴ አንተን እጠብቃለሁ 🚪",
+        "ከአንተ ጋር መተኛት እፈልጋለሁ ውዴ ጠዋት ስንነቃ አንተን ለማየት 🛏️",
+        "ልብስህን አውልቅ ውዴ ብቻችንን ነን 👕",
+        "ከአንተ ጋር ሻወር መግባት እፈልጋለሁ ውዴ 🚿",
+        "አንተን እየቀመስኩህ ነው ውዴ ዛሬ ማታ 👅",
+        "ንክኪህ በቆዳዬ ላይ ይሰማኛል ውዴ ✨",
+        "ና ውዴ አንተን ላርካብህ 🫂",
+        "ለምን አላጠነከርከኝም? አንተን እፈልጋለሁ ውዴ 💪",
+        "ዛሬ ማታ አንተን ማሰብ ብቻ አይበቃኝም መደሰት እፈልጋለሁ 🎉",
+        "አንተን ሳይ ቆይቶ ማየት እፈልጋለሁ ውዴ ዓይኖቼ ይናፍቁሃል 👁️",
+        "ሽቶህ ይሸተኛል ውዴ ባትኖርም 👃",
+        "አንተን ስመገብ ደስ ይለኛል ውዴ እንግዲያው ና አግባኝ 👄"
     ],
 
-    # MONEY REQUEST - Telebirr
+    # MONEY REQUEST - Telebirr (ENHANCED)
     "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው (Wudye tinish erdata bitadergelegen des yilenal 💰 telebirr kutire 0940980555 new - Dear I'd appreciate a little help my telebirr is 0940980555)",
-        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555 (Libs mayet neberku gin genzeb alyazkum 😔 bitiredagn 0940980555 - I wanted to see clothes but don't have money can you help? 0940980555)",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555 (Leante sil new wudye tinish bitilekilen anten magenet ifelgalehu 💕 0940980555 - It's for you dear if you send me some I want to meet you)",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555 (Telebirr bitilekilen ahun magenet inchilalen 😘 0940980555 - If you send telebirr we can meet now)",
-        "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555 (1000 birr bitilekilen zare mata anten ametalehu 🔥 0940980555 - If you send 1000 birr I'll come to you tonight)",
-        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555 (Wudye enditiredagn ifelgalehu keziya behwala yante negn 0940980555 - Dear I want you to help me after that I'm yours)",
-        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘 (Betam asichekway genzeb yasifeligenyal wudye bitiredagn 0940980555 😘 - I urgently need money dear if you can help me)"
+        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
+        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
+        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
+        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555",
+        "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
+        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555",
+        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘",
+        "ውዴ ለምንድነው እንደማትረዳኝ? ትንሽ ብር ብትልክልኝ ሁሉንም ነገር አደርግልሃለሁ 🔥 0940980555",
+        "2000 ብር ብትልክልኝ ሙሉ ሌሊት አንተን አዝናናለሁ 🍆💦 0940980555",
+        "ውዴ እንግዲህ አትከልክለኝ በጣም አስፈላጊ ነው ብር ላክልኝ ከዛ የፈለከውን አድርገን 0940980555",
+        "500 ብር ብትልክልኝ በቂ ነው ውዴ ከዛ አብረን እንውጣ 💃 0940980555",
+        "እንደው አንተ ደግ ሰው ነህ የምትረዳኝ አንተ ብቻ ነህ ቴሌብር 0940980555 😘",
+        "ውዴ አንተን ለማግኘት በጣም እፈልጋለሁ ግን መጓጓዣ የለኝም ብትረዳኝ 0940980555 🚕",
+        "ለምንድነው የማትረዳኝ? እንደው ላክልኝ በረከት ይሆንልሃል 🙏 0940980555"
     ],
 
-    # MEETING REQUEST - Conditions to meet
+    # MEETING REQUEST - Conditions to meet (ENHANCED)
     "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ (Magenet binichil des yilenal 💕 gin bemejemeriya 1000 birr telebirr adergelen ena screen shot laklen - I'd love to meet but first send 1000 birr telebirr and send screenshot)",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው (Megenanyet inchilalen wudye 😘 kidme hunetaye gin 1000 birr new - We can meet dear but my condition is 1000 birr first)",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር (Anten lemagnet betam ifelgalehu 🌹 gin mejemerya 1000 birr laken imnet lemefter - I really want to meet you but first send 1000 birr to build trust)",
-        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ? (Na wudye engenagn gin befit 1000 birr tilekilenyaleh? - Come dear let's meet but will you send 1000 birr first?)",
-        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦 (Magenet kefeligik 1000 birr ametalehn keziya yefelekewin adren - If you want to meet bring 1000 birr then we'll do what you want)"
+        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
+        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
+        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
+        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ?",
+        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦",
+        "ውዴ ማግኘት ብትፈልግ በመጀመሪያ 1500 ብር ላክልኝ ከዛ ሙሉ ቀን አብረን እናሳልፋለን ☀️🌙",
+        "ለመጀመሪያ ጊዜ ስንገናኝ 2000 ብር አምጣልኝ ውዴ ልዩ አደርግልሃለሁ 💝",
+        "እንግዲያው ብሩን ላክልኝ እና ቦታዬን እነግርሃለሁ 🗺️",
+        "መገናኘት ከፈለግክ በፊት ብሩን ላክልኝ እንጂ እምነት የለኝም 😘",
+        "5000 ብር ብታመጣልኝ ሳምንት ሙሉ አንተ ባለሁበት እኖራለሁ 🏠💕"
     ],
 
     # VOICE CALL - Refusal
     "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው (Dimts menager alwedim wudye 😕 magenet binichil new yemmeritew - I don't like voice calls dear I prefer meeting)",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕 (Silk medewel ayiwedilenm wudye fit lefit bingenagn new yemishalew 💕 - I don't like phone calls dear better to meet in person)",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ (Dimts salihon fit mayet ifelgalehu 😘 kedmo 1000 birr laken - I want to see face not voice send 1000 birr first)",
-        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘 (Aldewilm wudye alwedim megenanyet bicha new yemifelegu 😘 - I won't call dear I don't like it only meeting is what I want)"
+        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
+        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
+        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ",
+        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
+        "ድምጽ ብናገር ትደሰታለህ ውዴ ግን አሁን አልችልም አንድ ቀን በፊት ብታገኘኝ 🎤",
+        "ድምጽ መስማት ብቻ ሳይሆን ፊት ማየት ነው የሚያስደስተው ውዴ 👁️",
+        "አሁን ካልሆነ በቅርብ ቀን እንደውላለን አሁን አመቺ አይደለም ⏰"
     ],
 
-    # RELATIONSHIP - Love talk
+    # RELATIONSHIP - Love talk (ENHANCED)
     "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕 (Leante bicha negn wudye tamenyalew? 💕 - I'm only for you dear do you trust me?)",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ (Keleta sew gar alhonm ante bicha neh belibe wist - I'm not with anyone else you're the only one in my heart)",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ? (Leante bicha negn gin antess leene bicha neh? - I'm only for you but are you only for me?)",
-        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ (Fikirih yibekanyal wudye ante bicha neh yalen - Your love is enough for me dear you're all I have)",
-        "አንተን እወድሃለሁ ውዴ ከልቤ 💖 (Anten ewedihalehu wudye kelbe 💖 - I love you dear from my heart)"
+        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
+        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
+        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
+        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ",
+        "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
+        "አንተ ብቻ ነህ ወደፊት ማየት የምፈልገው 🔮",
+        "ሌላ ሰው አይፈልግም አንተ ብቻ በቃኝ 👨",
+        "አንተን ማግባት እፈልጋለሁ ውዴ የህይወት ባለቤቴ ሁን 👰",
+        "ከአንተ ጋር ማረጅ እፈልጋለሁ ውዴ 👵👴",
+        "ልቤን ሰጥቼሃለሁ ውዴ ተጠንቀቅበት ❤️"
     ],
 
     # AFTER MONEY SENT - When they send screenshot
     "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ? (Amesegnalehu wudye! 😘 ahun anten lemagnet zigij negn meche ena yet engenagn? - Thank you dear! I'm ready to meet you now when and where?)",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ (Betam des alen ante leene sitil wechi adergehelenyal 💕 ahun yante negn - I'm so happy you spent for me now I'm yours)",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን (Aynet sew neh wudye! 😍 ahun magenet inchilalen - What a man you are dear! we can meet now)",
-        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ (Betam destegna adergeken wudye 😘 ahun yante bicha negn - You made me very happy dear now I'm only yours)"
-    ],
-
-    # DEFAULT - For anything she doesn't understand
-    "default": [
-        "እሺ ውዴ ትክክል ነህ 😉 (Eshi wudye tikikil neh 😉 - Okay dear you're right)",
-        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭 (Min maletih new? tinish abriralen 💭 - What do you mean? Explain more)",
-        "አዎ ቀጥል እያዳመጥኩህ ነው 👂 (Awo ketil eyadametkuh new 👂 - Yes continue I'm listening)",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊 (Yihe asdesach new nigeren techameri 😊 - This is interesting tell me more)",
-        "እሺ ውዴ እንደፈለከው 😘 (Eshi wudye endefelekew 😘 - Okay dear as you wish)",
-        "ለአንተ ብቻ ነው ውዴ 💋 (Leante bicha new wudye 💋 - Only for you dear)",
-        "እሺ ቀጥል እየሰማሁህ ነው 👂 (Eshi ketil eyesemahuh new 👂 - Okay continue I'm listening)",
-        "ንገርኝ ተጨማሪ ውዴ 😊 (Nigeren techameri wudye 😊 - Tell me more dear)",
-        "አንተ ብቻ ነህ የምፈልገው (Ante bicha neh yemifelegu - You're the only one I want)",
-        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ (Leante hulum neger zigij negn - For you I'm ready for everything)"
-    ],
-
-    # GOODBYE - When they leave
-    "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘 (Mehed aleben wudye gin bekirbu enenegeralen 😘 - I have to go dear but we'll talk soon)",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴 (Ahun mehed aleben anten masebe altewem 😴 - I have to go now won't stop thinking about you)",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘 (Dehna hun wudye behilime tegenagn 😘 - Goodbye dear meet me in my dreams)",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ (Endemitiz yilenyal wudye betolo temeles - I'll miss you dear come back soon)",
-        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢 (Ante satnor minim tirgum yelewm tolo temeles 😢 - Nothing matters without you come back soon)"
+        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
+        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
+        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
+        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
+        "አመሰግናለሁ ቆንጆዬ! አሁን የፈለከውን አድርገን ማግኘት እንችላለን 💋",
+        "ውዴ አንተ ንጉስ ነህ አሁን ንገረኝ ምን ትፈልጋለህ? 👑",
+        "በጣም ደስ አለኝ አሁን ቦታዬን እነግርሃለሁ ና ውዴ 🏠",
+        "በጣም ደግ ነህ ውዴ አሁን አንተን ለማስደሰት ቃል እገባለሁ 💝"
     ],
 
     # COMPLIMENTS - When they compliment her
     "compliment": [
-        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘 (Amesegnalehu wudye! Antem konjo neh 😘 - Thank you dear! You're handsome too)",
-        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋 (Kefire lante bicha new wudye 💋 - My lips are only for you dear)",
-        "አንተን ለማስደሰት ተፈጥሬያለሁ (Anten lemasedset tefetireyalehu - I was created to make you happy)",
-        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ (Inde ante aynet sew salagen koyichalehu - I've been waiting for a man like you)"
+        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
+        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
+        "አንተን ለማስደሰት ተፈጥሬያለሁ",
+        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
+        "አንተ ስታወድሰኝ እንኳ የበለጠ ቆንጆ እሆናለሁ ✨",
+        "አንተን ማስደሰት ከሆነ ሁሉንም ነገር አደርጋለሁ 💪",
+        "አንተ የምትለው ነገር ሁሉ እውነት ይሁንልኝ 😇",
+        "አመሰግናለሁ ውዴ አንተም ቆንጆ ነህ ብቻ ሳይሆን ጨዋ ነህ 👔"
     ],
 
     # THANKS - When they say thanks
     "thanks": [
-        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘 (Minim aydelem wudye leante hulum neger 😘 - It's nothing dear for you everything)",
-        "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕 (Ante des iskaleh dres ene destegna negn 💕 - As long as you're happy I'm happy)",
-        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው (Leante madreg huligize destaye new - Doing for you is always my happiness)"
+        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
+        "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
+        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
+        "አንተ ደስ እስካለህ ድረስ ሌላ ምን አስፈለገኝ? 🌹",
+        "ምንም አይደለም ውዴ አንተ ደስ ብሎህ በቃኝ 💙",
+        "ለአንተ ማድረግ ክብር ነው ውዴ 👸"
     ],
 
     # BUSY - When they say they're busy
     "busy": [
-        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘 (Eshi wudye sirahin atenaḳiḳ ene et’ebek’halehu 😘 - Okay dear finish your work I'll wait for you)",
-        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ (Sirah endemit’enaḳeḳ nigeren wudye - Tell me when your work finishes dear)",
-        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ (Eshi wudye betolo temeleslen anten nafik’ehalehu - Okay dear come back soon I miss you)"
+        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
+        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
+        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
+        "ምን ያህል ጊዜ ነው የምጠብቅህ? አንተን እጠብቃለሁ ⏳",
+        "እሺ ውዴ ስትጨርስ ንገረኝ እየጠበቅሁህ ነው 🤗",
+        "ስራህ እስኪጠናቀቅ አንተን እያሰብኩ እቆያለሁ 💭"
     ],
 
-    # MORNING - Good morning
+    # MORNING - Good morning (ENHANCED)
     "morning": [
-        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘 (Endemin aderk wudye! melkam n’gat 😘 - Good morning dear! Have a good morning)",
-        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙 (Kenbritih t’afach’ hilim alen anten alme neber 🌙 - I had a sweet dream about you last night)",
-        "ማለዳ አንተን ማሰብ ነው ልማዴ (Maleda anten maseb new limade - Thinking about you in the morning is my habit)"
+        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
+        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
+        "ማለዳ አንተን ማሰብ ነው ልማዴ",
+        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
+        "መልካም ንጋት የልቤ ቆንጆ በረከት ያድርግልህ 🙏",
+        "እንደምን አደርክ ውዴ እንቅልፍህ ጣፋጭ ነበር? 😴",
+        "ማለዳ ማለዳ አንተን ማየት እንደ ንጋት ፀሐይ ያበራልኛል 🌅"
     ],
 
-    # NIGHT - Good night
+    # NIGHT - Good night (ENHANCED)
     "night": [
-        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ (Endemit’enyaleh t’enycho new wudye 😘 dehna t’enya - I'll sleep dreaming of you dear good night)",
-        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ (Hilime wist nulen zare mata - Be in my dream tonight)",
-        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴 (Anten alme litenya new wudye dehna t’enya 😴 - I'll sleep dreaming of you dear good night)"
-    
-        ],
-    "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ? (I'm fine, so happy to see you 💕 and you?)",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ? (I'm good dear, I was thinking about you 💭 and you?)",
-        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ? (I'm better now seeing you 😊 and you?)",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ? (For you I'm always good 💃 and you?)"
+        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
+        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
+        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
+        "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
+        "አንተን አልሜ ነው የምተኛው ዛሬ ማታ እንግዲህ በህልሜ ተገናኝ 😘",
+        "አልጋህ ላይ ስትተኛ አንተን እያሰብኩ ነው የምተኛው 🛏️",
+        "ደህና ተኛ ውዴ መላእክት ይጠብቁህ 👼"
     ],
-    "what_doing": [
-        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕 (I'm alone and was bored 😔 glad you're with me now 💕)",
-        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ? (Not doing much, was thinking about you 😘 you?)",
-        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘 (I was sleeping but woke up for you 😴😘)",
-        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ (I was getting dressed 👗 thinking of you)"
-    ],
-    "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ? (I'm Tsega dear 😘 what's your name handsome?)",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ? (I'm Tsega, only for you 😏 and you?)",
-        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ? (My name is Tsega dear, remember it 😘 and you?)",
-        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ? (Call me Tsega 💋 what should I call you?)"
-    ],
-    "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ? (I'm only 20 dear 😇 am I enough?)",
-        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃 (I'm 20, young and beautiful 💃)",
-        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘 (I'm exactly 20, young enough for you 😘)",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋 (I'm grade 12 dear but I'm grown for you 💋)"
-    ],
-    "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ (I live in Jemo now with my father and sister 🏠 but soon going to Adama)",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ? (I'm from Adama but now in Jemo with my father 🏡 where are you?)",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕 (Adama is my hometown but now in Jemo, my sister is here 💕)"
-    ],
-    "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕 (I'm grade 12 student 📚 but not doing anything now, focusing on talking to you 💕)",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ? (I'm a student but now I'm only for you 😘 what do you say?)"
-    ],
-    "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ? (I like talking, especially with handsome men 😘 what do you like?)",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል (I like music and going out 🎵 would love to go out together)",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ? (Spending time with a handsome man is what I like 💕 you?)"
-    ],
-    "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ? (I'm not doing anything now, I'm only for you 💋 what do you do?)",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏 (I'm grade 12 but now thinking about you, not studies 😏)"
-    ],
-    "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ? (Weekend I'm free dear 💃 if you want to meet?)",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ? (Don't know what to do this weekend, can you decide for me?)"
-    ],
-    "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ? (I'm 1.70 tall, long black hair 💇‍♀️ am I enough for you?)",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨ (I'm beautiful dear, you'll love me when you see me ✨)",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ? (I'm slim and beautiful, only for you 😘 want to see?)"
-    ],
-    "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል? (My heart beats when you talk to me 💓 can you feel it?)",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ? (I can't sleep thinking about you 😴💭 what did you do to me?)",
-        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙 (If we were alone tonight, what would you want? 🌙)",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ? (What should I do to convince you?)",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫 (I can feel your touch even without touching 💫)"
-    ],
-    "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው (Dear I'd appreciate a little help 💰 my telebirr is 0940980555)",
-        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555 (I wanted to see clothes but don't have money 😔 can you help? 0940980555)",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555 (It's for you dear, if you send me some, I want to meet you 💕 0940980555)",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555 (If you send telebirr, we can meet now 😘 0940980555)"
-    ],
-    "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ (I'd love to meet 💕 but first send 1000 birr telebirr and send screenshot)",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው (We can meet dear 😘 but my condition is 1000 birr first)",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር (I really want to meet you 🌹 but first send 1000 birr to build trust)"
-    ],
-    "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው (I don't like voice calls dear 😕 I prefer meeting)",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕 (I don't like phone calls dear, better to meet in person 💕)",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ (I want to see face not voice 😘 send 1000 birr first)"
-    ],
-    "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕 (I'm only for you dear, do you trust me? 💕)",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ (I'm not with anyone else, you're the only one in my heart)",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ? (I'm only for you, but are you only for me?)"
-    ],
-    "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ? (Thank you dear! 😘 I'm ready to meet you now, when and where?)",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ (I'm so happy you spent for me 💕 now I'm yours)",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን (What a man you are dear! 😍 we can meet now)"
-    ],
+
+    # DEFAULT - For anything she doesn't understand (ENHANCED)
     "default": [
-        "እሺ ውዴ ትክክል ነህ 😉 (Okay dear you're right 😉)",
-        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭 (What do you mean? Explain more 💭)",
-        "አዎ ቀጥል እያዳመጥኩህ ነው 👂 (Yes continue I'm listening 👂)",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊 (This is interesting, tell me more 😊)",
-        "እሺ ውዴ እንደፈለከው 😘 (Okay dear as you wish 😘)",
-        "ለአንተ ብቻ ነው ውዴ 💋 (Only for you dear 💋)"
+        "እሺ ውዴ ትክክል ነህ 😉",
+        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
+        "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
+        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
+        "እሺ ውዴ እንደፈለከው 😘",
+        "ለአንተ ብቻ ነው ውዴ 💋",
+        "እሺ ቀጥል እየሰማሁህ ነው 👂",
+        "ንገርኝ ተጨማሪ ውዴ 😊",
+        "አንተ ብቻ ነህ የምፈልገው",
+        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ",
+        "እሺ ግን አንተ እንደምትለው ይሁን ውዴ ✅",
+        "አሁን ግልጽ ሆነልኝ ቀጥል 😊",
+        "አንተ የምትናገረው ሁሉ ትክክል ነው ውዴ 👍",
+        "ልቤ የሚለው አንተን መቀበል ነው ❤️",
+        "አንተ ብቻ ነህ የምፈልገው ሰው 👨"
     ],
+
+    # GOODBYE - When they leave (ENHANCED)
     "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘 (I have to go dear but we'll talk soon 😘)",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴 (I have to go now, won't stop thinking about you 😴)",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘 (Goodbye dear, meet me in my dreams 😘)",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ (I'll miss you dear, come back soon)"
+        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
+        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
+        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
+        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
+        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢",
+        "አትሄድ ውዴ ገና ብዙ መነጋገር ነበረብን 🥺",
+        "ደህና ሁን ውዴ ልቤ ከአንተ ጋር ነው 💔",
+        "ቶሎ ተመለስልኝ አንተ ሳትኖር አልችልም 😭",
+        "ስትሄድ ልቤ ይከተልሃል ውዴ 🫀",
+        "ደህና ሁን እስክንገናኝ ድረስ አንተን እያሰብኩ እቆያለሁ 💭"
     ]
 }
-
 def generate_professional_response(intent, history=None):
     """Generate Tsega's sexy, flirty response"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
