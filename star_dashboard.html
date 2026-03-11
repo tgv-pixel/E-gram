@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Star Earnings Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⭐ Tsega Star Manager - Complete Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -9,84 +11,59 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
         body {
             background: #0e1621;
             color: white;
             padding: 20px;
         }
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
-        h1 {
-            color: #FFD700;
-            margin-bottom: 30px;
+
+        /* Header */
+        .header {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+            border: 1px solid #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+
+        .header h1 span {
+            background: #FFD700;
+            color: #000;
+            font-size: 1rem;
+            padding: 5px 12px;
+            border-radius: 30px;
         }
-        .stat-card {
-            background: #17212b;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            transition: transform 0.2s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: #FFD700;
-        }
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #FFD700;
-        }
-        .stat-label {
-            color: #8e9fad;
-            margin-top: 10px;
-            font-size: 0.95rem;
-        }
+
         .channel-badge {
             background: #2b5278;
             color: white;
-            padding: 5px 15px;
+            padding: 8px 20px;
             border-radius: 30px;
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        table {
-            width: 100%;
-            background: #17212b;
-            border-collapse: collapse;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 20px;
-        }
-        th {
-            background: #2b3945;
-            padding: 15px;
-            text-align: left;
-            color: #FFD700;
-        }
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #2b3945;
-        }
-        tr:hover {
-            background: #242f3d;
-        }
-        .star-icon {
-            color: #FFD700;
-            font-size: 1.2rem;
-        }
+
         .refresh-btn {
             background: #2b3945;
             color: #6ab2f2;
@@ -94,49 +71,835 @@
             padding: 10px 20px;
             border-radius: 30px;
             cursor: pointer;
-            margin-left: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
         }
+
         .refresh-btn:hover {
             background: #3a4a5a;
         }
-        .header {
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #FFD700;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .stat-label {
+            color: #8e9fad;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            background: #17212b;
+            border: 1px solid #2b3945;
+            color: #8e9fad;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: #242f3d;
+            color: white;
+        }
+
+        .tab.active {
+            background: #FFD700;
+            color: #000;
+            border-color: #FFD700;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .upload-section.active {
+            display: block;
+        }
+
+        .upload-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #FFD700;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .upload-card {
+            background: #242f3d;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2b3945;
+        }
+
+        .upload-card h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
+            gap: 8px;
+        }
+
+        .price-badge {
+            background: #2b5278;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .file-input {
+            background: #1e2a36;
+            border: 1px solid #2b3945;
+            border-radius: 8px;
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .upload-btn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 30px;
+            width: 100%;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: #ffed4a;
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Media Library */
+        .media-section {
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .media-header {
+            display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .media-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: #2b3945;
+            color: #8e9fad;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #3a4a5a;
+            color: white;
+        }
+
+        .filter-btn.active {
+            background: #FFD700;
+            color: #000;
+        }
+
+        /* Media Grid */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .media-item {
+            background: #242f3d;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #2b3945;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        .media-item:hover {
+            transform: translateY(-5px);
+            border-color: #FFD700;
+        }
+
+        .media-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #1e2a36;
+            cursor: pointer;
+        }
+
+        .media-info {
+            padding: 15px;
+        }
+
+        .media-name {
+            font-size: 0.9rem;
+            color: white;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .media-price {
+            color: #FFD700;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .media-sold {
+            color: #8e9fad;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .media-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #FFD700;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .media-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .delete-btn {
+            background: #8e2b2b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .delete-btn:hover {
+            background: #a53333;
+        }
+
+        /* Transactions Table */
+        .transactions-table {
+            width: 100%;
+            background: #242f3d;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .transactions-table th {
+            background: #2b3945;
+            padding: 15px;
+            text-align: left;
+            color: #FFD700;
+        }
+
+        .transactions-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #2b3945;
+        }
+
+        .transactions-table tr:hover {
+            background: #2b3945;
+        }
+
+        /* Modal for preview */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #17212b;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid #2b3945;
+            z-index: 1001;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.success {
+            border-left: 4px solid #FFD700;
+        }
+
+        .toast.error {
+            border-left: 4px solid #e04c4c;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e9fad;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #2b3945;
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #8e9fad;
+            background: #242f3d;
+            border-radius: 12px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>⭐ Star Earnings Dashboard</h1>
-            <button class="refresh-btn" onclick="loadAllData()">↻ Refresh</button>
+            <div>
+                <h1>
+                    ⭐ Tsega Star Manager
+                    <span>v2.0</span>
+                </h1>
+                <div class="channel-badge">
+                    <span>📢</span> All Stars go to @Abe_army
+                </div>
+            </div>
+            <button class="refresh-btn" onclick="loadAllData()">
+                <span>↻</span> Refresh Data
+            </button>
         </div>
-        
-        <div class="channel-badge">💰 All Stars go to @Abe_army</div>
-        
-        <div class="stats-grid" id="stats"></div>
-        
-        <h2 style="margin: 30px 0 15px;">📸 Media Library</h2>
-        <div id="mediaTable"></div>
-        
-        <h2 style="margin: 30px 0 15px;">👑 Top Spenders</h2>
-        <div id="topUsers"></div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('upload')">📤 Upload Media</div>
+            <div class="tab" onclick="switchTab('library')">📸 Media Library</div>
+            <div class="tab" onclick="switchTab('transactions')">💰 Transactions</div>
+            <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="uploadSection" class="upload-section active">
+            <h2 class="upload-title">📤 Upload New Media</h2>
+            <div class="upload-grid">
+                <!-- Preview Photos (5⭐) -->
+                <div class="upload-card">
+                    <h3>📸 Preview Photos <span class="price-badge">5 ⭐</span></h3>
+                    <input type="file" class="file-input" id="previewUpload" multiple accept="image/*" onchange="handleFileSelect('preview', this.files)">
+                    <div id="previewList" style="margin-bottom: 15px; color: #8e9fad;"></div>
+                    <button class="upload-btn" onclick="uploadFiles('preview')" id="previewBtn">Upload Preview Photos</button>
+                </div>
+
+                <!-- Full Photos (50⭐) -->
+                <div class="upload-card">
+                    <h3>📸 Full Photos <span class="price-badge">50 ⭐</span></h3>
+                    <input type="file" class="file-input" id="fullUpload" multiple accept="image/*" onchange="handleFileSelect('full', this.files)">
+                    <div id="fullList" style="margin-bottom: 15px; color: #8e9fad;"></div>
+                    <button class="upload-btn" onclick="uploadFiles('full')" id="fullBtn">Upload Full Photos</button>
+                </div>
+
+                <!-- Premium Photos (200⭐) -->
+                <div class="upload-card">
+                    <h3>📸 Premium Photos <span class="price-badge">200 ⭐</span></h3>
+                    <input type="file" class="file-input" id="premiumUpload" multiple accept="image/*" onchange="handleFileSelect('premium', this.files)">
+                    <div id="premiumList" style="margin-bottom: 15px; color: #8e9fad;"></div>
+                    <button class="upload-btn" onclick="uploadFiles('premium')" id="premiumBtn">Upload Premium Photos</button>
+                </div>
+
+                <!-- Video Previews (10⭐) -->
+                <div class="upload-card">
+                    <h3>🎥 Video Previews <span class="price-badge">10 ⭐</span></h3>
+                    <input type="file" class="file-input" id="videoPreviewUpload" multiple accept="video/*" onchange="handleFileSelect('video_preview', this.files)">
+                    <div id="video_previewList" style="margin-bottom: 15px; color: #8e9fad;"></div>
+                    <button class="upload-btn" onclick="uploadFiles('video_preview')" id="video_previewBtn">Upload Video Previews</button>
+                </div>
+
+                <!-- Full Videos (100⭐) -->
+                <div class="upload-card">
+                    <h3>🎥 Full Videos <span class="price-badge">100 ⭐</span></h3>
+                    <input type="file" class="file-input" id="videoFullUpload" multiple accept="video/*" onchange="handleFileSelect('video_full', this.files)">
+                    <div id="video_fullList" style="margin-bottom: 15px; color: #8e9fad;"></div>
+                    <button class="upload-btn" onclick="uploadFiles('video_full')" id="video_fullBtn">Upload Full Videos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Library Section -->
+        <div id="librarySection" class="media-section" style="display: none;">
+            <div class="media-header">
+                <h2>📸 Media Library <span id="mediaCount"></span></h2>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterMedia('all')">All</button>
+                    <button class="filter-btn" onclick="filterMedia('preview')">5⭐</button>
+                    <button class="filter-btn" onclick="filterMedia('full')">50⭐</button>
+                    <button class="filter-btn" onclick="filterMedia('premium')">200⭐</button>
+                    <button class="filter-btn" onclick="filterMedia('video_preview')">10⭐</button>
+                    <button class="filter-btn" onclick="filterMedia('video_full')">100⭐</button>
+                </div>
+            </div>
+            <div id="mediaGrid" class="media-grid"></div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div id="transactionsSection" class="media-section" style="display: none;">
+            <h2 style="margin-bottom: 20px;">💰 Recent Transactions</h2>
+            <div id="transactionsTable"></div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settingsSection" class="media-section" style="display: none;">
+            <h2 style="margin-bottom: 20px;">⚙️ Star System Settings</h2>
+            <div class="upload-grid">
+                <div class="upload-card">
+                    <h3>⭐ Message Price</h3>
+                    <input type="number" class="file-input" id="messagePrice" value="10" min="1" max="1000">
+                    <button class="upload-btn" onclick="updatePrice('message', document.getElementById('messagePrice').value)">Update</button>
+                </div>
+                <div class="upload-card">
+                    <h3>📸 Preview Price</h3>
+                    <input type="number" class="file-input" id="previewPrice" value="5" min="1" max="1000">
+                    <button class="upload-btn" onclick="updatePrice('preview', document.getElementById('previewPrice').value)">Update</button>
+                </div>
+                <div class="upload-card">
+                    <h3>📸 Full Photo Price</h3>
+                    <input type="number" class="file-input" id="fullPrice" value="50" min="1" max="1000">
+                    <button class="upload-btn" onclick="updatePrice('full', document.getElementById('fullPrice').value)">Update</button>
+                </div>
+                <div class="upload-card">
+                    <h3>📸 Premium Price</h3>
+                    <input type="number" class="file-input" id="premiumPrice" value="200" min="1" max="1000">
+                    <button class="upload-btn" onclick="updatePrice('premium', document.getElementById('premiumPrice').value)">Update</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Preview Modal -->
+    <div class="modal" id="previewModal" onclick="hidePreview()">
+        <div class="modal-close">✕</div>
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
     <script>
+        // State
+        let currentFilter = 'all';
+        let mediaData = [];
+        let transactions = [];
+        let selectedFiles = {
+            preview: [],
+            full: [],
+            premium: [],
+            video_preview: [],
+            video_full: []
+        };
+
+        // Toast function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide all sections
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('librarySection').style.display = 'none';
+            document.getElementById('transactionsSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
+
+            // Show selected section
+            document.getElementById(tab + 'Section').style.display = 'block';
+
+            // Load data for section
+            if (tab === 'library') loadMedia();
+            if (tab === 'transactions') loadTransactions();
+        }
+
+        // Handle file selection
+        function handleFileSelect(type, files) {
+            selectedFiles[type] = Array.from(files);
+            const listDiv = document.getElementById(type + 'List');
+            listDiv.innerHTML = selectedFiles[type].map(f => `📄 ${f.name}`).join('<br>');
+            
+            // Enable/disable upload button
+            document.getElementById(type + 'Btn').disabled = selectedFiles[type].length === 0;
+        }
+
+        // Upload files
+        async function uploadFiles(type) {
+            const files = selectedFiles[type];
+            if (!files.length) return;
+
+            const btn = document.getElementById(type + 'Btn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            try {
+                // Get prefix based on type
+                let prefix = '';
+                switch(type) {
+                    case 'preview': prefix = 'preview_'; break;
+                    case 'full': prefix = 'full_'; break;
+                    case 'premium': prefix = 'premium_'; break;
+                    case 'video_preview': prefix = 'video_preview_'; break;
+                    case 'video_full': prefix = 'video_full_'; break;
+                }
+
+                // Upload each file
+                for (let file of files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('prefix', prefix);
+
+                    const res = await fetch('/api/upload-media', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error);
+                }
+
+                showToast(`✅ ${files.length} files uploaded successfully!`);
+                
+                // Clear selection
+                selectedFiles[type] = [];
+                document.getElementById(type + 'List').innerHTML = '';
+                document.getElementById(type + 'Upload').value = '';
+
+                // Reload media
+                loadMedia();
+
+            } catch (err) {
+                showToast('Error uploading: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Upload';
+            }
+        }
+
+        // Load media library
+        async function loadMedia() {
+            const grid = document.getElementById('mediaGrid');
+            grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading media...</div>';
+
+            try {
+                const res = await fetch('/api/stars/media');
+                const data = await res.json();
+
+                if (data.success) {
+                    mediaData = data.media || [];
+                    document.getElementById('mediaCount').textContent = `(${mediaData.length})`;
+                    displayMedia();
+                }
+            } catch (err) {
+                grid.innerHTML = '<div class="empty-state">Error loading media</div>';
+            }
+        }
+
+        // Display media with filter
+        function displayMedia() {
+            const grid = document.getElementById('mediaGrid');
+            
+            let filtered = mediaData;
+            if (currentFilter !== 'all') {
+                filtered = mediaData.filter(m => {
+                    if (currentFilter === 'preview') return m.path.startsWith('preview_');
+                    if (currentFilter === 'full') return m.path.startsWith('full_');
+                    if (currentFilter === 'premium') return m.path.startsWith('premium_');
+                    if (currentFilter === 'video_preview') return m.path.startsWith('video_preview_');
+                    if (currentFilter === 'video_full') return m.path.startsWith('video_full_');
+                    return true;
+                });
+            }
+
+            if (!filtered.length) {
+                grid.innerHTML = '<div class="empty-state">No media found</div>';
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(media => {
+                const isVideo = media.type === 'video';
+                const icon = isVideo ? '🎥' : '📸';
+                const priceColor = media.price === 200 ? '#FFD700' : 
+                                  media.price === 50 ? '#6ab2f2' : '#8e9fad';
+
+                html += `
+                    <div class="media-item">
+                        <div class="media-preview" onclick="previewMedia('${media.path}', '${media.type}')">
+                            ${icon} ${media.type}
+                        </div>
+                        <div class="media-info">
+                            <div class="media-name">${media.path}</div>
+                            <div class="media-price" style="color: ${priceColor}">${media.price} ⭐</div>
+                            <div class="media-sold">Sold: ${media.sold} times</div>
+                            <div class="media-actions">
+                                <button class="delete-btn" onclick="deleteMedia('${media.path}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                        <div class="media-badge">${media.price}⭐</div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        // Filter media
+        function filterMedia(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            displayMedia();
+        }
+
+        // Preview media
+        function previewMedia(path, type) {
+            const modal = document.getElementById('previewModal');
+            const content = document.getElementById('modalContent');
+            
+            if (type === 'photo') {
+                content.innerHTML = `<img src="/media/${path}" class="modal-image">`;
+            } else {
+                content.innerHTML = `<video src="/media/${path}" class="modal-image" controls></video>`;
+            }
+            
+            modal.classList.add('show');
+        }
+
+        function hidePreview() {
+            document.getElementById('previewModal').classList.remove('show');
+            document.getElementById('modalContent').innerHTML = '';
+        }
+
+        // Delete media
+        async function deleteMedia(path) {
+            if (!confirm(`Delete ${path}?`)) return;
+
+            try {
+                const res = await fetch('/api/delete-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Media deleted');
+                    loadMedia();
+                } else {
+                    showToast('Delete failed', 'error');
+                }
+            } catch (err) {
+                showToast('Error deleting', 'error');
+            }
+        }
+
+        // Load transactions
+        async function loadTransactions() {
+            const table = document.getElementById('transactionsTable');
+            
+            try {
+                const res = await fetch('/api/stars/transactions');
+                const data = await res.json();
+
+                if (!data.success || !data.transactions || !data.transactions.length) {
+                    table.innerHTML = '<div class="empty-state">No transactions yet</div>';
+                    return;
+                }
+
+                let html = '<table class="transactions-table"><tr><th>User</th><th>Amount</th><th>Type</th><th>Time</th></tr>';
+                data.transactions.forEach(t => {
+                    html += `<tr>
+                        <td>${t.user_id}</td>
+                        <td>${t.amount} ⭐</td>
+                        <td>${t.type}</td>
+                        <td>${new Date(t.time).toLocaleString()}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+
+                table.innerHTML = html;
+
+            } catch (err) {
+                table.innerHTML = '<div class="empty-state">Error loading transactions</div>';
+            }
+        }
+
+        // Load stats
         async function loadStats() {
             try {
                 const res = await fetch('/api/stars/stats');
                 const data = await res.json();
-                
-                if (!data.success) {
-                    document.getElementById('stats').innerHTML = '<div class="stat-card">Error loading stats</div>';
-                    return;
-                }
-                
-                document.getElementById('stats').innerHTML = `
+
+                if (!data.success) return;
+
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-value">${data.total_stars_earned || 0} ⭐</div>
                         <div class="stat-label">Total Stars Earned</div>
@@ -155,78 +918,57 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-value">${data.total_media_sold || 0}</div>
-                        <div class="stat-label">Media Sales</div>
+                        <div class="stat-label">Total Sales</div>
                     </div>
                 `;
+
             } catch (err) {
                 console.error('Error loading stats:', err);
             }
         }
-        
-        async function loadMedia() {
+
+        // Update price
+        async function updatePrice(type, price) {
             try {
-                const res = await fetch('/api/stars/media');
-                const data = await res.json();
-                
-                if (!data.success || !data.media || data.media.length === 0) {
-                    document.getElementById('mediaTable').innerHTML = '<p style="color:#8e9fad; padding:20px;">No media indexed yet. Add photos to tsega_photos/ folder.</p>';
-                    return;
-                }
-                
-                let html = '<table><tr><th>Type</th><th>Price</th><th>Times Sold</th><th>Last Sold</th></tr>';
-                data.media.forEach(m => {
-                    const lastSold = m.last_sold ? new Date(m.last_sold).toLocaleString() : 'Never';
-                    html += `<tr>
-                        <td>${m.type === 'photo' ? '📸' : '🎥'} ${m.type}</td>
-                        <td>${m.price} ⭐</td>
-                        <td>${m.sold}</td>
-                        <td>${lastSold}</td>
-                    </tr>`;
+                const res = await fetch('/api/update-price', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, price: parseInt(price) })
                 });
-                html += '</table>';
-                
-                document.getElementById('mediaTable').innerHTML = html;
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Price updated successfully');
+                } else {
+                    showToast('Update failed', 'error');
+                }
             } catch (err) {
-                console.error('Error loading media:', err);
+                showToast('Error updating price', 'error');
             }
         }
-        
-        async function loadTopUsers() {
-            try {
-                const res = await fetch('/api/stars/stats');
-                const data = await res.json();
-                
-                if (!data.success || !data.top_users || data.top_users.length === 0) {
-                    document.getElementById('topUsers').innerHTML = '<p style="color:#8e9fad; padding:20px;">No users yet</p>';
-                    return;
-                }
-                
-                let html = '<table><tr><th>User ID</th><th>Stars Spent</th></tr>';
-                data.top_users.forEach(u => {
-                    html += `<tr>
-                        <td>${u.id}</td>
-                        <td>${u.spent} ⭐</td>
-                    </tr>`;
-                });
-                html += '</table>';
-                
-                document.getElementById('topUsers').innerHTML = html;
-            } catch (err) {
-                console.error('Error loading top users:', err);
-            }
-        }
-        
+
+        // Load all data
         function loadAllData() {
             loadStats();
             loadMedia();
-            loadTopUsers();
         }
-        
-        // Load on page load
-        window.addEventListener('load', loadAllData);
-        
+
         // Auto refresh every 30 seconds
-        setInterval(loadAllData, 30000);
+        setInterval(() => {
+            if (document.getElementById('librarySection').style.display !== 'none') {
+                loadMedia();
+            }
+            if (document.getElementById('transactionsSection').style.display !== 'none') {
+                loadTransactions();
+            }
+            loadStats();
+        }, 30000);
+
+        // Initial load
+        window.addEventListener('load', () => {
+            loadStats();
+            loadMedia();
+        });
     </script>
 </body>
-</html>
+    </html>
