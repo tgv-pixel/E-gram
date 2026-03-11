@@ -1,15 +1,40 @@
 services:
+  # Service 1: Main Tsega Auto-Reply
   - type: web
-    name: e-gram
-    env: python
+    name: tsega-main
+    runtime: python
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app
     envVars:
       - key: API_ID
         value: 33465589
       - key: API_HASH
-        value: "08bdab35790bf1fdf20c16a50bd323b8"
+        value: 08bdab35790bf1fdf20c16a50bd323b8
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: AUTO_REPLY_ENABLED
-        value: "true"
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Service 2: Tsega Star Earning
+  - type: web
+    name: tsega-star
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: API_ID
+        value: 33465589
+      - key: API_HASH
+        value: 08bdab35790bf1fdf20c16a50bd323b8
+      - key: CHANNEL_USERNAME
+        value: "@Abe_army"
+      - key: CHANNEL_ID
+        value: "@Abe_army"
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    healthCheckPath: /health
+    autoDeploy: true
