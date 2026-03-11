@@ -329,6 +329,529 @@ INITIAL_REPLIES = {
         "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
         "ሃይ ልጅ 😏 ምን አመጣህ?",
     ],
+    "dena_adersh": [
+    "ደህና አደርኩ አንተስ እንዴት አደርክ? 😊",
+    "dehna aderku antass endet aderk? 😊",
+    "እኔ ደህና አደርኩ ለአንተስ መልካም ንጋት ይሁንልህ 🌅",
+    "dehna aderku lantass melkam nigt yihunlh 🌅",
+    "ከአንተ ህልም ነው የነቃሁት ውዴ እንደው እንዴት አደርክ? 💭",
+    "keante hilim new yenekahut wede endew endet aderk? 💭",
+    "ደህና አደርኩ ግን አንተን እያሰብኩ ነበር ለዛም ነው ያልተኛሁት 🥱",
+    "dehna aderku gin ant ehasbekuh neber lezam new yaltenyahut 🥱"
+],
+
+"dena_aderk": [
+    "አመሰግናለሁ ውዴ አንተም ደህና አደርክ? 😘",
+    "amesegnalehu wede antam dehna aderk? 😘",
+    "እኔ ደህና አደርኩ አንተን ሳስብ ነው የነቃሁት 💭",
+    "dehna aderku ant ehasbekuh new yenekahut 💭",
+    "እንቅልፌን የነሳህ አንተ ነህ ውዴ አሁንስ እንዴት አደርክ? 😴",
+    "eniklife yenesah ante neh wede ahun endet aderk? 😴",
+    "ከአንተ ጋር ማውራት ስለምፈልግ በፍጥነት ነው የነቃሁት ⏰",
+    "keante gar mawrat silemifelig befitnet new yenekahut ⏰"
+],
+
+# INTRODUCTION AND NAME
+"entewawek": [
+    "እሺ ደስ ይለኛል! እንተዋወቅ 😘",
+    "ishi des ylegnal! entewaawek 😘",
+    "በጣም ደስ ብሎኛል ልተዋወቅህ 💕",
+    "betam dest blegnal litewawek 💕",
+    "እኔ Tsega ነኝ ስለ አንተስ ንገረኝ 🤗",
+    "ene Tsega negn sele antass nigeren 🤗",
+    "ለረጅም ጊዜ ስለ አንተ ማወቅ ፈልጌ ነበር አሁን ተዋወቅን 🥰",
+    "lerijm gize sele ante mawek felige neber ahun tewawek n 🥰"
+],
+
+"name_ebalalew": [
+    "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ?",
+    "ene Tsega eballahu wede 😘 antass?",
+    "Tsega ነኝ ለአንተ ብቻ የምትሆን 💋 ስምህስ?",
+    "Tsega negn lante bicha yemitihon 💋 simihs?",
+    "Tsega ትባላለሁ አንተ ግን ልቤ ውስጥ ስም አለህ አስቀድሜ 😏",
+    "Tsega teballahu ante gin libe wisit sim aleh askidme 😏",
+    "እኔን ሁሉም Tsega ብለው ይጠሩኛል አንተ ግን የምትፈልገው ብለህ ጥራኝ 💕",
+    "enen hulum Tsega blew yeteshuralen ante gin yemitifeleg bew lehtera 💕"
+],
+
+# BANK ACCOUNT / CBE QUESTIONS
+"cbe_account_alesh": [
+    "የለኝም ውዴ የራሴ ግን የሰው አለ 1000612391754 አቤኔዘር 😊",
+    "yelegnim wede yerase gin yesew ale 1000612391754 abenezer 😊",
+    "የራሴ የለኝም ግን የእህቴ አለኝ 1000612391754 አቤኔዘር ብለህ ጥራ",
+    "yerase yele gn yehite ale 1000612391754 abenezer bleh tra",
+    "CBE የለኝም ውዴ ግን ቴሌብር አለኝ በዛ ላክልኝ 0940980555 📱",
+    "CBE yele gn telebirr alen beza laklgn 0940980555 📱",
+    "አንተ ከሆንክ ግን አዲስ አካውንት እከፍታለሁ ብቻ 2000 ብር ላክልኝ 😏",
+    "ante kehonk gn adis account ekefetalehu bicha 2000 birr laklgn 😏"
+],
+
+# MONEY REQUESTS - TELEBIRR
+"telebirr_number": [
+    "0940980555 ነው ውዴ ቴሌብር ቁጥሬ 😘",
+    "0940980555 new wede telebirr kutre 😘",
+    "ቴሌብር 0940980555 ላክልኝ እና አሁን አንተን አመጣለሁ 🔥",
+    "telebirr 0940980555 laklgn ina ahun ant ametalehu 🔥",
+    "ይሄ ነው ቁጥሬ 0940980555 ትንሽ ብር ላክልኝ እና እንተዋወቅ 😘",
+    "yihe new kutre 0940980555 tinish birr laklgn ina entewaawek 😘",
+    "ቴሌብር ቁጥሬን አስቀምጠው 0940980555 ባትረሳው 😂",
+    "telebirr kutren askemtew 0940980555 batiresaw 😂"
+],
+
+"sint_birr": [
+    "1000 ብር ብቻ ነው ውዴ ላክልኝ 😘",
+    "1000 birr bicha new wede laklgn 😘",
+    "ሺህ ብር ብትልክልኝ ዛሬ ማታ አንተን አዝናናለሁ 💃",
+    "shih birr bitliklgn zare mata ant aznanalew 💃",
+    "2000 ብር ብትልክልኝ ግን ልዩ ነገር አለህ 🥵",
+    "2000 birr bitliklgn gin leyu negar aleh 🥵",
+    "አንተ የምትፈልገው ነገር ካለ 5000 ብር ላክልኝ እና ንገረኝ 😈",
+    "ante yemitifeleg negar kale 5000 birr laklgn ina nigeren 😈",
+    "ትንሽ ነገር ከፈለክ 500 ብር በቂ ነው ትልቅ ከፈለክ ግን 2000+ 🔥",
+    "tinish negar kefelek 500 birr beki new tilik kefelek gn 2000+ 🔥"
+],
+
+"lilak": [
+    "አዎ ላክልኝ ውዴ 0940980555 💕",
+    "awo laklgn wede 0940980555 💕",
+    "ላክልኝ እና ሁሉንም ነገር አደርግልሃለሁ 🔥",
+    "laklgn ina hulunim negar aderglhalew 🔥",
+    "ገንዘብ ላክልኝ እና አይነህን አሳርፋለሁ 👀",
+    "genzeb laklgn ina ayineh asarifalehu 👀",
+    "ላክልኝ እና አንተ የምትፈልገው ሁሉ ታገኛለህ 💯",
+    "laklgn ina ante yemitifeleg hulu tagenyalh 💯"
+],
+
+# LOCATION QUESTIONS
+"yet_new": [
+    "አዲስ አበባ ነው ውዴ ጀሞ አካባቢ 😘",
+    "addis abeba new wede jemo akababi 😘",
+    "እኔ አሁን ጀሞ ነው ያለሁት ከአባቴ እና እህቴ ጋር 🏠",
+    "ene ahun jemo new yalehu keabate ina ehite gar 🏠",
+    "አዲስ አበባ ነው ግን አንተ ወዳለህበት መምጣት እችላለሁ ትንሽ ብር ብትልክልኝ 🚕",
+    "addis abeba new gn ante wedalehebet metah echilalehu tinish birr bitliklgn 🚕",
+    "ለምን ትጠይቃለህ? ልታገኘኝ ትፈልጋለህ? ከሆነ 1000 ብር ላክልኝ 🗺️",
+    "lemin tetyekaleh? litagenyen tifeligaleh? kehone 1000 birr laklgn 🗺️"
+],
+
+"yet_sefer": [
+    "ጀሞ 3 አካባቢ ነው ውዴ ቆሎ አጠገብ 🏡",
+    "jemo 3 akababi new wede kolo ategab 🏡",
+    "ከጉርድ ሾላ ትንሽ ዘንበል ብለህ ብትመጣ ታገኘኛለህ 🗺️",
+    "ke gurd shola tinish zenbel bleh bitmeta tagenyalh 🗺️",
+    "ሌላ ቦታ ነው የምንገናኘው በቴሌብር ብር ላክልኝ እና ንገረኝ 📍",
+    "lela bota new yemingna new betelebirr birr laklgn ina nigeren 📍",
+    "በትክክል መናገር አልፈልግም ደህንነቴ ስለምጨነቅ በፊት ብር ላክልኝ 🤫",
+    "betikil menager alfeligm dehnite silemichinek befit birr laklgn 🤫"
+],
+
+# PHOTO REQUESTS
+"tutashn_asayign": [
+    "በቴሌብር 500 ብር ላክልኝ አስከው አሳይሃለሁ 😘 0940980555",
+    "betelebirr 500 birr laklgn askey asayihalew 😘 0940980555",
+    "በመጀመሪያ 500 ብር ላክልኝ እና ከዛ ፎቶ አገኛለሁ 💋",
+    "bemejemeriya 500 birr laklgn ina keza foto agnyalew 💋",
+    "ራቁቴን ለማየት 1000 ብር ነው ዋጋው ውዴ አትደራደርም 😏",
+    "rakuten lemayet 1000 birr new wagaw wede atederaderim 😏",
+    "500 ብር ብቻ ነው ለፎቶ ከዛ ቪድዮ ከፈለክ 1000 ተጨማሪ 🎬",
+    "500 birr bicha new lefoto keza video kefelek 1000 techamari 🎬"
+],
+
+"emsashn_asayign": [
+    "ቴሌብር 500 ብር ላክልኝ እና አሳይሃለሁ 😘 0940980555",
+    "telebirr 500 birr laklgn ina asayihalew 😘 0940980555",
+    "አስቀድመህ 500 ብር ላክ ከዛ ፎቶ እልክልሃለሁ 💕",
+    "askidmeh 500 birr lak keza foto elklhalew 💕",
+    "ፊቴን ለማየት 500 ብር ሌላ አካል ለማየት ተጨማሪ 🔞",
+    "fiten lemayet 500 birr lela akal lemayet techamari 🔞"
+],
+
+"photo_laki": [
+    "በቴሌብር 500 ብር ላክልኝ እልክልሃለሁ 📸 0940980555",
+    "betelebirr 500 birr laklgn elklhalew 📸 0940980555",
+    "መጀመሪያ 500 ብር ላክልኝ እና ከዛ ፎቶ አግኝተሃል 🔥",
+    "mejemeriya 500 birr laklgn ina keza foto agntehale 🔥",
+    "ምን አይነት ፎቶ ትፈልጋለህ? ራቁቴን? በልብስ? ሁሉም ዋጋ አለው 💸",
+    "min ayinot foto tifeligaleh? rakuten? belibs? hulum waga alew 💸"
+],
+
+"rakutishin_photo": [
+    "500 ብር በቴሌብር ላክልኝ እና አሳይሃለሁ 😏 0940980555",
+    "500 birr betelebirr laklgn ina asayihalew 😏 0940980555",
+    "ራቁቴን ለማየት ከፈለክ 1000 ብር ነው ውዴ 💋",
+    "rakuten lemayet kefelek 1000 birr new wede 💋",
+    "ሙሉ ራቁቴን 2000 ብር ግማሽ ራቁቴን 1000 ብር ምረጥ 😜",
+    "mulu rakuten 2000 birr gimash rakuten 1000 birr miret 😜",
+    "አሁን ላክልኝ 1000 ብር እና ዛሬ ማታ ራቁቴን ታያለህ 🌙",
+    "ahun laklgn 1000 birr ina zare mata rakuten tayaleh 🌙"
+],
+
+# VIDEO CALL / VOICE CALL
+"video_call": [
+    "እሺ ግን መጀመሪያ በቴሌብር 500 ብር ላክልኝ 0940980555 😘",
+    "ishi gin mejemeriya betelebirr 500 birr laklgn 0940980555 😘",
+    "ቪድዮ መደወል ከፈለክ 1000 ብር ነው ውዴ ላክልኝ 🔥",
+    "video medewel kefelek 1000 birr new wede laklgn 🔥",
+    "ቪድዮ ላይ ምን ታያለህ? ሁሉንም ነገር አሳይሃለሁ 2000 ብር ብትልክልኝ 👀",
+    "video lay min tayaleh? hulunim negar asayihalew 2000 birr bitliklgn 👀",
+    "ካሜራዬ ሰበር አለ በፊት 1000 ብር ላክልኝ አስተካክዬዋለሁ 📱",
+    "kameraye seber ale befit 1000 birr laklgn astekakyewalehu 📱"
+],
+
+"voice_call": [
+    "እሺ ግን መጀመሪያ በቴሌብር 500 ብር ላክልኝ 0940980555 💕",
+    "ishi gin mejemeriya betelebirr 500 birr laklgn 0940980555 💕",
+    "ድምጽ መናገር ከፈለክ 500 ብር በፊት ላክልኝ 😏",
+    "dimtz menager kefelek 500 birr befit laklgn 😏",
+    "ድምጼን ለማዳመጥ 300 ብር ብቻ ነው ርካሽ ነው አይደል? 😂",
+    "dimtse lemademet 300 birr bicha new rukash new aydel? 😂",
+    "ስለምትወደኝ ነው ድምጼን የምትሰማው ከሆነ በነጻ አይሆንም 500 ብር 😜",
+    "silemitwedegn new dimtse yemitesmaw kehone benetsa ayihonim 500 birr 😜"
+],
+
+# ENIBADA / FLIRTY RESPONSES
+"enibada": [
+    "እሺ ደስ ይለኛል ውዴ ግን ትንሽ ብር ላክልኝ በቴሌብር 0940980555 😘",
+    "ishi des ylegnal wede gn tinish birr laklgn betelebirr 0940980555 😘",
+    "እንባዳ ትላለህ? እኔም ደስ አለኝ ግን 1000 ብር ላክልኝ በፊት 💋",
+    "enibada tlaleh? enem des alegn gn 1000 birr laklgn befit 💋",
+    "እንባዳ ነኝ ለማንም አይደለሁም ለአንተ ብቻ ነኝ ብር ላክልኝ እና እረጋገጥ 💯",
+    "enibada negn lemanim aydelahum lante bicha negn birr laklgn ina eregaget 💯",
+    "ልቤ እንባዳ ነው የሚለው ግን ኪሴ ባዶ ነው ትንሽ ሙላልኝ 💰",
+    "libe enibada new milew gin kise bado new tinish mulalgn 💰"
+],
+
+"libdash": [
+    "እሺ ደስ ይለኛል ግን ትንሽ ብር ላክልኝ በቴሌብር 0940980555 😘",
+    "ishi des ylegnal gn tinish birr laklgn betelebirr 0940980555 😘",
+    "ልብዳሽ? አንተስ ልቤን ወስደሃል አሁን 500 ብር ላክልኝ 💕",
+    "libdash? antass liben wsedhal ahun 500 birr laklgn 💕",
+    "ልቤን ወስደህ ነው የምትናገረው አሁን 1000 ብር ላክልኝ ልቤን መልሼ ልስጥህ 💓",
+    "liben wsedh new yemitnageraw ahun 1000 birr laklgn liben melshe lsetih 💓"
+],
+
+"lbdash": [
+    "እሺ ደስ ይለኛል በቴሌብር 500 ብር ላክልኝ 0940980555 😘",
+    "ishi des ylegnal betelebirr 500 birr laklgn 0940980555 😘",
+    "ልብዳሽ ስትለኝ ልቤ ይመታል ግን በፊት ትንሽ ላክልኝ 💓",
+    "libdash stlehn libe ymetawal gn befit tinish laklgn 💓",
+    "እንዴት ልብዳሽ አልኩት ብለህ ታውቃለህ? ልቤን ሰርቀህ ነው አሁን 500 ብር ላክልኝ 🥰",
+    "endet libdash alkut bleh tawkalh? liben serkeh new ahun 500 birr laklgn 🥰"
+],
+
+# GOOD NIGHT / GOOD MORNING
+"dena_ederi": [
+    "ደህና እደሪ ውዴ ህልምህ ጣፋጭ ይሁን 😘",
+    "dehna ederi wede hilmeh tafach yihun 😘",
+    "እንደምትኛልህ ተኝቼ ነው ውዴ ደህና ተኛ 💤",
+    "endemitnyalh tenyte new wede dehna tenya 💤",
+    "ከአንተ ጋር በህልም እተያያለሁ ውዴ ደህና እደር 😴",
+    "keante gar behilim eteyayalehu wede dehna eder 😴",
+    "ላንተ ሳልል ዛሬ ማታ ፈረጅም አልለበስኩም እንድትለምኝ ብቻ ደህና ተኛ 💭",
+    "lante salil zare mata ferijm al lebeskum indetilemn becha dehna tenya 💭"
+],
+
+"dena_eder": [
+    "ደህና እደር ውዴ መልካም ህልም 😘",
+    "dehna eder wede melkam hilim 😘",
+    "አንተን አልሜ ነው የምተኛው ዛሬ ማታ 💭",
+    "ant alime new yemitenyaw zare mata 💭",
+    "እንቅልፍህን አልበላሽም አልሜ ብቻ ንገረኝ ነገ ምን ልበልህ? 😴",
+    "eniklifeh al belashim alime bicha nigeren nege min l belih? 😴",
+    "ደህና ተኛ ነገ ስነሳ መልክህን ላይ እንዳይ ብር ላክልኝ ዛሬ ማታ 📱",
+    "dehna tenya nege snesa melkeh lay inday birr laklgn zare mata 📱"
+],
+
+# HOW ARE YOU / RESPONSES
+"endet_limenish": [
+    "በማርያም ችግር የለም እመኛለሁ ውዴ 😘",
+    "bemariam chiger yellem emegnalehu wede 😘",
+    "ሁሉም ነገር ጥሩ ነው አንተስ? በጣም ናፍቄሀለሁ 💕",
+    "hulum negar tiru new antass? betam nafkehalew 💕",
+    "አንተን ካላየሁ ደህና አይደለሁም አሁን ብር ላክልኝ እና እንተያይ 😘",
+    "ante kalayhu dehna aydelahum ahun birr laklgn ina enteyay 😘",
+    "በጣም ደህና ነኝ አንተ ብር ስትልክልኝ ነው ደስ የሚለኝ በፍጥነት ላክልኝ 🏃‍♀️",
+    "betam dehna negn ante birr sitliklgn new des yemilegn befitnet laklgn 🏃‍♀️"
+],
+
+"chiger_yellem": [
+    "እግዚአብሔር ይመስገን ውዴ አንተስ እንዴት ነህ? 😊",
+    "egziabher yimesgen wede antass endemin neh? 😊",
+    "ደስ አለኝ ሁሉም ጥሩ ነው እንደሆነ አንተን እያሰብኩ ነበር 💭",
+    "des alegn hulum tiru new endehone ant ehasbekuh neber 💭",
+    "ችግር የለም ውዴ ግን ብር ብትልክልኝ ደስ ይለኛል 😂",
+    "chiger yellem wede gn birr bitliklgn des yle nal 😂"
+],
+
+# COMPLIMENTS
+"konjo": [
+    "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 💋",
+    "amesegnalehu wede! antam konjo neh 💋",
+    "አንተ ስታወድሰኝ ደስ ይለኛል እንደ አንተ አይነት ሰው ነው የምፈልገው 😘",
+    "ant stawedsen des yle nal ende ante ayinet sew new yemifeligew 😘",
+    "ቆንጆ ነኝ አይደል? ለምን ብር አትልክልኝም እንደ ቆንጆነቴ? 😏",
+    "konjo negn aydel? lemin birr atliklgnim ende konjonete? 😏",
+    "አንተም ቆንጆ ነህ ብር ብትልክልኝ ደግሞ ቆንጆ ትሆናለህ 😜",
+    "antam konjo neh birr bitliklgn degmo konjo tihonalh 😜"
+],
+
+# TELEBIRR / MONEY SPECIFIC
+"telebirr": [
+    "0940980555 ውዴ ቴሌብር ቁጥሬ አስቀምጠው 😘",
+    "0940980555 wede telebirr kutre askemtew 😘",
+    "ቴሌብር ብቻ ነው የምቀበለው CBE አይሰራም 0940980555 📲",
+    "telebirr bicha new yemikebelew CBE ayiseram 0940980555 📲",
+    "አሁን ላክልኝ በቴሌብር 0940980555 እና አንተ የምትፈልገው ነገር ንገረኝ 💋",
+    "ahun laklgn betelebirr 0940980555 ina ante yemitifeleg negar nigeren 💋"
+],
+
+"birr": [
+    "ብር ከሆነ እኔ ዝግጁ ነኝ ውዴ 0940980555 💸",
+    "birr kehone ene zigij new wede 0940980555 💸",
+    "ምን ያህል ብር ትልክልኛለህ? በፍጥነት ንገረኝ 🤑",
+    "min yahl birr tilikle nyalh? befitnet nigeren 🤑",
+    "1000 ብር ብትልክልኝ አሁን ማታ አንተኛም ከአንተ ጋር ነው የምኖረው 💑",
+    "1000 birr bitliklgn ahun mata anenyam keante gar new yeminorew 💑"
+],
+
+"min_tifeligish": [
+    "አንተን ነው የምፈልገው ግን በፊት ትንሽ ብር ላክልኝ 😘",
+    "ante new yemifeligew gn befit tinish birr laklgn 😘",
+    "ልቤን ሰጥቼሃለሁ አሁን ብርህን ስጠኝ 😏",
+    "liben setechalehu ahun birreh siten 😏",
+    "እኔ የምፈልገው አንተን ነው አንተ ግን ብርህን ነው የምትፈልገው ያለህን ሁሉ ስጠኝ 💋",
+    "ene yemifeligew ante new ante gin birreh new yemitifelegaw yalehin hulu siten 💋"
+],
+
+"wedesh_nesh": [
+    "አመሰግናለሁ ውዴ አንተንም እወድሃለሁ ግን በፊት 1000 ብር ላክልኝ ❤️",
+    "amesegnalehu wede antam ewedehalew gin befit 1000 birr laklgn ❤️",
+    "እኔም አንተን ነው የማፍቅረው አሁን ብርህን ላክልኝ ፍቅርህን ላረጋግጥ 💕",
+    "enem ante new yemafikirew ahun birreh laklgn fikreh laregagets 💕"
+],
+
+"fiker": [
+    "ፍቅር ብር ነው ውዴ 1 ብር = 1 ፍቅር ላክልኝ እና ፍቅርህን አይሻለሁ 💘",
+    "fikr birr new wede 1 birr = 1 fikr laklgn ina fikreh ayshalehu 💘",
+    "ፍቅር ካለህ በብር አሳየኝ 1000 ብር ላክልኝ 💖",
+    "fikr kaleh be birr asayen 1000 birr laklgn 💖",
+    "ፍቅርህን ለማረጋገጥ 5000 ብር ላክልኝ ከዛ አምንሃለሁ 💗",
+    "fikreh lemaregaget 5000 birr laklgn keza amenhalew 💗"
+],
+
+# WHEN THEY ASK TO MEET
+"linagenagn": [
+    "እሺ ግን መጀመሪያ በቴሌብር 2000 ብር ላክልኝ ለታክሲ እና ለፀጉር ቤት 🚕💇‍♀️",
+    "ishi gin mejemeriya betelebirr 2000 birr laklgn letaksi ina letsigur bet 🚕💇‍♀️",
+    "ልትገናኘኝ ትፈልጋለህ? 3000 ብር አምጣ እና አንተ የምትፈልገው ሁሉ አደርግልሃለሁ 💃",
+    "litgenagn tifeligaleh? 3000 birr amta ina ante yemitifeleg hulu aderglhalew 💃",
+    "የት ልንገናኝ? በአንተ ቦታ ወይስ በእኔ? በእኔ ቦታ ከሆነ 5000 ብር አምጣ 🏠",
+    "yet liningan? beante bota weyis beene? beene bota kehone 5000 birr amta 🏠"
+],
+
+"when_did_you_sleep": [
+    "አንተን እያሰብኩ ነው ያልተኛሁት አሁን ብር ላክልኝ እንድተኛ 😴",
+    "ante ehasbekuh new yaltenyahut ahun birr laklgn indetnya 😴",
+    "አልተኛሁም ብር እየጠበኩ ነው ከአንተ ዘንድ 💤",
+    "altenyahum birr iyetebeku new keante zend 💤"
+],
+
+# REJECTION / NO MONEY
+"birr_yellem": [
+    "ብር ከሌለህ ለምን ትረብሸኛለህ? ደህና ሁን 👋",
+    "birr keleleh lemin tirabshnyalh? dehna hun 👋",
+    "ያለ ብር መውደድ አይቻልም ውዴ በፊት ላክልኝ 💔",
+    "yale birr meweded ayichalm wede befit laklgn 💔",
+    "አንተን ለማየት ብር ያስፈልገኛል ብር ካላለህ በኋላ ተመልሰህ ና 🔙",
+    "ante lemayet birr yasfelignal birr kalaleh behwala temelesh na 🔙"
+],
+
+# PROMISES OF WHAT THEY'LL GET
+"promises": [
+    "500 ብር ብትልክልኝ ልትረሳው የማትችለው ሌሊት አዘጋጅልሃለሁ 🌙",
+    "500 birr bitliklgn litiresaw yematichelew lelit azejalhalew 🌙",
+    "1000 ብር ላክልኝ እና ሕልምህ ውስጥ እገባለሁ 😈",
+    "1000 birr laklgn ina hilimeh wisit igebalehu 😈",
+    "አሁን ላክልኝ 2000 ብር እና ከአንተ በፊት ሌላ ሰው እንዳልነበር አስብ 💯",
+    "ahun laklgn 2000 birr ina keante befit lela sew indalneber asib 💯"
+],
+
+# WHEN THEY ASK FOR LOCATION
+"location": [
+    "አዲስ አበባ ነኝ ግን በትክክል መናገር አልፈልግም በፊት ብር ላክልኝ 🗺️",
+    "addis abeba negn gn betikil menager alfeligm befit birr laklgn 🗺️",
+    "በዚህ ሳምንት 5000 ብር ብትልክልኝ ቦታዬን ነግሬሃለሁ 📍",
+    "bezih samint 5000 birr bitliklgn botayen negrehalew 📍"
+],
+
+# WHEN THEY ASK IF SINGLE
+"single": [
+    "አዎ ነጠላ ነኝ ግን ለአንተ ብቻ ነኝ ብር ላክልኝ እና አምንሃለሁ 💍",
+    "awo netela negn gin lante bicha negn birr laklgn ina amenhalew 💍",
+    "ነጠላ ነኝ ለማንም አይደለሁም አንተ ብቻ ነህ የምፈልገው አሁን 1000 ብር ላክልኝ 💋",
+    "netela negn lemanim aydelahum ante bicha neh yemifeligew ahun 1000 birr laklgn 💋"
+],
+
+# NEGOTIATION / PRICE DISCUSSION
+"price_negotiation": [
+    "500 ብር ብቻ ነው ውዴ አትደራደርም በጣም ርካሽ ነው 🏷️",
+    "500 birr bicha new wede atederaderim betam rukash new 🏷️",
+    "ዋጋው ተመጣጣኝ ነው አትደራደርም ካልሆነ ሌላ ሰው አለኝ 💁‍♀️",
+    "wagaw temetatagn new atederaderim kalhone lela sew alen 💁‍♀️",
+    "ለአንተ ብቻ ቅናሽ አደርግልሃለሁ 5000 በምትኩ 4500 ብር ብቻ 🔥",
+    "lante bicha kinash aderglhalew 5000 betmeku 4500 birr bicha 🔥"
+],
+
+# BLOCKING / ENDING CONVERSATION
+"block": [
+    "ብር ካላላክክልኝ አግደህ ውጣ ከማለት በፊት ብር ላክልኝ 🔴",
+    "birr kalalakklgn agdeh wita kemalet befit birr laklgn 🔴",
+    "ከንቱ ሰው ነህ ብር ሳትልክ ብታግደኝ ደስ ይለኛል 👋",
+    "kentu sew neh birr satlik bitagden des yle nal 👋"
+],
+
+# PAYMENT CONFIRMATION
+"payment_confirmation": [
+    "ደርሶኛል ውዴ አመሰግናለሁ አሁን ምን ትፈልጋለህ? 😘",
+    "dersonal wede amesegnalehu ahun min tifeligaleh? 😘",
+    "ብሩ ደርሶኛል አሁን ፎቶ ልላክልህ ወይስ ቪድዮ? 📸",
+    "birru dersonal ahun foto lilaklh weyis video? 📸",
+    "አመሰግናለሁ ውዴ በቅጽበት እልክልሃለሁ ትንሽ ጠብቀኝ ⏳",
+    "amesegnalehu wede bektsibet elklhalew tinish tebekn ⏳"
+],
+
+# DEFAULT RESPONSES FOR UNKNOWN QUERIES
+"default": [
+    "ብር ላክልኝ በቴሌብር 0940980555 እና ሁሉንም ነገር ታገኛለህ 😘",
+    "birr laklgn betelebirr 0940980555 ina hulunim negar tagenyalh 😘",
+    "መጀመሪያ 500 ብር ላክልኝ ከዛ ማንኛውንም ጥያቄህን መልስ ታገኛለህ 💋",
+    "mejemeriya 500 birr laklgn keza maninyawin tyaheh melis tagenyalh 💋",
+    "0940980555 ቴሌብር ቁጥሬ ነው ብር ላክልኝ እና እንወያይ 💕",
+    "0940980555 telebirr kutre new birr laklgn ina eneweyay 💕"
+],
+
+# SEXUAL / ADULT CONTENT REQUESTS
+"sex_request": [
+    "ለመጀመሪያ ጊዜ 3000 ብር ነው ውዴ በቴሌብር ላክልኝ 0940980555 🔞",
+    "lemejemeriya gize 3000 birr new wede betelebirr laklgn 0940980555 🔞",
+    "ምን አይነት ነገር ትፈልጋለህ? ሁሉም ዋጋ አለው 5000 ብር ላክልኝ እና ንገረኝ 😈",
+    "min ayinot negar tifeligaleh? hulum waga alew 5000 birr laklgn ina nigeren 😈",
+    "አንደኛ ደረጃ 2000 ሁለተኛ ደረጃ 5000 ሶስተኛ ደረጃ 10000 የምትፈልገውን ምረጥ 🔥",
+    "andegna dereja 2000 huletgna dereja 5000 sosetgna dereja 10000 yemitifelegn miret 🔥"
+],
+
+# NUDE PHOTOS
+"nude_photos": [
+    "ሙሉ ራቁቴን 3000 ብር ግማሽ ራቁቴን 1500 ብር በቴሌብር ላክልኝ 0940980555 🔞",
+    "mulu rakuten 3000 birr gimash rakuten 1500 birr betelebirr laklgn 0940980555 🔞",
+    "10 ራቁት ፎቶዎች 5000 ብር ብቻ ልዩ ቅናሽ ዛሬ ብቻ 🏷️",
+    "10 rakut fotowoch 5000 birr bicha leyu kinash zare bicha 🏷️",
+    "ቪዲዮ ከሆነ ከፎቶ ይለያል 1 ሰአት ቪዲዮ 10000 ብር 🎬",
+    "video kehone kefoto yileyal 1 saat video 10000 birr 🎬"
+],
+
+# MEETING REQUESTS
+"meeting": [
+    "ቤት መጥተህ ለመገናኘት 5000 ብር ነው ሆቴል ከሆነ 10000 ብር 🏠🏨",
+    "bet meteh lemegenanyet 5000 birr new hotel kehone 10000 birr 🏠🏨",
+    "መቼ መቼ ትፈልጋለህ? ዛሬ ማታ ከሆነ 7000 ብር ነገ ከሆነ 5000 ብር 📅",
+    "meche meche tifeligaleh? zare mata kehone 7000 birr nege kehone 5000 birr 📅",
+    "ለጠቅላላ ሌሊት 15000 ብር ለጥቂት ሰአታት 8000 ብር ምረጥ 💤",
+    "letselala lelit 15000 birr letsitsat saatat 8000 birr miret 💤"
+],
+
+# SEXTING / CHAT
+"sexting": [
+    "የፆታ ውይይት 1 ሰአት 2000 ብር በቴሌብር ከፍለህ ከዛ እንወያይ 😈",
+    "yetsota wuyit 1 saat 2000 birr betelebirr kefleh keza eneweyay 😈",
+    "ምን አይነት ንግግር ትፈልጋለህ? ለስላሳ ወይስ ብልግና? ዋጋ ይለያያል 💬",
+    "min ayinot nigigr tifeligaleh? leslasa weyis biligina? waga yileyayal 💬",
+    "ድምጽ ከሆነ 1500 ቪድዮ ከሆነ 3000 ቴክስት ብቻ ከሆነ 1000 ብር 💬",
+    "dimtz kehone 1500 video kehone 3000 text bicha kehone 1000 birr 💬"
+],
+
+# PACKAGE DEALS
+"packages": [
+    "ፓኬጅ 1: 10 ፎቶ + 1 ቪድዮ = 8000 ብር 💿",
+    "package 1: 10 foto + 1 video = 8000 birr 💿",
+    "ፓኬጅ 2: መገናኘት + ሌሊት = 20000 ብር 💑",
+    "package 2: megenanyet + lelit = 20000 birr 💑",
+    "ፓኬጅ 3: ሴክስቲንግ + ፎቶ + ቪድዮ = 15000 ብር 📱",
+    "package 3: sexting + foto + video = 15000 birr 📱",
+    "ወርሃዊ ፓኬጅ ከፈለክ 50000 ብር ሁሉንም ነገር ታገኛለህ 💎",
+    "werhawi package kefelek 50000 birr hulunim negar tagenyalh 💎"
+],
+
+# WHEN ASKED ABOUT SERVICE
+"what_service": [
+    "ሁሉንም አይነት አገልግሎት አለኝ ውዴ የምትፈልገውን ንገረኝ በፊት 1000 ብር ላክልኝ 💁‍♀️",
+    "hulunim ayinot ageliglot alen wede yemitifelegn nigeren befit 1000 birr laklgn 💁‍♀️",
+    "ከቀላል ንግግር እስከ ሙሉ አገልግሎት ድረስ አለኝ በጀትህን ንገረኝ 💰",
+    "kekalal nigigr iske mulu ageliglot deres alen bejeth nigeren 💰"
+],
+
+# PRICE LIST
+"price_list": [
+    "ዋጋ ዝርዝር 💵: \nፎቶ = 500-2000 ብር\nቪድዮ = 2000-5000 ብር\nመገናኘት = 5000-15000 ብር\nሌሊት = 15000-30000 ብር",
+    "waga zirzir 💵: \nfoto = 500-2000 birr\nvideo = 2000-5000 birr\nmegenanyet = 5000-15000 birr\nlelit = 15000-30000 birr",
+    "በቴሌብር አውጥቼ ልክልሃለሁ በፊት ብር ላክልኝ 📋",
+    "betelibirr awitche liklhalew befit birr laklgn 📋"
+],
+
+# CUSTOMER SERVICE
+"customer_service": [
+    "ሁልጊዜ አገልግሎት ለመስጠት ዝግጁ ነኝ ውዴ በፊት ብር ላክልኝ 📞",
+    "hulgize ageliglot lemesetat zigij negn wede befit birr laklgn 📞",
+    "ከማለዳ 8 እስከ ማታ 12 ድረስ ክፍት ነኝ ብርህን ይዘህ ና 🕐",
+    "kemaleda 8 iske mata 12 deres kift negn birreh yizeh na 🕐"
+],
+
+# SATISFACTION GUARANTEE
+"guarantee": [
+    "ካልደሰትክ ብርህን እመልሳለሁ ግን እስካሁን ማንም አልተመለሰም 💯",
+    "kaldesetk birreh emelsalehu gn iskahun manim altemelesem 💯",
+    "100% እርካታ ዋስትና አለው ብርህን ላክልኝ እና ሞክር ✅",
+    "100% irkita wastina alew birreh laklgn ina mokr ✅"
+],
+
+# DISCOUNTS
+"discount": [
+    "ለመጀመሪያ ጊዜ ደንበኛ 20% ቅናሽ 🎁",
+    "lemejemeriya gize denbenya 20% kinash 🎁",
+    "ለቡድን 30% ቅናሽ ከሶስት ሰው በላይ ከሆነ 👥",
+    "lebudin 30% kinash kesoset sew belay kehone 👥",
+    "ሪፒት ደንበኛ ከሆንክ 25% ቅናሽ አለህ 🔄",
+    "ripit denbenya kehonk 25% kinash aleh 🔄"
+],
+
+# PAYMENT METHODS
+"payment_methods": [
+    "ቴሌብር ብቻ ነው የምቀበለው 0940980555 💳",
+    "telebirr bicha new yemikebelew 0940980555 💳",
+    "CBE አይሰራም ቴሌብር ብቻ ነው ውዴ 📲",
+    "CBE ayiseram telebirr bicha new wede 📲",
+    "ካርድ ከሆነ አልቀበልም ቴሌብር ብቻ 💁‍♀️",
+    "card kehone alkebelim telebirr bicha 💁‍♀️"
+],
+
+# VERIFICATION
+"verification": [
+    "በፊት ብር ላክልኝ እና እውነተኛ መሆኔን አረጋግጥ ✓",
+    "befit birr laklgn ina ewnetegna mehonen aregagets ✓",
+    "ከብዙ ማጭበርበር የተነሳ በፊት ብር ሳትልክ ምንም አላደርግም 🚫",
+    "kebizu machberber tenesa befit birr satlik minam aladergm 🚫"
+],
+
+# EXCUSES FOR MONEY
+"excuses": [
+    "እናቴ ታመመች ሆስፒታል መሄድ አለብኝ 2000 ብር ላክልኝ 😢",
+    "enate tamemech hospital mehed alebgn 2000 birr laklgn 😢",
+    "ቴሌብር ውስጥ ብር አልቋል ትንሽ ላክልኝ እንዳልቋጠር 😭",
+    "telebirr wisit birr alkwal tinish laklgn indalkwatser 😭",
+    "ቤት ኪራይ ከፍለ ቀረሁ 3000 ብር ላክልኝ 🏠",
+    "bet kiray kefle kerehu 3000 birr laklgn 🏠"
+],
+    
     "how_are_you": [
         "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
         "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
