@@ -457,42 +457,62 @@ TSEGA_REPLIES = {
         "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
         "ሃይ ልጅ 😏 ምን አመጣህ?",
         "እንኳን ደህና መጣህ ውዴ 😘",
+        "ታዲያስ! እንደምን ነህ ቆንጆ?",
+        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
     ],
     "how_are_you": [
         "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
         "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
         "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
         "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
+        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
     ],
     "what_doing": [
         "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
         "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
         "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
         "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
+        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
     ],
     "ask_name": [
         "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
         "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
         "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
         "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
     ],
     "ask_age": [
         "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
         "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
         "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
         "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
+        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
     ],
     "ask_location": [
         "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
         "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
         "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
         "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
+        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ",
     ],
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
-        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
+        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም",
+        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘",
+        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋",
         "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
+        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
+    ],
+    "photo_request": [
+        "እሺ ፎቶ ልታይ ትፈልጋለህ? 😏 በመጀመሪያ 5 ⭐ ላክልኝ!",
+        "ፎቶዬን ለማየት 5 ⭐ ብቻ ነው ውዴ! ላክልኝ እና አሳይሃለሁ 🔥",
+        "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ አያለሁ ቆንጆዬን 😘",
+        "ዋጋው 5 ⭐ ብቻ ነው! በጣም ቆንጆ ፎቶዎች አሉኝ ልታያቸው ትፈልጋለህ? 💕",
+        "አሁን 5 ⭐ ላክልኝ እና ፈጣን ፎቶ እልክልሃለሁ! 📸",
+        "ለአንተ ብቻ ልዩ ፎቶ አለኝ... 5 ⭐ ብትልክልኝ አሳይሃለሁ 😉",
+        "ፎቶ? እሺ ግን ትንሽ ክፍያ አለበት 5 ⭐ 😘",
+        "5 ⭐ ብቻ ነው ውዴ! ከከፈልክ በኋላ የምትወደውን ፎቶ ልታይ ትችላለህ 🔥",
+        "እንደው ውዴ ፎቶ ለማየት 5 ⭐ ብቻ ነው ላክልኝ እና አስደስተሃለሁ 😘",
+        "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ እና ፎቶዬን ላክልሃለሁ 💕",
     ],
     "flirty": [
         "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
@@ -501,7 +521,6 @@ TSEGA_REPLIES = {
         "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
         "ንክኪህ ይሰማኛል ባትነካኝም 💫",
         "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
-        "ና ውዴ አቅፈህ ተኛልኝ 🌙",
     ],
     "money_request": [
         "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
@@ -510,9 +529,9 @@ TSEGA_REPLIES = {
         "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
     ],
     "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
+        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ",
         "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
+        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ",
     ],
     "voice_call": [
         "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
@@ -526,10 +545,9 @@ TSEGA_REPLIES = {
         "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
     ],
     "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
+        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
+        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕",
         "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
-        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
     ],
     "compliment": [
         "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
@@ -551,13 +569,11 @@ TSEGA_REPLIES = {
         "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
         "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
         "ማለዳ አንተን ማሰብ ነው ልማዴ",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
     ],
     "night": [
         "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
         "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
         "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
-        "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
     ],
     "default": [
         "እሺ ውዴ ትክክል ነህ 😉",
@@ -571,7 +587,6 @@ TSEGA_REPLIES = {
         "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
         "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
         "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
     ]
 }
 
@@ -579,15 +594,32 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_conversation_intent(message):
+    """Detect intent from message - FIXED for photos"""
     message_lower = message.lower().strip()
     
+    # Print for debugging
+    print(f"🔍 detect_conversation_intent checking: '{message_lower}'")
+    
+    # PHOTO KEYWORDS - Expanded list
+    photo_keywords = [
+        'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
+        'nude', 'sexy', 'hot', 'body', 'image', 'camera', 'selfie', 'preview',
+        'full', 'pics', 'photos', 'photograph', 'snap', 'shot', 'display',
+        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'ራቁት', 'አካል', 'ፊት', 'ከንፈር',
+        'send', 'send me', 'send photo', 'show me', 'let me see', 'can i see',
+        'ደርሰኝ', 'ላክልኝ', 'አሳየኝ'
+    ]
+    
+    # Check for photo keywords
+    for keyword in photo_keywords:
+        if keyword in message_lower:
+            print(f"✅ PHOTO INTENT DETECTED: '{keyword}'")
+            return "photo_request"
+    
+    # Money keywords
     money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ']
     if any(word in message_lower for word in money_keywords):
         return "money_request"
-    
-    media_keywords = ['photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'አሳይ']
-    if any(word in message_lower for word in media_keywords):
-        return "media_request"
     
     meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
     if any(word in message_lower for word in meet_keywords):
@@ -606,12 +638,6 @@ def detect_conversation_intent(message):
     
     if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy']):
         return "busy"
-    
-    current_hour = datetime.now().hour
-    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
-        return "morning"
-    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
-        return "night"
     
     greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
@@ -654,9 +680,11 @@ def detect_conversation_intent(message):
     return "default"
 
 def get_context_aware_response(intent):
+    """Generate response based on intent"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
+    # Add random emoji sometimes
     sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
     if random.random() < 0.5:
         response += " " + random.choice(sexy_emojis)
@@ -840,7 +868,7 @@ def debug_reply():
 # ==================== FIXED AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """FIXED AUTO-REPLY HANDLER - No entity errors"""
+    """FIXED AUTO-REPLY HANDLER - With photo detection"""
     try:
         # Print EVERY message for debugging
         print(f"\n{'='*60}")
@@ -890,14 +918,28 @@ async def auto_reply_handler(event, account_id):
         
         print(f"✅ Auto-reply ENABLED for account {account_key}")
         
-        # Get intent and generate response
+        # Get intent
         intent = detect_conversation_intent(message_text)
-        print(f"Detected intent: {intent}")
+        print(f"🔍 FINAL INTENT: '{intent}'")
         
-        response = get_context_aware_response(intent)
-        
-        if not response or response.strip() == "":
-            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘"
+        # Handle photo requests specially
+        if intent == "photo_request":
+            print(f"📸📸📸 PHOTO REQUEST HANDLER ACTIVATED! 📸📸📸")
+            
+            # Get photo response
+            photo_responses = TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"])
+            response = random.choice(photo_responses)
+            
+            # Add emoji sometimes
+            if random.random() < 0.5:
+                response += " " + random.choice(["😘", "💋", "💕", "😏", "🔥"])
+            
+            print(f"📸 Photo response: '{response}'")
+            
+        else:
+            # Normal response for other intents
+            response = get_context_aware_response(intent)
+            print(f"Normal response: '{response}'")
         
         # Human-like delay
         delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
@@ -928,6 +970,10 @@ async def auto_reply_handler(event, account_id):
             'text': response,
             'time': time.time()
         })
+        
+        # Keep only last 15 messages
+        if len(conversation_history[account_key][chat_id]) > 15:
+            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
         
         save_conversation_history()
         
@@ -1716,7 +1762,7 @@ def delete_media():
         logger.error(f"Delete error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/stats/transactions', methods=['GET'])
+@app.route('/api/stars/transactions', methods=['GET'])
 def get_transactions():
     try:
         conn = sqlite3.connect('stars.db')
@@ -1892,8 +1938,8 @@ if __name__ == '__main__':
     print('   • Talks in Amharic with English translation')
     print('   • Sexy and flirty personality 😘')
     print('   • 15-40 second reply delay (human-like)')
-    print('   • STAR EARNING: Users pay Stars to chat')
-    print('   • PHOTO SELLING: Users pay Stars for photos')
+    print('   • PHOTO DETECTION: Now recognizes photo requests!')
+    print('   • 3 preview photos ready to sell (5⭐ each)')
     print('   • ALL STARS go to @Abe_army channel')
     print('='*70 + '\n')
     
