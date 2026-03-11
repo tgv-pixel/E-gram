@@ -2,7 +2,7 @@ from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors, functions
 from telethon.sessions import StringSession
-from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError
+from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError, RPCError
 from telethon.events import NewMessage
 import json
 import os
@@ -21,6 +21,7 @@ import base64
 from werkzeug.utils import secure_filename
 import shutil
 import traceback
+import sys
 
 # ==================== CONFIGURATION ====================
 
@@ -37,6 +38,16 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
 
 # Create upload folder
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ==================== LOGGING SETUP ====================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+logger.info("🚀 TSEGA BOT STARTING...")
 
 # ==================== STAR SYSTEM CONFIGURATION ====================
 
@@ -123,83 +134,103 @@ class StarDatabase:
         
         conn.commit()
         conn.close()
+        logger.info("✅ Star database initialized")
     
     def add_user(self, user_id, username=None, first_name=None):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('''INSERT OR IGNORE INTO star_users 
-                    (user_id, username, first_name, first_seen, last_seen)
-                    VALUES (?, ?, ?, ?, ?)''',
-                 (user_id, username, first_name, datetime.now(), datetime.now()))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            c.execute('''INSERT OR IGNORE INTO star_users 
+                        (user_id, username, first_name, first_seen, last_seen)
+                        VALUES (?, ?, ?, ?, ?)''',
+                     (user_id, username, first_name, datetime.now(), datetime.now()))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error adding user: {e}")
     
     def record_transaction(self, user_id, amount, trans_type, description, media=None):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('''INSERT INTO star_transactions 
-                    (user_id, amount, transaction_type, description, timestamp, media_sent)
-                    VALUES (?, ?, ?, ?, ?, ?)''',
-                 (user_id, amount, trans_type, description, datetime.now(), media))
-        
-        c.execute('''UPDATE star_users SET 
-                    total_stars_spent = total_stars_spent + ?,
-                    total_stars_earned_for_us = total_stars_earned_for_us + ?,
-                    last_seen = ?
-                    WHERE user_id = ?''',
-                 (amount, amount, datetime.now(), user_id))
-        
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            c.execute('''INSERT INTO star_transactions 
+                        (user_id, amount, transaction_type, description, timestamp, media_sent)
+                        VALUES (?, ?, ?, ?, ?, ?)''',
+                     (user_id, amount, trans_type, description, datetime.now(), media))
+            
+            c.execute('''UPDATE star_users SET 
+                        total_stars_spent = total_stars_spent + ?,
+                        total_stars_earned_for_us = total_stars_earned_for_us + ?,
+                        last_seen = ?
+                        WHERE user_id = ?''',
+                     (amount, amount, datetime.now(), user_id))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error recording transaction: {e}")
     
     def add_media(self, file_path, media_type, price):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('''INSERT INTO media_library 
-                    (file_path, media_type, price_stars, is_active)
-                    VALUES (?, ?, ?, 1)''',
-                 (file_path, media_type, price))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            c.execute('''INSERT INTO media_library 
+                        (file_path, media_type, price_stars, is_active)
+                        VALUES (?, ?, ?, 1)''',
+                     (file_path, media_type, price))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error adding media: {e}")
     
     def get_random_media(self, media_type, max_price=None):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        query = "SELECT file_path, price_stars FROM media_library WHERE media_type = ? AND is_active = 1"
-        params = [media_type]
-        
-        if max_price:
-            query += " AND price_stars <= ?"
-            params.append(max_price)
-        
-        query += " ORDER BY RANDOM() LIMIT 1"
-        
-        c.execute(query, params)
-        result = c.fetchone()
-        conn.close()
-        return result
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            
+            query = "SELECT file_path, price_stars FROM media_library WHERE media_type = ? AND is_active = 1"
+            params = [media_type]
+            
+            if max_price:
+                query += " AND price_stars <= ?"
+                params.append(max_price)
+            
+            query += " ORDER BY RANDOM() LIMIT 1"
+            
+            c.execute(query, params)
+            result = c.fetchone()
+            conn.close()
+            return result
+        except Exception as e:
+            logger.error(f"Error getting random media: {e}")
+            return None
     
     def record_channel_earnings(self, amount):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('''INSERT INTO channel_earnings 
-                    (channel, total_stars, last_transfer)
-                    VALUES (?, ?, ?)''',
-                 (StarConfig.CHANNEL_USERNAME, amount, datetime.now()))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            c.execute('''INSERT INTO channel_earnings 
+                        (channel, total_stars, last_transfer)
+                        VALUES (?, ?, ?)''',
+                     (StarConfig.CHANNEL_USERNAME, amount, datetime.now()))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error recording channel earnings: {e}")
     
     def increment_media_sold(self, file_path):
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute('''UPDATE media_library SET 
-                    times_sold = times_sold + 1,
-                    last_sold = ?
-                    WHERE file_path = ?''',
-                 (datetime.now(), file_path))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            c.execute('''UPDATE media_library SET 
+                        times_sold = times_sold + 1,
+                        last_sold = ?
+                        WHERE file_path = ?''',
+                     (datetime.now(), file_path))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error incrementing media sold: {e}")
 
 # ==================== MEDIA MANAGER ====================
 
@@ -223,7 +254,7 @@ class MediaManager:
         
         for folder in folders:
             os.makedirs(folder, exist_ok=True)
-            logging.info(f"📁 Created folder: {folder}")
+            logger.info(f"📁 Created folder: {folder}")
     
     def scan_and_index_media(self):
         for price, folder in StarConfig.PHOTO_TIERS.items():
@@ -235,7 +266,7 @@ class MediaManager:
             
             for photo in photos:
                 self.db.add_media(photo, "photo", price)
-                logging.info(f"📸 Indexed: {photo} ({price} stars)")
+                logger.info(f"📸 Indexed: {photo} ({price} stars)")
         
         for price, folder in StarConfig.VIDEO_TIERS.items():
             full_path = f"{StarConfig.VIDEO_FOLDER}/{folder}"
@@ -245,7 +276,7 @@ class MediaManager:
             
             for video in videos:
                 self.db.add_media(video, "video", price)
-                logging.info(f"🎥 Indexed: {video} ({price} stars)")
+                logger.info(f"🎥 Indexed: {video} ({price} stars)")
         
         conn = sqlite3.connect('stars.db')
         c = conn.cursor()
@@ -253,9 +284,9 @@ class MediaManager:
         total = c.fetchone()[0]
         conn.close()
         
-        logging.info(f"✅ Media library indexed: {total} files")
+        logger.info(f"✅ Media library indexed: {total} files")
 
-# ==================== STAR EARNING HANDLER ====================
+# ==================== STAR EARNING HANDLER - FIXED ====================
 
 class StarEarningHandler:
     def __init__(self, client):
@@ -263,14 +294,18 @@ class StarEarningHandler:
         self.db = StarDatabase()
         self.media = MediaManager()
         self.pending_payments = {}
+        logger.info("✅ StarEarningHandler initialized")
         
     async def handle_star_payment(self, event):
+        """Handle when user pays Stars"""
         user_id = str(event.sender_id)
         message = event.message
         
+        # Check if this is a paid message
         if hasattr(message, 'paid') and message.paid:
             stars_amount = getattr(message, 'paid_stars', 0)
             
+            # Record transaction
             self.db.record_transaction(
                 user_id, 
                 stars_amount,
@@ -278,6 +313,7 @@ class StarEarningHandler:
                 f"Paid {stars_amount} stars to message Tsega"
             )
             
+            # Transfer to channel if enabled
             if StarConfig.TRANSFER_STARS_TO_CHANNEL:
                 await self.transfer_stars_to_channel(stars_amount)
             
@@ -286,28 +322,58 @@ class StarEarningHandler:
         return False, 0
     
     async def transfer_stars_to_channel(self, amount):
+        """Transfer earned Stars to your channel - FIXED"""
         try:
-            channel = await self.client.get_entity(StarConfig.CHANNEL_USERNAME)
-            
-            await self.client.send_message(
-                channel,
-                f"💰 **New Star Earnings!**\n"
-                f"Amount: {amount} ⭐\n"
-                f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-                f"Total earned today: {amount} ⭐"
-            )
-            
-            self.db.record_channel_earnings(amount)
-            logging.info(f"💰 Transferred {amount} stars to {StarConfig.CHANNEL_USERNAME}")
-            return True
+            # Try to get channel entity
+            try:
+                channel = await self.client.get_entity(StarConfig.CHANNEL_USERNAME)
+                
+                # Send notification to channel
+                await self.client.send_message(
+                    channel,
+                    f"💰 **New Star Earnings!**\n"
+                    f"Amount: {amount} ⭐\n"
+                    f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                )
+                
+                # Record in database
+                self.db.record_channel_earnings(amount)
+                
+                logger.info(f"💰 Transferred {amount} stars to {StarConfig.CHANNEL_USERNAME}")
+                return True
+            except Exception as e:
+                logger.error(f"Error finding channel {StarConfig.CHANNEL_USERNAME}: {e}")
+                # Just record without sending
+                self.db.record_channel_earnings(amount)
+                return False
+                
         except Exception as e:
-            logging.error(f"Error transferring stars: {e}")
+            logger.error(f"Error transferring stars: {e}")
             return False
     
     async def request_star_payment(self, chat_id, amount, description):
+        """Request user to pay Stars - FIXED VERSION"""
         try:
+            # Get the entity properly
+            try:
+                # Try as integer first
+                entity = await self.client.get_entity(int(chat_id))
+            except:
+                try:
+                    # Try as string
+                    entity = await self.client.get_entity(str(chat_id))
+                except Exception as e:
+                    logger.error(f"Cannot find entity for {chat_id}: {e}")
+                    # Send a simple message without payment request as fallback
+                    msg = await self.client.send_message(
+                        int(chat_id),
+                        f"⭐ To chat with Tsega, please send {amount} Stars first!\n\nAll Stars go to @Abe_army channel 💰"
+                    )
+                    return msg
+            
+            # Create star payment request
             msg = await self.client.send_message(
-                chat_id,
+                entity,
                 f"⭐ **Payment Required** ⭐\n\n"
                 f"{description}\n\n"
                 f"Amount: **{amount} Stars**\n\n"
@@ -315,6 +381,7 @@ class StarEarningHandler:
                 f"All Stars go to @Abe_army channel! 💰"
             )
             
+            # Store pending payment
             self.pending_payments[str(chat_id)] = {
                 'amount': amount,
                 'description': description,
@@ -323,17 +390,26 @@ class StarEarningHandler:
             
             return msg
         except Exception as e:
-            logging.error(f"Error requesting payment: {e}")
-            return None
+            logger.error(f"Error requesting payment: {e}")
+            # Fallback - try to send normal message
+            try:
+                msg = await self.client.send_message(
+                    int(chat_id),
+                    f"⭐ To chat with Tsega, please send {amount} Stars first! (Payment feature unavailable - just message me)"
+                )
+                return msg
+            except:
+                return None
     
     async def send_media_for_stars(self, chat_id, media_type, price_tier=None):
+        """Send media after user pays Stars"""
         try:
             max_price = price_tier if price_tier else StarConfig.STAR_PRICES[f"{media_type}_full"]
             media_info = self.db.get_random_media(media_type, max_price)
             
             if not media_info:
                 return await self.client.send_message(
-                    chat_id,
+                    int(chat_id),
                     "😔 Sorry, no media available right now. Please try again later."
                 )
             
@@ -342,15 +418,15 @@ class StarEarningHandler:
             caption = f"Here you go! 🔥 {price} Stars\n\nDon't forget to send more stars for exclusive content! 😘\n\nAll Stars go to @Abe_army"
             
             if media_type == "photo":
-                await self.client.send_file(chat_id, file_path, caption=caption)
+                await self.client.send_file(int(chat_id), file_path, caption=caption)
             else:
-                await self.client.send_file(chat_id, file_path, caption=caption, video_note=False)
+                await self.client.send_file(int(chat_id), file_path, caption=caption, video_note=False)
             
             self.db.increment_media_sold(file_path)
             return True
             
         except Exception as e:
-            logging.error(f"Error sending media: {e}")
+            logger.error(f"Error sending media: {e}")
             return False
 
 # ==================== TSEGA'S COMPLETE PERSONALITY ====================
@@ -587,10 +663,7 @@ def get_context_aware_response(intent):
     
     return response
 
-# ==================== LOGGING CONFIGURATION ====================
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ==================== FLASK APP ====================
 
 app = Flask(__name__)
 CORS(app)
@@ -764,120 +837,81 @@ def debug_reply():
     
     return jsonify(status)
 
-# ==================== ENHANCED AUTO-REPLY HANDLER ====================
+# ==================== FIXED AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
+    """FIXED AUTO-REPLY HANDLER - No entity errors"""
     try:
+        # Print EVERY message for debugging
+        print(f"\n{'='*60}")
+        print(f"🔴 MESSAGE RECEIVED at {datetime.now()}")
+        print(f"From chat: {event.chat_id}")
+        print(f"Message: '{event.message.text}'")
+        print(f"Outgoing: {event.out}")
+        print(f"Account ID: {account_id}")
+        print(f"{'='*60}\n")
+        
+        # Skip own messages
         if event.out:
-            logger.info("⏭️ Skipping own message")
+            print("⏭️ Skipping own message")
             return
         
-        logger.info(f"📨 RAW MESSAGE: From {event.chat_id}: '{event.message.text}'")
-        
+        # Get chat info
         chat = await event.get_chat()
         
+        # Check if private chat
         if hasattr(chat, 'title') and chat.title:
-            logger.info(f"⏭️ Skipping - has title: {chat.title}")
-            return
-        if hasattr(chat, 'participants_count') and chat.participants_count > 2:
-            logger.info(f"⏭️ Skipping - group with {chat.participants_count} participants")
-            return
-        if hasattr(chat, 'broadcast') and chat.broadcast:
-            logger.info("⏭️ Skipping - broadcast channel")
+            print(f"⏭️ This is a GROUP/CHANNEL: {chat.title} - not replying")
             return
         
+        # Get sender
         sender = await event.get_sender()
         if not sender:
-            logger.info("⏭️ Skipping - no sender")
+            print("⏭️ No sender found")
             return
         
         chat_id = str(event.chat_id)
         user_id = str(sender.id)
         message_text = event.message.text or ""
         
-        logger.info(f"✅ VALID MESSAGE from user {user_id}: '{message_text}'")
+        print(f"✅ PRIVATE MESSAGE from {sender.first_name} (ID: {user_id})")
+        print(f"Message: '{message_text}'")
         
+        # Check if auto-reply is enabled
         account_key = str(account_id)
         
         if account_key not in reply_settings:
-            logger.info(f"⏭️ No settings for account {account_key}")
+            print(f"⏭️ No settings for account {account_key}")
             return
         
         if not reply_settings[account_key].get('enabled', False):
-            logger.info(f"⏭️ Auto-reply DISABLED for account {account_key}")
+            print(f"⏭️ Auto-reply DISABLED for account {account_key}")
             return
         
-        logger.info(f"✅ Auto-reply ENABLED for account {account_key}")
+        print(f"✅ Auto-reply ENABLED for account {account_key}")
         
-        chat_settings = reply_settings[account_key].get('chats', {})
-        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
-        
-        if not chat_enabled:
-            logger.info(f"⏭️ Replies disabled for this chat {chat_id}")
-            return
-        
-        logger.info(f"✅ Chat {chat_id} is enabled for replies")
-        
-        if account_key not in star_handlers:
-            logger.info(f"Creating Star handler for {account_key}")
-            star_handlers[account_key] = StarEarningHandler(event.client)
-        
-        star_handler = star_handlers[account_key]
-        
-        star_handler.db.add_user(user_id, sender.username, sender.first_name)
-        
-        stars_paid, stars_amount = await star_handler.handle_star_payment(event)
-        
-        if stars_paid:
-            logger.info(f"💰 User {user_id} paid {stars_amount} Stars")
-        
-        if message_text and ("photo" in message_text.lower() or "foto" in message_text.lower() or "ፎቶ" in message_text or "see" in message_text.lower()):
-            logger.info(f"💰 Media request detected")
-            await star_handler.request_star_payment(
-                chat_id,
-                StarConfig.STAR_PRICES["photo_preview"],
-                f"To see my photos, send {StarConfig.STAR_PRICES['photo_preview']} Stars for preview or {StarConfig.STAR_PRICES['photo_full']} Stars for full photo! 🔥"
-            )
-            return
-        
-        if not stars_paid and stars_amount < StarConfig.STAR_PRICES["message"]:
-            logger.info(f"💰 Requesting {StarConfig.STAR_PRICES['message']} Stars from user")
-            await star_handler.request_star_payment(
-                chat_id,
-                StarConfig.STAR_PRICES["message"],
-                f"To chat with Tsega, please send {StarConfig.STAR_PRICES['message']} Stars first!\n\nAll Stars go to @Abe_army channel 💰"
-            )
-            
-            if account_key not in conversation_history:
-                conversation_history[account_key] = {}
-            if chat_id not in conversation_history[account_key]:
-                conversation_history[account_key][chat_id] = []
-            
-            conversation_history[account_key][chat_id].append({
-                'role': 'user',
-                'text': message_text,
-                'time': time.time()
-            })
-            
-            return
-        
+        # Get intent and generate response
         intent = detect_conversation_intent(message_text)
-        logger.info(f"Detected intent: {intent}")
+        print(f"Detected intent: {intent}")
         
         response = get_context_aware_response(intent)
         
         if not response or response.strip() == "":
             response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘"
         
+        # Human-like delay
         delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
-        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
+        print(f"⏱️ Waiting {delay} seconds...")
         
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
+        # Send reply
+        print(f"📤 Sending reply: '{response}'")
         await event.reply(response)
-        logger.info(f"✅✅✅ REPLIED: '{response}'")
+        print(f"✅✅✅ REPLY SENT SUCCESSFULLY!")
         
+        # Store in conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         if chat_id not in conversation_history[account_key]:
@@ -898,62 +932,72 @@ async def auto_reply_handler(event, account_id):
         save_conversation_history()
         
     except Exception as e:
-        logger.error(f"❌ ERROR in auto-reply: {e}")
+        print(f"❌❌❌ ERROR in auto-reply: {e}")
         traceback.print_exc()
 
-# ==================== START AUTO-REPLY FOR ACCOUNT ====================
+# ==================== START AUTO-REPLY FOR ACCOUNT - FIXED ====================
 
 async def start_auto_reply_for_account(account):
+    """SIMPLE START FUNCTION - FIXED"""
     account_id = account['id']
     account_key = str(account_id)
-    reconnect_count = 0
     
-    while True:
-        try:
-            logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
-            
-            client = TelegramClient(
-                StringSession(account['session']), 
-                API_ID, 
-                API_HASH,
-                connection_retries=10,
-                retry_delay=5,
-                timeout=60,
-                device_model="iPhone 13",
-                system_version="15.0",
-                app_version="8.4.1"
-            )
-            
-            await client.connect()
-            
-            if not await client.is_user_authorized():
-                logger.error(f"Account {account_id} not authorized")
-                await asyncio.sleep(30)
-                reconnect_count += 1
-                continue
-            
-            active_clients[account_key] = client
-            star_handlers[account_key] = StarEarningHandler(client)
-            
-            @client.on(NewMessage(incoming=True))
-            async def handler(event):
-                await auto_reply_handler(event, account_id)
-            
-            await client.start()
-            logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
-            
-            reconnect_count = 0
-            await client.run_until_disconnected()
-            
-        except Exception as e:
-            logger.error(f"Connection lost for account {account_id}: {e}")
-            if account_key in active_clients:
-                del active_clients[account_key]
-            
-            reconnect_count += 1
-            wait_time = min(30 * reconnect_count, 300)
-            logger.info(f"Reconnecting in {wait_time} seconds... (attempt {reconnect_count})")
-            await asyncio.sleep(wait_time)
+    print(f"\n{'🚀'*30}")
+    print(f"🚀 Starting auto-reply for account {account_id}")
+    print(f"Account name: {account.get('name')}")
+    print(f"Account phone: {account.get('phone')}")
+    print(f"{'🚀'*30}\n")
+    
+    try:
+        # Create client
+        client = TelegramClient(
+            StringSession(account['session']), 
+            API_ID, 
+            API_HASH,
+            connection_retries=5,
+            retry_delay=3
+        )
+        
+        # Connect
+        print("📡 Connecting to Telegram...")
+        await client.connect()
+        print("✅ Connected!")
+        
+        # Check authorization
+        if not await client.is_user_authorized():
+            print("❌ Not authorized!")
+            return
+        
+        # Get me
+        me = await client.get_me()
+        print(f"✅ Logged in as: {me.first_name} (@{me.username or 'no username'})")
+        print(f"📱 Phone: {me.phone}")
+        
+        # Store client
+        active_clients[account_key] = client
+        print("✅ Client stored in active_clients")
+        
+        # Initialize star handler
+        star_handlers[account_key] = StarEarningHandler(client)
+        print("✅ Star handler initialized")
+        
+        # Define handler
+        @client.on(NewMessage(incoming=True))
+        async def handler(event):
+            await auto_reply_handler(event, account_id)
+        
+        print("✅ Message handler registered")
+        print(f"📱 LISTENING for messages...")
+        print(f"{'='*50}\n")
+        
+        # Keep running
+        await client.run_until_disconnected()
+        
+    except Exception as e:
+        print(f"❌ ERROR in start function: {e}")
+        traceback.print_exc()
+        if account_key in active_clients:
+            del active_clients[account_key]
 
 def stop_auto_reply_for_account(account_id):
     account_key = str(account_id)
@@ -1672,7 +1716,7 @@ def delete_media():
         logger.error(f"Delete error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/stars/transactions', methods=['GET'])
+@app.route('/api/stats/transactions', methods=['GET'])
 def get_transactions():
     try:
         conn = sqlite3.connect('stars.db')
