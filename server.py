@@ -507,7 +507,7 @@ TSEGA_REPLIES = {
         "ene dehna negn leante sil",
         "dehna negn antess betam?",
         "ene dehna negn endemin?"
-
+],
     "how_are_you": [
         "ene dehna negn anteh?",
         "dehna negn wude antass?",
