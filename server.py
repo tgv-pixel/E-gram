@@ -22,7 +22,19 @@ from werkzeug.utils import secure_filename
 import shutil
 import traceback
 import sys
+# ==================== FORCE DEBUG MODE ====================
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+logger.info("🚀 DEBUG MODE ACTIVATED - EVERY MESSAGE WILL BE LOGGED")
 
+# Also print to console directly
+def debug_log(msg):
+    print(f"🔴🔴🔴 {msg} 🔴🔴🔴")
+    sys.stdout.flush()
 # ==================== CONFIGURATION ====================
 
 # API credentials
