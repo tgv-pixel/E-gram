@@ -613,20 +613,23 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def detect_conversation_intent(message):
-    """Detect intent from message"""
+    """Detect intent from message - FIXED for photos"""
     message_lower = message.lower().strip()
     
     # Print for debugging
     print(f"🔍 detect_conversation_intent checking: '{message_lower}'")
     
-    # PHOTO KEYWORDS
+    # ===== EXPANDED PHOTO KEYWORDS =====
     photo_keywords = [
         'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
         'image', 'camera', 'selfie', 'preview', 'full', 'pics', 'photos',
-        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'አካል', 'ፊት',
-        'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ'
+        'nude', 'sexy', 'hot', 'body', 'lingerie', 'bikini', 'undress',
+        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'አካል', 'ፊት', 'ራቁት', 'ራቁቴን',
+        'send me', 'show me', 'let me see', 'can i see', 'ደርሰኝ', 'ላክልኝ', 'አሳየኝ',
+        'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki', 'picture send'
     ]
     
+    # Check each keyword
     for keyword in photo_keywords:
         if keyword in message_lower:
             print(f"✅ PHOTO INTENT DETECTED: '{keyword}'")
@@ -637,6 +640,7 @@ def detect_conversation_intent(message):
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
+    # Rest of your intent detection...
     meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
     if any(word in message_lower for word in meet_keywords):
         return "meet"
@@ -683,7 +687,6 @@ def detect_conversation_intent(message):
         return "goodbye"
     
     return "default"
-
 def get_context_aware_response(intent):
     """Generate response based on intent"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
