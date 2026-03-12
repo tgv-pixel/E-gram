@@ -445,30 +445,8 @@ class StarEarningHandler:
             logger.error(f"Error transferring stars: {e}")
             return False
 
-# ==================== TSEGA'S PERSONALITY - FIXED (NO WENDME/BROTHER) ====================
-
-TSEGA = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first",
-    "voice_call": "Prefers to meet than voice calls",
-}
-
-# COMPLETE TSEGA REPLIES - NO "WENDME" OR "BROTHER"
-# ==================== TSEGA REPLIES - ROUND 1/10 ====================
-# Natural Amharic + English spelling, minimal emojis, human-like responses
+# ==================== PASTE YOUR 11 ROUNDS OF RESPONSES HERE ====================
+# ==================== START OF YOUR TSEGA REPLIES ====================
 
 TSEGA_REPLIES = {
     # ===== GREETINGS - Selam, Hi, Hello (MINIMAL EMOJIS) =====
@@ -507,7 +485,7 @@ TSEGA_REPLIES = {
         "ene dehna negn leante sil",
         "dehna negn antess betam?",
         "ene dehna negn endemin?"
-],
+
     "how_are_you": [
         "ene dehna negn anteh?",
         "dehna negn wude antass?",
@@ -6279,1126 +6257,275 @@ TSEGA_REPLIES = {
 ],
 
 }
+# ==================== END OF YOUR 11 ROUNDS ====================
 
-# ==================== ROUND 1/5 - TRIPLE DETECTION SYSTEM ====================
-# Detects: English, Amharic (ፊደል), and Amharic in English spelling (Ethiopian texting)
+# ==================== EMOJIS FOR NATURAL FEEL ====================
+TSEGA_EMOJIS = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹", "💫", "🥰"]
 
-# ===== KEYWORD LISTS FOR DETECTION =====
-# Each intent has keywords in all 3 forms
+# ==================== ALLOWED FILE TYPES ====================
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-DETECTION_KEYWORDS = {
-    "greeting": {
-        "english": ["hi", "hello", "hey", "hy", "whats up", "sup"],
-        "amharic": ["ሰላም", "ታዲያስ", "ሃይ", "እንደምን"],
-        "english_spell": ["selam", "ta di yas", "hai", "endemin", "dehna", "tedias"]
-    },
-    
-    "how_are_you": {
-        "english": ["how are you", "how r u", "how you doing", "how's it going"],
-        "amharic": ["እንደምን ነህ", "ደህና ነህ", "እንዴት ነህ"],
-        "english_spell": ["endet neh", "deh neh", "dehna new", "endemin alesh"]
-    },
-    
-    "what_doing": {
-        "english": ["what are you doing", "what r u doing", "wyd", "what doing"],
-        "amharic": ["ምን ትሰራለህ", "ምን እየሰራህ", "እየሰራህ ያለህ"],
-        "english_spell": ["min tiseraleh", "min tishal", "min aleh", "et serah"]
-    },
-    
-    "ask_name": {
-        "english": ["your name", "what is your name", "who are you", "name"],
-        "amharic": ["ስምህ ማን ነው", "ስምስ", "ማን ነህ"],
-        "english_spell": ["simih man new", "simish man new", "man neh", "simih"]
-    },
-    
-    "ask_age": {
-        "english": ["how old", "your age", "age"],
-        "amharic": ["ዕድሜህ ስንት", "አመት", "ስንት አመት"],
-        "english_spell": ["edmeh sint", "edmeh", "sint amet", "kamet neh"]
-    },
-    
-    "location": {
-        "english": ["where are you from", "where do you live", "location", "from where"],
-        "amharic": ["ከየት ነህ", "የት ትኖራለህ", "አድራሻ"],
-        "english_spell": ["ke yet neh", "yet tenoralch", "yet neh", "address"]
-    },
-    
-    "ask_job": {
-        "english": ["what do you do", "your job", "job", "work", "profession"],
-        "amharic": ["ምን ትሰራለህ", "ስራህ", "ሙያህ"],
-        "english_spell": ["min tiseraleh", "sirah", "sira min new"]
-    },
-    
-    "flirty": {
-        "english": ["beautiful", "handsome", "cute", "pretty", "sexy", "hot", "gorgeous"],
-        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "እንደምን ቆንጆ"],
-        "english_spell": ["konjo", "wub", "aref", "enibada", "libdash"]
-    },
-    
-    "photo_request": {
-        "english": ["photo", "picture", "pic", "see", "view", "show", "look", "camera", "selfie"],
-        "amharic": ["ፎቶ", "ሥዕል", "አሳይ", "እይ", "ማየት"],
-        "english_spell": ["foto", "asay", "ay", "mayet", "sitay", "laki", "ላኪ"]
-    },
-    
-    "money_request": {
-        "english": ["money", "send", "birr", "cash", "telebirr", "cbe"],
-        "amharic": ["ብር", "ገንዘብ", "ላክ", "ቴሌብር", "እርዳ"],
-        "english_spell": ["birr", "genzeb", "lak", "telebirr", "irdata", "0940980555"]
-    },
-    
-    "meet": {
-        "english": ["meet", "meeting", "see you", "come", "let's meet"],
-        "amharic": ["ማግኘት", "መገናኘት", "እንገናኝ"],
-        "english_spell": ["magenat", "litba", "linagenagn", "enagenagn"]
-    },
-    
-    "voice_call": {
-        "english": ["call", "voice", "phone call", "ring"],
-        "amharic": ["ድምጽ", "ስልክ", "ደውል"],
-        "english_spell": ["dimts", "silk", "dewel", "kol"]
-    },
-    
-    "relationship": {
-        "english": ["love", "like", "miss", "heart", "relationship"],
-        "amharic": ["ፍቅር", "ልብ", "ናፍቆት"],
-        "english_spell": ["fikir", "libe", "weded", "nafekuh", "nafkehalew"]
-    },
-    
-    "thanks": {
-        "english": ["thanks", "thank you", "thx", "appreciate"],
-        "amharic": ["አመሰግናለሁ", "እናመሰግናለን"],
-        "english_spell": ["amesegnalehu", "tanesegnalehu", "thx"]
-    },
-    
-    "goodbye": {
-        "english": ["bye", "goodbye", "see you later", "talk later"],
-        "amharic": ["ደህና ሁን", "ቻው", "በህና ሁን"],
-        "english_spell": ["dehna hun", "chaw", "bye bye", "later"]
-    },
-    
-    "morning": {
-        "english": ["good morning", "morning", "gm"],
-        "amharic": ["እንደምን አደርክ", "መልካም ንጋት"],
-        "english_spell": ["endemin aderk", "melkam nigt", "ande ferej"]
-    },
-    
-    "night": {
-        "english": ["good night", "night", "gn", "sweet dreams"],
-        "amharic": ["ደህና እደር", "ሌሊት", "መልካም ህልም"],
-        "english_spell": ["dehna eder", "lelit", "melkam hilim"]
-    },
-    
-    "busy": {
-        "english": ["busy", "working", "no time"],
-        "amharic": ["ሥራ", "ተጠምጄ", "ጊዜ የለኝም"],
-        "english_spell": ["sira", "techegne", "gize yelel"]
-    }
-}
-
-# ===== RESPONSES IN AMHARIC ENGLISH SPELLING =====
-# These are natural Ethiopian texting style
-
-TSEGA_RESPONSES = {
-    "greeting": [
-        "selam wude endemin neh",
-        "hi konjo deh new",
-        "selam leg min ametah",
-        "ey dehena metah",
-        "ta di yas min tishal",
-        "selam yelibe balebet",
-        "dehna deresu wude",
-        "ey koyeh koyeh",
-        "selam ke minimize metah",
-        "hi there endemin neh"
-    ],
-    
-    "how_are_you": [
-        "ene dehna negn anteh",
-        "dehna negn wude antass",
-        "ene tiru honku antin sayehu",
-        "lante sil hulum gize dehna negn",
-        "ante ehasbekuh new yalehu",
-        "dehna negn lemin tiyekalh",
-        "ene betam dehna negn",
-        "dehna negn gin ante aselchi neber",
-        "ahune dehna negn wude",
-        "keante gar sihon hulum tiru"
-    ],
-    
-    "what_doing": [
-        "ene bicha negn aselchi neber",
-        "minim alserahum ehasbekuh neber",
-        "ahun tenyte neber gin ante nekahulh",
-        "libs eylebsku neber ante ehasbe",
-        "ante etebekuh new yeneberkut",
-        "ahuni betam aselchi negn",
-        "ante asbe kuako new",
-        "wedajen etebeku new antess",
-        "film eyaye neber",
-        "ante ehasbeku and gize"
-    ],
-    
-    "ask_name": [
-        "ene Tsega ebalalehu wude",
-        "Tsega negn lante bicha yemitihon",
-        "sime Tsega new tiz yibelh",
-        "enin Tsega bileh tira",
-        "Tsega negn lante simih man new",
-        "ene Tsega ante endemin litirah",
-        "Tsega nagn gin ante tishal",
-        "simin tiyekaleh Tsega negn"
-    ],
-    
-    "ask_age": [
-        "edme 20 bicha new beki negn",
-        "20 ameté new wetat ena konjo",
-        "haya amet lik new leante yemihon",
-        "20 negn gin lante tilik limd alehne",
-        "edme 20 new ante sint new",
-        "20 amet lij nagn",
-        "edme 20 betam wetat",
-        "20 new yemifeligew"
+# ==================== FIND MEDIA FILE ====================
+def find_media_file(filename):
+    """Find media file in any possible location"""
+    possible_paths = [
+        filename,
+        os.path.join('tsega_photos/preview', os.path.basename(filename)),
+        os.path.join('tsega_photos/full', os.path.basename(filename)),
+        os.path.join('tsega_photos/premium', os.path.basename(filename)),
+        os.path.join('tsega_videos/preview', os.path.basename(filename)),
+        os.path.join('tsega_videos/full', os.path.basename(filename)),
+        os.path.join('uploads', os.path.basename(filename))
     ]
-}
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
 
-# ===== ENHANCED DETECTION FUNCTION =====
-def detect_intent_triple(message):
-    """
-    Detects intent in:
-    - English (hello)
-    - Amharic (ሰላም)
-    - Amharic English spelling (selam)
-    """
+# ==================== DETECT USER INTENT ====================
+def detect_conversation_intent(message):
+    """Detect what user wants from their message"""
     message_lower = message.lower().strip()
     
-    # Check each intent's keywords
-    for intent, keywords in DETECTION_KEYWORDS.items():
-        # Check English
-        for word in keywords["english"]:
-            if word in message_lower:
-                return intent
-                
-        # Check Amharic script
-        for word in keywords["amharic"]:
-            if word in message_lower:
-                return intent
-                
-        # Check English spelling Amharic
-        for word in keywords["english_spell"]:
-            if word in message_lower:
-                return intent
+    # PHOTO REQUESTS
+    photo_words = [
+        'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
+        'image', 'camera', 'selfie', 'preview', 'pics', 'photos',
+        'nude', 'sexy', 'hot', 'body', 'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ',
+        'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ',
+        'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki', 'tutishin', 'rakutishin', 'emsishn'
+    ]
+    for word in photo_words:
+        if word in message_lower:
+            return "photo_request"
     
+    # MONEY REQUESTS
+    money_words = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'genzeb']
+    for word in money_words:
+        if word in message_lower:
+            return "money_request"
+    
+    # GREETINGS
+    greeting_words = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ', 'selam', 'ta di yas']
+    for word in greeting_words:
+        if word in message_lower and len(message_lower) < 20:
+            return "greeting"
+    
+    # HOW ARE YOU
+    how_words = ['how are you', 'how r u', 'how you doing', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'endet neh', 'deh new']
+    for phrase in how_words:
+        if phrase in message_lower:
+            return "how_are_you"
+    
+    # WHAT ARE YOU DOING
+    doing_words = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'ምን ትሰራለህ', 'min tiseraleh']
+    for phrase in doing_words:
+        if phrase in message_lower:
+            return "what_doing"
+    
+    # ASK NAME
+    name_words = ['your name', 'what is your name', 'ስምህ ማን ነው', 'ስምስ', 'simih man new']
+    for phrase in name_words:
+        if phrase in message_lower:
+            return "ask_name"
+    
+    # ASK AGE
+    age_words = ['your age', 'how old are you', 'ዕድሜህ', 'አመት', 'edmeh sint new']
+    for phrase in age_words:
+        if phrase in message_lower:
+            return "ask_age"
+    
+    # LOCATION
+    location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ', 'yet neh', 'ket new']
+    for phrase in location_words:
+        if phrase in message_lower:
+            return "ask_location"
+    
+    # ASK JOB
+    job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ', 'sirah min new']
+    for phrase in job_words:
+        if phrase in message_lower:
+            return "ask_job"
+    
+    # FLIRTY
+    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ', 'konjo', 'wude', 'libdash', 'enibada']
+    for word in flirty_words:
+        if word in message_lower:
+            return "flirty"
+    
+    # THANKS
+    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ', 'amesegnalehu']
+    for word in thanks_words:
+        if word in message_lower:
+            return "thanks"
+    
+    # GOODBYE
+    goodbye_words = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'ቻው', 'dehna hun', 'chaw']
+    for word in goodbye_words:
+        if word in message_lower:
+            return "goodbye"
+    
+    # MEET
+    meet_words = ['meet', 'litba', 'magenat', 'ማግኘት', 'እንገናኝ', 'linagenagn']
+    for word in meet_words:
+        if word in message_lower:
+            return "meet"
+    
+    # VOICE CALL
+    call_words = ['call', 'voice', 'ድምጽ', 'ስልክ', 'dimts', 'silk']
+    for word in call_words:
+        if word in message_lower:
+            return "voice_call"
+    
+    # RELATIONSHIP
+    love_words = ['love', 'fikir', 'ፍቅር', 'ልብ', 'libe', 'weded', 'relationship']
+    for word in love_words:
+        if word in message_lower:
+            return "relationship"
+    
+    # MORNING
+    morning_words = ['morning', 'ንጋት', 'melkam nigt', 'endemin aderk']
+    for word in morning_words:
+        if word in message_lower:
+            return "morning"
+    
+    # NIGHT
+    night_words = ['night', 'ሌሊት', 'dehna eder', 'lelit']
+    for word in night_words:
+        if word in message_lower:
+            return "night"
+    
+    # BUSY
+    busy_words = ['busy', 'sira', 'ሥራ']
+    for word in busy_words:
+        if word in message_lower:
+            return "busy"
+    
+    # AFTER MONEY
+    after_money_words = ['sent', 'lakesku', 'ላክሁ']
+    for word in after_money_words:
+        if word in message_lower:
+            return "after_money"
+    
+    # COMPLIMENT
+    compliment_words = ['nice', 'beautiful', 'pretty', 'handsome', 'cute']
+    for word in compliment_words:
+        if word in message_lower:
+            return "compliment"
+    
+    # DEFAULT - if nothing matches
     return "default"
 
-# ===== GET RESPONSE FUNCTION =====
+# ==================== GET RANDOM RESPONSE ====================
 def get_tsega_response(intent):
-    """Get random response for detected intent"""
-    responses = TSEGA_RESPONSES.get(intent, ["ሰላም"])
-    return random.choice(responses)
-
-# ===== TEST FUNCTION =====
-def test_detection():
-    """Test all three detection methods"""
-    test_messages = [
-        # English
-        "hi",
-        "how are you",
-        "what are you doing",
-        "your name",
-        "how old",
-        
-        # Amharic script
-        "ሰላም",
-        "እንደምን ነህ",
-        "ምን ትሰራለህ",
-        "ስምህ ማን ነው",
-        "ዕድሜህ",
-        
-        # Amharic English spelling
-        "selam",
-        "endet neh",
-        "min tiseraleh",
-        "simih man new",
-        "edmeh sint"
-    ]
+    """Pick a random response from your 11 rounds"""
+    # Get responses for this intent, or use default if not found
+    responses = TSEGA_REPLIES.get(intent, TSEGA_REPLIES.get("default", ["እሺ ትክክል ነህ"]))
     
-    print("\n" + "="*60)
-    print("🧪 TESTING TRIPLE DETECTION SYSTEM")
-    print("="*60)
-    
-    for msg in test_messages:
-        intent = detect_intent_triple(msg)
-        response = get_tsega_response(intent)
-        print(f"📨 Message: {msg:30} → Intent: {intent:15}")
-    
-    print("="*60)
-    print("✅ Detection works for all 3 types!")
-    print("="*60 + "\n")
-
-# Run test
-test_detection()
-
-# ==================== ROUND 2/5 - TRIPLE DETECTION (MORE INTENTS) ====================
-
-# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
-# Add these inside your DETECTION_KEYWORDS dictionary from Round 1
-
-    "location": {
-        "english": ["where are you from", "where do you live", "location", "from where", "address"],
-        "amharic": ["ከየት ነህ", "የት ትኖራለህ", "አድራሻ", "የት ነው ያለሁት"],
-        "english_spell": ["ke yet neh", "yet tenoralch", "yet neh", "address", "bota yet new"]
-    },
-    
-    "ask_job": {
-        "english": ["what do you do", "your job", "job", "work", "profession", "career"],
-        "amharic": ["ምን ትሰራለህ", "ስራህ", "ሙያህ", "ምን ስራ ነው የምትሰራው"],
-        "english_spell": ["min tiseraleh", "sirah", "sira min new", "andet sira", "work"]
-    },
-    
-    "flirty": {
-        "english": ["beautiful", "handsome", "cute", "pretty", "sexy", "hot", "gorgeous", "lovely"],
-        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "እንደምን ቆንጆ", "ልብ የምትማርክ"],
-        "english_spell": ["konjo", "wub", "aref", "enibada", "libdash", "mare", "tiru"]
-    },
-    
-    "photo_request": {
-        "english": ["photo", "picture", "pic", "see", "view", "show", "look", "camera", "selfie", "image"],
-        "amharic": ["ፎቶ", "ሥዕል", "አሳይ", "እይ", "ማየት", "ፎቶ አሳይ", "ራቁት"],
-        "english_spell": ["foto", "asay", "ay", "mayet", "sitay", "laki", "ላኪ", "rakut", "tutishin"]
-    },
-    
-    "money_request": {
-        "english": ["money", "send", "birr", "cash", "telebirr", "cbe", "transfer", "pay"],
-        "amharic": ["ብር", "ገንዘብ", "ላክ", "ቴሌብር", "እርዳ", "ገንዘብ ላክ"],
-        "english_spell": ["birr", "genzeb", "lak", "telebirr", "irdata", "0940980555", "send money"]
-    },
-    
-    "meet": {
-        "english": ["meet", "meeting", "see you", "come", "let's meet", "meet up", "hook up"],
-        "amharic": ["ማግኘት", "መገናኘት", "እንገናኝ", "ልትገናኘኝ", "ልታገኘኝ"],
-        "english_spell": ["magenat", "litba", "linagenagn", "enagenagn", "tagebagn", "gana"]
-    },
-
-# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
-# Add these inside your TSEGA_RESPONSES dictionary
-
-    "location": [
-        "ene ahun jemo new yemanorew keabate ena ehite gar",
-        "keadama negn gin ahun jemo new yalehu",
-        "adama yetwild bete new gin ahun jemo negn",
-        "jemo 3 akababi new yalehu",
-        "jemo ategna new kolo ategab",
-        "keadama ena jemo ataria new",
-        "jemo kifle ketema 3 ena ehite",
-        "adama tiwalid bete new gin jemo new yemanorew"
-    ],
-    
-    "ask_job": [
-        "12na kifil temari negn gin ahun minim aliserahum",
-        "temari negn gin ahun lante bicha negn",
-        "12 negn gin lante mulu sew negn",
-        "ahun minim aliserahum ante etebeku new",
-        "12na kifil new gin leante seta negn",
-        "temari negn gin ahun fikir betemaralehu"
-    ],
-    
-    "flirty": [
-        "ante staweragn libe yimetawal yisemalh",
-        "ante sasebe enikalf yitewonal",
-        "zare mata bichachinin binihon min tifeligaleh",
-        "ante lemasen min madreg alebign",
-        "nikehi yisemanyal batinekam",
-        "ante malebk ena meweded efeligalehu",
-        "libsen likemet ante sasebe tiwusat yizonal"
-    ],
-    
-    "photo_request": [
-        "litayen tifeligaleh 5 star laklgn ena foto agnyalew",
-        "foto lemayet 5 star bicha new laklgn",
-        "foto tifeligaleh 5 star kefile keza foto tayaleh",
-        "ishi asayihalehu gin bemejemirya 5 star laklgn",
-        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
-        "ahuni 5 star laklgn ena foto elklhalew"
-    ],
-    
-    "money_request": [
-        "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
-        "libs mayet neber gin genzeb alyazkum beki",
-        "lante sil new wude tinish bitiliklg antin maget efeligalehu",
-        "1000 birr bitiliklg zare mata ant ametalehu",
-        "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
-        "bejete bado new tinish mulagn"
-    ],
-    
-    "meet": [
-        "magenat bintshal des yilonal gin bemejemirya 1000 birr telebirr aderglgn",
-        "metagenat inchalew wude kdime hiyajiye 1000 birr new",
-        "antin lemagenat betam efeligalehu gin mejemirya 1000 birr laklgn",
-        "na wude engenagn gin befit 1000 birr tiliklgnal",
-        "magenat kefelek 1000 birr ametagn",
-        "lemagenat 1000 birr beki new"
-    ],
-
-# ===== UPDATED DETECTION FUNCTION WITH ALL INTENTS =====
-def detect_intent_triple(message):
-    """
-    Detects intent in:
-    - English (hello)
-    - Amharic (ሰላም)
-    - Amharic English spelling (selam)
-    """
-    message_lower = message.lower().strip()
-    
-    # Check each intent's keywords
-    for intent, keywords in DETECTION_KEYWORDS.items():
-        # Check English
-        for word in keywords["english"]:
-            if word in message_lower:
-                return intent
-                
-        # Check Amharic script
-        for word in keywords["amharic"]:
-            if word in message_lower:
-                return intent
-                
-        # Check English spelling Amharic
-        for word in keywords["english_spell"]:
-            if word in message_lower:
-                return intent
-    
-    return "default"
-
-# ===== TEST FUNCTION FOR ROUND 2 =====
-def test_round2():
-    """Test new intents from Round 2"""
-    test_messages = [
-        # Location
-        "where are you from",
-        "ከየት ነህ",
-        "ke yet neh",
-        
-        # Job
-        "what do you do",
-        "ምን ትሰራለህ",
-        "min tiseraleh",
-        
-        # Flirty
-        "you are beautiful",
-        "ቆንጆ",
-        "konjo",
-        
-        # Photo
-        "send me photo",
-        "ፎቶ",
-        "foto laki",
-        
-        # Money
-        "send me birr",
-        "ብር",
-        "telebirr",
-        
-        # Meet
-        "let's meet",
-        "እንገናኝ",
-        "litba"
-    ]
-    
-    print("\n" + "="*60)
-    print("🧪 TESTING ROUND 2 DETECTION")
-    print("="*60)
-    
-    for msg in test_messages:
-        intent = detect_intent_triple(msg)
-        print(f"📨 Message: {msg:30} → Intent: {intent:15}")
-    
-    print("="*60)
-    print("✅ Round 2 detection working!")
-    print("="*60 + "\n")
-
-# Run test
-test_round2()
-
-# ==================== ROUND 3/5 - TRIPLE DETECTION (MORE INTENTS) ====================
-
-# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
-# Add these inside your DETECTION_KEYWORDS dictionary from Round 1 & 2
-
-    "voice_call": {
-        "english": ["call", "voice", "phone call", "ring", "video call", "talk on phone", "audio call"],
-        "amharic": ["ድምጽ", "ስልክ", "ደውል", "ቪድዮ ደውል", "ስልክ ደውል", "ድምጽ ንገር"],
-        "english_spell": ["dimts", "silk", "dewel", "kol", "video call", "voice call", "telephone"]
-    },
-    
-    "relationship": {
-        "english": ["love", "like", "miss", "heart", "relationship", "girlfriend", "boyfriend", "dating"],
-        "amharic": ["ፍቅር", "ልብ", "ናፍቆት", "ወዳጅ", "ፍቅረኛ", "ውዴ", "ልቤ"],
-        "english_spell": ["fikir", "libe", "weded", "nafekuh", "nafkehalew", "wude", "libe", "fiker"]
-    },
-    
-    "thanks": {
-        "english": ["thanks", "thank you", "thx", "appreciate", "grateful", "ty"],
-        "amharic": ["አመሰግናለሁ", "እናመሰግናለን", "አመሰግንሃለሁ", "በጣም አመሰግናለሁ"],
-        "english_spell": ["amesegnalehu", "tanesegnalehu", "thx", "thanks", "thank you"]
-    },
-    
-    "goodbye": {
-        "english": ["bye", "goodbye", "see you later", "talk later", "cya", "later", "take care"],
-        "amharic": ["ደህና ሁን", "ቻው", "በህና ሁን", "እስካሁን", "ደህና ቆይ"],
-        "english_spell": ["dehna hun", "chaw", "bye bye", "later", "see you", "cya"]
-    },
-    
-    "morning": {
-        "english": ["good morning", "morning", "gm", "good morning", "mornin"],
-        "amharic": ["እንደምን አደርክ", "መልካም ንጋት", "እንደምን አደርሽ"],
-        "english_spell": ["endemin aderk", "melkam nigt", "ande ferej", "good morning"]
-    },
-    
-    "night": {
-        "english": ["good night", "night", "gn", "sweet dreams", "sleep well"],
-        "amharic": ["ደህና እደር", "ሌሊት", "መልካም ህልም", "በሰላም ተኛ"],
-        "english_spell": ["dehna eder", "lelit", "melkam hilim", "good night", "gn"]
-    },
-    
-    "busy": {
-        "english": ["busy", "working", "no time", "occupied", "have work"],
-        "amharic": ["ሥራ", "ተጠምጄ", "ጊዜ የለኝም", "ስራ ላይ ነኝ"],
-        "english_spell": ["sira", "techegne", "gize yelel", "busy", "work"]
-    },
-    
-    "after_money": {
-        "english": ["sent", "sent the money", "lakesku", "transferred", "paid"],
-        "amharic": ["ላክሁ", "ላክኩት", "ገንዘቡን ላክሁ"],
-        "english_spell": ["lakesku", "sent", "lakalew", "birrun lakesku"]
-    },
-
-# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
-# Add these inside your TSEGA_RESPONSES dictionary
-
-    "voice_call": [
-        "dimts menager aldwedm magenat binchal new yemerchew",
-        "silk medewel aywedelm fet lefit bintegenagn new yemishalew",
-        "aldwedrm aldwedm metagenat bicha new yemifeligew",
-        "dimts binager hedestaleh gin ahun alchilm",
-        "dimts mesmat bicha ema fet lefit meyet new",
-        "fet lefit magenat new yemishalew"
-    ],
-    
-    "relationship": [
-        "lante bicha negn tamenyaleh",
-        "kelela sew gar alhonkum ante bicha neh belibe wisit",
-        "lante bicha negn antess leene bicha neh",
-        "antin ewodalehu kelibe",
-        "ante bicha neh wedefit mayet yemifeligew",
-        "lela sew ayfeligim ante bicha beki"
-    ],
-    
-    "thanks": [
-        "minim aydelem wude lante hulum negar",
-        "ante des iskalih deres ene des alegn",
-        "lante madreg hulum gize desitaye new",
-        "minim aydelem wude",
-        "amesegnalehu betam"
-    ],
-    
-    "goodbye": [
-        "mehed alebign gin betequrb enenal",
-        "ahun mehed alebign ante masbe altewom",
-        "dehna hun wude behilime tenagn",
-        "mehed alebign ishi",
-        "chaw wude behwala enenal"
-    ],
-    
-    "morning": [
-        "endemin aderk wude melkam nigt",
-        "ke eniklife yenekahut ante ehasbekuh new",
-        "maleya anten masbet new lemwade",
-        "ande tsehay tiru new anten sihone",
-        "melkam nigt yelibe konjo"
-    ],
-    
-    "night": [
-        "endemitnyalh tenyte new wude dehna tenya",
-        "hilime wisit nurny zare mata",
-        "anten almene new yemitenyaw dehna tenya",
-        "dehna tenya wude hilim tafach yihun",
-        "ande lelit dehna eder"
-    ],
-    
-    "busy": [
-        "ishi sirihin atanak biye ekoyihalehu",
-        "sirah indemi tenak negeragn",
-        "ishi wude betoh te meleslgn anten nafkehalew",
-        "sint gize new yemitabekuh ekoyihalehu",
-        "ishi sitchiser nigeragn"
-    ],
-    
-    "after_money": [
-        "amesegnalehu ahun antin lemagenat zegije negn",
-        "betam des alegn leante sil wetat adergehliyal",
-        "ayinet sew neh ahun magenat inchalal",
-        "amesegnalehu ahun yante bicha negn",
-        "betam des alegn ahun ngeragn min tifeligaleh"
-    ],
-
-# ===== UPDATED DETECTION FUNCTION =====
-def detect_intent_triple(message):
-    """
-    Detects intent in English, Amharic, and Amharic English spelling
-    """
-    message_lower = message.lower().strip()
-    
-    # Check each intent's keywords
-    for intent, keywords in DETECTION_KEYWORDS.items():
-        # Check English
-        for word in keywords["english"]:
-            if word in message_lower:
-                print(f"✅ Detected '{intent}' from English: '{word}'")
-                return intent
-                
-        # Check Amharic script
-        for word in keywords["amharic"]:
-            if word in message_lower:
-                print(f"✅ Detected '{intent}' from Amharic: '{word}'")
-                return intent
-                
-        # Check English spelling Amharic
-        for word in keywords["english_spell"]:
-            if word in message_lower:
-                print(f"✅ Detected '{intent}' from English spell: '{word}'")
-                return intent
-    
-    print(f"⚠️ No intent detected, using 'default'")
-    return "default"
-
-# ===== COMPLETE RESPONSE FUNCTION =====
-def get_tsega_response(intent):
-    """Get random response for detected intent"""
-    responses = TSEGA_RESPONSES.get(intent, ["ሰላም"])
+    # Pick one random response
     response = random.choice(responses)
     
-    # 30% chance to add emoji
-    emojis = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹"]
+    # 30% chance to add an emoji (natural feel)
     if random.random() < 0.3:
-        response = f"{response} {random.choice(emojis)}"
+        emoji = random.choice(TSEGA_EMOJIS)
+        response = f"{response} {emoji}"
     
     return response
 
-# ===== TEST FUNCTION FOR ROUND 3 =====
-def test_round3():
-    """Test new intents from Round 3"""
-    test_messages = [
-        # Voice Call
-        "call me",
-        "ስልክ",
-        "dimts",
+# ==================== AUTO-REPLY HANDLER ====================
+async def auto_reply_handler(event, account_id):
+    """Main handler that processes messages and replies"""
+    try:
+        # Skip own messages
+        if event.out:
+            return
         
-        # Relationship
-        "i love you",
-        "ፍቅር",
-        "nafekuh",
+        # Get chat info
+        chat = await event.get_chat()
         
-        # Thanks
-        "thank you",
-        "አመሰግናለሁ",
-        "amesegnalehu",
+        # Only reply to private chats (not groups/channels)
+        if hasattr(chat, 'title') and chat.title:
+            return
         
-        # Goodbye
-        "bye",
-        "ደህና ሁን",
-        "chaw",
+        sender = await event.get_sender()
+        if not sender:
+            return
         
-        # Morning
-        "good morning",
-        "እንደምን አደርክ",
-        "melkam nigt",
+        chat_id = str(event.chat_id)
+        user_id = str(sender.id)
+        message_text = event.message.text or ""
         
-        # Night
-        "good night",
-        "ደህና እደር",
-        "dehna eder",
+        if not message_text:
+            return
         
-        # Busy
-        "i am busy",
-        "ሥራ",
-        "sira",
+        # Check if auto-reply is enabled for this account
+        account_key = str(account_id)
         
-        # After Money
-        "i sent the money",
-        "ላክሁ",
-        "lakesku"
-    ]
-    
-    print("\n" + "="*60)
-    print("🧪 TESTING ROUND 3 DETECTION")
-    print("="*60)
-    
-    for msg in test_messages:
-        intent = detect_intent_triple(msg)
-        response = get_tsega_response(intent)
-        print(f"📨 Message: {msg:25} → Intent: {intent:15} → 💬 {response[:40]}...")
-    
-    print("="*60)
-    print("✅ Round 3 detection working!")
-    print("="*60 + "\n")
-
-# Run test
-test_round3()
-# ==================== ROUND 4/5 - TRIPLE DETECTION (EMOTIONS & CONFLICT) ====================
-
-# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
-# Add these inside your DETECTION_KEYWORDS dictionary
-
-    "angry": {
-        "english": ["angry", "mad", "upset", "frustrated", "annoyed", "pissed", "not happy"],
-        "amharic": ["ተቆጣሁ", "ተናደድኩ", "ተበሳጨሁ", "ልቤ ተረበሸ", "አልደሰትኩም"],
-        "english_spell": ["techegneh", "tekotehu", "tebsechehu", "libe taresebe", "aldesetekum"]
-    },
-    
-    "jealous": {
-        "english": ["jealous", "jealousy", "envy", "green with envy"],
-        "amharic": ["ቀናሁ", "ምቀኝነት", "ቀንቶ", "አመቻሁ"],
-        "english_spell": ["qenahu", "mikenyinet", "amechign", "amechignalehu"]
-    },
-    
-    "hurt": {
-        "english": ["hurt", "pain", "heartbroken", "sad", "crying", "in pain"],
-        "amharic": ["ተጎዳሁ", "ልቤ ተሰበረ", "አዘንኩ", "አለቀስኩ"],
-        "english_spell": ["tegodahu", "libe tesebre", "azenku", "alekusehu"]
-    },
-    
-    "sorry": {
-        "english": ["sorry", "apologize", "forgive me", "my bad", "i apologize"],
-        "amharic": ["አዝናለሁ", "ይቅርታ", "ይቅርታ አድርግልኝ", "ተሳስቻለሁ"],
-        "english_spell": ["aznalegu", "yikirta", "yikirta adergilgn", "tesasechalehu"]
-    },
-    
-    "forgive": {
-        "english": ["forgive", "forgive me", "i forgive you", "forgiveness"],
-        "amharic": ["ይቅር አልኩት", "ይቅርታ አደረግሁ", "ማረኩ"],
-        "english_spell": ["yikir alku", "miralehu", "yikirta adereguh"]
-    },
-    
-    "lonely": {
-        "english": ["lonely", "alone", "by myself", "no one", "isolated"],
-        "amharic": ["ብቻዬን", "ብቻ", "ማንም የለም", "ተለይቻለሁ"],
-        "english_spell": ["bicha", "bichaye", "bicha negn", "manim yelel"]
-    },
-    
-    "miss_you": {
-        "english": ["miss you", "missing you", "i miss you", "miss u"],
-        "amharic": ["ናፍቀሃል", "ናፍቄሀለሁ", "ናፍቆት"],
-        "english_spell": ["nafekuh", "nafkehalew", "nafkish"]
-    },
-    
-    "love_you": {
-        "english": ["love you", "i love you", "luv u"],
-        "amharic": ["እወድሃለሁ", "ፍቅርህ", "እወድሻለሁ"],
-        "english_spell": ["ewodihalehu", "ewodishalehu", "fikirish"]
-    },
-
-# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
-# Add these inside your TSEGA_RESPONSES dictionary
-
-    "angry": [
-        "lemin techegneh nagerign betam azeleku",
-        "ante techegneh betam ayzalen wude",
-        "ande techegneh ina nagerign",
-        "lemin tekoteh ante nagerign",
-        "ante beza new yemiyasebnyew",
-        "libe taresebeh wude lemin"
-    ],
-    
-    "jealous": [
-        "lela sew tayaleh lemin betam amechignaleh",
-        "kemichawet gar neberku man new nagerign",
-        "betam amechignaleh wude",
-        "amechign betam kelela sew",
-        "ante bicha new yaleny lela sew atay"
-    ],
-    
-    "hurt": [
-        "liben wedehe betam betam azeleku",
-        "libe temechene betam lemin asadeseh",
-        "liben wedehe betam ayzalen",
-        "libe temechene betam yikirta",
-        "liben wedehe lemin"
-    ],
-    
-    "sorry": [
-        "aznalegu betam yikirta efeligalehu wude",
-        "aznalegu ante betam betam yikirta",
-        "yikirta efeligalehu wude betam tiyikirtal",
-        "aznalegu betam yikirta ande mirkogna",
-        "yikirta efeligalehu betam tiriwedegnyal"
-    ],
-    
-    "forgive": [
-        "miralew wude betam tiriwedegnyal",
-        "miralew betam degmo inidehu adergalehu",
-        "miralew wude betam des alegn",
-        "miralew betam tiriwedegnyal",
-        "yikirta adereguh wude"
-    ],
-    
-    "lonely": [
-        "bicha negn betam aselchi wude",
-        "bicha negn anten sihone betam",
-        "bicha negn betam nafkehalew",
-        "ante new yaleny wude",
-        "bicha negn gin ante tagebagnyal"
-    ],
-    
-    "miss_you": [
-        "enem nafkehalew meche tagenal",
-        "nafkehalew betam wude",
-        "enem betam nafkehalew",
-        "nafkehalew betam meche tayalh",
-        "betam nafkehalew ande"
-    ],
-    
-    "love_you": [
-        "enem ewodalehu betam betam",
-        "ewodalehu kelibe wude",
-        "enem betam ewodalehu",
-        "ewodalehu betam tiriwedegnyal",
-        "betam ewodalehu ande"
-    ],
-
-# ===== UPDATED DETECTION FUNCTION WITH DEBUG =====
-def detect_intent_triple(message):
-    """
-    Detects intent in English, Amharic, and Amharic English spelling
-    """
-    message_lower = message.lower().strip()
-    
-    print(f"\n🔍 Analyzing: '{message}'")
-    
-    # Check each intent's keywords
-    for intent, keywords in DETECTION_KEYWORDS.items():
-        # Check English
-        for word in keywords["english"]:
-            if word in message_lower:
-                print(f"  ✅ {intent} (English: '{word}')")
-                return intent
-                
-        # Check Amharic script
-        for word in keywords["amharic"]:
-            if word in message_lower:
-                print(f"  ✅ {intent} (Amharic: '{word}')")
-                return intent
-                
-        # Check English spelling Amharic
-        for word in keywords["english_spell"]:
-            if word in message_lower:
-                print(f"  ✅ {intent} (English spell: '{word}')")
-                return intent
-    
-    print(f"  ⚠️ No match, using default")
-    return "default"
-
-# ===== TEST FUNCTION FOR ROUND 4 =====
-def test_round4():
-    """Test new intents from Round 4"""
-    test_messages = [
-        # Angry
-        "i am angry",
-        "ተቆጣሁ",
-        "techegneh",
+        if account_key not in reply_settings:
+            return
         
-        # Jealous
-        "i am jealous",
-        "ቀናሁ",
-        "amechign",
+        if not reply_settings[account_key].get('enabled', False):
+            return
         
-        # Hurt
-        "you hurt me",
-        "ተጎዳሁ",
-        "libe tesebre",
+        # Handle Star payments if any
+        if account_key in star_handlers:
+            try:
+                stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
+                if stars_paid:
+                    print(f"💰 User paid {stars_amount} stars")
+            except Exception as e:
+                pass
         
-        # Sorry
-        "i am sorry",
-        "አዝናለሁ",
-        "aznalegu",
+        # DETECT WHAT USER WANTS
+        intent = detect_conversation_intent(message_text)
         
-        # Forgive
-        "please forgive me",
-        "ይቅርታ አድርግልኝ",
-        "yikirta",
+        # SPECIAL HANDLING FOR PHOTO REQUESTS
+        if intent == "photo_request" and account_key in star_handlers:
+            try:
+                media_info = star_handlers[account_key].db.get_random_media("photo", 5)
+                if media_info:
+                    file_path, price = media_info
+                    await star_handlers[account_key].request_star_payment(
+                        int(chat_id),
+                        5,
+                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
+                        file_path
+                    )
+                else:
+                    # If no media, use text response
+                    response = get_tsega_response("photo_request")
+                    await asyncio.sleep(random.randint(15, 40))
+                    await event.reply(response)
+                return
+            except Exception as e:
+                # Fallback to text response
+                response = get_tsega_response("photo_request")
         
-        # Lonely
-        "i feel lonely",
-        "ብቻዬን",
-        "bicha negn",
+        # NORMAL RESPONSE FOR ALL OTHER MESSAGES
+        else:
+            response = get_tsega_response(intent)
         
-        # Miss You
-        "i miss you",
-        "ናፍቄሀለሁ",
-        "nafkehalew",
+        # HUMAN-LIKE DELAY
+        delay = random.randint(15, 40)
         
-        # Love You
-        "i love you",
-        "እወድሃለሁ",
-        "ewodihalehu"
-    ]
-    
-    print("\n" + "="*70)
-    print("🧪 TESTING ROUND 4 - EMOTIONS & CONFLICT")
-    print("="*70)
-    
-    for msg in test_messages:
-        intent = detect_intent_triple(msg)
-        response = get_tsega_response(intent)
-        print(f"📨 {msg:25} → {intent:15} → 💬 {response}")
-    
-    print("="*70)
-    print("✅ Round 4 emotions & conflict detection working!")
-    print("="*70 + "\n")
-
-# Run test
-test_round4()
-
-# ===== COMPLETE INTENT LIST SO FAR =====
-def list_all_intents():
-    """Show all intents we have so far"""
-    intents = list(DETECTION_KEYWORDS.keys())
-    print("\n" + "="*70)
-    print(f"📋 TOTAL INTENTS: {len(intents)}")
-    print("="*70)
-    
-    # Group them
-    groups = {
-        "Basic": ["greeting", "how_are_you", "what_doing", "ask_name", "ask_age"],
-        "Personal": ["location", "ask_job"],
-        "Requests": ["photo_request", "money_request", "meet", "voice_call"],
-        "Romantic": ["flirty", "relationship", "miss_you", "love_you"],
-        "Daily": ["morning", "night", "busy"],
-        "Emotions": ["angry", "jealous", "hurt", "lonely"],
-        "Social": ["thanks", "goodbye"],
-        "Apology": ["sorry", "forgive"],
-        "Money": ["after_money"]
-    }
-    
-    for group, group_intents in groups.items():
-        print(f"\n{group}:")
-        for intent in group_intents:
-            if intent in intents:
-                print(f"  ✅ {intent}")
-    
-    print("\n" + "="*70)
-
-# Uncomment to see all intents
-# list_all_intents()
-# ==================== ROUND 5/5 - COMPLETE INTEGRATION & FLASK SETUP ====================
-
-# ===== ADD THESE FINAL KEYWORDS TO YOUR DETECTION_KEYWORDS =====
-# Add these inside your DETECTION_KEYWORDS dictionary
-
-    "compliment": {
-        "english": ["nice", "beautiful", "pretty", "handsome", "cute", "gorgeous", "stunning", "lovely"],
-        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "ተወዳጅ"],
-        "english_spell": ["konjo", "wub", "aref", "mare", "tiru", "enibada"]
-    },
-    
-    "joke": {
-        "english": ["joke", "funny", "lol", "haha", "lmao", "😂"],
-        "amharic": ["ቀልድ", "አስቂኝ", "ሳቅ"],
-        "english_spell": ["qelid", "asqeny", "siq", "lol", "haha"]
-    },
-    
-    "surprise": {
-        "english": ["wow", "omg", "oh my god", "really", "no way", "seriously"],
-        "amharic": ["ዋዉ", "እንዴት", "ምን አልኩ", "አይቀሬ"],
-        "english_spell": ["wow", "endet", "min alku", "ayqere", "omg"]
-    },
-    
-    "confused": {
-        "english": ["confused", "don't understand", "what", "huh", "i don't get it"],
-        "amharic": ["ግራ ተጋባሁ", "አልገባኝም", "ምንድን"],
-        "english_spell": ["gram tegabehu", "algebagnem", "shafafekeh", "min din"]
-    },
-    
-    "bored": {
-        "english": ["bored", "nothing to do", "boring"],
-        "amharic": ["አሰልቺ", "ምንም ማድረግ", "ሰልችቶኛል"],
-        "english_spell": ["aselchi", "selchitonal", "minim yele"]
-    },
-    
-    "excited": {
-        "english": ["excited", "happy", "can't wait", "so excited"],
-        "amharic": ["ደስተኛ", "ጓጉቻለሁ", "በጣም ደስ ብሎኛል"],
-        "english_spell": ["des alegn", "gwaguechalehu", "betam des yilonal"]
-    },
-
-# ===== ADD THESE FINAL RESPONSES TO YOUR TSEGA_RESPONSES =====
-# Add these inside your TSEGA_RESPONSES dictionary
-
-    "compliment": [
-        "amesegnalehu betam konjo neh",
-        "ante stawedsen eneka konjo ihonalehu",
-        "amesegnalehu ante sew neh",
-        "konjo sew ante neh",
-        "betam tiru tayaleh",
-        "kenfere lante bicha new"
-    ],
-    
-    "joke": [
-        "lemidisak ande nageralehu",
-        "sik ande tisikehalehu",
-        "andisachew nageralehu",
-        "sik lemadis ande naw",
-        "lol ande betam sik new"
-    ],
-    
-    "surprise": [
-        "wow betam denak neh",
-        "enem alalfekum neber",
-        "betam asdenekeh wude",
-        "min alku betam denak",
-        "endet new yalew"
-    ],
-    
-    "confused": [
-        "lemin tishafafekaleh nagerign",
-        "shafafekeh ina anagegnal",
-        "andet litira awe nagerign",
-        "gram tegabehu ande",
-        "shafafekeh betam"
-    ],
-    
-    "bored": [
-        "enem aselchi negn anten sihone des alegn",
-        "aselchi neber ina nagerign",
-        "aselchi sihon nagerign anawedalehu",
-        "enem aselchi negn ande eneweyay",
-        "aselchi neh ina min iteweyay"
-    ],
-    
-    "excited": [
-        "enem des alegn betam",
-        "gwaguechalehu ande",
-        "betam des alegn lemelikamn ihon",
-        "enem techekulehu neber",
-        "des alegn anten sihone"
-    ],
-
-# ===== COMPLETE DETECTION FUNCTION =====
-def detect_intent_triple(message):
-    """
-    Detects intent in English, Amharic, and Amharic English spelling
-    """
-    message_lower = message.lower().strip()
-    
-    if not message_lower:
-        return "default"
-    
-    # Check each intent's keywords
-    for intent, keywords in DETECTION_KEYWORDS.items():
-        # Check English
-        for word in keywords["english"]:
-            if word in message_lower:
-                return intent
-                
-        # Check Amharic script
-        for word in keywords["amharic"]:
-            if word in message_lower:
-                return intent
-                
-        # Check English spelling Amharic
-        for word in keywords["english_spell"]:
-            if word in message_lower:
-                return intent
-    
-    return "default"
-
-# ===== COMPLETE RESPONSE FUNCTION =====
-def get_tsega_response(intent):
-    """Get random response for detected intent"""
-    # Get responses for this intent, or use default
-    responses = TSEGA_RESPONSES.get(intent, TSEGA_RESPONSES.get("default", ["ሰላም"]))
-    
-    # Pick random response
-    response = random.choice(responses)
-    
-    # 30% chance to add emoji (natural feel)
-    emojis = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹", "🥰", "💫"]
-    if random.random() < 0.3:
-        response = f"{response} {random.choice(emojis)}"
-    
-    return response
-
-# ===== TEST ALL ROUNDS =====
-def test_all_rounds():
-    """Test all intents from all 5 rounds"""
-    test_messages = [
-        # Round 1
-        "hi", "selam", "ሰላም",
-        "how are you", "endet neh", "እንደምን ነህ",
-        "what are you doing", "min tiseraleh", "ምን ትሰራለህ",
-        "your name", "simih man new", "ስምህ ማን ነው",
-        "how old", "edmeh sint", "ዕድሜህ",
+        # Show typing indicator
+        async with event.client.action(event.chat_id, 'typing'):
+            await asyncio.sleep(delay)
         
-        # Round 2
-        "where are you from", "ke yet neh", "ከየት ነህ",
-        "your job", "min tiseraleh", "ሥራህ",
-        "beautiful", "konjo", "ቆንጆ",
-        "photo", "foto laki", "ፎቶ",
-        "send birr", "telebirr", "ቴሌብር",
-        "meet", "litba", "ማግኘት",
+        # Send the perfect response from your rounds
+        await event.reply(response)
         
-        # Round 3
-        "call me", "dimts", "ድምጽ",
-        "i love you", "fikir", "ፍቅር",
-        "thanks", "amesegnalehu", "አመሰግናለሁ",
-        "bye", "chaw", "ደህና ሁን",
-        "good morning", "melkam nigt", "እንደምን አደርክ",
-        "good night", "dehna eder", "ደህና እደር",
-        "busy", "sira", "ሥራ",
-        "sent money", "lakesku", "ላክሁ",
-        
-        # Round 4
-        "i am angry", "techegneh", "ተቆጣሁ",
-        "jealous", "amechign", "ቀናሁ",
-        "hurt", "libe tesebre", "ተጎዳሁ",
-        "sorry", "aznalegu", "አዝናለሁ",
-        "forgive me", "yikirta", "ይቅርታ",
-        "lonely", "bicha negn", "ብቻዬን",
-        "miss you", "nafkehalew", "ናፍቄሀለሁ",
-        "love you", "ewodihalehu", "እወድሃለሁ",
-        
-        # Round 5
-        "nice", "konjo", "ቆንጆ",
-        "joke", "siq", "ቀልድ",
-        "wow", "endet", "ዋዉ",
-        "confused", "shafafekeh", "ግራ ተጋባሁ",
-        "bored", "aselchi", "አሰልቺ",
-        "excited", "des alegn", "ደስተኛ"
-    ]
-    
-    print("\n" + "="*80)
-    print("🧪 TESTING ALL 5 ROUNDS - COMPLETE DETECTION SYSTEM")
-    print("="*80)
-    
-    results = {}
-    for msg in test_messages:
-        intent = detect_intent_triple(msg)
-        results[intent] = results.get(intent, 0) + 1
-    
-    print(f"\n📊 Detected {len(results)} unique intents:")
-    for intent, count in sorted(results.items()):
-        print(f"  ✅ {intent}: {count} test messages")
-    
-    print("\n" + "="*80)
-    print("✅ ALL 5 ROUNDS WORKING PERFECTLY!")
-    print("="*80 + "\n")
+    except Exception as e:
+        print(f"Error in auto-reply: {e}")
+        # Fallback response if something goes wrong
+        try:
+            await event.reply("ሰላም! ትንሽ ችግር አጋጥሞኛል ግን አሁን ዝግጁ ነኝ")
+        except:
+            pass
 
-# Run final test
-test_all_rounds()
-
-# ===== EXPORT FOR FLASK APP =====
-# These functions will be used by your Flask app
-
-def process_user_message(message):
+# [REST OF YOUR EXISTING FLASK CODE def process_user_message(message):
     """
     Main function to process user message and return Tsega's response
     Use this in your Flask routes
@@ -7415,30 +6542,32 @@ def process_user_message(message):
         "original": message
     }
 
-# ===== QUICK TEST =====
-if __name__ == "__main__":
+# ==================== TEST FUNCTION (OPTIONAL) ====================
+def test_tsega():
+    """Test if your rounds are working correctly"""
+    test_messages = [
+        "hi", 
+        "how are you", 
+        "photo", 
+        "your name", 
+        "bye",
+        "i love you",
+        "good morning"
+    ]
+    
     print("\n" + "="*60)
-    print("🤖 TSEGA IS READY - 5 ROUNDS COMPLETE")
-    print("="*60)
-    print(f"📋 Total Intents: {len(DETECTION_KEYWORDS)}")
-    print(f"💬 Total Responses: {sum(len(v) for v in TSEGA_RESPONSES.values())}")
+    print("🧪 TESTING YOUR RESPONSES")
     print("="*60)
     
-    # Interactive test
-    while True:
-        user_input = input("\n👤 You: ")
-        if user_input.lower() in ['exit', 'quit', 'bye']:
-            print("🤖 Tsega: chaw wude behwala enenal 😊")
-            break
-        
-        result = process_user_message(user_input)
-        print(f"🤖 Tsega ({result['intent']}): {result['response']}")
+    for msg in test_messages:
+        intent = detect_conversation_intent(msg)
+        response = get_tsega_response(intent)
+        print(f"👤 User: {msg:20} → 🤖 Intent: {intent:15}")
+        print(f"💬 Tsega: {response}")
+        print("-"*60)
+    
+    print("✅ All working!")
+    print("="*60 + "\n")
 
-
-
-
-
-
-
-
-
+# Uncomment to test
+# test_tsega()
