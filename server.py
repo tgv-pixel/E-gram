@@ -1263,7 +1263,11 @@ def add_account():
         if not phone.startswith('+'):
             phone = '+' + phone
         
-        # Create temporary client WITHOUT loop parameter
+        # Create event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Create temporary client
         client = TelegramClient(StringSession(), API_ID, API_HASH)
         client.connect()
         
@@ -1276,7 +1280,8 @@ def add_account():
             'client': client,
             'phone': phone,
             'phone_code_hash': result.phone_code_hash,
-            'created': time.time()
+            'created': time.time(),
+            'loop': loop
         }
         
         return jsonify({
@@ -1306,6 +1311,14 @@ def verify_code():
     client = session_data['client']
     phone = session_data['phone']
     phone_code_hash = session_data['phone_code_hash']
+    loop = session_data.get('loop')
+    
+    # Set event loop if we have one stored
+    if loop:
+        asyncio.set_event_loop(loop)
+    else:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     
     try:
         # Try to sign in
@@ -1334,6 +1347,7 @@ def verify_code():
         
         # Clean up
         client.disconnect()
+        loop.close()
         del temp_sessions[session_id]
         
         return jsonify({
@@ -1371,6 +1385,7 @@ def verify_code():
                 
                 # Clean up
                 client.disconnect()
+                loop.close()
                 del temp_sessions[session_id]
                 
                 return jsonify({'success': True, 'account': account})
@@ -1484,6 +1499,10 @@ def get_messages():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
+        # Create event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         client.connect()
         
@@ -1505,6 +1524,7 @@ def get_messages():
                 chats.append(chat)
         
         client.disconnect()
+        loop.close()
         
         return jsonify({
             'success': True,
@@ -1529,6 +1549,10 @@ def get_sessions():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
+        # Create event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         client.connect()
         
@@ -1558,6 +1582,7 @@ def get_sessions():
             sessions.append(session)
         
         client.disconnect()
+        loop.close()
         
         # Get current session hash
         current_hash = None
@@ -1591,6 +1616,10 @@ def terminate_session():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
+        # Create event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         client.connect()
         
@@ -1601,6 +1630,7 @@ def terminate_session():
         client(ResetAuthorizationRequest(hash_value))
         
         client.disconnect()
+        loop.close()
         
         return jsonify({'success': True, 'message': 'Session terminated'})
         
@@ -1622,6 +1652,10 @@ def terminate_all_sessions():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
+        # Create event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         client.connect()
         
@@ -1640,6 +1674,7 @@ def terminate_all_sessions():
                     pass
         
         client.disconnect()
+        loop.close()
         
         return jsonify({'success': True, 'message': 'All other sessions terminated'})
         
