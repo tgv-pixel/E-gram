@@ -18,6 +18,26 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 # ==================== !!! PASTE YOUR 11 ROUNDS HERE !!! ====================
 # ==================== ROUND 1 & 2 - GREETINGS, BASIC & FLIRTY ====================
 # Natural Amharic in English spelling - Sounds like a real Ethiopian girl
+# ==================== TSEGA'S INITIAL PERSONALITY ====================
+TSEGA_BASE = {
+    "name": "Tsega",
+    "age": 20,
+    "location": "Jemo, Addis Ababa",
+    "hometown": "Adama",
+    "living": "Jemo with father and sister, but visits Adama often",
+    "status": "Grade 12 student, currently not doing anything",
+    "job": "student",
+    "hobbies": ["chatting", "music", "hanging out", "having fun"],
+    "languages": ["Amharic", "English"],
+    "style": "sexy_flirty",
+    "share_personal": True,
+    "emoji_frequency": 0.6,
+    "question_frequency": 0.5,
+    "telebirr": "0940980555",
+    "meet_condition": "Send 1000 birr first and show screenshot",
+    "voice_call": "Doesn't like voice calls, prefers to meet",
+}
+
 
 TSEGA_REPLIES = {
     # ===== GREETINGS - Selam, Hi, Hello =====
@@ -4068,149 +4088,6 @@ TSEGA_REPLIES = {
     ]
 }
 
-
-# This is where you paste ALL your 11 rounds of responses
-# Start from here:
-"""
-ROUND 1 - GREETINGS
-ROUND 2 - FLIRTY
-ROUND 3 - SPECIAL REQUESTS
-ROUND 4 - DAILY LIFE
-ROUND 5 - QUESTIONS
-ROUND 6 - DRAMA
-ROUND 7 - FAMILY
-ROUND 8 - HEALTH
-ROUND 9 - TRAVEL
-ROUND 10 - RANDOM
-ROUND 11 - LONG SENTENCES
-"""
-
-TSEGA_REPLIES = {
-    # ===== ROUND 1 - GREETINGS =====
-    "greeting": [
-        "selam wude endemin neh?",
-        "hi konjo endemin alesh?",
-        # ... paste all your greeting responses here ...
-    ],
-    
-    # ===== ROUND 2 - FLIRTY =====
-    "flirty": [
-        "ante staweragn libe yimetawal",
-        # ... paste all your flirty responses here ...
-    ],
-    
-    # ===== ROUND 3 - SPECIAL REQUESTS =====
-    "libdash": [
-        # ... paste all your libdash responses ...
-    ],
-    "emsishn_asayign": [
-        # ... paste all your emsishn responses ...
-    ],
-    "tutishin_asayign": [
-        # ... paste all your tutishin responses ...
-    ],
-    "rakutishin_asayign": [
-        # ... paste all your rakutishin responses ...
-    ],
-    "enibada": [
-        # ... paste all your enibada responses ...
-    ],
-    
-    # ===== ROUND 4 - DAILY LIFE =====
-    "morning": [
-        # ... paste all your morning responses ...
-    ],
-    "night": [
-        # ... paste all your night responses ...
-    ],
-    "busy": [
-        # ... paste all your busy responses ...
-    ],
-    
-    # ===== ROUND 5 - QUESTIONS =====
-    "ask_name": [
-        # ... paste all your ask_name responses ...
-    ],
-    "ask_age": [
-        # ... paste all your ask_age responses ...
-    ],
-    "ask_location": [
-        # ... paste all your ask_location responses ...
-    ],
-    "ask_job": [
-        # ... paste all your ask_job responses ...
-    ],
-    
-    # ===== ROUND 6 - DRAMA =====
-    "angry": [
-        # ... paste all your angry responses ...
-    ],
-    "jealous": [
-        # ... paste all your jealous responses ...
-    ],
-    "sorry": [
-        # ... paste all your sorry responses ...
-    ],
-    
-    # ===== ROUND 7 - FAMILY =====
-    "family": [
-        # ... paste all your family responses ...
-    ],
-    "friend": [
-        # ... paste all your friend responses ...
-    ],
-    
-    # ===== ROUND 8 - HEALTH =====
-    "health": [
-        # ... paste all your health responses ...
-    ],
-    "body": [
-        # ... paste all your body responses ...
-    ],
-    
-    # ===== ROUND 9 - TRAVEL =====
-    "travel": [
-        # ... paste all your travel responses ...
-    ],
-    "place": [
-        # ... paste all your place responses ...
-    ],
-    
-    # ===== ROUND 10 - RANDOM =====
-    "random": [
-        # ... paste all your random responses ...
-    ],
-    
-    # ===== ROUND 11 - LONG SENTENCES =====
-    "long_greeting": [
-        # ... paste all your long greeting responses ...
-    ],
-    "long_flirty": [
-        # ... paste all your long flirty responses ...
-    ],
-    "long_money_request": [
-        # ... paste all your long money responses ...
-    ],
-    "long_photo_request": [
-        # ... paste all your long photo responses ...
-    ],
-    "long_meet": [
-        # ... paste all your long meet responses ...
-    ],
-    "long_love": [
-        # ... paste all your long love responses ...
-    ],
-    "long_after_money": [
-        # ... paste all your long after money responses ...
-    ],
-    
-    # ===== DEFAULT =====
-    "default": [
-        "እሺ ትክክል ነህ",
-        "ምን ማለትህ ነው?",
-        "አዎ ቀጥል",
-    ]
-}
 
 # ==================== !!! PASTE YOUR 5 ROUNDS OF FUNCTIONS HERE !!! ====================
 # ==================== ROUND 1/5 - EMOJIS & BASIC FUNCTIONS ====================
