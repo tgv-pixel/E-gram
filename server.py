@@ -4177,7 +4177,7 @@ def get_tsega_response(intent):
     # ===== ASK NAME =====
     name_keywords = [
         # English
-        'your name', 'what is your name', 'what's your name', 'who are you',
+        'your name', 'what is your name', 'what is your name', 'who are you',
         'u call yourself', 'name please',
         
         # Amharic English spelling
