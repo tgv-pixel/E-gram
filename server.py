@@ -81,8 +81,8 @@ class StarConfig:
         100: "full/"
     }
     
-    REPLY_DELAY_MIN = 15
-    REPLY_DELAY_MAX = 40
+    REPLY_DELAY_MIN = 5
+    REPLY_DELAY_MAX = 15
     TRANSFER_STARS_TO_CHANNEL = True
 
 # ==================== STAR DATABASE ====================
@@ -286,7 +286,7 @@ class MediaManager:
         
         logger.info(f"✅ Media library indexed: {total} files")
 
-# ==================== STAR EARNING HANDLER WITH PAYMENT BUTTONS ====================
+# ==================== STAR EARNING HANDLER ====================
 
 class StarEarningHandler:
     def __init__(self, client):
@@ -445,7 +445,7 @@ class StarEarningHandler:
             logger.error(f"Error transferring stars: {e}")
             return False
 
-# ==================== TSEGA'S PERSONALITY - INSERT YOUR EXISTING CODE HERE ====================
+# ==================== TSEGA'S PERSONALITY - INSERT YOUR CODE HERE ====================
 
 # === PASTE YOUR EXISTING TSEGA AND TSEGA_REPLIES HERE ===
 TSEGA = {
@@ -468,25 +468,6 @@ TSEGA = {
 }
 
 # === PASTE YOUR FULL TSEGA_REPLIES DICTIONARY HERE ===
-TSEGA = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
-}
-
 TSEGA_REPLIES = {
     "greeting": [
         "ሰላም ወንድሜ 😘 እንደምን ነህ?",
@@ -532,10 +513,10 @@ TSEGA_REPLIES = {
         "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
     ],
     "photo_request": [
-        "ለአንተ ብቻ ልዩ ፎቶ አለኝ... 5 ⭐ ብትልክልኝ አሳይሃለሁ 😉",
-        "ፎቶዬን ማየት ትፈልጋለህ? 5 ⭐ ብቻ ነው!",
-        "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ አያለሁ ቆንጆዬን 😘",
-        "እሺ አሳይሃለሁ ግን በመጀመሪያ 5 ⭐ ላክልኝ!",
+        "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ እና ፎቶ አገኛለሁ! 🔥",
+        "ፎቶ ለማየት 5 ⭐ ብቻ ነው ውዴ! ላክልኝ እና አሳይሃለሁ 😘",
+        "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ ቆንጆ ፎቶዬን ታያለህ 💕",
+        "እሺ አሳይሃለሁ ግን በመጀመሪያ 5 ⭐ ላክልኝ! 📸",
     ],
     "flirty": [
         "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
@@ -597,7 +578,6 @@ TSEGA_REPLIES = {
     ]
 }
 
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -622,22 +602,17 @@ def detect_conversation_intent(message):
     """Detect intent from message"""
     message_lower = message.lower().strip()
     
-    # Print for debugging
-    print(f"🔍 detect_conversation_intent checking: '{message_lower}'")
-    
     # Photo keywords
     photo_keywords = [
         'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
         'image', 'camera', 'selfie', 'preview', 'full', 'pics', 'photos',
-        'nude', 'sexy', 'hot', 'body', 'lingerie', 'bikini', 'undress',
-        'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ', 'አካል', 'ፊት', 'ራቁት', 'ራቁቴን',
-        'send me', 'show me', 'let me see', 'can i see', 'ደርሰኝ', 'ላክልኝ', 'አሳየኝ',
-        'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki', 'picture send'
+        'nude', 'sexy', 'hot', 'body', 'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ',
+        'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ',
+        'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki'
     ]
     
     for keyword in photo_keywords:
         if keyword in message_lower:
-            print(f"✅ PHOTO INTENT DETECTED: '{keyword}'")
             return "photo_request"
     
     # Money keywords
@@ -645,13 +620,53 @@ def detect_conversation_intent(message):
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
-    # Rest of intent detection
-    if message_lower.startswith('/'):
-        return "command"
-    
+    # Greetings
     greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
         return "greeting"
+    
+    # How are you
+    how_are_you = ['how are you', 'how r u', 'how you doing', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ']
+    if any(phrase in message_lower for phrase in how_are_you):
+        return "how_are_you"
+    
+    # What doing
+    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'ምን ትሰራለህ']
+    if any(phrase in message_lower for phrase in what_doing):
+        return "what_doing"
+    
+    # Ask name
+    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን ነው', 'ስምስ']):
+        return "ask_name"
+    
+    # Ask age
+    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ', 'አመት']):
+        return "ask_age"
+    
+    # Location
+    location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ']
+    if any(phrase in message_lower for phrase in location_words):
+        return "ask_location"
+    
+    # Ask job
+    job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ']
+    if any(phrase in message_lower for phrase in job_words):
+        return "ask_job"
+    
+    # Flirty
+    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
+    if any(word in message_lower for word in flirty_words):
+        return "flirty"
+    
+    # Thanks
+    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
+    if any(word in message_lower for word in thanks_words):
+        return "thanks"
+    
+    # Goodbye
+    goodbye = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'ቻው']
+    if any(word in message_lower for word in goodbye):
+        return "goodbye"
     
     return "default"
 
@@ -884,57 +899,10 @@ def test_media():
         'database_count': db_count
     })
 
-@app.route('/api/test-photo-access', methods=['GET'])
-def test_photo_access():
-    """Test if photos are accessible"""
-    results = []
-    
-    # Check all photo folders
-    folders = [
-        'tsega_photos/preview',
-        'tsega_photos/full', 
-        'tsega_photos/premium',
-        'uploads'
-    ]
-    
-    for folder in folders:
-        if os.path.exists(folder):
-            files = os.listdir(folder)
-            results.append({
-                'folder': folder,
-                'exists': True,
-                'file_count': len(files),
-                'files': files[:10]
-            })
-        else:
-            results.append({
-                'folder': folder,
-                'exists': False
-            })
-    
-    # Check database
-    try:
-        conn = sqlite3.connect('stars.db')
-        c = conn.cursor()
-        c.execute("SELECT file_path, price_stars FROM media_library WHERE is_active = 1")
-        db_files = c.fetchall()
-        conn.close()
-        
-        db_results = [{'path': f[0], 'price': f[1]} for f in db_files]
-    except:
-        db_results = []
-    
-    return jsonify({
-        'success': True,
-        'folders': results,
-        'database': db_results,
-        'database_count': len(db_results)
-    })
-
-# ==================== FIXED AUTO-REPLY HANDLER ====================
+# ==================== FIXED AUTO-REPLY HANDLER - ALWAYS REPLIES ====================
 
 async def auto_reply_handler(event, account_id):
-    """Auto-reply handler"""
+    """FIXED AUTO-REPLY HANDLER - Always replies to all messages"""
     try:
         # Skip own messages
         if event.out:
@@ -956,7 +924,7 @@ async def auto_reply_handler(event, account_id):
         user_id = str(sender.id)
         message_text = event.message.text or ""
         
-        # Check if auto-reply is enabled
+        # Check if auto-reply is enabled for this account
         account_key = str(account_id)
         
         if account_key not in reply_settings:
@@ -965,7 +933,7 @@ async def auto_reply_handler(event, account_id):
         if not reply_settings[account_key].get('enabled', False):
             return
         
-        # Log star payment if any
+        # Log star payment if any (don't block)
         if account_key in star_handlers:
             try:
                 stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
@@ -976,8 +944,9 @@ async def auto_reply_handler(event, account_id):
         
         # Get intent
         intent = detect_conversation_intent(message_text)
+        print(f"Intent: {intent}")
         
-        # Handle photo requests
+        # Handle photo requests with payment buttons
         if intent == "photo_request":
             if account_key in star_handlers:
                 try:
@@ -988,7 +957,7 @@ async def auto_reply_handler(event, account_id):
                         await star_handlers[account_key].request_star_payment(
                             int(chat_id),
                             5,
-                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality\n200⭐ = premium pack",
+                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
                             file_path
                         )
                     else:
@@ -998,6 +967,7 @@ async def auto_reply_handler(event, account_id):
                             f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
                         )
                 except Exception as e:
+                    # Fallback to text
                     response = random.choice(TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"]))
                     await event.reply(response)
             else:
@@ -1006,7 +976,7 @@ async def auto_reply_handler(event, account_id):
             
             return
         
-        # Normal response
+        # For ALL other messages, ALWAYS reply
         response = get_context_aware_response(intent)
         
         # Human-like delay
@@ -1017,7 +987,7 @@ async def auto_reply_handler(event, account_id):
         await event.reply(response)
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in auto-reply: {e}")
 
 # ==================== START AUTO-REPLY FOR ACCOUNT ====================
 
@@ -1063,7 +1033,7 @@ def stop_auto_reply_for_account(account_id):
             loop.close()
             del active_clients[account_key]
         except Exception as e:
-            logger.error(f"Error stopping auto-reply: {e}")
+            pass
 
 def start_all_auto_replies():
     for account in accounts:
@@ -1089,18 +1059,8 @@ def keep_alive():
         try:
             requests.get(app_url, timeout=10)
             requests.get(f"{app_url}/api/health", timeout=10)
-            
-            for account_key, client in list(active_clients.items()):
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(client.get_me())
-                    loop.close()
-                except Exception as e:
-                    pass
-            
             time.sleep(240)
-        except Exception as e:
+        except:
             time.sleep(60)
 
 # ==================== PAGE ROUTES ====================
@@ -1689,12 +1649,6 @@ def upload_media():
         elif 'premium' in prefix:
             dest_folder = 'tsega_photos/premium'
             price = 200
-        elif 'video_preview' in prefix:
-            dest_folder = 'tsega_videos/preview'
-            price = 10
-        elif 'video_full' in prefix:
-            dest_folder = 'tsega_videos/full'
-            price = 100
         else:
             dest_folder = 'uploads'
             price = 5
@@ -1704,7 +1658,7 @@ def upload_media():
         
         shutil.copy2(file_path, dest_path)
         
-        media_type = 'video' if 'video' in prefix else 'photo'
+        media_type = 'photo'
         
         conn = sqlite3.connect('stars.db')
         c = conn.cursor()
@@ -1771,23 +1725,9 @@ def get_transactions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/update-price', methods=['POST'])
-def update_price():
-    try:
-        data = request.json
-        price_type = data.get('type')
-        new_price = data.get('price')
-        
-        return jsonify({'success': True, 'message': 'Price updated'})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# ==================== FIXED SEND PAID PHOTO API ====================
-
 @app.route('/api/send-paid-photo', methods=['POST'])
 def send_paid_photo():
-    """Send a photo with payment button to a specific chat - FIXED VERSION"""
+    """Send a photo with payment button to a specific chat"""
     try:
         data = request.json
         if not data:
@@ -1798,7 +1738,6 @@ def send_paid_photo():
         photo_path = data.get('photoPath')
         star_amount = data.get('starAmount', 5)
         
-        # Validate inputs
         if not account_id:
             return jsonify({'success': False, 'error': 'Account ID required'})
         if not chat_id:
@@ -1806,29 +1745,22 @@ def send_paid_photo():
         if not photo_path:
             return jsonify({'success': False, 'error': 'Photo path required'})
         
-        logger.info(f"📤 Sending paid photo request: account={account_id}, chat={chat_id}, path={photo_path}, stars={star_amount}")
-        
-        # Find account
         account = next((acc for acc in accounts if acc['id'] == account_id), None)
         if not account:
-            logger.error(f"Account {account_id} not found")
             return jsonify({'success': False, 'error': 'Account not found'})
         
         # Check if photo exists
         if not os.path.exists(photo_path):
-            # Try to find the file in different locations
+            # Try to find the file
             found_path = find_media_file(photo_path)
             if found_path:
                 photo_path = found_path
-                logger.info(f"Found photo at alternative path: {photo_path}")
             else:
-                logger.error(f"Photo not found at path: {photo_path}")
                 return jsonify({'success': False, 'error': 'Photo file not found'})
         
         async def send():
             client = None
             try:
-                # Create client
                 client = TelegramClient(
                     StringSession(account['session']), 
                     API_ID, 
@@ -1838,28 +1770,20 @@ def send_paid_photo():
                 )
                 
                 await client.connect()
-                logger.info(f"✅ Connected to Telegram for account {account_id}")
                 
-                # Check authorization
                 if not await client.is_user_authorized():
-                    logger.error(f"Account {account_id} not authorized")
                     return {'success': False, 'error': 'Account not authorized'}
                 
                 # Get entity
                 try:
-                    # Try as integer first
                     entity = await client.get_entity(int(chat_id))
                 except:
                     try:
-                        # Try as string
                         entity = await client.get_entity(str(chat_id))
                     except Exception as e:
-                        logger.error(f"Error getting entity for chat {chat_id}: {e}")
-                        return {'success': False, 'error': f'Chat not found: {str(e)}'}
+                        return {'success': False, 'error': f'Chat not found'}
                 
-                logger.info(f"✅ Got entity for chat {chat_id}")
-                
-                # Determine caption based on star amount
+                # Determine caption
                 if star_amount == 5:
                     caption = "🔒 **Preview Photo**\n\nUnlock this exclusive preview for 5 ⭐!\n\nTap below to unlock!"
                 elif star_amount == 50:
@@ -1870,7 +1794,7 @@ def send_paid_photo():
                     caption = f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!"
                 
                 # Send photo with payment button
-                result = await client.send_file(
+                await client.send_file(
                     entity,
                     photo_path,
                     caption=caption,
@@ -1881,27 +1805,9 @@ def send_paid_photo():
                     parse_mode='markdown'
                 )
                 
-                logger.info(f"✅ Photo sent successfully to {chat_id}")
-                
-                # Record in database
-                try:
-                    conn = sqlite3.connect('stars.db')
-                    c = conn.cursor()
-                    c.execute('''INSERT INTO star_transactions 
-                                (user_id, amount, transaction_type, description, timestamp)
-                                VALUES (?, ?, ?, ?, ?)''',
-                             (str(chat_id), 0, "offer_sent", f"Offered photo for {star_amount} stars", datetime.now()))
-                    conn.commit()
-                    conn.close()
-                except:
-                    pass
-                
                 return {'success': True, 'message': 'Photo sent with payment button'}
                 
             except Exception as e:
-                logger.error(f"Error sending photo: {e}")
-                import traceback
-                traceback.print_exc()
                 return {'success': False, 'error': str(e)}
             finally:
                 if client:
@@ -1910,7 +1816,6 @@ def send_paid_photo():
                     except:
                         pass
         
-        # Run the async function
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -1920,32 +1825,118 @@ def send_paid_photo():
             loop.close()
         
     except Exception as e:
-        logger.error(f"❌ Error in send_paid_photo: {e}")
-        import traceback
-        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/send-to-user', methods=['POST'])
+def send_to_user():
+    """Send photo to specific user by username/phone"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        target = data.get('target')  # username or phone
+        photo_path = data.get('photoPath')
+        star_amount = data.get('starAmount', 5)
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        if not target:
+            return jsonify({'success': False, 'error': 'Target username/phone required'})
+        if not photo_path:
+            return jsonify({'success': False, 'error': 'Photo path required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        # Check if photo exists
+        if not os.path.exists(photo_path):
+            found_path = find_media_file(photo_path)
+            if found_path:
+                photo_path = found_path
+            else:
+                return jsonify({'success': False, 'error': 'Photo file not found'})
+        
+        async def send():
+            client = None
+            try:
+                client = TelegramClient(
+                    StringSession(account['session']), 
+                    API_ID, 
+                    API_HASH,
+                    connection_retries=3,
+                    timeout=30
+                )
+                
+                await client.connect()
+                
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'Account not authorized'}
+                
+                # Get entity by username or phone
+                try:
+                    if target.startswith('@'):
+                        entity = await client.get_entity(target)
+                    elif target.startswith('+'):
+                        entity = await client.get_entity(target)
+                    else:
+                        # Try as username
+                        entity = await client.get_entity('@' + target)
+                except Exception as e:
+                    return {'success': False, 'error': f'User not found: {target}'}
+                
+                # Determine caption
+                if star_amount == 5:
+                    caption = "🔒 **Preview Photo**\n\nUnlock this exclusive preview for 5 ⭐!\n\nTap below to unlock!"
+                elif star_amount == 50:
+                    caption = "🔒 **Full Quality Photo**\n\nUnlock this high quality photo for 50 ⭐!\n\nTap below to unlock!"
+                elif star_amount == 200:
+                    caption = "🔒 **Premium Content**\n\nUnlock this premium photo for 200 ⭐!\n\nTap below to unlock!"
+                else:
+                    caption = f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!"
+                
+                # Send photo with payment button
+                await client.send_file(
+                    entity,
+                    photo_path,
+                    caption=caption,
+                    buttons=[
+                        [Button.payment(star_amount)],
+                        [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
+                    ],
+                    parse_mode='markdown'
+                )
+                
+                return {'success': True, 'message': f'Photo sent to {target}'}
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                if client:
+                    try:
+                        await client.disconnect()
+                    except:
+                        pass
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(send())
+            return jsonify(result)
+        finally:
+            loop.close()
+        
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/media/<path:filename>')
 def serve_media(filename):
-    """Serve media files with better path resolution"""
-    # Try to find the file
+    """Serve media files"""
     file_path = find_media_file(filename)
     
     if file_path and os.path.exists(file_path):
         return send_file(file_path)
     
-    # Try to find by searching all photo folders
-    for root, dirs, files in os.walk('tsega_photos'):
-        if filename in files:
-            full_path = os.path.join(root, filename)
-            return send_file(full_path)
-    
-    for root, dirs, files in os.walk('tsega_videos'):
-        if filename in files:
-            full_path = os.path.join(root, filename)
-            return send_file(full_path)
-    
-    return jsonify({'error': 'File not found', 'searched': filename}), 404
+    return jsonify({'error': 'File not found'}), 404
 
 # ==================== STAR STATS API ====================
 
@@ -1960,10 +1951,6 @@ def star_stats():
         
         c.execute("SELECT SUM(amount) FROM star_transactions WHERE date(timestamp) = date('now')")
         today_earned = c.fetchone()[0] or 0
-        
-        c.execute('''SELECT user_id, total_stars_spent FROM star_users 
-                    ORDER BY total_stars_spent DESC LIMIT 5''')
-        top_users = c.fetchall()
         
         c.execute("SELECT SUM(total_stars) FROM channel_earnings")
         channel_total = c.fetchone()[0] or 0
@@ -1982,8 +1969,7 @@ def star_stats():
             'today_stars_earned': today_earned,
             'channel_total': channel_total,
             'total_media': total_media,
-            'total_media_sold': total_media_sold,
-            'top_users': [{'id': u[0], 'spent': u[1]} for u in top_users]
+            'total_media_sold': total_media_sold
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -2066,11 +2052,12 @@ if __name__ == '__main__':
         print(f'   • {item}: {price} ⭐')
     
     print('\n🚀 FEATURES:')
-    print('   • FIXED: Photo sending now works!')
-    print('   • Payment buttons with "Unlock for ★ X"')
-    print('   • Inline recharge button')
-    print('   • 3 preview photos ready to sell (5⭐ each)')
-    print('   • ALL STARS go to @Abe_army channel')
+    print('   • ✅ Tsega REPLIES to all messages')
+    print('   • ✅ Upload photos from device')
+    print('   • ✅ Send to specific user by username/phone')
+    print('   • ✅ Payment buttons with "Unlock for ★ X"')
+    print('   • ✅ Inline recharge button')
+    print('   • ✅ ALL STARS go to @Abe_army')
     print('='*70 + '\n')
     
     threading.Thread(target=keep_alive, daemon=True).start()
