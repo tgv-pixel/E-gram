@@ -643,27 +643,12 @@ class TsegaLearner:
 
 def run_async(coro):
     """Run async function in new loop"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         return loop.run_until_complete(coro)
     finally:
         loop.close()
-
-def run_async_thread_safe(coro):
-    """Run async function in thread-safe way"""
-    try:
-        # Try to get current event loop
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If loop is running, create task
-            return asyncio.run_coroutine_threadsafe(coro, loop).result()
-        else:
-            # If loop exists but not running, run until complete
-            return loop.run_until_complete(coro)
-    except RuntimeError:
-        # No event loop in current thread, create new one
-        return run_async(coro)
 
 # Load/Save functions
 def load_accounts():
@@ -1278,13 +1263,9 @@ def add_account():
         if not phone.startswith('+'):
             phone = '+' + phone
         
-        # Create new event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        # Create temporary client
+        # Create temporary client WITHOUT loop parameter
         client = TelegramClient(StringSession(), API_ID, API_HASH)
-        client.start(loop=loop)
+        client.connect()
         
         # Send code request
         result = client.send_code_request(phone)
@@ -1295,8 +1276,7 @@ def add_account():
             'client': client,
             'phone': phone,
             'phone_code_hash': result.phone_code_hash,
-            'created': time.time(),
-            'loop': loop
+            'created': time.time()
         }
         
         return jsonify({
@@ -1326,13 +1306,8 @@ def verify_code():
     client = session_data['client']
     phone = session_data['phone']
     phone_code_hash = session_data['phone_code_hash']
-    loop = session_data.get('loop')
     
     try:
-        # Set event loop if needed
-        if loop:
-            asyncio.set_event_loop(loop)
-        
         # Try to sign in
         user = client.sign_in(phone, code, phone_code_hash=phone_code_hash)
         
@@ -1359,8 +1334,6 @@ def verify_code():
         
         # Clean up
         client.disconnect()
-        if loop:
-            loop.close()
         del temp_sessions[session_id]
         
         return jsonify({
@@ -1398,8 +1371,6 @@ def verify_code():
                 
                 # Clean up
                 client.disconnect()
-                if loop:
-                    loop.close()
                 del temp_sessions[session_id]
                 
                 return jsonify({'success': True, 'account': account})
@@ -1513,12 +1484,8 @@ def get_messages():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
-        # Create new event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        client.start(loop=loop)
+        client.connect()
         
         if not client.is_user_authorized():
             return jsonify({'success': False, 'error': 'Not authorized'})
@@ -1538,7 +1505,6 @@ def get_messages():
                 chats.append(chat)
         
         client.disconnect()
-        loop.close()
         
         return jsonify({
             'success': True,
@@ -1563,12 +1529,8 @@ def get_sessions():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
-        # Create new event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        client.start(loop=loop)
+        client.connect()
         
         if not client.is_user_authorized():
             return jsonify({'success': False, 'error': 'Not authorized'})
@@ -1596,7 +1558,6 @@ def get_sessions():
             sessions.append(session)
         
         client.disconnect()
-        loop.close()
         
         # Get current session hash
         current_hash = None
@@ -1630,12 +1591,8 @@ def terminate_session():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
-        # Create new event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        client.start(loop=loop)
+        client.connect()
         
         if not client.is_user_authorized():
             return jsonify({'success': False, 'error': 'Not authorized'})
@@ -1644,7 +1601,6 @@ def terminate_session():
         client(ResetAuthorizationRequest(hash_value))
         
         client.disconnect()
-        loop.close()
         
         return jsonify({'success': True, 'message': 'Session terminated'})
         
@@ -1666,12 +1622,8 @@ def terminate_all_sessions():
         return jsonify({'success': False, 'error': 'Account not found'})
     
     try:
-        # Create new event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        client.start(loop=loop)
+        client.connect()
         
         if not client.is_user_authorized():
             return jsonify({'success': False, 'error': 'Not authorized'})
@@ -1688,7 +1640,6 @@ def terminate_all_sessions():
                     pass
         
         client.disconnect()
-        loop.close()
         
         return jsonify({'success': True, 'message': 'All other sessions terminated'})
         
