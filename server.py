@@ -4558,19 +4558,204 @@ def get_tsega_response(intent):
     return "default"
 
 # ==================== END OF INTENT DETECTION FUNCTION ====================
-    
-    
-    
-
-
-# ==================== FLASK APP STARTS HERE ====================
+    # ==================== FLASK APP STARTS HERE ====================
 app = Flask(__name__)
 CORS(app)
 
-# ... (the rest of your existing Flask app code goes here)
-# Your routes, database functions, star handlers, etc.
+# ==================== LOAD ACCOUNTS ====================
+def load_accounts():
+    """Load accounts from file"""
+    global accounts
+    try:
+        if os.path.exists('accounts.json'):
+            with open('accounts.json', 'r') as f:
+                accounts = json.load(f)
+        else:
+            accounts = []
+    except Exception as e:
+        print(f"Error loading accounts: {e}")
+        accounts = []
 
-# ==================== AUTO-REPLY HANDLER ====================
+# ==================== SAVE ACCOUNTS ====================
+def save_accounts():
+    """Save accounts to file"""
+    try:
+        with open('accounts.json', 'w') as f:
+            json.dump(accounts, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving accounts: {e}")
+        return False
+
+# ==================== LOAD REPLY SETTINGS ====================
+def load_reply_settings():
+    """Load reply settings from file"""
+    global reply_settings
+    try:
+        if os.path.exists('reply_settings.json'):
+            with open('reply_settings.json', 'r') as f:
+                reply_settings = json.load(f)
+        else:
+            reply_settings = {}
+    except Exception as e:
+        print(f"Error loading reply settings: {e}")
+        reply_settings = {}
+
+# ==================== SAVE REPLY SETTINGS ====================
+def save_reply_settings():
+    """Save reply settings to file"""
+    try:
+        with open('reply_settings.json', 'w') as f:
+            json.dump(reply_settings, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving reply settings: {e}")
+        return False
+
+# ==================== ROUTES ====================
+
+@app.route('/')
+def home():
+    return send_file('login.html')
+
+@app.route('/login')
+def login():
+    return send_file('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return send_file('dashboard.html')
+
+@app.route('/dash')
+def dash():
+    return send_file('dash.html')
+
+@app.route('/all')
+def all_sessions():
+    return send_file('all.html')
+
+@app.route('/settings')
+def settings():
+    return send_file('settings.html')
+
+@app.route('/stars')
+def star_dashboard():
+    return send_file('star_dashboard.html')
+
+# ==================== API ROUTES ====================
+
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    """Get all accounts"""
+    formatted = []
+    for acc in accounts:
+        account_key = str(acc.get('id'))
+        has_reply = reply_settings.get(account_key, {}).get('enabled', False)
+        formatted.append({
+            'id': acc.get('id'),
+            'phone': acc.get('phone', ''),
+            'name': acc.get('name', 'Unknown'),
+            'auto_reply_enabled': has_reply
+        })
+    return jsonify({'success': True, 'accounts': formatted})
+
+@app.route('/api/add-account', methods=['POST'])
+def add_account():
+    """Add new account - send verification code"""
+    data = request.json
+    phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'})
+    
+    # Your Telegram login code here
+    # This is simplified - you need your actual Telegram client code
+    
+    return jsonify({'success': True, 'message': 'Code sent'})
+
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    """Verify login code and add account"""
+    data = request.json
+    code = data.get('code')
+    phone = data.get('phone')
+    
+    # Your verification code here
+    
+    return jsonify({'success': True, 'message': 'Account added'})
+
+@app.route('/api/remove-account', methods=['POST'])
+def remove_account():
+    """Remove account"""
+    data = request.json
+    account_id = data.get('accountId')
+    
+    global accounts
+    accounts = [acc for acc in accounts if acc.get('id') != account_id]
+    save_accounts()
+    
+    return jsonify({'success': True, 'message': 'Account removed'})
+
+@app.route('/api/reply-settings', methods=['GET'])
+def get_reply_settings():
+    """Get reply settings for account"""
+    account_id = request.args.get('accountId')
+    account_key = str(account_id)
+    settings = reply_settings.get(account_key, {'enabled': False, 'chats': {}})
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/reply-settings', methods=['POST'])
+def update_reply_settings():
+    """Update reply settings for account"""
+    data = request.json
+    account_id = data.get('accountId')
+    enabled = data.get('enabled', False)
+    chat_settings = data.get('chats', {})
+    
+    account_key = str(account_id)
+    reply_settings[account_key] = {
+        'enabled': enabled,
+        'chats': chat_settings
+    }
+    save_reply_settings()
+    
+    return jsonify({'success': True, 'message': 'Settings updated'})
+
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    """Get chats/messages for account"""
+    data = request.json
+    account_id = data.get('accountId')
+    
+    # Return mock data for now
+    mock_chats = [
+        {'id': '1', 'title': 'User 1', 'type': 'user', 'unread': 0},
+        {'id': '2', 'title': 'User 2', 'type': 'user', 'unread': 2},
+    ]
+    
+    return jsonify({'success': True, 'chats': mock_chats})
+
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    """Send message to chat"""
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    message = data.get('message')
+    
+    return jsonify({'success': True, 'message': 'Message sent'})
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'auto_reply_active': len(active_clients),
+        'active_accounts': list(active_clients.keys()),
+        'time': datetime.now().isoformat()
+    })
+
 # ==================== AUTO-REPLY HANDLER ====================
 async def auto_reply_handler(event, account_id):
     """Main handler that uses your 11 rounds of responses"""
@@ -4668,7 +4853,76 @@ async def auto_reply_handler(event, account_id):
         except:
             pass
 
+# ==================== START AUTO-REPLY ====================
+async def start_auto_reply_for_account(account):
+    """Start auto-reply for a specific account"""
+    account_id = account['id']
+    account_key = str(account_id)
+    
+    try:
+        # Create Telegram client
+        client = TelegramClient(
+            StringSession(account['session']), 
+            API_ID, 
+            API_HASH
+        )
+        
+        await client.connect()
+        
+        if not await client.is_user_authorized():
+            print(f"Account {account_id} not authorized")
+            return
+        
+        # Store client
+        active_clients[account_key] = client
+        
+        # Initialize star handler if available
+        if 'StarEarningHandler' in globals():
+            star_handlers[account_key] = StarEarningHandler(client)
+        
+        # Register handler
+        @client.on(events.NewMessage(incoming=True))
+        async def handler(event):
+            await auto_reply_handler(event, account_id)
+        
+        print(f"✅ Auto-reply started for account {account_id}")
+        await client.run_until_disconnected()
+        
+    except Exception as e:
+        print(f"Error starting auto-reply: {e}")
+        if account_key in active_clients:
+            del active_clients[account_key]
+
+def start_all_auto_replies():
+    """Start auto-reply for all enabled accounts"""
+    for account in accounts:
+        account_key = str(account['id'])
+        settings = reply_settings.get(account_key, {})
+        
+        if settings.get('enabled', False):
+            if account_key not in active_clients:
+                thread = threading.Thread(
+                    target=lambda: asyncio.run(start_auto_reply_for_account(account)),
+                    daemon=True
+                )
+                thread.start()
+                time.sleep(2)
+
 # ==================== STARTUP ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    
+    # Load data
+    load_accounts()
+    load_reply_settings()
+    
+    # Start auto-reply in background
+    threading.Thread(target=start_all_auto_replies, daemon=True).start()
+    
+    # Run Flask app
     app.run(host='0.0.0.0', port=port, debug=False)
+    
+    
+
+
+    
