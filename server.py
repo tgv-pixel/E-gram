@@ -286,7 +286,7 @@ class MediaManager:
         
         logger.info(f"✅ Media library indexed: {total} files")
 
-# ==================== STAR EARNING HANDLER ====================
+# ==================== STAR EARNING HANDLER WITH PAYMENT BUTTONS ====================
 
 class StarEarningHandler:
     def __init__(self, client):
@@ -336,24 +336,14 @@ class StarEarningHandler:
                 media_info = self.db.get_random_media("photo", 5)
                 if media_info:
                     file_path, price = media_info
-                    # Verify file exists
                     if os.path.exists(file_path):
                         await self.client.send_file(
                             chat_id, 
                             file_path, 
-                            caption="Here's your photo! 🔥 Thanks for the Stars!\n\nSend 50⭐ for full quality!"
+                            caption="Here's your photo! 🔥 Thanks for the Stars!\n\nWant more? Send 50⭐ for full quality!"
                         )
                         self.db.increment_media_sold(file_path)
                         logger.info(f"📸 Sent preview photo to {user_id}")
-                    else:
-                        # File missing - reindex
-                        logger.error(f"File missing: {file_path}")
-                        await self.client.send_message(
-                            chat_id,
-                            "Sorry, the photo is temporarily unavailable. Please try again later."
-                        )
-                else:
-                    await self.client.send_message(chat_id, "Sorry, no photos available right now.")
             
             elif amount == 50:  # Full photo
                 media_info = self.db.get_random_media("photo", 50)
@@ -363,60 +353,106 @@ class StarEarningHandler:
                         await self.client.send_file(
                             chat_id, 
                             file_path, 
-                            caption="Full quality photo - enjoy! 😘\n\nWant more? Send 200⭐ for premium!"
+                            caption="Full quality photo - enjoy! 😘\n\nWant premium? Send 200⭐!"
                         )
                         self.db.increment_media_sold(file_path)
                         logger.info(f"📸 Sent full photo to {user_id}")
-                    else:
-                        # Fallback to preview if no full photos
-                        media_info = self.db.get_random_media("photo", 5)
-                        if media_info:
-                            file_path, price = media_info
-                            await self.client.send_file(
-                                chat_id, 
-                                file_path, 
-                                caption="Sorry no full photos yet! Here's a preview instead 🔥"
-                            )
+            
+            elif amount == 200:  # Premium photo
+                media_info = self.db.get_random_media("photo", 200)
+                if media_info:
+                    file_path, price = media_info
+                    if os.path.exists(file_path):
+                        await self.client.send_file(
+                            chat_id, 
+                            file_path, 
+                            caption="Premium content - you're special! 🔥"
+                        )
+                        self.db.increment_media_sold(file_path)
+                        logger.info(f"📸 Sent premium photo to {user_id}")
             
             # Transfer to channel
             if StarConfig.TRANSFER_STARS_TO_CHANNEL:
                 await self.transfer_stars_to_channel(amount)
+                
         except Exception as e:
             logger.error(f"Error in payment success handler: {e}")
-            await self.client.send_message(
-                chat_id,
-                "Thank you for the Stars! There was an issue sending your photo. Please contact support."
-            )
-        
-        return True
     
-    async def request_star_payment(self, chat_id, amount, description):
-        """Request user to pay Stars using Telegram's native payment"""
+    async def request_star_payment(self, chat_id, amount, description, media_path=None):
+        """Send photo with payment button - EXACTLY like your image!"""
         try:
-            # Get the entity
+            from telethon import Button
+            
             entity = await self.client.get_entity(int(chat_id))
             
-            # Send text with payment button (no photo to avoid issues)
-            msg = await self.client.send_message(
+            # If we have a specific media path, use it
+            if media_path and os.path.exists(media_path):
+                file_path = media_path
+            else:
+                # Get random preview photo
+                media_info = self.db.get_random_media("photo", 5)
+                if media_info:
+                    file_path, price = media_info
+                else:
+                    # No photos - send text only
+                    return await self.client.send_message(
+                        entity,
+                        f"🔒 **Premium Content**\n\n{description}\n\nTap below to unlock!",
+                        buttons=[
+                            [Button.payment(amount)],
+                            [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
+                        ]
+                    )
+            
+            # Send photo with payment button and recharge link
+            msg = await self.client.send_file(
                 entity,
-                f"🔒 **Premium Content**\n\n{description}\n\nTap below to unlock with Stars!",
-                buttons=[Button.payment(amount)]
+                file_path,
+                caption=f"🔒 **Exclusive Content**\n\n{description}\n\nTap below to unlock!",
+                buttons=[
+                    [Button.payment(amount)],  # Main payment button
+                    [Button.url("💰 Buy More Stars", "https://t.me/stars?start=recharge")]  # Recharge link
+                ]
             )
-            logger.info(f"💰 Sent payment request (text) for {amount} stars to {chat_id}")
             
-            # Store pending payment
-            self.pending_payments[str(chat_id)] = {
-                'amount': amount,
-                'description': description,
-                'time': datetime.now(),
-                'message_id': msg.id
-            }
-            
+            logger.info(f"💰 Sent payment button for {amount} stars to {chat_id}")
             return msg
             
         except Exception as e:
-            logger.error(f"Error requesting payment: {e}")
+            logger.error(f"Error sending payment request: {e}")
             return None
+    
+    async def send_photo_pack(self, chat_id, pack_type="premium"):
+        """Send a pack of photos with payment button"""
+        try:
+            from telethon import Button
+            
+            entity = await self.client.get_entity(int(chat_id))
+            
+            if pack_type == "premium":
+                price = 200
+                description = "Premium Photo Pack - 5 exclusive photos! 🔥"
+                # Get 5 random premium photos
+                photos = []
+                for _ in range(5):
+                    media_info = self.db.get_random_media("photo", 200)
+                    if media_info:
+                        photos.append(media_info[0])
+                
+                if photos:
+                    # Send first photo with payment button for the pack
+                    await self.client.send_file(
+                        entity,
+                        photos[0],
+                        caption=f"🔒 **Premium Pack**\n\n{description}\n\nGet 5 exclusive photos!",
+                        buttons=[
+                            [Button.payment(price)],
+                            [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
+                        ]
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error sending photo pack: {e}")
     
     async def transfer_stars_to_channel(self, amount):
         """Transfer earned Stars to your channel"""
@@ -443,7 +479,7 @@ class StarEarningHandler:
             logger.error(f"Error transferring stars: {e}")
             return False
 
-# ==================== TSEGA'S PERSONALITY (YOUR EXISTING CODE - UNCHANGED) ====================
+# ==================== TSEGA'S PERSONALITY - FILL THIS WITH YOUR EXISTING CODE ====================
 
 TSEGA = {
     "name": "Tsega",
@@ -573,6 +609,9 @@ TSEGA_REPLIES = {
         "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
     ]
 }
+
+# ===== END OF YOUR TSEGA_REPLIES =====
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -909,10 +948,10 @@ def test_media():
         'database_count': db_count
     })
 
-# ==================== FIXED AUTO-REPLY HANDLER - ALWAYS REPLIES ====================
+# ==================== FIXED AUTO-REPLY HANDLER WITH PAYMENT BUTTONS ====================
 
 async def auto_reply_handler(event, account_id):
-    """FIXED AUTO-REPLY HANDLER - Always replies to all messages"""
+    """FIXED AUTO-REPLY HANDLER - With payment buttons for photos"""
     try:
         # Print EVERY message for debugging
         print(f"\n{'='*60}")
@@ -967,7 +1006,7 @@ async def auto_reply_handler(event, account_id):
             try:
                 stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
                 if stars_paid:
-                    print(f"💰 User paid {stars_amount} stars - will still reply normally")
+                    print(f"💰 User paid {stars_amount} stars - handled by payment handler")
             except Exception as e:
                 print(f"⚠️ Payment check error (non-critical): {e}")
         
@@ -975,38 +1014,50 @@ async def auto_reply_handler(event, account_id):
         intent = detect_conversation_intent(message_text)
         print(f"🔍 FINAL INTENT: '{intent}'")
         
-        # ===== FIXED PHOTO REQUEST HANDLER - ALWAYS REPLIES WITH TEXT =====
+        # ===== PHOTO REQUEST HANDLER WITH PAYMENT BUTTON (EXACTLY LIKE YOUR IMAGE) =====
         if intent == "photo_request":
-            print(f"📸📸📸 PHOTO REQUEST DETECTED! 📸📸📸")
+            print(f"📸📸📸 PHOTO REQUEST DETECTED - SENDING PAYMENT BUTTON! 📸📸📸")
             
-            # Simple text responses asking for stars
-            photo_responses = [
-                "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ እና ፎቶ አገኛለሁ! 🔥",
-                "ፎቶ ለማየት 5 ⭐ ብቻ ነው ውዴ! ላክልኝ እና አሳይሃለሁ 😘",
-                "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ ቆንጆ ፎቶዬን ታያለህ 💕",
-                "እሺ አሳይሃለሁ ግን በመጀመሪያ 5 ⭐ ላክልኝ! 📸",
-                "ለአንተ ብቻ ልዩ ፎቶ አለኝ... 5 ⭐ ብትልክልኝ አሳይሃለሁ 😉",
-                "ፎቶ? እሺ ግን ትንሽ ክፍያ አለበት 5 ⭐ 😘",
-                "5 ⭐ ብቻ ነው ውዴ! ከከፈልክ በኋላ የምትወደውን ፎቶ ልታይ ትችላለህ 🔥",
-                "አሁን 5 ⭐ ላክልኝ እና ፈጣን ፎቶ እልክልሃለሁ! 😘",
-            ]
-            response = random.choice(photo_responses)
-            
-            # Add emoji
-            if random.random() < 0.5:
-                response += " " + random.choice(["😘", "💋", "💕", "😏", "🔥"])
-            
-            # Human-like delay
-            delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
-            print(f"⏱️ Waiting {delay} seconds...")
-            
-            async with event.client.action(event.chat_id, 'typing'):
-                await asyncio.sleep(delay)
-            
-            # Send reply
-            print(f"📤 Sending photo reply: '{response}'")
-            await event.reply(response)
-            print(f"✅✅✅ PHOTO REPLY SENT!")
+            if account_key in star_handlers:
+                try:
+                    # Get a random preview photo to use as the button image
+                    media_info = star_handlers[account_key].db.get_random_media("photo", 5)
+                    
+                    if media_info:
+                        file_path, price = media_info
+                        
+                        # Send photo with payment button (EXACTLY like your image)
+                        await star_handlers[account_key].request_star_payment(
+                            int(chat_id),
+                            5,  # 5 stars
+                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality\n200⭐ = premium pack",
+                            file_path
+                        )
+                        print(f"✅ Sent photo with payment button")
+                    else:
+                        # No photos available - send text with button
+                        await star_handlers[account_key].request_star_payment(
+                            int(chat_id),
+                            5,
+                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
+                        )
+                        print(f"✅ Sent payment button (text only)")
+                        
+                except Exception as e:
+                    print(f"⚠️ Payment button failed: {e}")
+                    # Fallback to text
+                    response = random.choice(TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"]))
+                    delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+                    async with event.client.action(event.chat_id, 'typing'):
+                        await asyncio.sleep(delay)
+                    await event.reply(response)
+            else:
+                # No star handler - send text
+                response = random.choice(TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"]))
+                delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+                async with event.client.action(event.chat_id, 'typing'):
+                    await asyncio.sleep(delay)
+                await event.reply(response)
             
             # Store in history
             if account_key not in conversation_history:
@@ -1020,19 +1071,7 @@ async def auto_reply_handler(event, account_id):
                 'time': time.time()
             })
             
-            conversation_history[account_key][chat_id].append({
-                'role': 'assistant',
-                'text': response,
-                'time': time.time()
-            })
-            
-            # Keep only last 15 messages
-            if len(conversation_history[account_key][chat_id]) > 15:
-                conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
-            
-            save_conversation_history()
-            
-            return  # Important - stop here
+            return
         
         # For ALL other messages, use normal responses from TSEGA_REPLIES
         response = get_context_aware_response(intent)
@@ -2045,7 +2084,8 @@ if __name__ == '__main__':
     print('   • Talks in Amharic with English translation')
     print('   • Sexy and flirty personality 😘')
     print('   • 15-40 second reply delay (human-like)')
-    print('   • PHOTO DETECTION FIXED - Now replies to all photo requests')
+    print('   • PAYMENT BUTTONS - "Unlock for ★ X" exactly like your image')
+    print('   • INLINE RECHARGE - "💰 Buy More Stars" button')
     print('   • 3 preview photos ready to sell (5⭐ each)')
     print('   • ALL STARS go to @Abe_army channel')
     print('='*70 + '\n')
