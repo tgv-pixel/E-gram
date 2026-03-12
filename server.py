@@ -4571,32 +4571,102 @@ CORS(app)
 # Your routes, database functions, star handlers, etc.
 
 # ==================== AUTO-REPLY HANDLER ====================
+# ==================== AUTO-REPLY HANDLER ====================
 async def auto_reply_handler(event, account_id):
-    """Main handler that uses your 11 rounds"""
+    """Main handler that uses your 11 rounds of responses"""
     try:
+        # Skip own messages
         if event.out:
             return
         
-        # ... (your existing auto-reply code)
+        # Get chat info
+        chat = await event.get_chat()
         
-        # Get user message
+        # Only reply to private chats (not groups/channels)
+        if hasattr(chat, 'title') and chat.title:
+            return
+        
+        sender = await event.get_sender()
+        if not sender:
+            return
+        
+        chat_id = str(event.chat_id)
+        user_id = str(sender.id)
         message_text = event.message.text or ""
         
-        # 1. Detect intent using your function
+        if not message_text:
+            return
+        
+        # Check if auto-reply is enabled for this account
+        account_key = str(account_id)
+        
+        if account_key not in reply_settings:
+            return
+        
+        if not reply_settings[account_key].get('enabled', False):
+            return
+        
+        # Handle Star payments if any
+        if account_key in star_handlers:
+            try:
+                stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
+                if stars_paid:
+                    print(f"💰 User paid {stars_amount} stars")
+            except Exception as e:
+                pass
+        
+        # DETECT WHAT USER WANTS (using your detection function)
         intent = detect_conversation_intent(message_text)
         
-        # 2. Get response from your 11 rounds
-        response = get_tsega_response(intent)
+        # SPECIAL HANDLING FOR PHOTO REQUESTS
+        if intent == "photo_request" and account_key in star_handlers:
+            try:
+                media_info = star_handlers[account_key].db.get_random_media("photo", 5)
+                if media_info:
+                    file_path, price = media_info
+                    await star_handlers[account_key].request_star_payment(
+                        int(chat_id),
+                        5,
+                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
+                        file_path
+                    )
+                else:
+                    # If no media, use text response from your 11 rounds
+                    response = get_tsega_response("photo_request")
+                    delay = random.randint(15, 40)
+                    async with event.client.action(event.chat_id, 'typing'):
+                        await asyncio.sleep(delay)
+                    await event.reply(response)
+                return
+            except Exception as e:
+                # Fallback to text response
+                response = get_tsega_response("photo_request")
         
-        # 3. Send with delay
+        # SPECIAL HANDLING FOR MONEY REQUESTS
+        elif intent == "money_request":
+            response = get_tsega_response("money_request")
+        
+        # NORMAL RESPONSE FOR ALL OTHER MESSAGES
+        else:
+            response = get_tsega_response(intent)
+        
+        # HUMAN-LIKE DELAY (15-40 seconds)
         delay = random.randint(15, 40)
+        
+        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
+        # Send the perfect response from your 11 rounds
         await event.reply(response)
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in auto-reply: {e}")
+        # Fallback response if something goes wrong
+        try:
+            await event.reply("ሰላም! ትንሽ ችግር አጋጥሞኛል ግን አሁን ዝግጁ ነኝ")
+        except:
+            pass
 
 # ==================== STARTUP ====================
 if __name__ == '__main__':
