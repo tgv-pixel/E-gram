@@ -2050,7 +2050,49 @@ def health_check():
         'active_accounts': list(active_clients.keys()),
         'time': datetime.now().isoformat()
     })
-
+@app.route('/api/send-paid-photo', methods=['POST'])
+def send_paid_photo():
+    """Send a photo with payment button to a specific chat"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        chat_id = data.get('chatId')
+        photo_path = data.get('photoPath')
+        star_amount = data.get('starAmount', 5)
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def send():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                entity = await client.get_entity(int(chat_id))
+                
+                # Send photo with payment button
+                await client.send_file(
+                    entity,
+                    photo_path,
+                    caption=f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!",
+                    buttons=[
+                        [Button.payment(star_amount)],
+                        [Button.url("💰 Buy Stars", "https://t.me/stars?start=recharge")]
+                    ]
+                )
+                
+                return {'success': True}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(send())
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 # ==================== STARTUP ====================
 
 def start_auto_reply_thread():
