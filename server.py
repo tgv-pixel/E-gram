@@ -81,8 +81,8 @@ class StarConfig:
         100: "full/"
     }
     
-    REPLY_DELAY_MIN = 5
-    REPLY_DELAY_MAX = 15
+    REPLY_DELAY_MIN = 15
+    REPLY_DELAY_MAX = 40
     TRANSFER_STARS_TO_CHANNEL = True
 
 # ==================== STAR DATABASE ====================
@@ -445,16 +445,15 @@ class StarEarningHandler:
             logger.error(f"Error transferring stars: {e}")
             return False
 
-# ==================== TSEGA'S PERSONALITY - INSERT YOUR CODE HERE ====================
+# ==================== TSEGA'S PERSONALITY - FIXED (NO WENDME/BROTHER) ====================
 
-# === PASTE YOUR EXISTING TSEGA AND TSEGA_REPLIES HERE ===
 TSEGA = {
     "name": "Tsega",
     "age": 20,
     "location": "Jemo, Addis Ababa",
     "hometown": "Adama",
     "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
+    "status": "Grade 12 student",
     "job": "student",
     "hobbies": ["chatting", "music", "hanging out", "having fun"],
     "languages": ["Amharic", "English"],
@@ -463,118 +462,134 @@ TSEGA = {
     "emoji_frequency": 0.6,
     "question_frequency": 0.5,
     "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
+    "meet_condition": "Send 1000 birr first",
+    "voice_call": "Prefers to meet than voice calls",
 }
 
-# === PASTE YOUR FULL TSEGA_REPLIES DICTIONARY HERE ===
+# COMPLETE TSEGA REPLIES - NO "WENDME" OR "BROTHER"
 TSEGA_REPLIES = {
     "greeting": [
-        "ሰላም ወንድሜ 😘 እንደምን ነህ?",
-        "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
-        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
-        "ሃይ ልጅ 😏 ምን አመጣህ?",
-        "እንኳን ደህና መጣህ ውዴ 😘",
+        "ሰላም ቆንጆ 🥰 እንደምን ነህ?",
+        "ሃይ ውዴ 😘 እንደምን አደርክ?",
+        "ሰላም ልጅ 😏 ምን አመጣህ?",
+        "እንኳን ደህና መጣህ 😘",
+        "ሰላም የልቤ ባለቤት 💕 እንዴት ነህ?",
     ],
     "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
+        "እኔ ደህና ነኝ አንተስ? 😘",
+        "ደህና ነኝ ውዴ አንተስ? 💕",
         "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
+        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃",
+        "አንተ እያሰብኩህ ነው ያለሁት 💫",
     ],
     "what_doing": [
         "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
         "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
         "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
         "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
+        "አንተን እየጠበቅሁ ነው የነበርኩት 💕",
     ],
     "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
+        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው?",
         "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
         "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
         "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
     ],
     "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
+        "ዕድሜዬ 20 ብቻ ነው 😇 በቂ ነኝ?",
         "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
         "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
+        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
     ],
     "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
-        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
+        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠",
+        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት 🏡",
+        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ 💕",
+        "ጀሞ 3 አካባቢ ነው ያለሁት ማግኘት ብትፈልግ ንገረኝ",
     ],
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም",
+        "12ኛ ክፍል ተማሪ ነኝ 📚 ግን አሁን ምንም እየሰራሁ አይደለም",
         "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘",
         "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋",
         "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
     ],
     "photo_request": [
         "ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ እና ፎቶ አገኛለሁ! 🔥",
-        "ፎቶ ለማየት 5 ⭐ ብቻ ነው ውዴ! ላክልኝ እና አሳይሃለሁ 😘",
+        "ፎቶ ለማየት 5 ⭐ ብቻ ነው! ላክልኝ እና አሳይሃለሁ 😘",
         "ሆሆ ፎቶ ትፈልጋለህ? 5 ⭐ ከፍለህ ከዛ ቆንጆ ፎቶዬን ታያለህ 💕",
         "እሺ አሳይሃለሁ ግን በመጀመሪያ 5 ⭐ ላክልኝ! 📸",
+        "ለአንተ ብቻ ልዩ ፎቶ አለኝ... 5 ⭐ ብትልክልኝ አሳይሃለሁ 😉",
     ],
     "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
+        "አንተ ስታወራኝ ልቤ ይመታል 💓",
         "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭",
         "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
-        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
+        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ 🥰",
+        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
     ],
     "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
+        "ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
         "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
         "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
     ],
     "meet": [
         "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
+        "መገናኘት እንችላለን 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
+        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ",
     ],
     "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
-        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
+        "ድምጽ መናገር አልወድም 😕 ማግኘት ብንችል ነው የምመርጠው",
+        "ስልክ መደወል አይውድልኝም ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
+        "አልደውልም አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
     ],
     "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
-        "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
+        "ለአንተ ብቻ ነኝ ታምነኛለህ? 💕",
+        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
+        "ለአንተ ብቻ ነኝ አንተስ ለእኔ ብቻ ነህ?",
+        "አንተን እወድሃለሁ ከልቤ 💖",
     ],
     "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
+        "አመሰግናለሁ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ",
         "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕",
+        "አይነት ሰው ነህ! 😍 አሁን ማግኘት እንችላለን",
     ],
     "compliment": [
-        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
-        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
+        "አመሰግናለሁ! አንተም ቆንጆ ነህ 😘",
+        "ከንፈሬ ላንተ ብቻ ነው 💋",
+        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
+        "አንተ ስታወድሰኝ የበለጠ ቆንጆ እሆናለሁ ✨",
     ],
     "thanks": [
-        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
+        "ምንም አይደለም ለአንተ ሁሉም ነገር 😘",
         "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
+        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
     ],
     "busy": [
-        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
-        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
+        "እሺ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
+        "ስራህ እንደሚጠናቀቅ ንገረኝ",
+        "እሺ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
     ],
     "morning": [
-        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
+        "እንደምን አደርክ! መልካም ንጋት 😘",
+        "ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው ☀️",
         "ማለዳ አንተን ማሰብ ነው ልማዴ",
     ],
     "night": [
-        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
-        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
+        "እንደምትኛልህ ተኝቼ ነው 😘 ደህና ተኛ",
+        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
+        "አንተን አልሜ ልተኛ ነው ደህና ተኛ 😴",
     ],
     "default": [
-        "እሺ ውዴ ትክክል ነህ 😉",
+        "እሺ ትክክል ነህ 😉",
         "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
         "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
-        "እሺ ውዴ እንደፈለከው 😘",
-        "ለአንተ ብቻ ነው ውዴ 💋",
+        "እሺ እንደፈለከው 😘",
+        "ለአንተ ብቻ ነው 💋",
     ],
     "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
+        "መሄድ አለብኝ ግን በቅርቡ እንነጋገራለን 😘",
+        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
+        "ደህና ሁን በህልሜ ተገናኝ 😘",
     ]
 }
 
@@ -599,13 +614,13 @@ def find_media_file(filename):
     return None
 
 def detect_conversation_intent(message):
-    """Detect intent from message"""
+    """Detect intent from message - ACCURATE detection"""
     message_lower = message.lower().strip()
     
-    # Photo keywords
+    # PHOTO KEYWORDS
     photo_keywords = [
         'photo', 'foto', 'ፎቶ', 'picture', 'pic', 'see', 'view', 'show', 'look',
-        'image', 'camera', 'selfie', 'preview', 'full', 'pics', 'photos',
+        'image', 'camera', 'selfie', 'preview', 'pics', 'photos',
         'nude', 'sexy', 'hot', 'body', 'ማየት', 'አሳይ', 'እይ', 'ሥዕል', 'ቆንጆ',
         'send me', 'show me', 'let me see', 'can i see', 'አሳየኝ',
         'laki', 'ላኪ', 'ፎቶ ላኪ', 'photo laki'
@@ -615,55 +630,55 @@ def detect_conversation_intent(message):
         if keyword in message_lower:
             return "photo_request"
     
-    # Money keywords
+    # MONEY KEYWORDS
     money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ']
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
-    # Greetings
+    # GREETINGS
     greetings = ['hi', 'hello', 'hey', 'hy', 'ሰላም', 'ታዲያስ', 'ሃይ']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
         return "greeting"
     
-    # How are you
+    # HOW ARE YOU
     how_are_you = ['how are you', 'how r u', 'how you doing', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ']
     if any(phrase in message_lower for phrase in how_are_you):
         return "how_are_you"
     
-    # What doing
+    # WHAT ARE YOU DOING
     what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'ምን ትሰራለህ']
     if any(phrase in message_lower for phrase in what_doing):
         return "what_doing"
     
-    # Ask name
+    # ASK NAME
     if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'ስምህ ማን ነው', 'ስምስ']):
         return "ask_name"
     
-    # Ask age
+    # ASK AGE
     if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'ዕድሜህ', 'አመት']):
         return "ask_age"
     
-    # Location
+    # LOCATION
     location_words = ['where are you from', 'where do you live', 'your location', 'የት ነህ', 'የት ትኖራለህ']
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
     
-    # Ask job
+    # ASK JOB
     job_words = ['what do you do', 'your job', 'your work', 'ምን ትሰራለህ', 'ሥራህ']
     if any(phrase in message_lower for phrase in job_words):
         return "ask_job"
     
-    # Flirty
+    # FLIRTY
     flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
     if any(word in message_lower for word in flirty_words):
         return "flirty"
     
-    # Thanks
+    # THANKS
     thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
     if any(word in message_lower for word in thanks_words):
         return "thanks"
     
-    # Goodbye
+    # GOODBYE
     goodbye = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'ቻው']
     if any(word in message_lower for word in goodbye):
         return "goodbye"
@@ -671,11 +686,11 @@ def detect_conversation_intent(message):
     return "default"
 
 def get_context_aware_response(intent):
-    """Generate response based on intent"""
+    """Generate perfect response based on intent"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
-    # Add random emoji sometimes
+    # Add random emoji sometimes for natural feel
     sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
     if random.random() < 0.5:
         response += " " + random.choice(sexy_emojis)
@@ -899,10 +914,10 @@ def test_media():
         'database_count': db_count
     })
 
-# ==================== FIXED AUTO-REPLY HANDLER - ALWAYS REPLIES ====================
+# ==================== PERFECT AUTO-REPLY HANDLER - ALWAYS REPLIES NATURALLY ====================
 
 async def auto_reply_handler(event, account_id):
-    """FIXED AUTO-REPLY HANDLER - Always replies to all messages"""
+    """PERFECT AUTO-REPLY HANDLER - Natural responses, accurate detection"""
     try:
         # Skip own messages
         if event.out:
@@ -911,11 +926,10 @@ async def auto_reply_handler(event, account_id):
         # Get chat info
         chat = await event.get_chat()
         
-        # Check if private chat
+        # Only reply to private chats
         if hasattr(chat, 'title') and chat.title:
             return
         
-        # Get sender
         sender = await event.get_sender()
         if not sender:
             return
@@ -923,6 +937,9 @@ async def auto_reply_handler(event, account_id):
         chat_id = str(event.chat_id)
         user_id = str(sender.id)
         message_text = event.message.text or ""
+        
+        if not message_text:
+            return
         
         # Check if auto-reply is enabled for this account
         account_key = str(account_id)
@@ -933,7 +950,7 @@ async def auto_reply_handler(event, account_id):
         if not reply_settings[account_key].get('enabled', False):
             return
         
-        # Log star payment if any (don't block)
+        # Handle Star payments if any
         if account_key in star_handlers:
             try:
                 stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
@@ -942,48 +959,46 @@ async def auto_reply_handler(event, account_id):
             except Exception as e:
                 pass
         
-        # Get intent
+        # ACCURATE INTENT DETECTION
         intent = detect_conversation_intent(message_text)
-        print(f"Intent: {intent}")
+        print(f"Intent detected: {intent}")
         
-        # Handle photo requests with payment buttons
-        if intent == "photo_request":
-            if account_key in star_handlers:
-                try:
-                    media_info = star_handlers[account_key].db.get_random_media("photo", 5)
-                    
-                    if media_info:
-                        file_path, price = media_info
-                        await star_handlers[account_key].request_star_payment(
-                            int(chat_id),
-                            5,
-                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
-                            file_path
-                        )
-                    else:
-                        await star_handlers[account_key].request_star_payment(
-                            int(chat_id),
-                            5,
-                            f"Unlock exclusive photos of Tsega! 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
-                        )
-                except Exception as e:
-                    # Fallback to text
-                    response = random.choice(TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"]))
-                    await event.reply(response)
-            else:
-                response = random.choice(TSEGA_REPLIES.get("photo_request", ["ልታየኝ ትፈልጋለህ? 5 ⭐ ላክልኝ 😘"]))
-                await event.reply(response)
-            
-            return
+        # SPECIAL HANDLING FOR PHOTO REQUESTS - Send payment button
+        if intent == "photo_request" and account_key in star_handlers:
+            try:
+                media_info = star_handlers[account_key].db.get_random_media("photo", 5)
+                
+                if media_info:
+                    file_path, price = media_info
+                    await star_handlers[account_key].request_star_payment(
+                        int(chat_id),
+                        5,
+                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
+                        file_path
+                    )
+                else:
+                    await star_handlers[account_key].request_star_payment(
+                        int(chat_id),
+                        5,
+                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality"
+                    )
+                return
+            except Exception as e:
+                # Fallback to text response
+                response = get_context_aware_response("photo_request")
         
-        # For ALL other messages, ALWAYS reply
-        response = get_context_aware_response(intent)
+        # NORMAL RESPONSE for all other messages
+        else:
+            response = get_context_aware_response(intent)
         
-        # Human-like delay
+        # HUMAN-LIKE DELAY (15-40 seconds)
         delay = random.randint(StarConfig.REPLY_DELAY_MIN, StarConfig.REPLY_DELAY_MAX)
+        
+        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
+        # Send the perfect response
         await event.reply(response)
         
     except Exception as e:
@@ -1751,7 +1766,6 @@ def send_paid_photo():
         
         # Check if photo exists
         if not os.path.exists(photo_path):
-            # Try to find the file
             found_path = find_media_file(photo_path)
             if found_path:
                 photo_path = found_path
@@ -1833,7 +1847,7 @@ def send_to_user():
     try:
         data = request.json
         account_id = data.get('accountId')
-        target = data.get('target')  # username or phone
+        target = data.get('target')
         photo_path = data.get('photoPath')
         star_amount = data.get('starAmount', 5)
         
@@ -1848,7 +1862,6 @@ def send_to_user():
         if not account:
             return jsonify({'success': False, 'error': 'Account not found'})
         
-        # Check if photo exists
         if not os.path.exists(photo_path):
             found_path = find_media_file(photo_path)
             if found_path:
@@ -1879,12 +1892,10 @@ def send_to_user():
                     elif target.startswith('+'):
                         entity = await client.get_entity(target)
                     else:
-                        # Try as username
                         entity = await client.get_entity('@' + target)
                 except Exception as e:
                     return {'success': False, 'error': f'User not found: {target}'}
                 
-                # Determine caption
                 if star_amount == 5:
                     caption = "🔒 **Preview Photo**\n\nUnlock this exclusive preview for 5 ⭐!\n\nTap below to unlock!"
                 elif star_amount == 50:
@@ -1894,7 +1905,6 @@ def send_to_user():
                 else:
                     caption = f"🔒 **Exclusive Content**\n\nUnlock this photo for {star_amount} ⭐!\n\nTap below to unlock!"
                 
-                # Send photo with payment button
                 await client.send_file(
                     entity,
                     photo_path,
@@ -2037,7 +2047,7 @@ if __name__ == '__main__':
     media_manager = MediaManager()
     
     print('\n' + '='*70)
-    print('🤖 TSEGA - COMPLETE FIXED VERSION')
+    print('🤖 TSEGA - PERFECT AUTO-REPLY VERSION')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
@@ -2052,11 +2062,10 @@ if __name__ == '__main__':
         print(f'   • {item}: {price} ⭐')
     
     print('\n🚀 FEATURES:')
-    print('   • ✅ Tsega REPLIES to all messages')
-    print('   • ✅ Upload photos from device')
-    print('   • ✅ Send to specific user by username/phone')
-    print('   • ✅ Payment buttons with "Unlock for ★ X"')
-    print('   • ✅ Inline recharge button')
+    print('   • ✅ NO "wendme" or "brother" - removed')
+    print('   • ✅ Perfect intent detection')
+    print('   • ✅ Natural responses with 15-40 sec delay')
+    print('   • ✅ Payment buttons for photo requests')
     print('   • ✅ ALL STARS go to @Abe_army')
     print('='*70 + '\n')
     
