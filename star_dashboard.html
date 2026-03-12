@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⭐ Tsega - Upload & Send to All Users</title>
+    <title>⭐ Tsega - Upload & Send to Selected Users</title>
     <style>
         * {
             margin: 0;
@@ -295,6 +295,7 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -310,6 +311,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            min-width: 150px;
         }
 
         .btn.primary {
@@ -330,12 +332,21 @@
             background: #3a4a5a;
         }
 
+        .btn.success {
+            background: #1e4a2b;
+            color: #4caf50;
+        }
+
+        .btn.success:hover:not(:disabled) {
+            background: #2e6b3e;
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        /* Right Panel - Chats & Progress */
+        /* Right Panel - Users List */
         .right-panel {
             background: #17212b;
             border: 1px solid #2b3945;
@@ -343,110 +354,172 @@
             padding: 20px;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: #242f3d;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #FFD700;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: #8e9fad;
-            margin-top: 5px;
-        }
-
-        /* Chats List */
-        .chats-header {
+        .users-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
-        .chats-title {
-            font-size: 1.1rem;
+        .users-title {
+            font-size: 1.2rem;
             color: #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .chats-count {
+        .users-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .select-all-btn {
             background: #2b3945;
-            padding: 5px 10px;
+            color: #6ab2f2;
+            border: none;
+            padding: 8px 16px;
             border-radius: 30px;
+            cursor: pointer;
             font-size: 0.9rem;
         }
 
-        .chats-list {
-            max-height: 300px;
+        .select-all-btn:hover {
+            background: #3a4a5a;
+        }
+
+        .search-box {
+            background: #242f3d;
+            border: 1px solid #2b3945;
+            border-radius: 30px;
+            padding: 8px 16px;
+            color: white;
+            width: 200px;
+        }
+
+        .search-box::placeholder {
+            color: #8e9fad;
+        }
+
+        /* Users List */
+        .users-list {
+            max-height: 500px;
             overflow-y: auto;
             background: #242f3d;
             border-radius: 12px;
             padding: 10px;
-            margin-bottom: 20px;
         }
 
-        .chats-list::-webkit-scrollbar {
+        .users-list::-webkit-scrollbar {
             width: 6px;
         }
 
-        .chats-list::-webkit-scrollbar-track {
+        .users-list::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        .chats-list::-webkit-scrollbar-thumb {
+        .users-list::-webkit-scrollbar-thumb {
             background: #2b3945;
             border-radius: 10px;
         }
 
-        .chat-item {
+        .user-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid #2b3945;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        .chat-item:last-child {
-            border-bottom: none;
+        .user-item:hover {
+            background: #2b3945;
         }
 
-        .chat-name {
-            font-weight: 500;
+        .user-item.selected {
+            background: #2b5278;
+            border-radius: 8px;
+        }
+
+        .user-checkbox {
+            margin-right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #FFD700;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: 600;
         }
 
-        .chat-status {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4caf50;
+        .user-info {
+            flex: 1;
         }
 
-        .chat-status.sent {
-            background: #4caf50;
+        .user-name {
+            font-weight: 600;
+            font-size: 1rem;
         }
 
-        .chat-status.pending {
+        .user-detail {
+            font-size: 0.8rem;
+            color: #8e9fad;
+            display: flex;
+            gap: 10px;
+            margin-top: 3px;
+        }
+
+        .user-type {
+            background: #2b3945;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+        }
+
+        .user-stats {
+            display: flex;
+            gap: 15px;
+            color: #8e9fad;
+            font-size: 0.8rem;
+        }
+
+        /* Selected Count Bar */
+        .selected-bar {
+            background: #2b5278;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-count {
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 5px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+
+        .clear-btn:hover {
             background: #FFD700;
-        }
-
-        .chat-status.error {
-            background: #ff4444;
+            color: #000;
         }
 
         /* Progress Bar */
@@ -548,8 +621,8 @@
         <div class="header">
             <div>
                 <h1>
-                    ⭐ Tsega - Upload & Send to All
-                    <span>v5.0</span>
+                    ⭐ Tsega - Send to Selected Users
+                    <span>v6.0</span>
                 </h1>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <div class="channel-badge">
@@ -628,39 +701,36 @@
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button class="btn primary" id="uploadBtn" onclick="uploadAndSend()" disabled>
-                        📤 Upload & Send to All
+                    <button class="btn primary" id="sendSelectedBtn" onclick="sendToSelectedUsers()" disabled>
+                        📤 Send to Selected
                     </button>
-                    <button class="btn secondary" id="testBtn" onclick="testSend()" disabled>
-                        🔍 Test Send
+                    <button class="btn success" id="sendAllBtn" onclick="sendToAllUsers()" disabled>
+                        👥 Send to ALL Users
                     </button>
                 </div>
             </div>
 
-            <!-- Right Panel - Chats & Progress -->
+            <!-- Right Panel - Users List -->
             <div class="right-panel">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalChats">0</div>
-                        <div class="stat-label">Total Chats</div>
+                <div class="users-header">
+                    <div class="users-title">
+                        <span>👥</span> Private Chats
+                        <span id="totalUsers" style="color:#8e9fad; font-size:0.9rem;">(0)</span>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="selectedCount">0</div>
-                        <div class="stat-label">Photos</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalStars">0</div>
-                        <div class="stat-label">Stars Each</div>
+                    <div class="users-controls">
+                        <input type="text" class="search-box" id="searchInput" placeholder="Search users..." onkeyup="filterUsers()">
+                        <button class="select-all-btn" onclick="selectAllUsers()">Select All</button>
                     </div>
                 </div>
 
-                <div class="chats-header">
-                    <span class="chats-title">💬 Private Chats</span>
-                    <span class="chats-count" id="chatsCount">0</span>
+                <div class="users-list" id="usersList">
+                    <div class="loading"><div class="loading-spinner"></div> Loading users...</div>
                 </div>
 
-                <div class="chats-list" id="chatsList">
-                    <div class="loading">Loading chats...</div>
+                <!-- Selected Count Bar -->
+                <div class="selected-bar" id="selectedBar" style="display: none;">
+                    <span><span class="selected-count" id="selectedCount">0</span> users selected</span>
+                    <button class="clear-btn" onclick="clearSelection()">Clear</button>
                 </div>
 
                 <!-- Progress Bar -->
@@ -673,7 +743,7 @@
                         <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
                     </div>
                     <div class="progress-stats">
-                        <span id="sentCount">0</span> / <span id="totalCount">0</span> chats
+                        <span id="sentCount">0</span> / <span id="totalCount">0</span> users
                         <span id="successCount">0</span> ✅ | <span id="failCount">0</span> ❌
                     </div>
                 </div>
@@ -690,7 +760,9 @@
         let selectedPrice = 5;
         let selectedAccount = null;
         let accounts = [];
-        let chats = [];
+        let allUsers = [];
+        let filteredUsers = [];
+        let selectedUsers = new Set();
         let autoReplyEnabled = false;
 
         // DOM Elements
@@ -699,8 +771,11 @@
         const uploadArea = document.getElementById('uploadArea');
         const filePreview = document.getElementById('filePreview');
         const previewList = document.getElementById('previewList');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const testBtn = document.getElementById('testBtn');
+        const sendSelectedBtn = document.getElementById('sendSelectedBtn');
+        const sendAllBtn = document.getElementById('sendAllBtn');
+        const selectedBar = document.getElementById('selectedBar');
+        const selectedCount = document.getElementById('selectedCount');
+        const searchInput = document.getElementById('searchInput');
 
         // Drag & Drop handlers
         uploadArea.addEventListener('dragover', (e) => {
@@ -730,7 +805,7 @@
             }
 
             displayFilePreview();
-            updateSendButton();
+            updateSendButtons();
         }
 
         // Display file preview
@@ -755,14 +830,13 @@
             });
             
             previewList.innerHTML = html;
-            document.getElementById('selectedCount').textContent = selectedFiles.length;
         }
 
         // Remove file from selection
         function removeFile(index) {
             selectedFiles.splice(index, 1);
             displayFilePreview();
-            updateSendButton();
+            updateSendButtons();
         }
 
         // Select price
@@ -770,8 +844,7 @@
             selectedPrice = price;
             document.querySelectorAll('.price-option').forEach(opt => opt.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
-            document.getElementById('totalStars').textContent = price;
-            updateSendButton();
+            updateSendButtons();
         }
 
         // Load accounts
@@ -822,14 +895,14 @@
         function selectAccount(accountId) {
             selectedAccount = accounts.find(a => a.id === accountId);
             displayAccounts();
-            loadChats(accountId);
-            updateSendButton();
+            loadUsers(accountId);
+            updateSendButtons();
         }
 
-        // Load chats
-        async function loadChats(accountId) {
-            const chatsList = document.getElementById('chatsList');
-            chatsList.innerHTML = '<div class="loading"><div class="loading-spinner"></div> Loading chats...</div>';
+        // Load users (private chats)
+        async function loadUsers(accountId) {
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '<div class="loading"><div class="loading-spinner"></div> Loading users...</div>';
 
             try {
                 const res = await fetch('/api/get-messages', {
@@ -841,48 +914,109 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    chats = data.chats || [];
-                    // Filter only private chats
-                    const privateChats = chats.filter(c => c.type === 'user');
+                    // Filter only private chats (users)
+                    allUsers = (data.chats || []).filter(c => c.type === 'user');
+                    filteredUsers = [...allUsers];
                     
-                    document.getElementById('totalChats').textContent = privateChats.length;
-                    document.getElementById('chatsCount').textContent = privateChats.length;
-                    document.getElementById('totalCount').textContent = privateChats.length;
+                    document.getElementById('totalUsers').textContent = `(${allUsers.length})`;
                     
-                    displayChats(privateChats);
+                    displayUsers();
                 }
             } catch (err) {
-                chatsList.innerHTML = '<div class="empty-state">Error loading chats</div>';
+                usersList.innerHTML = '<div class="empty-state">Error loading users</div>';
             }
         }
 
-        // Display chats
-        function displayChats(chatList) {
-            const chatsList = document.getElementById('chatsList');
+        // Display users
+        function displayUsers() {
+            const usersList = document.getElementById('usersList');
             
-            if (!chatList.length) {
-                chatsList.innerHTML = '<div class="empty-state">No private chats found</div>';
+            if (!filteredUsers.length) {
+                usersList.innerHTML = '<div class="empty-state">No private chats found</div>';
                 return;
             }
 
             let html = '';
-            chatList.slice(0, 15).forEach(chat => {
+            filteredUsers.forEach(user => {
+                const isSelected = selectedUsers.has(user.id);
+                const avatarLetter = (user.title || 'U').charAt(0).toUpperCase();
+                
                 html += `
-                    <div class="chat-item">
-                        <div class="chat-name">
-                            <span class="chat-status pending"></span>
-                            ${escapeHtml(chat.title || 'Unknown')}
+                    <div class="user-item ${isSelected ? 'selected' : ''}" onclick="toggleUser('${user.id}')">
+                        <input type="checkbox" class="user-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleUser('${user.id}')">
+                        <div class="user-avatar">${escapeHtml(avatarLetter)}</div>
+                        <div class="user-info">
+                            <div class="user-name">${escapeHtml(user.title || 'Unknown')}</div>
+                            <div class="user-detail">
+                                <span>ID: ${user.id}</span>
+                                <span class="user-type">${user.type}</span>
+                            </div>
                         </div>
-                        <span>${chat.unread || 0} 📨</span>
+                        <div class="user-stats">
+                            <span>📨 ${user.unread || 0}</span>
+                        </div>
                     </div>
                 `;
             });
 
-            if (chatList.length > 15) {
-                html += `<div class="chat-item" style="color:#8e9fad;">... and ${chatList.length - 15} more</div>`;
-            }
+            usersList.innerHTML = html;
+            updateSelectedBar();
+        }
 
-            chatsList.innerHTML = html;
+        // Filter users by search
+        function filterUsers() {
+            const search = searchInput.value.toLowerCase();
+            
+            if (!search) {
+                filteredUsers = [...allUsers];
+            } else {
+                filteredUsers = allUsers.filter(user => 
+                    (user.title && user.title.toLowerCase().includes(search)) ||
+                    (user.id && user.id.includes(search))
+                );
+            }
+            
+            displayUsers();
+        }
+
+        // Toggle user selection
+        function toggleUser(userId) {
+            if (selectedUsers.has(userId)) {
+                selectedUsers.delete(userId);
+            } else {
+                selectedUsers.add(userId);
+            }
+            
+            displayUsers();
+            updateSendButtons();
+        }
+
+        // Select all users
+        function selectAllUsers() {
+            filteredUsers.forEach(user => {
+                selectedUsers.add(user.id);
+            });
+            displayUsers();
+            updateSendButtons();
+        }
+
+        // Clear all selections
+        function clearSelection() {
+            selectedUsers.clear();
+            displayUsers();
+            updateSendButtons();
+        }
+
+        // Update selected bar
+        function updateSelectedBar() {
+            const count = selectedUsers.size;
+            selectedCount.textContent = count;
+            
+            if (count > 0) {
+                selectedBar.style.display = 'flex';
+            } else {
+                selectedBar.style.display = 'none';
+            }
         }
 
         // Check auto-reply status
@@ -906,35 +1040,50 @@
             }
         }
 
-        // Update send button state
-        function updateSendButton() {
-            const enabled = selectedFiles.length > 0 && selectedAccount;
-            uploadBtn.disabled = !enabled;
-            testBtn.disabled = !enabled;
+        // Update send buttons state
+        function updateSendButtons() {
+            const hasFiles = selectedFiles.length > 0;
+            const hasAccount = selectedAccount !== null;
+            
+            sendSelectedBtn.disabled = !(hasFiles && hasAccount && selectedUsers.size > 0);
+            sendAllBtn.disabled = !(hasFiles && hasAccount && allUsers.length > 0);
         }
 
-        // Upload and send to all
-        async function uploadAndSend() {
+        // Upload files and send to selected users
+        async function sendToSelectedUsers() {
+            if (selectedUsers.size === 0) {
+                showToast('Please select at least one user', 'error');
+                return;
+            }
+            
+            await uploadAndSend(Array.from(selectedUsers));
+        }
+
+        // Upload files and send to all users
+        async function sendToAllUsers() {
+            if (allUsers.length === 0) {
+                showToast('No users found', 'error');
+                return;
+            }
+            
+            await uploadAndSend(allUsers.map(u => u.id));
+        }
+
+        // Upload and send to specified users
+        async function uploadAndSend(userIds) {
             if (!selectedAccount || selectedFiles.length === 0) {
                 showToast('Select account and photos first', 'error');
                 return;
             }
 
-            const privateChats = chats.filter(c => c.type === 'user');
-            
-            if (!privateChats.length) {
-                showToast('No private chats found', 'error');
-                return;
-            }
-
             // Show progress
             document.getElementById('progressContainer').style.display = 'block';
-            uploadBtn.disabled = true;
-            testBtn.disabled = true;
+            sendSelectedBtn.disabled = true;
+            sendAllBtn.disabled = true;
 
             let success = 0;
             let failed = 0;
-            let total = privateChats.length * selectedFiles.length;
+            let total = userIds.length * selectedFiles.length;
             let completed = 0;
 
             // First, upload all files
@@ -976,10 +1125,10 @@
                 return;
             }
 
-            showToast(`📤 Sending to ${privateChats.length} chats...`);
+            showToast(`📤 Sending to ${userIds.length} users...`);
 
-            // Send to each chat
-            for (let chat of privateChats) {
+            // Send to each user
+            for (let userId of userIds) {
                 for (let photoPath of uploadedPaths) {
                     try {
                         const res = await fetch('/api/send-paid-photo', {
@@ -987,7 +1136,7 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 accountId: selectedAccount.id,
-                                chatId: chat.id,
+                                chatId: userId,
                                 photoPath: photoPath,
                                 starAmount: selectedPrice
                             })
@@ -1012,91 +1161,28 @@
                     document.getElementById('failCount').textContent = failed;
                 }
                 
-                // Small delay between chats
+                // Small delay between users
                 await new Promise(r => setTimeout(r, 500));
             }
 
             showToast(`✅ Complete! Sent: ${success}, Failed: ${failed}`);
+            
+            // Clear selection after successful send
+            selectedUsers.clear();
+            displayUsers();
+            
             resetButtons();
-        }
-
-        // Test send to first chat
-        async function testSend() {
-            if (!selectedAccount || selectedFiles.length === 0) {
-                showToast('Select account and photos first', 'error');
-                return;
-            }
-
-            const privateChats = chats.filter(c => c.type === 'user');
-            
-            if (!privateChats.length) {
-                showToast('No private chats found', 'error');
-                return;
-            }
-
-            testBtn.disabled = true;
-            testBtn.textContent = 'Sending test...';
-
-            const chat = privateChats[0];
-            let success = 0;
-
-            // Upload first file
-            const file = selectedFiles[0];
-            const formData = new FormData();
-            
-            const prefix = selectedPrice === 5 ? 'preview_' : 
-                          selectedPrice === 50 ? 'full_' : 'premium_';
-            const ext = file.name.split('.').pop();
-            const newName = `${prefix}${Date.now()}_test.${ext}`;
-            
-            const renamedFile = new File([file], newName, { type: file.type });
-            formData.append('file', renamedFile);
-            formData.append('prefix', prefix);
-
-            try {
-                const uploadRes = await fetch('/api/upload-media', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const uploadData = await uploadRes.json();
-                
-                if (uploadData.success) {
-                    const sendRes = await fetch('/api/send-paid-photo', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            accountId: selectedAccount.id,
-                            chatId: chat.id,
-                            photoPath: uploadData.path,
-                            starAmount: selectedPrice
-                        })
-                    });
-                    
-                    const sendData = await sendRes.json();
-                    if (sendData.success) success = 1;
-                }
-            } catch (err) {
-                console.error(err);
-            }
-
-            showToast(success ? '✅ Test sent successfully!' : '❌ Test failed');
-            testBtn.disabled = false;
-            testBtn.textContent = '🔍 Test Send';
         }
 
         // Reset buttons
         function resetButtons() {
-            uploadBtn.disabled = false;
-            testBtn.disabled = false;
+            document.getElementById('progressContainer').style.display = 'none';
+            updateSendButtons();
         }
 
         // Load all data
         function loadAllData() {
             loadAccounts();
-            if (selectedAccount) {
-                loadChats(selectedAccount.id);
-            }
         }
 
         // Escape HTML
@@ -1122,4 +1208,4 @@
         });
     </script>
 </body>
-            </html>
+</html>
