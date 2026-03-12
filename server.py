@@ -1,8 +1,16 @@
-# ==================== IMPORTS ====================
+# ==================== COMPLETE SERVER.PY ====================
+# YOU ONLY NEED TO FILL 2 SECTIONS:
+# 1. TSEGA_REPLIES (your 11 rounds)
+# 2. detect_conversation_intent (your 5 rounds)
+# ============================================================
+
 import os
 import logging
 import random
 import asyncio
+import json
+import time
+import threading
 import sqlite3
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file
@@ -13,32 +21,36 @@ from telethon.sessions import StringSession
 # ==================== CONFIGURATION ====================
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
-# ... (your existing config)
+ACCOUNTS_FILE = 'accounts.json'
+REPLY_SETTINGS_FILE = 'reply_settings.json'
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4'}
 
-# ==================== !!! PASTE YOUR 11 ROUNDS HERE !!! ====================
-# ==================== ROUND 1 & 2 - GREETINGS, BASIC & FLIRTY ====================
-# Natural Amharic in English spelling - Sounds like a real Ethiopian girl
-# ==================== TSEGA'S INITIAL PERSONALITY ====================
-TSEGA_BASE = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ==================== LOGGING ====================
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ==================== GLOBAL VARIABLES ====================
+accounts = []
+reply_settings = {}
+active_clients = {}
+temp_sessions = {}
+
+# ==================== !!! PLACEHOLDER 1 - YOUR 11 ROUNDS GO HERE !!! ====================
+# PASTE YOUR ENTIRE 11 ROUNDS TSEGA_REPLIES DICTIONARY HERE
+# Example structure (replace with your actual 11 rounds):
+"""
+TSEGA_REPLIES = {
+    "greeting": [...],
+    "how_are_you": [...],
+    "flirty": [...],
+    "photo_request": [...],
+    "money_request": [...],
+    ... and all other categories from your 11 rounds ...
 }
-
-
+"""
 TSEGA_REPLIES = {
     # ===== GREETINGS - Selam, Hi, Hello =====
     "greeting": [
@@ -4089,17 +4101,34 @@ TSEGA_REPLIES = {
 }
 
 
-# ==================== !!! PASTE YOUR 5 ROUNDS OF FUNCTIONS HERE !!! ====================
-# ==================== ROUND 1/5 - EMOJIS & BASIC FUNCTIONS ====================
+# ==================== EMOJIS ====================
+TSEGA_EMOJIS = ["😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹"]
 
-# ===== EMOJIS FOR NATURAL FEEL =====
-# Used randomly to make responses feel human (not every time)
+# ==================== HELPER FUNCTIONS ====================
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-TSEGA_EMOJIS = [
-    "😊", "😘", "💕", "😏", "💓", "✨", "😉", "🔥", "💋", "🌹", 
-    "💫", "🥰", "😍", "🤗", "💖", "💝", "🌸", "🌺", "🎀", "💞"
-]
+def find_media_file(filename):
+    possible_paths = [
+        filename,
+        os.path.join('tsega_photos/preview', os.path.basename(filename)),
+        os.path.join('tsega_photos/full', os.path.basename(filename)),
+        os.path.join('tsega_photos/premium', os.path.basename(filename)),
+        os.path.join('uploads', os.path.basename(filename))
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
 
+def get_tsega_response(intent):
+    responses = TSEGA_REPLIES.get(intent, TSEGA_REPLIES.get("default", ["ሰላም"]))
+    response = random.choice(responses)
+    if random.random() < 0.3:
+        response = f"{response} {random.choice(TSEGA_EMOJIS)}"
+    return response
+
+# ==================== !!! PLACEHOLDER 2 - YOUR 5 ROUNDS DETECTION GO HERE !!! ====================
 # ===== ALLOWED FILE TYPES =====
 def allowed_file(filename):
     """Check if file type is allowed for upload"""
@@ -4556,64 +4585,54 @@ def get_tsega_response(intent):
     
     # ===== DEFAULT - WHEN NOTHING ELSE MATCHES =====
     return "default"
-
-# ==================== END OF INTENT DETECTION FUNCTION ====================
-    # ==================== FLASK APP STARTS HERE ====================
-app = Flask(__name__)
-CORS(app)
-
-# ==================== LOAD ACCOUNTS ====================
+# ==================== LOAD/SAVE FUNCTIONS ====================
 def load_accounts():
-    """Load accounts from file"""
     global accounts
     try:
-        if os.path.exists('accounts.json'):
-            with open('accounts.json', 'r') as f:
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r') as f:
                 accounts = json.load(f)
         else:
             accounts = []
     except Exception as e:
-        print(f"Error loading accounts: {e}")
+        logger.error(f"Error loading accounts: {e}")
         accounts = []
 
-# ==================== SAVE ACCOUNTS ====================
 def save_accounts():
-    """Save accounts to file"""
     try:
-        with open('accounts.json', 'w') as f:
+        with open(ACCOUNTS_FILE, 'w') as f:
             json.dump(accounts, f, indent=2)
         return True
     except Exception as e:
-        print(f"Error saving accounts: {e}")
+        logger.error(f"Error saving accounts: {e}")
         return False
 
-# ==================== LOAD REPLY SETTINGS ====================
 def load_reply_settings():
-    """Load reply settings from file"""
     global reply_settings
     try:
-        if os.path.exists('reply_settings.json'):
-            with open('reply_settings.json', 'r') as f:
+        if os.path.exists(REPLY_SETTINGS_FILE):
+            with open(REPLY_SETTINGS_FILE, 'r') as f:
                 reply_settings = json.load(f)
         else:
             reply_settings = {}
     except Exception as e:
-        print(f"Error loading reply settings: {e}")
+        logger.error(f"Error loading reply settings: {e}")
         reply_settings = {}
 
-# ==================== SAVE REPLY SETTINGS ====================
 def save_reply_settings():
-    """Save reply settings to file"""
     try:
-        with open('reply_settings.json', 'w') as f:
+        with open(REPLY_SETTINGS_FILE, 'w') as f:
             json.dump(reply_settings, f, indent=2)
         return True
     except Exception as e:
-        print(f"Error saving reply settings: {e}")
+        logger.error(f"Error saving reply settings: {e}")
         return False
 
-# ==================== ROUTES ====================
+# ==================== FLASK APP ====================
+app = Flask(__name__)
+CORS(app)
 
+# ==================== PAGE ROUTES ====================
 @app.route('/')
 def home():
     return send_file('login.html')
@@ -4643,10 +4662,8 @@ def star_dashboard():
     return send_file('star_dashboard.html')
 
 # ==================== API ROUTES ====================
-
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    """Get all accounts"""
     formatted = []
     for acc in accounts:
         account_key = str(acc.get('id'))
@@ -4661,44 +4678,44 @@ def get_accounts():
 
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
-    """Add new account - send verification code"""
     data = request.json
     phone = data.get('phone')
-    
     if not phone:
-        return jsonify({'success': False, 'error': 'Phone number required'})
+        return jsonify({'success': False, 'error': 'Phone required'})
     
-    # Your Telegram login code here
-    # This is simplified - you need your actual Telegram client code
-    
-    return jsonify({'success': True, 'message': 'Code sent'})
+    # Simplified - in production, add your Telegram login code
+    session_id = str(int(time.time()))
+    temp_sessions[session_id] = {'phone': phone}
+    return jsonify({'success': True, 'session_id': session_id})
 
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
-    """Verify login code and add account"""
     data = request.json
     code = data.get('code')
-    phone = data.get('phone')
+    session_id = data.get('session_id')
     
-    # Your verification code here
-    
-    return jsonify({'success': True, 'message': 'Account added'})
+    new_id = len(accounts) + 1
+    new_account = {
+        'id': new_id,
+        'phone': temp_sessions.get(session_id, {}).get('phone', ''),
+        'name': 'User',
+        'session': 'dummy_session'
+    }
+    accounts.append(new_account)
+    save_accounts()
+    return jsonify({'success': True})
 
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
-    """Remove account"""
     data = request.json
     account_id = data.get('accountId')
-    
     global accounts
     accounts = [acc for acc in accounts if acc.get('id') != account_id]
     save_accounts()
-    
-    return jsonify({'success': True, 'message': 'Account removed'})
+    return jsonify({'success': True})
 
 @app.route('/api/reply-settings', methods=['GET'])
 def get_reply_settings():
-    """Get reply settings for account"""
     account_id = request.args.get('accountId')
     account_key = str(account_id)
     settings = reply_settings.get(account_key, {'enabled': False, 'chats': {}})
@@ -4706,48 +4723,28 @@ def get_reply_settings():
 
 @app.route('/api/reply-settings', methods=['POST'])
 def update_reply_settings():
-    """Update reply settings for account"""
     data = request.json
     account_id = data.get('accountId')
     enabled = data.get('enabled', False)
     chat_settings = data.get('chats', {})
     
     account_key = str(account_id)
-    reply_settings[account_key] = {
-        'enabled': enabled,
-        'chats': chat_settings
-    }
+    reply_settings[account_key] = {'enabled': enabled, 'chats': chat_settings}
     save_reply_settings()
-    
-    return jsonify({'success': True, 'message': 'Settings updated'})
+    return jsonify({'success': True})
 
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
-    """Get chats/messages for account"""
     data = request.json
     account_id = data.get('accountId')
-    
-    # Return mock data for now
     mock_chats = [
         {'id': '1', 'title': 'User 1', 'type': 'user', 'unread': 0},
         {'id': '2', 'title': 'User 2', 'type': 'user', 'unread': 2},
     ]
-    
     return jsonify({'success': True, 'chats': mock_chats})
-
-@app.route('/api/send-message', methods=['POST'])
-def send_message():
-    """Send message to chat"""
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    message = data.get('message')
-    
-    return jsonify({'success': True, 'message': 'Message sent'})
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
@@ -4758,16 +4755,11 @@ def health_check():
 
 # ==================== AUTO-REPLY HANDLER ====================
 async def auto_reply_handler(event, account_id):
-    """Main handler that uses your 11 rounds of responses"""
     try:
-        # Skip own messages
         if event.out:
             return
         
-        # Get chat info
         chat = await event.get_chat()
-        
-        # Only reply to private chats (not groups/channels)
         if hasattr(chat, 'title') and chat.title:
             return
         
@@ -4775,130 +4767,59 @@ async def auto_reply_handler(event, account_id):
         if not sender:
             return
         
-        chat_id = str(event.chat_id)
-        user_id = str(sender.id)
         message_text = event.message.text or ""
-        
         if not message_text:
             return
         
-        # Check if auto-reply is enabled for this account
         account_key = str(account_id)
-        
         if account_key not in reply_settings:
             return
-        
         if not reply_settings[account_key].get('enabled', False):
             return
         
-        # Handle Star payments if any
-        if account_key in star_handlers:
-            try:
-                stars_paid, stars_amount = await star_handlers[account_key].handle_star_payment(event)
-                if stars_paid:
-                    print(f"💰 User paid {stars_amount} stars")
-            except Exception as e:
-                pass
-        
-        # DETECT WHAT USER WANTS (using your detection function)
+        # === THIS IS WHERE YOUR 5 ROUNDS DETECTION IS USED ===
         intent = detect_conversation_intent(message_text)
         
-        # SPECIAL HANDLING FOR PHOTO REQUESTS
-        if intent == "photo_request" and account_key in star_handlers:
-            try:
-                media_info = star_handlers[account_key].db.get_random_media("photo", 5)
-                if media_info:
-                    file_path, price = media_info
-                    await star_handlers[account_key].request_star_payment(
-                        int(chat_id),
-                        5,
-                        f"Unlock exclusive photos 🔥\n\n5⭐ = 1 photo\n50⭐ = full quality",
-                        file_path
-                    )
-                else:
-                    # If no media, use text response from your 11 rounds
-                    response = get_tsega_response("photo_request")
-                    delay = random.randint(15, 40)
-                    async with event.client.action(event.chat_id, 'typing'):
-                        await asyncio.sleep(delay)
-                    await event.reply(response)
-                return
-            except Exception as e:
-                # Fallback to text response
-                response = get_tsega_response("photo_request")
+        # === THIS IS WHERE YOUR 11 ROUNDS RESPONSES ARE USED ===
+        response = get_tsega_response(intent)
         
-        # SPECIAL HANDLING FOR MONEY REQUESTS
-        elif intent == "money_request":
-            response = get_tsega_response("money_request")
-        
-        # NORMAL RESPONSE FOR ALL OTHER MESSAGES
-        else:
-            response = get_tsega_response(intent)
-        
-        # HUMAN-LIKE DELAY (15-40 seconds)
         delay = random.randint(15, 40)
-        
-        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
-        # Send the perfect response from your 11 rounds
         await event.reply(response)
         
     except Exception as e:
-        print(f"Error in auto-reply: {e}")
-        # Fallback response if something goes wrong
-        try:
-            await event.reply("ሰላም! ትንሽ ችግር አጋጥሞኛል ግን አሁን ዝግጁ ነኝ")
-        except:
-            pass
+        logger.error(f"Error in auto-reply: {e}")
 
-# ==================== START AUTO-REPLY ====================
 async def start_auto_reply_for_account(account):
-    """Start auto-reply for a specific account"""
     account_id = account['id']
     account_key = str(account_id)
     
     try:
-        # Create Telegram client
-        client = TelegramClient(
-            StringSession(account['session']), 
-            API_ID, 
-            API_HASH
-        )
-        
+        client = TelegramClient(StringSession(account.get('session', '')), API_ID, API_HASH)
         await client.connect()
         
         if not await client.is_user_authorized():
-            print(f"Account {account_id} not authorized")
             return
         
-        # Store client
         active_clients[account_key] = client
         
-        # Initialize star handler if available
-        if 'StarEarningHandler' in globals():
-            star_handlers[account_key] = StarEarningHandler(client)
-        
-        # Register handler
         @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             await auto_reply_handler(event, account_id)
         
-        print(f"✅ Auto-reply started for account {account_id}")
         await client.run_until_disconnected()
         
     except Exception as e:
-        print(f"Error starting auto-reply: {e}")
+        logger.error(f"Error in auto-reply thread: {e}")
         if account_key in active_clients:
             del active_clients[account_key]
 
 def start_all_auto_replies():
-    """Start auto-reply for all enabled accounts"""
     for account in accounts:
         account_key = str(account['id'])
         settings = reply_settings.get(account_key, {})
-        
         if settings.get('enabled', False):
             if account_key not in active_clients:
                 thread = threading.Thread(
@@ -4912,17 +4833,9 @@ def start_all_auto_replies():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
-    # Load data
     load_accounts()
     load_reply_settings()
     
-    # Start auto-reply in background
     threading.Thread(target=start_all_auto_replies, daemon=True).start()
     
-    # Run Flask app
     app.run(host='0.0.0.0', port=port, debug=False)
-    
-    
-
-
-    
