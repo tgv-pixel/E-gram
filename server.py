@@ -18,6 +18,10 @@ from datetime import datetime
 import re
 from collections import defaultdict
 import hashlib
+import nest_asyncio
+
+# Apply nest_asyncio to allow nested event loops
+nest_asyncio.apply()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -283,26 +287,29 @@ REPLY_TEMPLATES = {
 
 # ==================== UTILITY FUNCTIONS ====================
 
-def run_async(coro_func):
-    """Run async function in new loop"""
+# FIXED: Completely rewritten run_async function
+def run_async(coro):
+    """Run async coroutine in a new event loop"""
     try:
+        # Create new loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # If it's a coroutine function, call it
-        if asyncio.iscoroutinefunction(coro_func):
-            return loop.run_until_complete(coro_func())
+        # If coro is a coroutine function, call it to get coroutine
+        if asyncio.iscoroutinefunction(coro):
+            return loop.run_until_complete(coro())
         # If it's already a coroutine
-        elif asyncio.iscoroutine(coro_func):
-            return loop.run_until_complete(coro_func)
+        elif asyncio.iscoroutine(coro):
+            return loop.run_until_complete(coro)
         # If it's a callable that returns a coroutine
-        elif callable(coro_func):
-            result = coro_func()
+        elif callable(coro):
+            result = coro()
             if asyncio.iscoroutine(result):
                 return loop.run_until_complete(result)
-            return result
+            else:
+                return result
         else:
-            logger.error(f"run_async: expected coroutine or callable, got {type(coro_func)}")
+            logger.error(f"run_async: cannot handle type {type(coro)}")
             return None
     except Exception as e:
         logger.error(f"Error in run_async: {e}")
@@ -777,10 +784,16 @@ def start_all_auto_replies():
         account_key = str(account['id'])
         if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
             if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda a=account: run_async(start_auto_reply_for_account(a)),
-                    daemon=True
-                )
+                # FIXED: Use a function that returns the coroutine properly
+                def thread_target():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(start_auto_reply_for_account(account))
+                    finally:
+                        loop.close()
+                
+                thread = threading.Thread(target=thread_target, daemon=True)
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
@@ -1069,10 +1082,16 @@ def update_reply_settings():
         if account_key not in active_clients:
             account = next((a for a in accounts if str(a['id']) == account_key), None)
             if account:
-                thread = threading.Thread(
-                    target=lambda a=account: run_async(start_auto_reply_for_account(a)),
-                    daemon=True
-                )
+                # FIXED: Use thread function instead of lambda
+                def thread_target():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(start_auto_reply_for_account(account))
+                    finally:
+                        loop.close()
+                
+                thread = threading.Thread(target=thread_target, daemon=True)
                 thread.start()
                 client_tasks[account_key] = thread
     else:
@@ -1463,21 +1482,6 @@ def keep_alive():
     while True:
         try:
             requests.get(f"{app_url}/api/health", timeout=10)
-            
-            # Check connections
-            for account_key, client in list(active_clients.items()):
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    if client and hasattr(client, 'get_me'):
-                        coro = client.get_me()
-                        if asyncio.iscoroutine(coro):
-                            loop.run_until_complete(coro)
-                    loop.close()
-                    logger.info(f"✅ Connection alive for account {account_key}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Connection dead for account {account_key}: {e}")
-            
             logger.info(f"🔋 Keep-alive ping sent")
         except Exception as e:
             logger.error(f"Keep-alive error: {e}")
