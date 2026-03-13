@@ -36,8 +36,6 @@ ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
 USER_CONTEXT_FILE = 'user_context.json'
-LEARNING_DATA_FILE = 'learning_data.json'
-PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'
 
 # Global variables
 accounts = []
@@ -45,8 +43,6 @@ temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
 user_context = {}
-learning_data = {}
-personality_evolution = {}
 active_clients = {}
 client_tasks = {}
 active_listeners = {}
@@ -455,151 +451,6 @@ REPLY_TEMPLATES = {
     ]
 }
 
-# ==================== SELF-LEARNING SYSTEM ====================
-
-class TsegaLearner:
-    """Self-learning system for Tsega's personality"""
-    
-    def __init__(self, account_id):
-        self.account_id = str(account_id)
-        self.load_or_init()
-    
-    def load_or_init(self):
-        """Load existing learning data or initialize new"""
-        if self.account_id not in learning_data:
-            learning_data[self.account_id] = {
-                'replies': REPLY_TEMPLATES.copy(),
-                'patterns': {
-                    'word_freq': {},
-                    'phrase_freq': {},
-                    'user_response_rate': {},
-                    'successful_intents': {},
-                    'failed_intents': {},
-                    'user_preferences': {},
-                    'response_times': []
-                },
-                'evolution': {
-                    'total_conversations': 0,
-                    'total_messages': 0,
-                    'unique_users': [],
-                    'learning_iterations': 0,
-                    'personality_traits': TSEGA_PERSONALITY['personality_traits'].copy(),
-                    'last_evolution': time.time()
-                }
-            }
-            save_learning_data()
-    
-    def learn_from_exchange(self, user_message, bot_reply, user_id, intent, user_responded=True):
-        """Learn from each conversation exchange"""
-        data = learning_data[self.account_id]
-        patterns = data['patterns']
-        evolution = data['evolution']
-        
-        words = user_message.lower().split()
-        for word in words:
-            if len(word) > 2:
-                patterns['word_freq'][word] = patterns['word_freq'].get(word, 0) + 1
-        
-        if len(words) >= 2:
-            for i in range(len(words)-1):
-                phrase = f"{words[i]} {words[i+1]}"
-                patterns['phrase_freq'][phrase] = patterns['phrase_freq'].get(phrase, 0) + 1
-        
-        if user_responded:
-            patterns['successful_intents'][intent] = patterns['successful_intents'].get(intent, 0) + 1
-        else:
-            patterns['failed_intents'][intent] = patterns['failed_intents'].get(intent, 0) + 1
-        
-        if user_id not in patterns['user_preferences']:
-            patterns['user_preferences'][user_id] = {}
-        patterns['user_preferences'][user_id][intent] = patterns['user_preferences'][user_id].get(intent, 0) + 1
-        
-        patterns['response_times'].append(int(time.time()))
-        if len(patterns['response_times']) > 100:
-            patterns['response_times'] = patterns['response_times'][-100:]
-        
-        evolution['total_messages'] += 1
-        if user_id not in evolution['unique_users']:
-            evolution['unique_users'].append(user_id)
-        
-        if time.time() - evolution['last_evolution'] > 3600:
-            self.evolve_personality()
-    
-    def evolve_personality(self):
-        """Evolve personality based on learned patterns"""
-        data = learning_data[self.account_id]
-        patterns = data['patterns']
-        evolution = data['evolution']
-        traits = evolution['personality_traits']
-        
-        total_success = sum(patterns['successful_intents'].values())
-        total_failed = sum(patterns['failed_intents'].values())
-        
-        if total_success + total_failed > 0:
-            flirty_success = patterns['successful_intents'].get('flirty', 0)
-            flirty_total = flirty_success + patterns['failed_intents'].get('flirty', 0)
-            if flirty_total > 5:
-                flirty_rate = flirty_success / flirty_total
-                if flirty_rate > 0.7:
-                    traits['flirty'] = min(0.9, traits['flirty'] + 0.05)
-                elif flirty_rate < 0.3:
-                    traits['flirty'] = max(0.3, traits['flirty'] - 0.05)
-            
-            money_success = patterns['successful_intents'].get('money_request', 0)
-            money_total = money_success + patterns['failed_intents'].get('money_request', 0)
-            if money_total > 5:
-                money_rate = money_success / money_total
-                if money_rate > 0.4:
-                    traits['money_focused'] = min(0.8, traits['money_focused'] + 0.03)
-                elif money_rate < 0.1:
-                    traits['money_focused'] = max(0.3, traits['money_focused'] - 0.05)
-        
-        evolution['learning_iterations'] += 1
-        evolution['last_evolution'] = time.time()
-        
-        save_learning_data()
-        save_personality_evolution()
-        
-        logger.info(f"🧠 Tsega's personality evolved for account {self.account_id}")
-    
-    def get_evolved_reply(self, intent, user_id=None):
-        """Get an evolved reply based on learning"""
-        data = learning_data[self.account_id]
-        replies = data['replies']
-        traits = data['evolution']['personality_traits']
-        patterns = data['patterns']
-        
-        if intent not in replies:
-            intent = 'default'
-        
-        available_replies = replies[intent]
-        
-        if user_id and user_id in patterns['user_preferences']:
-            user_intents = patterns['user_preferences'][user_id]
-            if user_intents:
-                top_intent = max(user_intents.items(), key=lambda x: x[1])[0]
-                if top_intent != intent and random.random() < 0.3:
-                    if top_intent in replies:
-                        available_replies = replies[top_intent]
-        
-        reply = random.choice(available_replies)
-        
-        if traits['money_focused'] > 0.6 and random.random() < 0.3:
-            money_phrases = [" te Birr 0940980555", " 500 Birr laklgn", " 1000 Birr ametah"]
-            reply += random.choice(money_phrases)
-        
-        if traits['flirty'] > 0.7 and intent not in ['money_request', 'meet']:
-            flirty_emojis = ['😘', '💋', '💕', '🔥', '💦', '😏']
-            if random.random() < 0.4:
-                reply += " " + random.choice(flirty_emojis)
-        
-        if traits['talkative'] > 0.6 and intent not in ['goodbye']:
-            if random.random() < 0.3:
-                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?", "tiru new?", "telebirr laklgn?"]
-                reply += " " + random.choice(follow_ups)
-        
-        return reply
-
 # ==================== UTILITY FUNCTIONS ====================
 
 def run_async(coro_func):
@@ -729,62 +580,11 @@ def save_user_context():
         logger.error(f"Error saving user context: {e}")
         return False
 
-def load_learning_data():
-    global learning_data
-    try:
-        if os.path.exists(LEARNING_DATA_FILE):
-            with open(LEARNING_DATA_FILE, 'r') as f:
-                content = f.read().strip()
-                learning_data = json.loads(content) if content else {}
-        else:
-            learning_data = {}
-            with open(LEARNING_DATA_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded learning data for {len(learning_data)} accounts")
-    except Exception as e:
-        logger.error(f"Error loading learning data: {e}")
-        learning_data = {}
-
-def save_learning_data():
-    try:
-        with open(LEARNING_DATA_FILE, 'w') as f:
-            json.dump(learning_data, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving learning data: {e}")
-        return False
-
-def load_personality_evolution():
-    global personality_evolution
-    try:
-        if os.path.exists(PERSONALITY_EVOLUTION_FILE):
-            with open(PERSONALITY_EVOLUTION_FILE, 'r') as f:
-                content = f.read().strip()
-                personality_evolution = json.loads(content) if content else {}
-        else:
-            personality_evolution = {}
-            with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
-                json.dump({}, f)
-    except Exception as e:
-        logger.error(f"Error loading personality evolution: {e}")
-        personality_evolution = {}
-
-def save_personality_evolution():
-    try:
-        with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
-            json.dump(personality_evolution, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving personality evolution: {e}")
-        return False
-
 # Load all data
 load_accounts()
 load_reply_settings()
 load_conversation_history()
 load_user_context()
-load_learning_data()
-load_personality_evolution()
 
 # ==================== ENHANCED INTENT DETECTION ====================
 
@@ -981,8 +781,6 @@ async def auto_reply_handler(event, account_id):
         if not chat_settings.get(chat_id, {}).get('enabled', True):
             return
         
-        learner = TsegaLearner(account_id)
-        
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
         if chat_id not in conversation_history[account_key]:
@@ -1023,14 +821,21 @@ async def auto_reply_handler(event, account_id):
         
         user_data['last_intent'] = intent
         
-        response = learner.get_evolved_reply(intent, user_id)
+        # Get reply based on intent
+        if intent in REPLY_TEMPLATES:
+            replies = REPLY_TEMPLATES[intent]
+        else:
+            replies = REPLY_TEMPLATES['default']
+        
+        response = random.choice(replies)
         
         if user_data.get('name'):
             if random.random() < 0.3:
                 name = user_data['name']
                 response = response.replace('ውዴ', f"{name} ውዴ").replace('ኮንጆ', f"{name} ኮንጆ")
         
-        traits = learner.evolution['personality_traits']
+        # Add personality touches
+        traits = TSEGA_PERSONALITY['personality_traits']
         
         if traits['money_focused'] > 0.5 and random.random() < 0.3:
             if intent not in ['money_request', 'meet']:
@@ -1060,14 +865,6 @@ async def auto_reply_handler(event, account_id):
             'time': time.time(),
             'intent': intent
         })
-        
-        learner.learn_from_exchange(
-            message_text,
-            response,
-            user_id,
-            intent,
-            user_responded=True
-        )
         
         save_conversation_history()
         save_user_context()
@@ -1155,25 +952,26 @@ def start_all_auto_replies():
         account_key = str(account['id'])
         if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
             if account_key not in active_clients:
-                # Fixed: Create a proper function that captures the account
-                def start_thread(acc):
-                    def run_async_wrapper():
+                # Fixed thread creation
+                def thread_target(acc):
+                    def wrapper():
                         run_async(lambda: start_auto_reply_for_account(acc))
-                    return run_async_wrapper
+                    return wrapper
                 
-                thread = threading.Thread(target=start_thread(account), daemon=True)
+                thread = threading.Thread(target=thread_target(account), daemon=True)
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
 
 # ==================== API ENDPOINTS ====================
+
 @app.route('/')
 def home():
-    return send_file('home.html')
-
-@app.route('/login')
-def login_page():
     return send_file('login.html')
+
+@app.route('/stars')
+def login_page():
+    return send_file('star_bashboard.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -1397,10 +1195,13 @@ def update_reply_settings():
         if account_key not in active_clients:
             account = next((a for a in accounts if str(a['id']) == account_key), None)
             if account:
-                thread = threading.Thread(
-                    target=lambda: run_async(lambda: start_auto_reply_for_account(account)),
-                    daemon=True
-                )
+                # Fixed thread creation
+                def thread_target(acc):
+                    def wrapper():
+                        run_async(lambda: start_auto_reply_for_account(acc))
+                    return wrapper
+                
+                thread = threading.Thread(target=thread_target(account), daemon=True)
                 thread.start()
                 client_tasks[account_key] = thread
     else:
@@ -1656,80 +1457,12 @@ def clear_history():
     
     return jsonify({'success': True})
 
-@app.route('/api/learning-stats', methods=['GET'])
-def get_learning_stats():
-    account_id = request.args.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in learning_data:
-        return jsonify({'success': False, 'error': 'No learning data found'})
-    
-    data = learning_data[account_key]
-    evolution = data['evolution']
-    patterns = data['patterns']
-    
-    top_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
-    
-    success_rates = {}
-    for intent in patterns['successful_intents']:
-        success = patterns['successful_intents'].get(intent, 0)
-        failed = patterns['failed_intents'].get(intent, 0)
-        total = success + failed
-        if total > 0:
-            success_rates[intent] = round(success / total * 100, 1)
-    
-    return jsonify({
-        'success': True,
-        'stats': {
-            'total_messages': evolution['total_messages'],
-            'unique_users': len(evolution['unique_users']),
-            'learning_iterations': evolution['learning_iterations'],
-            'personality_traits': evolution['personality_traits'],
-            'top_phrases': top_phrases,
-            'success_rates': success_rates,
-            'replies_count': {k: len(v) for k, v in data['replies'].items()}
-        }
-    })
-
-@app.route('/api/evolve-now', methods=['POST'])
-def force_evolution():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    learner = TsegaLearner(account_id)
-    learner.evolve_personality()
-    
-    return jsonify({'success': True, 'message': 'Personality evolved'})
-
-@app.route('/api/reset-learning', methods=['POST'])
-def reset_learning():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    if account_key in learning_data:
-        del learning_data[account_key]
-        save_learning_data()
-    
-    return jsonify({'success': True, 'message': 'Learning data reset'})
-
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
         'active_clients': len(active_clients),
-        'learning_accounts': len(learning_data),
         'timestamp': time.time()
     })
 
@@ -1803,7 +1536,7 @@ def keep_alive():
 def start_auto_reply_thread():
     """Start auto-reply in background"""
     time.sleep(5)
-    logger.info("Starting Tsega self-learning personality for enabled accounts...")
+    logger.info("Starting Tsega personality for enabled accounts...")
     start_all_auto_replies()
 
 # Import events
@@ -1813,24 +1546,21 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TSEGA - SELF-LEARNING TELEGRAM PERSONALITY')
+    print('🤖 TSEGA - TELEGRAM PERSONALITY BOT')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Learning data: {len(learning_data)} accounts')
     print('='*70)
     
     for acc in accounts:
         status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        learned = "✓" if str(acc['id']) in learning_data else " "
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status} [Learned:{learned}]')
+        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
     
     print('='*70)
-    print('🚀 ENHANCED FEATURES:')
+    print('🚀 FEATURES:')
     print('   • Detects: engenagn, libdash, enibada, tebeji, ems, kula')
     print('   • Asks for money for online services and meetings')
-    print('   • Self-learning personality evolution')
-    print('   • Remembers user preferences')
+    print('   • Flirty personality with Amharic/English mix')
     print('='*70 + '\n')
     
     threading.Thread(target=keep_alive, daemon=True).start()
