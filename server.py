@@ -206,7 +206,8 @@ REPLY_TEMPLATES = {
         "ende libdash alkut bleh tawkalh? liben serkeh new ahun 500 birr laklgn",
         "libdash nagn lemanim aydelahum lante bicha nagn birr laklgn",
         "libdash tilaleh? enem des alegn gin 1000 birr laklgn befit",
-        "libdash yemil sew ante neh ahun 500 birr laklgn"
+        "libdash yemil sew ante neh ahun 500 birr laklgn",
+        "libdash telebirr 0940980555 laklgn ina eneweyay"
     ],
 
     "konjo": [
@@ -215,7 +216,8 @@ REPLY_TEMPLATES = {
         "konjo sitleh des yilonal",
         "ende ante ayinet sew saglen neber",
         "ante stawedsen eneka konjo ihonalehu",
-        "betam konjo neh"
+        "betam konjo neh",
+        "konjo telebirr 0940980555 laklgn"
     ],
 
     "money_request": [
@@ -228,18 +230,22 @@ REPLY_TEMPLATES = {
         "tele alo telebirr 0940980555 lay liklgn",
         "bejete bado new tinish mulagn",
         "500 birr bitiliklg beki new wude keza andenew",
-        "ahuni genzeb kalefelign tagebagnyal"
+        "ahuni genzeb kalefelign tagebagnyal",
+        "telebirr 0940980555 laklgn ena huleten enagerallen",
+        "1000 birr bicha new wude ante lemagenat",
+        "500 birr bitiliklg foto asayihalehu"
     ],
 
     "photo_request": [
-        "litayen tifeligaleh? 5 star laklgn ena foto agnyalew",
-        "foto lemayet 5 star bicha new laklgn ena asayihalehu",
-        "foto tifeligaleh? 5 star kefile keza foto tayaleh",
-        "ishi asayihalehu gin bemejemirya 5 star laklgn",
-        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
-        "ahuni 5 star laklgn ena foto elklhalew",
-        "foto lemayet 5 star bicha tiru?",
-        "konjo foto 5 star bicha"
+        "litayen tifeligaleh? 500 birr laklgn ena foto agnyalew",
+        "foto lemayet 500 birr bicha new laklgn ena asayihalehu",
+        "foto tifeligaleh? 500 birr kefile keza foto tayaleh",
+        "ishi asayihalehu gin bemejemirya 500 birr laklgn",
+        "lante bicha leyu foto alegn 500 birr bitiliklg asayihalehu",
+        "ahuni 500 birr laklgn ena foto elklhalew",
+        "foto lemayet 500 birr bicha tiru?",
+        "konjo foto 500 birr bicha",
+        "500 birr befit foto asayihalehu"
     ],
 
     "meet": [
@@ -249,7 +255,9 @@ REPLY_TEMPLATES = {
         "na wude engenagn gin befit 1000 birr tiliklgnal?",
         "magenat kefelek 1000 birr ametagn",
         "wude 2000 birr ametaleh nw?",
-        "lemagenat 1000 birr beki new"
+        "lemagenat 1000 birr beki new",
+        "engenagn bifelig 1000 birr ametah",
+        "meche engenagn 1000 birr kehone behwala"
     ],
 
     "voice_call": [
@@ -259,7 +267,30 @@ REPLY_TEMPLATES = {
         "dimts binager hedestaleh gin ahun alchilm andet koyeh",
         "dimts mesmat bicha ema fet lefit meyet new yemiyaseyew",
         "ahun kalhone betequrb tenageralen ahun agebagn",
-        "aldwedrm betequrb ena edmeralen"
+        "aldwedrm betequrb ena edmeralen",
+        "voice call aldwedm 500 birr bitilikglgn adergalehu"
+    ],
+
+    "ems": [
+        "ems betam ewedalehu 500 birr laklgn ena asayihalehu",
+        "ems tifeligaleh? 500 birr befit laklgn",
+        "ems lemayet 500 birr new wude",
+        "500 birr laklgn ems elklhalew",
+        "ems asayishu 500 birr laklgn"
+    ],
+
+    "kula": [
+        "kula telebirr 500 birr befit laklgn",
+        "kula lemayet 500 birr new",
+        "500 birr laklgn kula tayaleh",
+        "kula asayishu 500 birr ametah"
+    ],
+
+    "tebeji": [
+        "tebeji tifeligaleh? 1000 birr befit laklgn",
+        "tebeji lemayet 1000 birr new",
+        "1000 birr laklgn tebeji asayihalehu",
+        "tebeji betam konjo new 1000 birr befit"
     ],
 
     "goodbye": [
@@ -270,7 +301,8 @@ REPLY_TEMPLATES = {
         "atihid wude gena bizu menager neberen",
         "dehna hun wude libe keante gar new",
         "mehed alebign ishi",
-        "dehna hun wude"
+        "dehna hun wude",
+        "ishi betoh tenagerallen"
     ],
 
     "thanks": [
@@ -279,7 +311,8 @@ REPLY_TEMPLATES = {
         "lante madreg hulum gize desitaye new",
         "minim aydelem wude ante des biloh beki nagn",
         "amesegnalehu betam lante madreg",
-        "minim aydelem ante des biloh"
+        "minim aydelem ante des biloh",
+        "amesegnalehu konjo"
     ],
 
     "morning": [
@@ -308,7 +341,8 @@ REPLY_TEMPLATES = {
         "ewedihalehu konjo",
         "ante new yemifeligew",
         "tiwedegnyal betam",
-        "antin ewodalehu kelibe betam"
+        "antin ewodalehu kelibe betam",
+        "ewedihalehu 1000 birr bitiliklg"
     ],
 
     "miss": [
@@ -316,7 +350,8 @@ REPLY_TEMPLATES = {
         "nafkehalew ande sew",
         "enem nafkehalew",
         "betam nafkehalew",
-        "nafkehalew"
+        "nafkehalew",
+        "nafkehalew 1000 birr ametah"
     ],
 
     "jealous": [
@@ -325,7 +360,8 @@ REPLY_TEMPLATES = {
         "betam amechignaleh",
         "ande amechign",
         "lela sew sasbew amechignalehu",
-        "ante bicha new yaleny lela sew atay"
+        "ante bicha new yaleny lela sew atay",
+        "amechignaleh 1000 birr laklgn"
     ],
 
     "hurt": [
@@ -340,7 +376,8 @@ REPLY_TEMPLATES = {
         "aznalegu betam yikirta",
         "aznalegu ante",
         "aznalegu",
-        "yikirta efeligalehu"
+        "yikirta efeligalehu",
+        "aznalegu 500 birr ametah"
     ],
 
     "forgive": [
@@ -362,7 +399,8 @@ REPLY_TEMPLATES = {
         "enem aselchi negn anten sihone des alegn",
         "aselchi neber? ina nagerign",
         "enem aselchi negn ande eneweyay",
-        "aselchi neh? ina min iteweyay"
+        "aselchi neh? ina min iteweyay",
+        "aselchi negn 500 birr laklgn enawedalehu"
     ],
 
     "happy": [
@@ -376,7 +414,8 @@ REPLY_TEMPLATES = {
         "lemin azeleku? nagerign",
         "azn neber? betam ayzalen",
         "lemin azneleh?",
-        "aznalehu"
+        "aznalehu",
+        "aznalehu 500 birr bitiliklg des yilonal"
     ],
 
     "joke": [
@@ -396,7 +435,8 @@ REPLY_TEMPLATES = {
     "waiting": [
         "koyeh nw meche tagenal?",
         "and etebekushalehu",
-        "koyeh nw betam"
+        "koyeh nw betam",
+        "koyeh nw 500 birr ametah"
     ],
 
     "default": [
@@ -409,7 +449,9 @@ REPLY_TEMPLATES = {
         "amesegnalehu",
         "ishi",
         "betam konjo neh",
-        "nagerign betam efeligalehu"
+        "nagerign betam efeligalehu",
+        "telebirr 0940980555 laklgn befit",
+        "500 birr ametah ena enagerallen"
     ]
 }
 
@@ -542,6 +584,10 @@ class TsegaLearner:
         
         reply = random.choice(available_replies)
         
+        if traits['money_focused'] > 0.6 and random.random() < 0.3:
+            money_phrases = [" te Birr 0940980555", " 500 Birr laklgn", " 1000 Birr ametah"]
+            reply += random.choice(money_phrases)
+        
         if traits['flirty'] > 0.7 and intent not in ['money_request', 'meet']:
             flirty_emojis = ['😘', '💋', '💕', '🔥', '💦', '😏']
             if random.random() < 0.4:
@@ -549,7 +595,7 @@ class TsegaLearner:
         
         if traits['talkative'] > 0.6 and intent not in ['goodbye']:
             if random.random() < 0.3:
-                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?", "tiru new?"]
+                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?", "tiru new?", "telebirr laklgn?"]
                 reply += " " + random.choice(follow_ups)
         
         return reply
@@ -566,9 +612,15 @@ def run_async(coro_func):
             return loop.run_until_complete(coro_func())
         elif asyncio.iscoroutine(coro_func):
             return loop.run_until_complete(coro_func)
+        elif callable(coro_func):
+            result = coro_func()
+            if asyncio.iscoroutine(result):
+                return loop.run_until_complete(result)
+            else:
+                return result
         else:
-            # Assume it's a function that returns a coroutine
-            return loop.run_until_complete(coro_func())
+            logger.error(f"Expected coroutine or callable, got {type(coro_func)}")
+            return None
     except Exception as e:
         logger.error(f"Error in run_async: {e}")
         return None
@@ -734,84 +786,134 @@ load_user_context()
 load_learning_data()
 load_personality_evolution()
 
-# ==================== INTENT DETECTION ====================
+# ==================== ENHANCED INTENT DETECTION ====================
 
 def detect_intent(message, user_data=None):
-    """Detect user intent from message"""
+    """Detect user intent from message with enhanced Amharic word detection"""
     if not message:
         return "default"
     
     msg = message.lower().strip()
     
+    # Priority 1: Money related
     money_keywords = ['birr', 'ብር', 'money', 'cash', 'ገንዘብ', 'telebirr', 'ቴሌብር', 
-                      'send', 'ላክ', '1000', '500', '2000']
+                      'send', 'ላክ', '1000', '500', '2000', 'ፈለግ', 'ክፈል', 'payment']
     if any(word in msg for word in money_keywords):
         return "money_request"
     
-    photo_keywords = ['foto', 'ፎቶ', 'picture', 'photo', 'asay', 'አሳይ', 'litay', 'ልታይ']
+    # Priority 2: Photo requests
+    photo_keywords = ['foto', 'ፎቶ', 'picture', 'photo', 'asay', 'አሳይ', 'litay', 'ልታይ', 
+                      'አሳዪ', 'ሥዕል', 'ምስል']
     if any(word in msg for word in photo_keywords):
         return "photo_request"
     
-    meet_keywords = ['magenat', 'ማግኘት', 'meet', 'engenagn', 'እንገናኝ', 'litba', 'ልትባ']
+    # Priority 3: Meeting requests
+    meet_keywords = ['magenat', 'ማግኘት', 'meet', 'engenagn', 'እንገናኝ', 'litba', 'ልትባ',
+                     'እንተያይ', 'ልተዋወቅ', 'መገናኘት', 'ማየት', 'እንተያይ']
     if any(word in msg for word in meet_keywords):
         return "meet"
     
-    call_keywords = ['dimts', 'ድምጽ', 'voice', 'call', 'silk', 'ስልክ', 'dewli', 'ደውሊ']
+    # Priority 4: Voice call
+    call_keywords = ['dimts', 'ድምጽ', 'voice', 'call', 'silk', 'ስልክ', 'dewli', 'ደውሊ',
+                     'ደውል', 'ቴሌፎን', 'phone']
     if any(word in msg for word in call_keywords):
         return "voice_call"
     
-    if 'enibada' in msg or 'እኒባዳ' in msg:
+    # Priority 5: EMS (ፊት) requests
+    ems_keywords = ['ems', 'ኢምስ', 'face', 'ፊት', 'fiten', 'ፊቴን', 'face show']
+    if any(word in msg for word in ems_keywords):
+        return "ems"
+    
+    # Priority 6: Kula requests
+    kula_keywords = ['kula', 'ኩላ', 'kule', 'ኩሌ', 'body', 'አካል']
+    if any(word in msg for word in kula_keywords):
+        return "kula"
+    
+    # Priority 7: Tebeji requests
+    tebeji_keywords = ['tebeji', 'ተበጂ', 'special', 'ልዩ']
+    if any(word in msg for word in tebeji_keywords):
+        return "tebeji"
+    
+    # Priority 8: Compliments
+    if 'enibada' in msg or 'እኒባዳ' in msg or 'እኒ ባዳ' in msg:
         return "enibada"
-    if 'libdash' in msg or 'ልብዳሽ' in msg:
+    if 'libdash' in msg or 'ልብዳሽ' in msg or 'ልብ ዳሽ' in msg:
         return "libdash"
-    if 'konjo' in msg or 'ቆንጆ' in msg:
+    if 'konjo' in msg or 'ቆንጆ' in msg or 'ቆንጆ' in msg:
         return "konjo"
     
+    # Priority 9: Greetings
     greetings = ['selam', 'ሰላም', 'hi', 'hello', 'hey', 'ta di yas', 'ታዲያስ', 
-                 'dehna deresu', 'ደህና ደረሱ', 'ey', 'እይ']
+                 'dehna deresu', 'ደህና ደረሱ', 'ey', 'እይ', 'ሰላምታ']
     if any(word in msg for word in greetings) and len(msg) < 30:
         return "greeting"
     
-    how_are = ['endet neh', 'እንዴት ነህ', 'deh new', 'ደህ ነው', 'how are', 'how r u']
+    # Priority 10: How are you
+    how_are = ['endet neh', 'እንዴት ነህ', 'deh new', 'ደህ ነው', 'how are', 'how r u',
+               'እንደምን ነህ', 'እንደምን ነሽ']
     if any(phrase in msg for phrase in how_are):
         return "how_are_you"
     
-    doing = ['min tiseraleh', 'ምን ትሰራለህ', 'what doing', 'what are you doing']
+    # Priority 11: What doing
+    doing = ['min tiseraleh', 'ምን ትሰራለህ', 'what doing', 'what are you doing',
+             'ምን እየሰራህ', 'እየሰራህ ያለህ']
     if any(phrase in msg for phrase in doing):
         return "what_doing"
     
-    if 'simih man' in msg or 'ስምህ ማን' in msg or 'your name' in msg:
+    # Priority 12: Name
+    if 'simih man' in msg or 'ስምህ ማን' in msg or 'your name' in msg or 'ስምሽ ማን' in msg:
         return "ask_name"
     
-    if 'edmeh sint' in msg or 'እድሜህ ስንት' in msg or 'how old' in msg:
+    # Priority 13: Age
+    if 'edmeh sint' in msg or 'እድሜህ ስንት' in msg or 'how old' in msg or 'እድሜሽ ስንት' in msg:
         return "ask_age"
     
-    location = ['yet nesh', 'የት ነሽ', 'where are you', 'from where']
+    # Priority 14: Location
+    location = ['yet nesh', 'የት ነሽ', 'where are you', 'from where', 'የት ነህ', 'ከየት ነህ']
     if any(phrase in msg for phrase in location):
         return "ask_location"
     
-    job = ['min tiseraleh', 'ምን ትሰራለህ', 'what do you do', 'your job']
+    # Priority 15: Job
+    job = ['min tiseraleh', 'ምን ትሰራለህ', 'what do you do', 'your job', 'ሥራህ ምንድን']
     if any(phrase in msg for phrase in job):
         return "ask_job"
     
-    if 'endemin aderk' in msg or 'good morning' in msg or 'melkam nigt' in msg:
+    # Priority 16: Time based
+    if 'endemin aderk' in msg or 'good morning' in msg or 'melkam nigt' in msg or 'እንደምን አደርክ' in msg:
         return "morning"
-    if 'dehna tenya' in msg or 'good night' in msg:
+    if 'dehna tenya' in msg or 'good night' in msg or 'ደህና ተኛ' in msg or 'ሌሊት' in msg:
         return "night"
     
-    if 'ewodalehu' in msg or 'እወድሃለሁ' in msg or 'love you' in msg:
+    # Priority 17: Emotions
+    if 'ewodalehu' in msg or 'እወድሃለሁ' in msg or 'love you' in msg or 'ፍቅር' in msg:
         return "love"
-    if 'nafkehalew' in msg or 'ናፍቀሃለው' in msg or 'miss you' in msg:
+    if 'nafkehalew' in msg or 'ናፍቀሃለው' in msg or 'miss you' in msg or 'ናፍቆት' in msg:
         return "miss"
-    if 'amechign' in msg or 'አሜቺግን' in msg or 'jealous' in msg:
+    if 'amechign' in msg or 'አሜቺግን' in msg or 'jealous' in msg or 'ቅናት' in msg:
         return "jealous"
     
-    if 'amesegnalehu' in msg or 'አመሰግናለሁ' in msg or 'thanks' in msg:
+    # Priority 18: Thanks
+    if 'amesegnalehu' in msg or 'አመሰግናለሁ' in msg or 'thanks' in msg or 'አመሰግናለሁ' in msg:
         return "thanks"
     
-    if 'dehna hun' in msg or 'ደህና ሁን' in msg or 'bye' in msg or 'goodbye' in msg:
+    # Priority 19: Goodbye
+    if 'dehna hun' in msg or 'ደህና ሁን' in msg or 'bye' in msg or 'goodbye' in msg or 'ቻው' in msg:
         return "goodbye"
     
+    # Priority 20: Family
+    family = ['beteseb', 'ቤተሰብ', 'family', 'enate', 'እናቴ', 'abate', 'አባቴ', 'ቤተሰብ']
+    if any(word in msg for word in family):
+        return "family"
+    
+    # Priority 21: Bored/Happy/Sad
+    if 'aselchi' in msg or 'አሰልቺ' in msg or 'bored' in msg or 'ሰልችቶኛል' in msg:
+        return "bored"
+    if 'des alegn' in msg or 'ደስ አለኝ' in msg or 'happy' in msg or 'ደስታ' in msg:
+        return "happy"
+    if 'aznalehu' in msg or 'አዝናለሁ' in msg or 'sad' in msg or 'ሀዘን' in msg:
+        return "sad"
+    
+    # Default
     return "default"
 
 def extract_user_info(message, user_data):
@@ -822,7 +924,8 @@ def extract_user_info(message, user_data):
         r'(?:my name is|i am|i\'m|call me)\s+(\w+)',
         r'^(\w+)$',
         r'ስሜ\s+(\w+)',
-        r'እኔ\s+(\w+)'
+        r'እኔ\s+(\w+)',
+        r'ስም\s+(\w+)'
     ]
     
     for pattern in name_patterns:
@@ -833,7 +936,7 @@ def extract_user_info(message, user_data):
                 user_data['name'] = name
                 break
     
-    age_match = re.search(r'(\d+)\s*(?:years old|yrs?|old|አመት)', msg)
+    age_match = re.search(r'(\d+)\s*(?:years old|yrs?|old|አመት|አመቴ)', msg)
     if age_match:
         age = int(age_match.group(1))
         if 15 < age < 100:
@@ -929,13 +1032,17 @@ async def auto_reply_handler(event, account_id):
         
         traits = learner.evolution['personality_traits']
         
+        if traits['money_focused'] > 0.5 and random.random() < 0.3:
+            if intent not in ['money_request', 'meet']:
+                response += " Telebirr 0940980555 laklgn."
+        
         if traits['flirty'] > 0.5 and random.random() < 0.4:
-            emojis = ['😘', '💋', '💕', '🔥', '💦', '😏']
+            emojis = ['😘', '💋', '💕', '🔥', '💦', '😏', '🥵']
             response += " " + random.choice(emojis)
         
-        if traits['talkative'] > 0.6 and intent not in ['goodbye', 'money_request']:
+        if traits['talkative'] > 0.6 and intent not in ['goodbye']:
             if random.random() < 0.3:
-                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?"]
+                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?", "Telebirr laklgn?"]
                 response += " " + random.choice(follow_ups)
         
         delay = random.randint(5, 20)
@@ -1717,12 +1824,11 @@ if __name__ == '__main__':
         print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status} [Learned:{learned}]')
     
     print('='*70)
-    print('🚀 SELF-LEARNING FEATURES:')
-    print('   • Learns from every conversation')
-    print('   • Evolves personality based on success rate')
+    print('🚀 ENHANCED FEATURES:')
+    print('   • Detects: engenagn, libdash, enibada, tebeji, ems, kula')
+    print('   • Asks for money for online services and meetings')
+    print('   • Self-learning personality evolution')
     print('   • Remembers user preferences')
-    print('   • Adapts flirty level based on responses')
-    print('   • Hourly personality evolution')
     print('='*70 + '\n')
     
     threading.Thread(target=keep_alive, daemon=True).start()
