@@ -1155,16 +1155,18 @@ def start_all_auto_replies():
         account_key = str(account['id'])
         if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
             if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda acc=account: run_async(lambda: start_auto_reply_for_account(acc)),
-                    daemon=True
-                )
+                # Fixed: Create a proper function that captures the account
+                def start_thread(acc):
+                    def run_async_wrapper():
+                        run_async(lambda: start_auto_reply_for_account(acc))
+                    return run_async_wrapper
+                
+                thread = threading.Thread(target=start_thread(account), daemon=True)
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
 
 # ==================== API ENDPOINTS ====================
-
 @app.route('/')
 def home():
     return send_file('home.html')
