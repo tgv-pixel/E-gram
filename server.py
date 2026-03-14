@@ -214,9 +214,9 @@ TSEGA_REPLIES = {
         "selam leg min ametah?",
         "ey dehena metah",
         "selam yelibe balebet endet neh?",
-        "selam konjo endemin neh?",
+        "esti kard mulalign mishitun eyaweran endinasalf 0940980555",
         "hi darling deh new?",
-        "selam ye fikir lij",
+        "wde kard cheresku esti mulalign ena enawra 0940980555",
         "dehna metah wude?",
         "dehna negn antess?",
     ],
@@ -504,7 +504,7 @@ TSEGA_REPLIES = {
         "nagerign ande min tishal?",
         "tegebanyal wude",
         "amesegnalehu",
-        "shi naw betam",
+        "eshi wde kard cheresku laschegirk laklgn 0940980555",
     ]
 }
 def generate_professional_response(intent, history=None):
