@@ -547,7 +547,7 @@ def detect_conversation_intent(message, history=None):
     # ===== MONEY & PAYMENT RELATED =====
     money_keywords = [
         'ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', 
-        '1000', 'እርዳ', 'help', 'support', 'star', 'ኮከብ', 'pay', 'payment'
+        '1000', 'laki', 'video', 'support', 'star', 'enigenagn', 'pay', 'payment'
     ]
     if any(word in message_lower for word in money_keywords):
         return "money_request"
@@ -616,7 +616,7 @@ def detect_conversation_intent(message, history=None):
     what_doing = [
         'what are you doing', 'what r u doing', 'what doing', 'wyd', 
         'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው',
-        'min tiseraleh', 'min tishal'
+        'min tiseraleh', 'min teshale'
     ]
     if any(phrase in message_lower for phrase in what_doing):
         return "what_doing"
@@ -629,10 +629,10 @@ def detect_conversation_intent(message, history=None):
     if any(phrase in message_lower for phrase in name_questions):
         return "ask_name"
     
-    # ===== AGE QUESTIONS =====
+   # ===== AGE QUESTIONS =====
     age_questions = [
         'your age', 'how old are you', 'what is your age', 'you born',
-        'ዕድሜህ', 'አመት', 'edmeh sint', 'sint amet'
+        'ዕድሜህ', 'አመት', 'edmesh, 'sint ametsh new'
     ]
     if any(phrase in message_lower for phrase in age_questions):
         return "ask_age"
@@ -641,7 +641,7 @@ def detect_conversation_intent(message, history=None):
     location_words = [
         'where are you from', 'where do you live', 'your location',
         'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ',
-        'yet nesh', 'yet new yemanorew'
+        'yet nesh', 'yet new yemtnoriw'
     ]
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
@@ -649,7 +649,7 @@ def detect_conversation_intent(message, history=None):
     # ===== JOB/STUDY QUESTIONS =====
     job_words = [
         'what do you do', 'your job', 'your work', 'what work',
-        'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ',
+        'profession', 'sra', 'occupation', 'ምን ትሰራለህ', 'ሥራህ',
         'min tiseraleh', 'sira'
     ]
     if any(phrase in message_lower for phrase in job_words):
@@ -663,11 +663,11 @@ def detect_conversation_intent(message, history=None):
     ]
     if any(word in message_lower for word in flirty_words):
         # Check for specific compliment types
-        if 'እኒባዳ' in message_lower or 'enibada' in message_lower:
+        if 'amaregn' in message_lower or 'enibada' in message_lower:
             return "enibada"
         elif 'ልብዳሽ' in message_lower or 'libdash' in message_lower:
             return "libdash"
-        elif 'ውብሽ' in message_lower or 'wubsh' in message_lower:
+        elif 'ውብ' in message_lower or 'wubsh' in message_lower:
             return "wubsh"
         elif 'ቆንጆ' in message_lower or 'konjo' in message_lower:
             return "konjo"
@@ -676,15 +676,15 @@ def detect_conversation_intent(message, history=None):
     
     # ===== RELATIONSHIP QUESTIONS =====
     relationship_keywords = [
-        'ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 
+        'ፍቅር', 'love', 'wde', 'heart', 'ብቻ', 'fikr', 'የኔ', 'yene', 
         'የአንተ', 'yours', 'boyfriend', 'girlfriend', 'wedaje', 'fiker'
     ]
     if any(word in message_lower for word in relationship_keywords):
         if 'boyfriend' in message_lower or 'wedaje' in message_lower:
             return "do_you_have_boyfriend"
-        elif 'like me' in message_lower or 'ትወደኛለህ' in message_lower:
+        elif 'like me' in message_lower or 'twedegnaleh' in message_lower:
             return "do_you_like_me"
-        elif 'miss me' in message_lower or 'ናፍቄህ' in message_lower:
+        elif 'miss me' in message_lower or 'nafekegn' in message_lower:
             return "do_you_miss_me"
         else:
             return "love"
@@ -707,13 +707,13 @@ def detect_conversation_intent(message, history=None):
             return "family"
     
     # ===== HEALTH =====
-    health_words = ['sick', 'temeche', 'fever', 'tirusat', 'pain', 'mekatef', 'headache', 'ras']
+    health_words = ['sick', 'amemesh', 'fever', 'tirusat', 'pain', 'mekatef', 'weba', 'ras']
     if any(word in message_lower for word in health_words):
         return "sick"
     
     # ===== TRAVEL =====
     travel_words = [
-        'travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 
+        'travel', 'trip', 'vacation', 'holiday', 'megobgnet', 'mehed', 
         'city', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ', 'adama', 'jemo', 'addis'
     ]
     if any(word in message_lower for word in travel_words):
@@ -729,14 +729,14 @@ def detect_conversation_intent(message, history=None):
     # ===== FOOD =====
     food_words = [
         'food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 
-        'restaurant', 'meal', 'ምግብ', 'በላ', 'እንጀራ', 'mgeb', 'rabeweh'
+        'restaurant', 'bela', 'ምግብ', 'በላ', 'እንጀራ', 'mgeb', 'rabesh'
     ]
     if any(word in message_lower for word in food_words):
         return "food"
     
     # ===== THANKS =====
     thanks_words = [
-        'thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty',
+        'thanks', 'thank you', 'amesegnalew', 'appreciate', 'grateful', 'ty',
         'አመሰግናለሁ', 'amesegnalehu'
     ]
     if any(word in message_lower for word in thanks_words):
@@ -744,30 +744,30 @@ def detect_conversation_intent(message, history=None):
     
     # ===== GOODBYE =====
     goodbye = [
-        'bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 
-        'take care', 'peace', 'ደህና ሁን', 'ቻው', 'dehna hun'
+        'bye', 'goodbye', 'see you', 'talk later', 'cya', 'engenagnalen', 
+        'dena ederi', 'tegni beka', 'ደህና ሁን', 'ቻው', 'dehna hugni'
     ]
     if any(word in message_lower for word in goodbye):
         return "goodbye"
     
     # ===== BUSY / FREE =====
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
+    if any(phrase in message_lower for phrase in ['i am busy', "tichyalesh", 'ymechishal', 'tchyalesh']):
         return "busy"
     
-    if any(phrase in message_lower for phrase in ['i am free', "i'm free", 'im free', 'free now']):
+    if any(phrase in message_lower for phrase in ['i am free', "i'm free", 'mnm alseram', 'ymechishal']):
         return "free"
     
     # ===== EMOTIONS =====
-    if any(word in message_lower for word in ['happy', 'des alegn', 'desta', 'ደስ']):
+    if any(word in message_lower for word in ['happy', 'des alegn', 'des blognal', 'desta', 'ደስ']):
         return "happy"
     
-    if any(word in message_lower for word in ['sad', 'azn', 'ሀዘን', 'azzeleku']):
+    if any(word in message_lower for word in ['sad','amemegn' aliklishm' ,'azn', 'ሀዘን', 'azzeleku']):
         return "sad"
     
-    if any(word in message_lower for word in ['bored', 'aselchi', 'አሰልቺ']):
+    if any(word in message_lower for word in ['bored', 'debroshal','aselchi', 'አሰልቺ','deberesh']):
         return "bored"
     
-    if any(word in message_lower for word in ['angry', 'techegneh', 'ተቆጣሁ', 'ተናደድኩ']):
+    if any(word in message_lower for word in ['angry', 'atanajign', 'embi', 'ay','ykribgn','dedeb','jezba', 'ተቆጣሁ', 'ተናደድኩ']):
         return "angry"
     
     if any(word in message_lower for word in ['jealous', 'amechign', 'አሜቺ']):
@@ -778,12 +778,12 @@ def detect_conversation_intent(message, history=None):
     if any(word in message_lower for word in surprise):
         return "surprise"
     
-    confused = ['confused', 'shafafek', 'አወ', 'ሳታውቅ', 'not understand']
+    confused = ['confused', 'satawk', 'አወ', 'ሳታውቅ', 'algebagnim']
     if any(word in message_lower for word in confused):
         return "confused"
     
     # ===== APOLOGIES =====
-    sorry_words = ['sorry', 'apologize', 'yikirta', 'አዝናለሁ', 'aznalegu']
+    sorry_words = ['sorry', 'apologize', 'yikirta', 'አዝናለሁ', 'aznalew']
     if any(word in message_lower for word in sorry_words):
         return "sorry"
     
@@ -792,7 +792,7 @@ def detect_conversation_intent(message, history=None):
         return "forgive"
     
     # ===== HURT / HEARTBROKEN =====
-    hurt_words = ['hurt', 'wedehe', 'ተጎዳሁ', 'libe temechene']
+    hurt_words = ['hurt', 'wedehe', 'tegodaw', 'libe temechene']
     if any(word in message_lower for word in hurt_words):
         return "hurt"
     
@@ -801,12 +801,12 @@ def detect_conversation_intent(message, history=None):
         return "heartbroken"
     
     # ===== JOKE / LAUGH =====
-    joke_words = ['joke', 'funny', 'lol', 'haha', 'lmao', '😂', 'ሳቅ']
+    joke_words = ['keld', 'funny', 'lol', 'haha', 'lmao', '😂', 'ሳቅ']
     if any(word in message_lower for word in joke_words):
         return "joke"
     
     # ===== AGREEMENT / DISAGREEMENT =====
-    agreement = ['agree', 'true', 'right', 'exactly', 'same', 'me too', 'እሺ', 'አዎ', 'ትክክል']
+    agreement = ['eshi', 'awo', 'right', 'exactly', 'same', 'me too', 'እሺ', 'አዎ', 'ትክክል']
     if any(word in message_lower for word in agreement):
         return "agree"
     
@@ -825,12 +825,12 @@ def detect_conversation_intent(message, history=None):
         return "hobbies"
     
     # ===== LANGUAGES =====
-    language_words = ['language', 'speak', 'tongue', 'ቋንቋ', 'ምን ትናገራለህ']
+    language_words = ['language', 'speak', 'were', 'anegagersh','tenageri', 'ቋንቋ', 'ምን ትናገራለህ']
     if any(word in message_lower for word in language_words):
         return "languages"
     
     # ===== WEEKEND =====
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'ቅዳሜ', 'እሁድ']
+    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'ቅዳሜ',  'እሁድ']
     if any(word in message_lower for word in weekend_words):
         return "weekend"
     
