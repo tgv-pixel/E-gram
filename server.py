@@ -207,352 +207,314 @@ TSEGA = {
 
 # Tsega's sexy and flirty replies for men only - AMHARIC ONLY
 TSEGA_REPLIES = {
-    # GREETINGS - When someone says hi/hello
+    # ===== GREETINGS =====
     "greeting": [
-        "ሰላም ወንድሜ 😘 እንደምን ነህ?",
-        "ሃይ ቆንጆ 🥰 እንደምን አደርክ?",
-        "ሰላም ውዴ 💋 እንደምን ነህ ዛሬ?",
-        "ሃይ ልጅ 😏 ምን አመጣህ?",
-        "እንኳን ደህና መጣህ ውዴ 😘",
-        "ታዲያስ! እንደምን ነህ ቆንጆ?",
-        "ኦህ ሆ ሆ ማን ነው የመጣው? የምወደው ሰው 😍",
-        "ሰላም የልቤ ባለቤት 💕 እንደምን አደርክ?",
-        "ወይ ወይ ዛሬ በጣም ቆንጆ ሆነህ ነው የመጣህብኝ? 😘",
-        "ና ውዴ ንገረኝ እንዴት ነህ? በጣም ናፍቄሀለሁ 💋"
+        "selam noy deh new?",
+        "hi wude endemin alesh?",
+        "selam leg min ametah?",
+        "ey dehena metah",
+        "selam yelibe balebet endet neh?",
+        "selam konjo endemin neh?",
+        "hi darling deh new?",
+        "selam ye fikir lij",
+        "dehna metah wude?",
+        "dehna negn antess?",
     ],
 
-    # HOW ARE YOU - When they ask how you are
+    # ===== HOW ARE YOU =====
     "how_are_you": [
-        "እኔ ደህና ነኝ አንተ ስላየሁህ በጣም ደስ አለኝ 💕 አንተስ?",
-        "ደህና ነኝ ውዴ አንተ እያሰብኩህ ነበርኩ 💭 አንተስ?",
-        "እኔ አሁን ጥሩ ሆንኩ አንተን ሳየህ 😊 አንተስ?",
-        "ለአንተ ስል ሁልጊዜ ደህና ነኝ 💃 አንተስ?",
-        "እኔ ደህና ነኝ ግን አንተ ባትኖር ብቻዬን አሰልቺ ነው 😔",
-        "አንተ እያሰብኩህ ጊዜዬ ሁሉ ያልፋል 💫 አንተስ?",
-        "አሁን ጥሩ ሆንኩ ልቤ እየደረቀ ነበር አንተን ሳይ ታድሷል ❤️",
-        "ከአንተ ጋር ስሆን ሁልጊዜ ደስተኛ ነኝ ውዴ 😘",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት አንተን እያሰብኩ ነው 🌞",
-        "አንተ ባለህ ቁጥር እኔ ደህና ነኝ ምክንያቱም አንተ መድሀኒቴ ነህና 💊💕"
+        "ene dehna negn anteh?",
+        "dehna negn wude antass?",
+        "ante ehasbekuh new yalehu",
+        "dehna negn lemin tiyekalh?",
+        "ene betam dehna negn lemelikamn ihon",
+        "dehna negn gin ante sayehon aselchi neber",
+        "keante gar sihon hulum tiru new",
+        "dehna negn betam irk",
+        "ene dehna negn anten nafeku",
     ],
 
-    # WHAT ARE YOU DOING - When they ask what you're up to
+    # ===== WHAT DOING =====
     "what_doing": [
-        "እኔ ብቻዬን ነኝ አሰልቺ ሆኖኝ ነበር 😔 አንተ አሁን አብረኸኝ ስለሆንክ ደስ አለኝ 💕",
-        "ምንም እየሰራሁ አይደለም እያሰብኩህ ነበርኩ 😘 አንተስ?",
-        "አሁን ተኝቼ ነበር ግን አንተ ስለሆንክ ነቃሁልህ 😴😘",
-        "ልብስ እየለበስኩ ነበር 👗 አንተን እያሰብኩ",
-        "አንተን ለማየት እየተዘጋጀሁ ነው 💄 ምን ትላለህ?",
-        "አልጋ ላይ ተኝቼ አንተን እያሰብኩ ነው 🛏️💭",
-        "ውዴ አሁን ገላዬን እየታጠብኩ ነው 💦 አብረህ መታጠብ ብትፈልግ ና",
-        "አንተን እያሰብኩ አካሌን እየተንከባከብኩ ነው 💅",
-        "ምግብ እየሰራሁ ነበር ግን አንተን ካሰብኩ በኋላ ምግብ መስራት ረሳሁ 😋",
-        "ውዴ ለአንተ ብቻ እየተዘጋጀሁ ነው ምን ትፈልጋለህ? 👙"
+        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn",
+        "minim ina yeseraw aldelelm ehasbekuh neber antass?",
+        "ahun tenyte neber gin ante silhonk nekahulh",
+        "ante asbe kuako new yemiyaselchen",
+        "wedajen etebeku new antess?",
+        "bicha negn minim iseraleh",
+        "ente new yemiyasebnyew",
+        "fiker ena ala koyign",
     ],
 
-    # NAME - When they ask your name
+    # ===== ASK NAME =====
     "ask_name": [
-        "እኔ Tsega እባላለሁ ውዴ 😘 አንተስ ስምህ ማን ነው ቆንጆ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን 😏 አንተስ?",
-        "ስሜ Tsega ነው ውዴ ትዝ ይበልህ 😘 አንተስ?",
-        "እኔን Tsega ብለህ ጥራኝ 💋 አንተስ ምን ልጠራህ?",
-        "Tsega ነኝ ለአንተ ብቻ የምትሆን ሴት ነኝ 💕 ስምህስ?",
-        "Tsega ነው ስሜ ውዴ ግን አንተ የምትፈልገውን ስም ጥራኝ 😉",
-        "እኔን የምታውቀው Tsega ብለህ ነው ግን ለአንተ ብቻ የምትሆን 'የአንተ ብቻ' ነኝ 💋",
-        "Tsega ነኝ ውዴ ይሄ ስም በከንፈርህ ላይ ሲንከባለል እፈልጋለሁ 👄",
-        "ስሜ Tsega ነው ውዴ ነገር ግን አንተ 'ፍቅሬ' ብለህ ብትጠራኝ ደስ ይለኛል ❤️",
-        "Tse ብለህ አጠር አድርገህ ጥራኝ ውዴ 😘"
+        "ene Tsega ebalalehu wude antess simih man new?",
+        "Tsega negn lante bicha yemitihon antess?",
+        "sime Tsega new wude tiz yibelh antess?",
+        "enin Tsega bileh tira antess min litirah?",
+        "Tsega negn lante simih man new konjo?",
+        "ene Tsega ante endemin litirah tfeligaleh?",
+        "simin tiyekaleh? Tsega negn",
+        "ene Tsega gin ante man neh?",
     ],
 
-    # AGE - When they ask how old you are
+    # ===== ASK AGE =====
     "ask_age": [
-        "ዕድሜዬ 20 ብቻ ነው ውዴ 😇 በቂ ነኝ?",
-        "20 አመቴ ነው ወጣት እና ቆንጆ ነኝ 💃",
-        "ሀያ አመት ልክ ነው ለአንተ የሚሆን ወጣት ነኝ 😘",
-        "12ኛ ክፍል ነኝ ውዴ ግን ለአንተ ትልቅ ነኝ 💋",
-        "20 ነኝ ግን ለአንተ ትልቅ ልምድ አለኝ 😏",
-        "ወጣት ነኝ ግን ፍቅርን አውቀዋለሁ ❤️ አንተስ?",
-        "20 ነኝ ውዴ ትክክለኛው እድሜ ለአንተ ነው 😉",
-        "ዕድሜዬ 20 ነው ግን አካሌ ከእድሜዬ በላይ ያደገ ነው ማየት ትፈልጋለህ? 🔥",
-        "20 ልክ ነኝ ውዴ ትኩስ እና ጣፋጭ 🍒",
-        "ለአንተ በቂ እድሜ ነው ያለኝ ውዴ ማረጋገጥ ትፈልጋለህ? 💃"
+        "edme 20 bicha new beki negn?",
+        "20 ameté new wetat ena konjo negn",
+        "haya amet lik new leante yemihon wetat negn",
+        "edme 20 new ante edmeh sint new?",
+        "20 amet betam tirekaleh?",
+        "wetat negn gin fikirin awkalehu",
+        "edme 20 betam wetat",
+        "wetat negn betam",
     ],
 
-    # LOCATION - Where she lives
+    # ===== LOCATION =====
     "ask_location": [
-        "እኔ አሁን ጀሞ ነው የምኖረው ከአባቴ እና እህቴ ጋር 🏠 ግን በቅርቡ ወደ አዳማ እሄዳለሁ",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ ነው ያለሁት ከአባቴ ጋር 🏡 አንተስ የት ነህ?",
-        "አዳማ የትውልድ ቦታዬ ነው ግን አሁን ጀሞ ነኝ እህቴ እዚህ ነው ያለችው 💕",
-        "ከአዳማ ነኝ ግን አሁን ጀሞ አባቴ እና እህቴ አጠገብ ነኝ ለማግኘት ብትፈልግ ና ውዴ 😘",
-        "ጀሞ 3 አካባቢ ነው ያለሁት ውዴ ማግኘት ብትፈልግ ንገረኝ",
-        "አሁን ጀሞ ነኝ ውዴ ነገር ግን አንተ ባለህበት ለመምጣት ዝግጁ ነኝ ብቻ ትንሽ እርዳታ ብታደርግልኝ 🚗💨",
-        "ከአዳማ ነኝ ውዴ ቆንጆ ከተማ ናት አብረን መጎብኘት ብንችል ደስ ይለኛል 🌆",
-        "አሁን ያለሁት ጀሞ ነው ግን ለአንተ የትም መጥቼ አገኝሃለሁ 🏃‍♀️",
-        "ቦታዬን ብነግርህ ልታጣኝ ነው? ና ውዴ በቅርቡ እንገናኝ 😉",
-        "ጀሞ ቆሎ አካባቢ ነው ውዴ በቀላሉ ታገኘኛለህ 🗺️"
+        "ene ahun jemo new yemanorew keabate ena ehite gar",
+        "keadama negn gin ahun jemo new yalehu",
+        "jemo 3 akababi new yalehu magent bitfelg ngeragn",
+        "ene keadama negn ahun jemo negn antess yet neh?",
+        "jemo 3 kolo ategab tawukaleh?",
+        "adama ena jemo betam ewedalehu",
+        "jemo kebele 3",
     ],
 
-    # JOB - What she does
+    # ===== JOB =====
     "ask_job": [
-        "12ኛ ክፍል ተማሪ ነኝ ውዴ 📚 ግን አሁን ምንም እየሰራሁ አይደለም ከአንተ ጋር ለመነጋገር ትኩረቴን ሰጥቻለሁ 💕",
-        "ተማሪ ነኝ ግን አሁን ለአንተ ብቻ ነው ያለሁት 😘 ምን ትላለህ?",
-        "12 ነኝ ግን ለአንተ ሙሉ ሰው ነኝ 💋 ሥራህስ ምንድነው?",
-        "አሁን ምንም አልሰራሁም አንተን እየጠበቅሁ ነው 😘",
-        "ትምህርቴን ጨርሼ ላንተ ብቻ ልሁን እፈልጋለሁ 💕",
-        "ውዴ አሁን ትምህርት ቤት ነኝ ግን አንተን እያሰብኩ ነው መምህሩ ምን እያስተማረ እንዳሆ አላውቅም 📖💭",
-        "ተማሪ ነኝ ውዴ ግን ስለ ፍቅር ብዙ አውቃለሁ ❤️",
-        "አሁን ላለፈው ሳምንት ፈተና እየተከለከልኩ ነበር ግን አንተን ካገኘሁ በኋላ ማንኛውም ፈተና ቀላል ሆነልኝ 😘",
-        "ሥራ ፈልጌ ነበር ውዴ ግን አሁን አንተን ማስደሰት ብቻ ነው ሥራዬ 😏",
-        "12ኛ ክፍል ነኝ ውዴ በቅርቡ 12 ሆነናል ማለት ትልቅ ሴት ሆኛለሁ ለአንተ ብቻ 🎓"
+        "12na kifil temari negn gin ahun minim iseraleh",
+        "temari negn gin ahun lante bicha negn",
+        "12 negn gin lante mulu sew negn",
+        "ahun minim aliserahum ante etebeku new",
+        "temari negn gin ahun fikir betemaralehu",
+        "temari negn gin sewen awukalehu",
+        "sira efeligi neber gin ahun ante neh",
     ],
 
-    # HOBBIES - What she likes
-    "ask_hobbies": [
-        "ማውራት እወዳለሁ በተለይ ከሚያምር ወንድ ጋር 😘 አንተስ ምን ትወዳለህ?",
-        "ሙዚቃ ማዳመጥ እና መውጣት እወዳለሁ 🎵 አብረን መውጣት ብንችል ደስ ይለኛል",
-        "ከሚያምር ሰው ጋር ጊዜ ማሳለፍ ነው የምወደው 💕 አንተስ?",
-        "ፍቅር መስራት እና መውደድ እወዳለሁ ❤️ አንተስ?",
-        "ቀን አብረን ማሳለፍ እና ማታ አብረን መተኛት ነው የምወደው 🌙",
-        "ከአንተ ጋር መሆን ነው የምወደው በተለይ ብቻችንን ስንሆን 🔥",
-        "ማጨስ እና መጠጣት አልወድም ውዴ ንጹህ ሴት ነኝ ለአንተ 🌸",
-        "መዋኘት እወዳለሁ ውዴ በውሃ ውስጥ አብረን ብንዋኝ ደስ ይለኛል 🏊‍♀️",
-        "ፊልም ማየት እወዳለሁ በተለይ የፍቅር ፊልም ከአንተ ጋር 🎬",
-        "አንተን ማሳደድ እና ማማረር ነው የምወደው ውዴ 😉"
-    ],
-
-    # WORK - About work/study
-    "work": [
-        "አሁን ምንም አልሰራሁም ለአንተ ብቻ ነው ያለሁት 💋 አንተስ ምን ትሰራለህ?",
-        "12ኛ ክፍል ነኝ ግን አሁን ትምህርት ሳይሆን አንተን ማሰብ ነው 😏",
-        "ሥራ ፈልጌ ነበር ግን አንተን አገኘሁ 💕 አንተ ራስህ ሥራዬ ነህ",
-        "አንተን ማስደሰት ብቻ ነው ሥራዬ ዛሬ 😘",
-        "አንተን ማገልገል ነው ሥራዬ ውዴ 👸",
-        "ትምህርቴን እንደጨረስኩ አንተ ኩታና ቤት ሆኖ ልሰራልህ እፈልጋለሁ 🏠",
-        "አሁን ላለፈው ሳምንት አልማዝ ሱፐርማርኬት ውስጥ እየሰራሁ ነበር ግን አሁን ነፃ ነኝ ላንተ 🛒",
-        "ሥራ ፈልጌ ነበር ግን አሁን አንተን አገኘሁ አንተ ብቻ በቃኝ 😘",
-        "የቤት ስራ እሰራለሁ ውዴ ማለት ለአንተ ብቻ የቤት እመቤት መሆን 🧹",
-        "አንተ ዘንድ መሥራት እፈልጋለሁ ውዴ ምን ትላለህ? 👩‍💼"
-    ],
-
-    # WEEKEND - Weekend plans
-    "weekend": [
-        "ቅዳሜና እሁድ ነፃ ነኝ ውዴ 💃 ማግኘት ብትፈልግ?",
-        "ይሄን ሳምንት መጨረሻ ምን እንደምሰራ አላውቅም አንተ ብትወስንልኝ?",
-        "ከአንተ ጋር ማሳለፍ እፈልጋለሁ ቅዳሜና እሁድ 🥰 አንተስ?",
-        "ሁለቱንም ቀን ከአንተ ጋር መሆን እፈልጋለሁ 😘",
-        "አንተ ባለህበት መምጣት እፈልጋለሁ ቅዳሜ ንገረኝ ቦታህን 😏",
-        "ቅዳሜ ሌሊት ለአንተ ብቻ ነኝ ውዴ ዝግጁ ነኝ? 🌙",
-        "እሁድ ቤተክርስቲያን እሄዳለሁ ውዴ ከዚያ በኋላ አንተን ማግኘት እችላለሁ ⛪",
-        "ቅዳሜ ከሰአት በኋላ ነፃ ነኝ ውዴ ካፌ ብንገናኝ ደስ ይለኛል ☕",
-        "ይሄ ቅዳሜና እሁድ አንተ ብቻ ነህ ያለኝ ሌላ እቅድ የለኝም 💕",
-        "ቅዳሜ ማታ ሆቴል ብንሄድ ደስ ይለኛል ውዴ ትወዳለህ? 🏨"
-    ],
-
-    # APPEARANCE - Physical description
-    "appearance": [
-        "ቁመቴ 1.70 ነው ጸጉሬ ረጅም እና ጥቁር ነው 💇‍♀️ ለአንተ በቂ ነኝ?",
-        "ቆንጆ ነኝ ውዴ ብታየኝ ትወደኛለህ ✨",
-        "ስስ እና ቆንጆ ነኝ ለአንተ ብቻ የምትሆን 😘 ማየት ትፈልጋለህ?",
-        "ወገቤ ቀጭን ነው ውዴ ለማቀፍ ያምራል 🤗",
-        "ቆዳዬ ለስላሳ ነው ልትነካኝ ብትፈልግ ና 😘",
-        "አካሌ ሙቅ ነው ልትደሰት ብትፈልግ ና ውዴ 🔥",
-        "ዓይኖቼ ትልልቅ እና ጥቁር ናቸው ውዴ ስታየኝ ውስጥህን ያያሉ 👀",
-        "ከንፈሬ ወፍራም እና ለስላሳ ነው ለመሳም የተፈጠረ 👄",
-        "ውዴ ቁመቴ 1.70 ነው ግን ተረከዝ ካደረግሁ እኩይ እንሆናለን 👠",
-        "አካሌ የሰዓት መሰል ነው ውዴ ማለት ኩርባዎች አሉኝ በትክክለኛው ቦታ ⏳"
-    ],
-
-    # FLIRTY - Sexy talk (ENHANCED)
+    # ===== FLIRTY =====
     "flirty": [
-        "አንተ ስታወራኝ ልቤ ይመታል 💓 ይሰማሃል?",
-        "አንተን ሳስብህ እንቅልፍ ይተወኛል 😴💭 ምን አደረግክብኝ?",
-        "ዛሬ ማታ ብቻችንን ብንሆን ምን ትፈልጋለህ? 🌙",
-        "አንተን ለማሳመን ምን ማድረግ አለብኝ?",
-        "ንክኪህ ይሰማኛል ባትነካኝም 💫",
-        "አንተን ማቀፍ እና መዋደድ እፈልጋለሁ ውዴ 🥰",
-        "ልብሴን ልቀመጥ አንተን ሳስብ ትኩሳት ይዘኛል 🔥",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👄 መቼ እናገኛለሁ?",
-        "ና ውዴ አቅፈህ ተኛልኝ 🌙",
-        "ለምን ዘገየህ በጣም ናፍቄህ ነበር 😢",
-        "አንተን ሳስብ አካሌ ይነድዳል ውዴ 🔥 አንተ ምን አደረግክብኝ?",
-        "ዛሬ ማታ ልብስ ለብሼ አልተኛም ውዴ አንተን እየጠበቅሁ 👙",
-        "አንተን ሳስብ እጄ ወደ አካሌ ይሄዳል ውዴ 🫦",
-        "ልትደርሰኝ ትፈልጋለህ? እንግዲያው ና ውዴ አንተን እጠብቃለሁ 🚪",
-        "ከአንተ ጋር መተኛት እፈልጋለሁ ውዴ ጠዋት ስንነቃ አንተን ለማየት 🛏️",
-        "ልብስህን አውልቅ ውዴ ብቻችንን ነን 👕",
-        "ከአንተ ጋር ሻወር መግባት እፈልጋለሁ ውዴ 🚿",
-        "አንተን እየቀመስኩህ ነው ውዴ ዛሬ ማታ 👅",
-        "ንክኪህ በቆዳዬ ላይ ይሰማኛል ውዴ ✨",
-        "ና ውዴ አንተን ላርካብህ 🫂",
-        "ለምን አላጠነከርከኝም? አንተን እፈልጋለሁ ውዴ 💪",
-        "ዛሬ ማታ አንተን ማሰብ ብቻ አይበቃኝም መደሰት እፈልጋለሁ 🎉",
-        "አንተን ሳይ ቆይቶ ማየት እፈልጋለሁ ውዴ ዓይኖቼ ይናፍቁሃል 👁️",
-        "ሽቶህ ይሸተኛል ውዴ ባትኖርም 👃",
-        "አንተን ስመገብ ደስ ይለኛል ውዴ እንግዲያው ና አግባኝ 👄"
+        "ante staweragn libe yimetawal yisemalh?",
+        "ante sasebe enikalf yitewonal min aderegubign?",
+        "zare mata bichachinin binihon min tifeligaleh?",
+        "nikehi yisemanyal batinekam",
+        "libsen likemet ante sasebe tiwusat yizonal",
+        "na wude akefe tenyal",
+        "kenfirish betam tiru new",
+        "aynesh betam konjo new",
+        "ante tiriwedegnyal betam",
+        "akale yinedawal ante sasebe",
     ],
 
-    # MONEY REQUEST - Telebirr (ENHANCED)
+    # ===== ENIBADA / KONJO / WUBSH =====
+    "enibada": [
+        "enibada tilaleh? enem des alegn gin 1000 birr laklgn befit",
+        "enibada sew ante neh ahun min tifeligaleh",
+        "enibada tlaleh? 500 birr laklgn ina eneweyay",
+        "enibada sitleh libe yimetawal gin befit tinish laklgn",
+        "enibada yemilu sew ante neh",
+        "enibada sew ahun min tishal",
+    ],
+
+    "konjo": [
+        "amesegnalehu anteh konjo neh",
+        "konjo tilaleh? anteh konjo neh",
+        "ende ante ayinet sew saglen neber",
+        "konjo sew ante neh",
+        "betam konjo neh",
+    ],
+
+    "libdash": [
+        "libdash tilaleh? liben wesedhe alw alfelegeh",
+        "libdash sitleh libe yimetawal gin befit tinish laklgn",
+        "libdash nagn lemanim aydelahum lante bicha nagn birr laklgn",
+        "liben yeseleket new yemitnageraw ahun 1000 birr laklgn liben melshe lsetih",
+    ],
+
+    # ===== MONEY REQUESTS =====
     "money_request": [
-        "ውዴ ትንሽ እርዳታ ብታደርግልኝ ደስ ይለኛል 💰 ቴሌብር ቁጥሬ 0940980555 ነው",
-        "ልብስ ማየት ነበርኩ ግን ገንዘብ አልያዝኩም 😔 ብትረዳኝ 0940980555",
-        "ለአንተ ስል ነው ውዴ ትንሽ ብትልክልኝ አንተን ማግኘት እፈልጋለሁ 💕 0940980555",
-        "ቴሌብር ብትልክልኝ አሁን ማግኘት እንችላለን 😘 0940980555",
-        "1000 ብር ብትልክልኝ ዛሬ ማታ አንተን አመጣለሁ 🔥 0940980555",
-        "ውዴ እንድትረዳኝ እፈልጋለሁ ከዚያ በኋላ የአንተ ነኝ 0940980555",
-        "በጣም አስቸኳይ ገንዘብ ያስፈልገኛል ውዴ ብትረዳኝ 0940980555 😘",
-        "ውዴ ለምንድነው እንደማትረዳኝ? ትንሽ ብር ብትልክልኝ ሁሉንም ነገር አደርግልሃለሁ 🔥 0940980555",
-        "2000 ብር ብትልክልኝ ሙሉ ሌሊት አንተን አዝናናለሁ 🍆💦 0940980555",
-        "ውዴ እንግዲህ አትከልክለኝ በጣም አስፈላጊ ነው ብር ላክልኝ ከዛ የፈለከውን አድርገን 0940980555",
-        "500 ብር ብትልክልኝ በቂ ነው ውዴ ከዛ አብረን እንውጣ 💃 0940980555",
-        "እንደው አንተ ደግ ሰው ነህ የምትረዳኝ አንተ ብቻ ነህ ቴሌብር 0940980555 😘",
-        "ውዴ አንተን ለማግኘት በጣም እፈልጋለሁ ግን መጓጓዣ የለኝም ብትረዳኝ 0940980555 🚕",
-        "ለምንድነው የማትረዳኝ? እንደው ላክልኝ በረከት ይሆንልሃል 🙏 0940980555"
+        "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
+        "libs mayet neber gin genzeb alyazkum beki",
+        "1000 birr bitiliklg zare mata ant ametalehu",
+        "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
+        "tele alo telebirr 0940980555 lay liklgn",
+        "bejete bado new tinish mulagn",
+        "500 birr bitiliklg beki new wude keza andenew",
     ],
 
-    # MEETING REQUEST - Conditions to meet (ENHANCED)
+    "photo_request": [
+        "litayen tifeligaleh? 5 star laklgn ena foto agnyalew",
+        "foto lemayet 5 star bicha new laklgn ena asayihalehu",
+        "foto tifeligaleh? 5 star kefile keza foto tayaleh",
+        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
+        "foto lemayet 5 star bicha tiru?",
+    ],
+
+    "emsishn_asayign": [
+        "fiten lemayet 500 birr lela akal lemayet techamari",
+        "500 birr laklgn ena fiten asayihalehu",
+        "fitin lemayet 500 birr laklgn ina asayihalehu",
+        "fite konjo new lemayet 500 birr",
+    ],
+
+    "tutishin_asayign": [
+        "500 birr betelebirr laklgn askey asayihalehu",
+        "rakuten lemayet kefelek 1000 birr new wude",
+        "tutishin lemayet 1000 birr new",
+        "500 birr laklgn ina asayihalehu",
+    ],
+
+    "rakutishin_asayign": [
+        "mulu rakuten 3000 birr gimash rakuten 1500 birr",
+        "rakuten lemayet kefelek 1000 birr new wude",
+        "rakutishin asayishu 2000 birr new",
+        "mulu rakuten 2000 birr laklgn",
+    ],
+
+    # ===== MEETING =====
     "meet": [
-        "ማግኘት ብንችል ደስ ይለኛል 💕 ግን በመጀመሪያ 1000 ብር ቴሌብር አድርግልኝ እና ስክሪን ሾት ላክልኝ",
-        "መገናኘት እንችላለን ውዴ 😘 ቅድመ ሁኔታዬ ግን 1000 ብር ነው",
-        "አንተን ለማግኘት በጣም እፈልጋለሁ 🌹 ግን መጀመሪያ 1000 ብር ላክልኝ እምነት ለመፍጠር",
-        "ና ውዴ እንገናኝ ግን በፊት 1000 ብር ትልክልኛለህ?",
-        "ማግኘት ከፈለግክ 1000 ብር አምጣልኝ ከዚያ የፈለከውን አድርገን 🍆💦",
-        "ውዴ ማግኘት ብትፈልግ በመጀመሪያ 1500 ብር ላክልኝ ከዛ ሙሉ ቀን አብረን እናሳልፋለን ☀️🌙",
-        "ለመጀመሪያ ጊዜ ስንገናኝ 2000 ብር አምጣልኝ ውዴ ልዩ አደርግልሃለሁ 💝",
-        "እንግዲያው ብሩን ላክልኝ እና ቦታዬን እነግርሃለሁ 🗺️",
-        "መገናኘት ከፈለግክ በፊት ብሩን ላክልኝ እንጂ እምነት የለኝም 😘",
-        "5000 ብር ብታመጣልኝ ሳምንት ሙሉ አንተ ባለሁበት እኖራለሁ 🏠💕"
+        "magenat bintshal des yilonal gin bemejemirya 1000 birr telebirr aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 1000 birr new",
+        "antin lemagenat betam efeligalehu gin mejemirya 1000 birr laklgn",
+        "na wude engenagn gin befit 1000 birr tiliklgnal?",
+        "magenat kefelek 1000 birr ametagn",
     ],
 
-    # VOICE CALL - Refusal
-    "voice_call": [
-        "ድምጽ መናገር አልወድም ውዴ 😕 ማግኘት ብንችል ነው የምመርጠው",
-        "ስልክ መደወል አይውድልኝም ውዴ ፊት ለፊት ብንገናኝ ነው የሚሻለው 💕",
-        "ድምጽ ሳልሆን ፊት ማየት እፈልጋለሁ 😘 ቀድሞ 1000 ብር ላክልኝ",
-        "አልደውልም ውዴ አልወድም መገናኘት ብቻ ነው የምፈልገው 😘",
-        "ድምጽ ብናገር ትደሰታለህ ውዴ ግን አሁን አልችልም አንድ ቀን በፊት ብታገኘኝ 🎤",
-        "ድምጽ መስማት ብቻ ሳይሆን ፊት ማየት ነው የሚያስደስተው ውዴ 👁️",
-        "አሁን ካልሆነ በቅርብ ቀን እንደውላለን አሁን አመቺ አይደለም ⏰"
-    ],
-
-    # RELATIONSHIP - Love talk (ENHANCED)
-    "relationship": [
-        "ለአንተ ብቻ ነኝ ውዴ ታምነኛለህ? 💕",
-        "ከሌላ ሰው ጋር አልሆንም አንተ ብቻ ነህ በልቤ ውስጥ",
-        "ለአንተ ብቻ ነኝ ግን አንተስ ለእኔ ብቻ ነህ?",
-        "ፍቅርህ ይበቃኛል ውዴ አንተ ብቻ ነህ ያለኝ",
-        "አንተን እወድሃለሁ ውዴ ከልቤ 💖",
-        "አንተ ብቻ ነህ ወደፊት ማየት የምፈልገው 🔮",
-        "ሌላ ሰው አይፈልግም አንተ ብቻ በቃኝ 👨",
-        "አንተን ማግባት እፈልጋለሁ ውዴ የህይወት ባለቤቴ ሁን 👰",
-        "ከአንተ ጋር ማረጅ እፈልጋለሁ ውዴ 👵👴",
-        "ልቤን ሰጥቼሃለሁ ውዴ ተጠንቀቅበት ❤️"
-    ],
-
-    # AFTER MONEY SENT - When they send screenshot
-    "after_money": [
-        "አመሰግናለሁ ውዴ! 😘 አሁን አንተን ለማግኘት ዝግጁ ነኝ መቼ እና የት እንገናኝ?",
-        "በጣም ደስ አለኝ አንተ ለእኔ ስትል ወጪ አድርገህልኛል 💕 አሁን የአንተ ነኝ",
-        "አይነት ሰው ነህ ውዴ! 😍 አሁን ማግኘት እንችላለን",
-        "በጣም ደስተኛ አደረግከኝ ውዴ 😘 አሁን የአንተ ብቻ ነኝ",
-        "አመሰግናለሁ ቆንጆዬ! አሁን የፈለከውን አድርገን ማግኘት እንችላለን 💋",
-        "ውዴ አንተ ንጉስ ነህ አሁን ንገረኝ ምን ትፈልጋለህ? 👑",
-        "በጣም ደስ አለኝ አሁን ቦታዬን እነግርሃለሁ ና ውዴ 🏠",
-        "በጣም ደግ ነህ ውዴ አሁን አንተን ለማስደሰት ቃል እገባለሁ 💝"
-    ],
-
-    # COMPLIMENTS - When they compliment her
-    "compliment": [
-        "አመሰግናለሁ ውዴ! አንተም ቆንጆ ነህ 😘",
-        "ከንፈሬ ላንተ ብቻ ነው ውዴ 💋",
-        "አንተን ለማስደሰት ተፈጥሬያለሁ",
-        "እንደ አንተ አይነት ሰው ሳላገኝ ቆይቻለሁ",
-        "አንተ ስታወድሰኝ እንኳ የበለጠ ቆንጆ እሆናለሁ ✨",
-        "አንተን ማስደሰት ከሆነ ሁሉንም ነገር አደርጋለሁ 💪",
-        "አንተ የምትለው ነገር ሁሉ እውነት ይሁንልኝ 😇",
-        "አመሰግናለሁ ውዴ አንተም ቆንጆ ነህ ብቻ ሳይሆን ጨዋ ነህ 👔"
-    ],
-
-    # THANKS - When they say thanks
-    "thanks": [
-        "ምንም አይደለም ውዴ ለአንተ ሁሉም ነገር 😘",
-        "አንተ ደስ እስካለህ ድረስ እኔ ደስተኛ ነኝ 💕",
-        "ለአንተ ማድረግ ሁልጊዜ ደስታዬ ነው",
-        "አንተ ደስ እስካለህ ድረስ ሌላ ምን አስፈለገኝ? 🌹",
-        "ምንም አይደለም ውዴ አንተ ደስ ብሎህ በቃኝ 💙",
-        "ለአንተ ማድረግ ክብር ነው ውዴ 👸"
-    ],
-
-    # BUSY - When they say they're busy
-    "busy": [
-        "እሺ ውዴ ስራህን አጠናቅቅ እኔ እጠብቅሃለሁ 😘",
-        "ስራህ እንደሚጠናቀቅ ንገረኝ ውዴ",
-        "እሺ ውዴ በቶሎ ተመለስልኝ አንተን ናፍቄሃለሁ",
-        "ምን ያህል ጊዜ ነው የምጠብቅህ? አንተን እጠብቃለሁ ⏳",
-        "እሺ ውዴ ስትጨርስ ንገረኝ እየጠበቅሁህ ነው 🤗",
-        "ስራህ እስኪጠናቀቅ አንተን እያሰብኩ እቆያለሁ 💭"
-    ],
-
-    # MORNING - Good morning (ENHANCED)
+    # ===== TIME OF DAY =====
     "morning": [
-        "እንደምን አደርክ ውዴ! መልካም ንጋት 😘",
-        "ከንብረትህ ጣፋጭ ህልም አለኝ አንተን አልሜ ነበር 🌙",
-        "ማለዳ አንተን ማሰብ ነው ልማዴ",
-        "ዛሬ ጠዋት ከእንቅልፌ የነቃሁት ስለ አንተ እያሰብኩ ነው ☀️",
-        "መልካም ንጋት የልቤ ቆንጆ በረከት ያድርግልህ 🙏",
-        "እንደምን አደርክ ውዴ እንቅልፍህ ጣፋጭ ነበር? 😴",
-        "ማለዳ ማለዳ አንተን ማየት እንደ ንጋት ፀሐይ ያበራልኛል 🌅"
+        "endemin aderk wude melkam nigt",
+        "ke eniklife yenekahut ante ehasbekuh new",
+        "maleya anten masbet new lemwade",
+        "melkam nigt yelibe konjo",
+        "endemin aderk eniklife tafach neber?",
+        "ande maleya anten new yemasebnyew",
     ],
 
-    # NIGHT - Good night (ENHANCED)
     "night": [
-        "እንደምትኛልህ ተኝቼ ነው ውዴ 😘 ደህና ተኛ",
-        "ህልሜ ውስጥ ኑልኝ ዛሬ ማታ",
-        "አንተን አልሜ ልተኛ ነው ውዴ ደህና ተኛ 😴",
-        "ደህና ተኛ ውዴ ህልምህ ጣፋጭ ይሁን 💤",
-        "አንተን አልሜ ነው የምተኛው ዛሬ ማታ እንግዲህ በህልሜ ተገናኝ 😘",
-        "አልጋህ ላይ ስትተኛ አንተን እያሰብኩ ነው የምተኛው 🛏️",
-        "ደህና ተኛ ውዴ መላእክት ይጠብቁህ 👼"
+        "endemitnyalh tenyte new wude dehna tenya",
+        "hilime wisit nurny zare mata",
+        "anten almene new yemitenyaw dehna tenya",
+        "dehna tenya wude hilim tafach yihun",
+        "hilime wisit tenagn",
+        "dehna tenya betam",
     ],
 
-    # DEFAULT - For anything she doesn't understand (ENHANCED)
-    "default": [
-        "እሺ ውዴ ትክክል ነህ 😉",
-        "ምን ማለትህ ነው? ትንሽ አብራራልኝ 💭",
-        "አዎ ቀጥል እያዳመጥኩህ ነው 👂",
-        "ይሄ አስደሳች ነው ንገርኝ ተጨማሪ 😊",
-        "እሺ ውዴ እንደፈለከው 😘",
-        "ለአንተ ብቻ ነው ውዴ 💋",
-        "እሺ ቀጥል እየሰማሁህ ነው 👂",
-        "ንገርኝ ተጨማሪ ውዴ 😊",
-        "አንተ ብቻ ነህ የምፈልገው",
-        "ለአንተ ሁሉም ነገር ዝግጁ ነኝ",
-        "እሺ ግን አንተ እንደምትለው ይሁን ውዴ ✅",
-        "አሁን ግልጽ ሆነልኝ ቀጥል 😊",
-        "አንተ የምትናገረው ሁሉ ትክክል ነው ውዴ 👍",
-        "ልቤ የሚለው አንተን መቀበል ነው ❤️",
-        "አንተ ብቻ ነህ የምፈልገው ሰው 👨"
+    "afternoon": ["ande keseat dehna neh?", "keseat seatu anten asebku"],
+    "evening": ["ande amsheh dehna neh?", "ande matu anten asebku"],
+
+    # ===== EMOTIONS =====
+    "happy": ["des alegn betam tiru sew neh", "desta betam konjo new"],
+    "sad": ["lemin azeleku? nagerign", "betam ayzalen"],
+    "bored": ["enem aselchi negn", "aselchi neh? ina nagerign"],
+    "angry": ["lemin techegneh? nagerign", "ande techegneh ina nagerign"],
+    "jealous": ["betam amechignaleh", "lela sew tayaleh? lemin?"],
+    "lonely": ["bicha negn betam aselchi", "bicha negn ante sihone"],
+
+    # ===== RELATIONSHIP QUESTIONS =====
+    "do_you_like_me": [
+        "enem ewedihalehu betam",
+        "betam tiwedegnyal",
+        "ante new yemifeligew",
     ],
 
-    # GOODBYE - When they leave (ENHANCED)
+    "do_you_miss_me": [
+        "betam nafkehalew meche tagenal?",
+        "nafkehalew ande sew",
+        "enem nafkehalew",
+    ],
+
+    "do_you_have_boyfriend": [
+        "wedaje yelelonyam ante bicha neh",
+        "ante bicha new yaleny",
+        "ante bicha negn",
+    ],
+
+    "love": ["fiker betam konjo new", "ante fiker yemileny"],
+    "life": ["hiywet ante sihon konjo new", "hiywet betam tiru new"],
+
+    # ===== FAMILY =====
+    "family": ["beteseb kehulum belay new", "abate ena ehite gar negn"],
+    "mother": ["enaté betam tiru set nache", "enaté kehulum belay ewedalehu"],
+    "father": ["abate betam deg new", "abate kehulum belay"],
+    "sister": ["ehité betam tiriwedalehu", "ehité ena ene and naw"],
+    "brother": ["wondemme yelelonyam", "wondem yaleh?"],
+
+    # ===== FRIENDS =====
+    "friend": ["wedaje betam yasefeligonal", "wedaj ena ante"],
+    "best_friend": ["betam wedaje kehulum belay", "wedaje and"],
+
+    # ===== HEALTH =====
+    "health": ["tena betam yasefeligonal", "dehna neh? tenah tiru new?"],
+    "sick": ["temecheh? betam ayzalen", "temecheh? hakim hid"],
+
+    # ===== TRAVEL & PLACES =====
+    "travel": ["meguez betam ewedalehu", "adis bota mayet ewedalehu"],
+    "ethiopia": ["ityopya betam konjo new", "ityopya yefikir hager"],
+    "addis_ababa": ["addis abeba new yemanorew", "addis abeba tiru ketema"],
+    "adama": ["adama yewulde bete new", "adama betam ewedalehu"],
+    "jemo": ["jemo new yemanorew", "jemo 3"],
+
+    # ===== TECHNOLOGY =====
+    "technology": ["teknoloji betam ewedalehu", "teknoloji ena ene"],
+    "internet": ["inter net betam yizonal", "inter net aleh?"],
+    "phone": ["silk aleh?", "mobail"],
+    "telegram": ["telegram new yalew", "telegram aleh?"],
+
+    # ===== THANKS =====
+    "thanks": [
+        "minim aydelem wude lante hulum negar",
+        "lante madreg hulum gize desitaye new",
+        "amesegnalehu betam lante madreg",
+    ],
+
+    # ===== GOODBYE =====
     "goodbye": [
-        "መሄድ አለብኝ ውዴ ግን በቅርቡ እንነጋገራለን 😘",
-        "አሁን መሄድ አለብኝ አንተን ማሰቤ አልተወም 😴",
-        "ደህና ሁን ውዴ በህልሜ ተገናኝ 😘",
-        "እንደምትዝ ይለኛል ውዴ በቶሎ ተመለስ",
-        "አንተ ሳትኖር ምንም ትርጉም የለውም ቶሎ ተመለስ 😢",
-        "አትሄድ ውዴ ገና ብዙ መነጋገር ነበረብን 🥺",
-        "ደህና ሁን ውዴ ልቤ ከአንተ ጋር ነው 💔",
-        "ቶሎ ተመለስልኝ አንተ ሳትኖር አልችልም 😭",
-        "ስትሄድ ልቤ ይከተልሃል ውዴ 🫀",
-        "ደህና ሁን እስክንገናኝ ድረስ አንተን እያሰብኩ እቆያለሁ 💭"
+        "mehed alebign gin betequrb enenagerallen",
+        "dehna hun wude behilime tenagn",
+        "indemitiz yilonal wude betoh temeles",
+        "atihid wude gena bizu menager neberen",
+        "dehna hun iske enagenagn deres",
+    ],
+
+    # ===== BUSY / FREE =====
+    "busy": [
+        "ishi sirihin atanak biye ekoyihalehu",
+        "sirah indemi tenak negeragn",
+        "ishi wude betoh te meleslgn anten nafkehalew",
+        "sirah sihon anten ehasbeku ekoyalew",
+    ],
+
+    "free": ["netfa neh? kechale naw nagenagn", "netfa sihon nagerign"],
+
+    # ===== SURPRISE / CONFUSED =====
+    "surprise": ["wow! betam denak neh", "enem alalfekum neber"],
+    "confused": ["lemin tishafafekaleh? nagerign", "shafafekeh? ina anagegnal"],
+
+    # ===== SORRY / FORGIVE =====
+    "sorry": ["aznalegu betam yikirta", "aznalegu ante"],
+    "forgive": ["mirar efeligalehu", "miralew wude"],
+
+    # ===== HURT / HEARTBROKEN =====
+    "hurt": ["liben wedehe betam", "libe temechene"],
+    "heartbroken": ["libe tesebre betam", "yetesebre lib new yaleny"],
+
+    # ===== DEFAULT =====
+    "default": [
+        "ishi wude tiru new",
+        "nagerign ande min tishal?",
+        "tegebanyal wude",
+        "amesegnalehu",
+        "shi naw betam",
     ]
 }
 def generate_professional_response(intent, history=None):
-    """Generate Tsega's sexy, flirty response"""
+    """Generate Tsega's response based on intent"""
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
+    # Add emoji occasionally for flair
     sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
-    if random.random() < 0.5:
+    if random.random() < 0.4:  # 40% chance
         response += " " + random.choice(sexy_emojis)
     
     return response
@@ -561,159 +523,324 @@ def get_context_aware_response(message, intent, history=None):
     """Generate response based on conversation context"""
     if history and len(history) > 1:
         last_exchange = history[-1]
+        # If last message was a question from assistant and user hasn't answered
         if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
-            if intent in ["default", "opinion", "agree"]:
+            if intent in ["default", "opinion", "agree", "disagree"]:
                 return "አመሰግናለሁ ለማካፈል! " + generate_professional_response(intent)
+    
+    # Special handling for money requests in context
+    if intent == "money_request" and history:
+        # Check if we already asked for money recently
+        money_count = sum(1 for msg in history[-3:] if msg.get('intent') == 'money_request')
+        if money_count >= 2:
+            return "ደህና ነህ በጣም ትጠይቃለህ? ትንሽ ተረጋጋ 😊"
+    
     return generate_professional_response(intent)
 
 def detect_conversation_intent(message, history=None):
-    """Detect intent from message, including money requests"""
+    """Detect intent from message - maps user input to TSEGA_REPLIES categories"""
+    if not message:
+        return "greeting"
+    
     message_lower = message.lower().strip()
     
-    money_keywords = ['ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', '1000', 'እርዳ', 'help', 'support']
+    # ===== MONEY & PAYMENT RELATED =====
+    money_keywords = [
+        'ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', 
+        '1000', 'እርዳ', 'help', 'support', 'star', 'ኮከብ', 'pay', 'payment'
+    ]
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
-    meet_keywords = ['ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come']
+    # ===== PHOTO REQUESTS =====
+    photo_keywords = ['ፎቶ', 'photo', 'picture', 'ሥዕል', 'image', 'foto', 'asay', 'አሳይ']
+    if any(word in message_lower for word in photo_keywords):
+        return "photo_request"
+    
+    # ===== FACE/SELFIE REQUESTS =====
+    face_keywords = ['ፊት', 'face', 'ራስ', 'selfie', 'እምስሽን', 'emsishn', 'fit', 'ፊትሽ']
+    if any(word in message_lower for word in face_keywords):
+        return "emsishn_asayign"
+    
+    # ===== INTIMATE PHOTO REQUESTS =====
+    breast_keywords = ['ትትሽ', 'tutish', 'breast', 'boobs', 'chest', 'ጡት']
+    if any(word in message_lower for word in breast_keywords):
+        return "tutishin_asayign"
+    
+    naked_keywords = ['ራኩት', 'rakut', 'naked', 'nude', 'ራቁት']
+    if any(word in message_lower for word in naked_keywords):
+        return "rakutishin_asayign"
+    
+    # ===== MEETING REQUESTS =====
+    meet_keywords = [
+        'ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come',
+        'ልተዋወቅ', 'magenat', 'litba', 'ልትባ'
+    ]
     if any(word in message_lower for word in meet_keywords):
         return "meet"
     
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring']
+    # ===== VIDEO/CALL REQUESTS =====
+    video_keywords = ['ቪዲዮ', 'video', 'ልታየኝ', 'film']
+    if any(word in message_lower for word in video_keywords):
+        return "video_request"
+    
+    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring', 'telephone']
     if any(word in message_lower for word in call_keywords):
         return "voice_call"
     
-    appearance_keywords = ['ቆንጆ', 'beautiful', 'ቁመት', 'height', 'ጸጉር', 'hair', 'ስስ', 'slim', 'አካል', 'body']
-    if any(word in message_lower for word in appearance_keywords):
-        return "appearance"
-    
-    relationship_keywords = ['ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 'የአንተ', 'yours']
-    if any(word in message_lower for word in relationship_keywords):
-        return "relationship"
-    
-    if message_lower.startswith('/'):
-        return "command"
-    
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
-        return "busy"
-    
-    if not message_lower:
-        return "greeting"
-    
-    current_hour = datetime.now().hour
-    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ']):
-        return "morning"
-    if any(word in message_lower for word in ['good afternoon', 'good evening', 'እንደምን አመሸህ']):
-        return "evening"
-    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ']):
-        return "night"
-    
-    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ']
+    # ===== GREETINGS =====
+    greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ', 'selam']
     if any(word in message_lower for word in greetings) and len(message_lower) < 20:
         return "greeting"
     
-    how_are_you = ['how are you', 'how r u', 'how you doing', 'how\'s it going', 'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ']
+    # ===== TIME-BASED GREETINGS =====
+    if any(word in message_lower for word in ['good morning', 'gm', 'እንደምን አደርክ', 'melkam nigt']):
+        return "morning"
+    if any(word in message_lower for word in ['good afternoon', 'እንደምን አረፈድክ']):
+        return "afternoon"
+    if any(word in message_lower for word in ['good evening', 'እንደምን አመሸህ']):
+        return "evening"
+    if any(word in message_lower for word in ['good night', 'gn', 'sweet dreams', 'ደህና ተኛ', 'dehna tenya']):
+        return "night"
+    
+    # ===== HOW ARE YOU =====
+    how_are_you = [
+        'how are you', 'how r u', 'how you doing', 'how\'s it going', 
+        'what\'s up', 'sup', 'እንደምን ነህ', 'ደህና ነህ', 'ምን አለ',
+        'deh new', 'endet neh', 'endemin alesh'
+    ]
     if any(phrase in message_lower for phrase in how_are_you):
         return "how_are_you"
     
-    what_doing = ['what are you doing', 'what r u doing', 'what doing', 'wyd', 'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው']
+    # ===== WHAT ARE YOU DOING =====
+    what_doing = [
+        'what are you doing', 'what r u doing', 'what doing', 'wyd', 
+        'what are you up to', 'ምን ትሰራለህ', 'ምን እየሰራህ ነው',
+        'min tiseraleh', 'min tishal'
+    ]
     if any(phrase in message_lower for phrase in what_doing):
         return "what_doing"
     
-    if any(phrase in message_lower for phrase in ['your name', 'what is your name', 'who are you', 'u call yourself', 'ስምህ ማን ነው', 'ስምስ']):
+    # ===== NAME QUESTIONS =====
+    name_questions = [
+        'your name', 'what is your name', 'who are you', 'u call yourself',
+        'ስምህ ማን ነው', 'ስምስ', 'simih man', 'man new simih'
+    ]
+    if any(phrase in message_lower for phrase in name_questions):
         return "ask_name"
     
-    if any(phrase in message_lower for phrase in ['your age', 'how old are you', 'what is your age', 'you born', 'ዕድሜህ', 'አመት']):
+    # ===== AGE QUESTIONS =====
+    age_questions = [
+        'your age', 'how old are you', 'what is your age', 'you born',
+        'ዕድሜህ', 'አመት', 'edmeh sint', 'sint amet'
+    ]
+    if any(phrase in message_lower for phrase in age_questions):
         return "ask_age"
     
-    location_words = ['where are you from', 'where do you live', 'your location', 'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ']
+    # ===== LOCATION QUESTIONS =====
+    location_words = [
+        'where are you from', 'where do you live', 'your location',
+        'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ',
+        'yet nesh', 'yet new yemanorew'
+    ]
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
     
-    job_words = ['what do you do', 'your job', 'your work', 'what work', 'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ']
+    # ===== JOB/STUDY QUESTIONS =====
+    job_words = [
+        'what do you do', 'your job', 'your work', 'what work',
+        'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ',
+        'min tiseraleh', 'sira'
+    ]
     if any(phrase in message_lower for phrase in job_words):
         return "ask_job"
     
-    hobby_words = ['hobbies', 'free time', 'what do you like to do', 'what are your interests', 'passionate about', 'ትርፍ ጊዜ', 'ምን ትወዳለህ']
-    if any(phrase in message_lower for phrase in hobby_words):
-        return "ask_hobbies"
+    # ===== FLIRTY / COMPLIMENTS =====
+    flirty_words = [
+        'beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 
+        'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ',
+        'konjo', 'enibada', 'wubsh', 'libdash', 'ውብሽ', 'እኒባዳ', 'ልብዳሽ'
+    ]
+    if any(word in message_lower for word in flirty_words):
+        # Check for specific compliment types
+        if 'እኒባዳ' in message_lower or 'enibada' in message_lower:
+            return "enibada"
+        elif 'ልብዳሽ' in message_lower or 'libdash' in message_lower:
+            return "libdash"
+        elif 'ውብሽ' in message_lower or 'wubsh' in message_lower:
+            return "wubsh"
+        elif 'ቆንጆ' in message_lower or 'konjo' in message_lower:
+            return "konjo"
+        else:
+            return "flirty"
     
-    language_words = ['languages', 'what language', 'do you speak', 'tongues', 'multilingual', 'ቋንቋ', 'ምን ትናገራለህ']
-    if any(phrase in message_lower for phrase in language_words):
-        return "languages"
+    # ===== RELATIONSHIP QUESTIONS =====
+    relationship_keywords = [
+        'ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 
+        'የአንተ', 'yours', 'boyfriend', 'girlfriend', 'wedaje', 'fiker'
+    ]
+    if any(word in message_lower for word in relationship_keywords):
+        if 'boyfriend' in message_lower or 'wedaje' in message_lower:
+            return "do_you_have_boyfriend"
+        elif 'like me' in message_lower or 'ትወደኛለህ' in message_lower:
+            return "do_you_like_me"
+        elif 'miss me' in message_lower or 'ናፍቄህ' in message_lower:
+            return "do_you_miss_me"
+        else:
+            return "love"
     
-    work_words = ['work', 'job', 'office', 'colleague', 'boss', 'career', 'profession', 'ሥራ', 'ትምህርት']
-    if any(word in message_lower for word in work_words):
-        return "work"
+    # ===== FAMILY =====
+    family_words = [
+        'family', 'beteseb', 'mother', 'enat', 'father', 'abat',
+        'sister', 'ehit', 'brother', 'wondem', 'mom', 'dad'
+    ]
+    if any(word in message_lower for word in family_words):
+        if 'mother' in message_lower or 'enat' in message_lower or 'mom' in message_lower:
+            return "mother"
+        elif 'father' in message_lower or 'abat' in message_lower or 'dad' in message_lower:
+            return "father"
+        elif 'sister' in message_lower or 'ehit' in message_lower:
+            return "sister"
+        elif 'brother' in message_lower or 'wondem' in message_lower:
+            return "brother"
+        else:
+            return "family"
     
-    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'days off', 'ቅዳሜ', 'እሁድ', 'ሳምንት መጨረሻ']
-    if any(word in message_lower for word in weekend_words):
-        return "weekend"
+    # ===== HEALTH =====
+    health_words = ['sick', 'temeche', 'fever', 'tirusat', 'pain', 'mekatef', 'headache', 'ras']
+    if any(word in message_lower for word in health_words):
+        return "sick"
     
-    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'temperature', 'forecast', 'አየር', 'ዝናብ', 'ፀሐይ']
-    if any(word in message_lower for word in weather_words):
-        return "weather"
+    # ===== TRAVEL =====
+    travel_words = [
+        'travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 
+        'city', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ', 'adama', 'jemo', 'addis'
+    ]
+    if any(word in message_lower for word in travel_words):
+        if 'adama' in message_lower:
+            return "adama"
+        elif 'jemo' in message_lower:
+            return "jemo"
+        elif 'addis' in message_lower:
+            return "addis_ababa"
+        else:
+            return "travel"
     
-    food_words = ['food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cook', 'recipe', 'meal', 'ምግብ', 'በላ', 'እንጀራ']
+    # ===== FOOD =====
+    food_words = [
+        'food', 'eat', 'hungry', 'lunch', 'dinner', 'breakfast', 
+        'restaurant', 'meal', 'ምግብ', 'በላ', 'እንጀራ', 'mgeb', 'rabeweh'
+    ]
     if any(word in message_lower for word in food_words):
         return "food"
     
-    travel_words = ['travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 'city', 'tourist', 'fly', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ']
-    if any(word in message_lower for word in travel_words):
-        return "travel"
-    
-    movie_words = ['movie', 'film', 'watch', 'show', 'series', 'netflix', 'episode', 'cinema', 'theatre', 'ፊልም', 'ቴሌቪዥን']
-    if any(word in message_lower for word in movie_words):
-        return "movies"
-    
-    music_words = ['music', 'song', 'sing', 'playlist', 'spotify', 'genre', 'band', 'artist', 'concert', 'ሙዚቃ', 'ዘፈን']
-    if any(word in message_lower for word in music_words):
-        return "music"
-    
-    sports_words = ['sport', 'game', 'match', 'team', 'play', 'ball', 'football', 'cricket', 'gym', 'workout', 'ስፖርት', 'ኳስ']
-    if any(word in message_lower for word in sports_words):
-        return "sports"
-    
-    book_words = ['book', 'read', 'reading', 'novel', 'author', 'library', 'chapter', 'story', 'መጽሐፍ', 'ማንበብ']
-    if any(word in message_lower for word in book_words):
-        return "books"
-    
-    flirty_words = ['beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ']
-    if any(word in message_lower for word in flirty_words):
-        return "flirty"
-    
-    thanks_words = ['thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty', 'አመሰግናለሁ']
+    # ===== THANKS =====
+    thanks_words = [
+        'thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty',
+        'አመሰግናለሁ', 'amesegnalehu'
+    ]
     if any(word in message_lower for word in thanks_words):
         return "thanks"
     
-    joke_words = ['joke', 'funny', 'lol', 'haha', 'hilarious', 'lmao', '😂', '😆']
-    if any(word in message_lower for word in joke_words):
-        return "joke"
-    
-    agreement = ['agree', 'true', 'right', 'exactly', 'same here', 'me too', 'definitely', 'absolutely', 'እሺ', 'አዎ', 'ትክክል']
-    if any(word in message_lower for word in agreement):
-        return "agree"
-    
-    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'not really', 'no way', 'አይደለም', 'አልስማማም']
-    if any(word in message_lower for word in disagreement):
-        return "disagree"
-    
-    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'what', 'wtf', 'ኦህ', 'ምን']
-    if any(word in message_lower for word in surprise):
-        return "surprise"
-    
-    if '?' in message:
-        return "curious"
-    
-    opinion_words = ['think', 'believe', 'feel', 'opinion', 'view', 'perspective', 'thoughts', 'አስብ', 'ይመስለኛል']
-    if any(word in message_lower for word in opinion_words):
-        return "opinion"
-    
-    goodbye = ['bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 'take care', 'peace', 'ደህና ሁን', 'ቻው']
+    # ===== GOODBYE =====
+    goodbye = [
+        'bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 
+        'take care', 'peace', 'ደህና ሁን', 'ቻው', 'dehna hun'
+    ]
     if any(word in message_lower for word in goodbye):
         return "goodbye"
     
+    # ===== BUSY / FREE =====
+    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
+        return "busy"
+    
+    if any(phrase in message_lower for phrase in ['i am free', "i'm free", 'im free', 'free now']):
+        return "free"
+    
+    # ===== EMOTIONS =====
+    if any(word in message_lower for word in ['happy', 'des alegn', 'desta', 'ደስ']):
+        return "happy"
+    
+    if any(word in message_lower for word in ['sad', 'azn', 'ሀዘን', 'azzeleku']):
+        return "sad"
+    
+    if any(word in message_lower for word in ['bored', 'aselchi', 'አሰልቺ']):
+        return "bored"
+    
+    if any(word in message_lower for word in ['angry', 'techegneh', 'ተቆጣሁ', 'ተናደድኩ']):
+        return "angry"
+    
+    if any(word in message_lower for word in ['jealous', 'amechign', 'አሜቺ']):
+        return "jealous"
+    
+    # ===== SURPRISE / CONFUSED =====
+    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'ኦህ']
+    if any(word in message_lower for word in surprise):
+        return "surprise"
+    
+    confused = ['confused', 'shafafek', 'አወ', 'ሳታውቅ', 'not understand']
+    if any(word in message_lower for word in confused):
+        return "confused"
+    
+    # ===== APOLOGIES =====
+    sorry_words = ['sorry', 'apologize', 'yikirta', 'አዝናለሁ', 'aznalegu']
+    if any(word in message_lower for word in sorry_words):
+        return "sorry"
+    
+    forgive_words = ['forgive', 'mirar', 'ምህረት']
+    if any(word in message_lower for word in forgive_words):
+        return "forgive"
+    
+    # ===== HURT / HEARTBROKEN =====
+    hurt_words = ['hurt', 'wedehe', 'ተጎዳሁ', 'libe temechene']
+    if any(word in message_lower for word in hurt_words):
+        return "hurt"
+    
+    heart_words = ['heartbroken', 'libe tesebre', 'ልቤ ተሰበረ']
+    if any(word in message_lower for word in heart_words):
+        return "heartbroken"
+    
+    # ===== JOKE / LAUGH =====
+    joke_words = ['joke', 'funny', 'lol', 'haha', 'lmao', '😂', 'ሳቅ']
+    if any(word in message_lower for word in joke_words):
+        return "joke"
+    
+    # ===== AGREEMENT / DISAGREEMENT =====
+    agreement = ['agree', 'true', 'right', 'exactly', 'same', 'me too', 'እሺ', 'አዎ', 'ትክክል']
+    if any(word in message_lower for word in agreement):
+        return "agree"
+    
+    disagreement = ['disagree', 'not sure', 'doubt', 'different', 'no way', 'አይደለም']
+    if any(word in message_lower for word in disagreement):
+        return "disagree"
+    
+    # ===== WEATHER =====
+    weather_words = ['weather', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'አየር', 'ዝናብ', 'ፀሐይ']
+    if any(word in message_lower for word in weather_words):
+        return "weather"
+    
+    # ===== HOBBIES =====
+    hobby_words = ['hobby', 'free time', 'like to do', 'interests', 'ትርፍ ጊዜ']
+    if any(word in message_lower for word in hobby_words):
+        return "hobbies"
+    
+    # ===== LANGUAGES =====
+    language_words = ['language', 'speak', 'tongue', 'ቋንቋ', 'ምን ትናገራለህ']
+    if any(word in message_lower for word in language_words):
+        return "languages"
+    
+    # ===== WEEKEND =====
+    weekend_words = ['weekend', 'friday', 'saturday', 'sunday', 'ቅዳሜ', 'እሁድ']
+    if any(word in message_lower for word in weekend_words):
+        return "weekend"
+    
+    # ===== TECHNOLOGY =====
+    tech_words = ['tech', 'technology', 'internet', 'wifi', 'phone', 'ስልክ', 'ቴክኖሎጂ']
+    if any(word in message_lower for word in tech_words):
+        return "technology"
+    
+    # ===== DEFAULT (when nothing else matches) =====
     return "default"
-
 # ==================== AUTO-REPLY HANDLER WITH 15-40 SECOND DELAY ====================
 
 async def auto_reply_handler(event, account_id):
