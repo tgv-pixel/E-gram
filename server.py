@@ -343,18 +343,18 @@ TSEGA_REPLIES = {
     ],
 
     "photo_request": [
-        "litayen tifeligaleh? 5 star laklgn ena foto agnyalew",
-        "foto lemayet 5 star bicha new laklgn ena asayihalehu",
-        "foto tifeligaleh? 5 star kefile keza foto tayaleh",
-        "lante bicha leyu foto alegn 5 star bitiliklg asayihalehu",
-        "foto lemayet 5 star bicha tiru?",
+        "litayen tifeligaleh? 0940980555 tele birr 500 birr laklgn ena foto asaykalew weym t.me/+j4qFBBfAlFYxYTk0",
+        "foto lemayet 250 star bicha new laklgn ena asayihalehu",
+        "foto tifeligaleh?  star t.me/+j4qFBBfAlFYxYTk0 keza foto tayaleh",
+        "lante bicha leyu foto alegn t.me/+j4qFBBfAlFYxYTk0 zena belbet wde",
+        "foto lemayet ezi lay alelk t.me/+j4qFBBfAlFYxYTk0",
     ],
 
     "emsishn_asayign": [
         "fiten lemayet 500 birr lela akal lemayet techamari",
         "500 birr laklgn ena fiten asayihalehu",
-        "fitin lemayet 500 birr laklgn ina asayihalehu",
-        "fite konjo new lemayet 500 birr",
+        " lemayet felek yhew  t.me/+j4qFBBfAlFYxYTk0 zena belbet",
+        "ezi eyew ketute gar andlay t.me/+j4qFBBfAlFYxYTk0",
     ],
 
     "tutishin_asayign": [
@@ -503,7 +503,7 @@ TSEGA_REPLIES = {
         "wde laschegrk kard laklgn sint endatlegn des yalekn 0940980555 ",
         "nagerign ande min tishal?",
         "balance zegabgn esti kard mulalign enaweralen 0940980555 yetemechekn yahl",
-        "amesegnalehu",
+        "my video t.me/+j4qFBBfAlFYxYTk0",
         "eshi kard lizegabgn new bitlklgn des ylegnal 0940980554",
     ]
 }
