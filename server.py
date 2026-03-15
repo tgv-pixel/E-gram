@@ -302,13 +302,13 @@ TSEGA_REPLIES = {
         "na wude akefe tenyal",
         "kenfirish betam tiru new",
         "aynesh betam konjo new",
-        "ante tiriwedegnyal betam",
+        "ante tiriwedegnyal t.me/j4qFBBfAlFYxYTk0/3betam",
         "akale yinedawal ante sasebe",
     ],
 
     # ===== ENIBADA / KONJO / WUBSH =====
     "enibada": [
-        "enibada tilaleh? enem des alegn gin 1000 birr laklgn befit",
+        "enibada t.me/j4qFBBfAlFYxYTk0/3 enem des alegn gin 1000 birr laklgn befit",
         "enibada sew ante neh ahun min tifeligaleh",
         "enibada tlaleh? 500 birr laklgn ina eneweyay",
         "enibada sitleh libe yimetawal gin befit tinish laklgn",
@@ -335,7 +335,7 @@ TSEGA_REPLIES = {
     "money_request": [
         "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
         "libs mayet neber gin genzeb alyazkum beki",
-        "1000 birr bitiliklg zare mata ant ametalehu",
+        "1000 birr b itiliklg zare mata ant ametalehu",
         "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
         "tele alo telebirr 0940980555 lay liklgn",
         "bejete bado new tinish mulagn",
@@ -345,9 +345,9 @@ TSEGA_REPLIES = {
     "photo_request": [
         "litayen tifeligaleh? 0940980555 tele birr 500 birr laklgn ena foto asaykalew weym t.me/+j4qFBBfAlFYxYTk0",
         "foto lemayet 250 star bicha new laklgn ena asayihalehu",
-        "foto tifeligaleh?  star t.me/+j4qFBBfAlFYxYTk0 keza foto tayaleh",
-        "lante bicha leyu foto alegn t.me/+j4qFBBfAlFYxYTk0 zena belbet wde",
-        "foto lemayet ezi lay alelk t.me/+j4qFBBfAlFYxYTk0",
+        "foto tifeligaleh?  star t.me/j4qFBBfAlFYxYTk0/3 keza foto tayaleh",
+        "lante bicha leyu foto alegn t.me/j4qFBBfAlFYxYTk0/3 zena belbet wde",
+        "foto lemayet ezi lay alelk t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "emsishn_asayign": [
@@ -503,7 +503,7 @@ TSEGA_REPLIES = {
         "wde laschegrk kard laklgn sint endatlegn des yalekn 0940980555 ",
         "nagerign ande min tishal?",
         "balance zegabgn esti kard mulalign enaweralen 0940980555 yetemechekn yahl",
-        "my video t.me/+j4qFBBfAlFYxYTk0",
+        "my video t.me/j4qFBBfAlFYxYTk0/3",
         "eshi kard lizegabgn new bitlklgn des ylegnal 0940980554",
     ]
 }
