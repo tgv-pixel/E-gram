@@ -206,6 +206,7 @@ TSEGA = {
 }
 
 # Tsega's sexy and flirty replies for men only - AMHARIC ONLY
+# Tsega's sexy and flirty replies for men only - Amharic written in English spelling
 TSEGA_REPLIES = {
     # ===== GREETINGS =====
     "greeting": [
@@ -302,16 +303,16 @@ TSEGA_REPLIES = {
         "na wude akefe tenyal",
         "kenfirish betam tiru new",
         "aynesh betam konjo new",
-        "ante tiriwedegnyal t.me/j4qFBBfAlFYxYTk0/3betam",
+        "ante tiriwedegnyal betam",
         "akale yinedawal ante sasebe",
     ],
 
     # ===== ENIBADA / KONJO / WUBSH =====
     "enibada": [
-        "enibada t.me/j4qFBBfAlFYxYTk0/3 enem des alegn gin 1000 birr laklgn befit",
+        "enibada tlaleh? enem des alegn gin 100 star laklgn befit",
         "enibada sew ante neh ahun min tifeligaleh",
-        "enibada tlaleh? 500 birr laklgn ina eneweyay",
-        "enibada sitleh libe yimetawal gin befit tinish laklgn",
+        "enibada tlaleh? 50 star laklgn ina eneweyay",
+        "enibada sitleh libe yimetawal gin befit tinish star laklgn",
         "enibada yemilu sew ante neh",
         "enibada sew ahun min tishal",
     ],
@@ -326,58 +327,66 @@ TSEGA_REPLIES = {
 
     "libdash": [
         "libdash tilaleh? liben wesedhe alw alfelegeh",
-        "libdash sitleh libe yimetawal gin befit tinish laklgn",
-        "libdash nagn lemanim aydelahum lante bicha nagn birr laklgn",
-        "liben yeseleket new yemitnageraw ahun 1000 birr laklgn liben melshe lsetih",
+        "libdash sitleh libe yimetawal gin befit tinish star laklgn",
+        "libdash nagn lemanim aydelahum lante bicha nagn star laklgn",
+        "liben yeseleket new yemitnageraw ahun 100 star laklgn liben melshe lsetih",
     ],
 
-    # ===== MONEY REQUESTS =====
+    # ===== MONEY REQUESTS (STAR ONLY) =====
     "money_request": [
-        "tinish irdata bitadergilgn des yilonal telebirr kute 0940980555",
-        "libs mayet neber gin genzeb alyazkum beki",
-        "1000 birr b itiliklg zare mata ant ametalehu",
-        "wude 2000 birr bitiliklg mulu lelit ant aznanalew",
-        "tele alo telebirr 0940980555 lay liklgn",
-        "bejete bado new tinish mulagn",
-        "500 birr bitiliklg beki new wude keza andenew",
+        "tinish irdata bitadergilgn des yilonal star laklgn",
+        "libs mayet neber gin star alyazkum beki",
+        "100 star bitiliklg zare mata ant ametalehu",
+        "wude 200 star bitiliklg mulu lelit ant aznanalew",
+        "star alo star laklgn",
+        "bejete bado new tinish star mulagn",
+        "50 star bitiliklg beki new wude keza andenew",
     ],
 
+    # ===== PHOTO/VIDEO REQUESTS (with channel links) =====
     "photo_request": [
-        "litayen tifeligaleh? 0940980555 tele birr 500 birr laklgn ena foto asaykalew weym t.me/+j4qFBBfAlFYxYTk0",
-        "foto lemayet 250 star bicha new laklgn ena asayihalehu",
-        "foto tifeligaleh?  star t.me/j4qFBBfAlFYxYTk0/3 keza foto tayaleh",
-        "lante bicha leyu foto alegn t.me/j4qFBBfAlFYxYTk0/3 zena belbet wde",
-        "foto lemayet ezi lay alelk t.me/j4qFBBfAlFYxYTk0/3",
+        "litayen tifeligaleh? 50 star laklgn ena foto asaykalew kezih link t.me/j4qFBBfAlFYxYTk0/3",
+        "foto lemayet 25 star bicha new laklgn ena asayihalehu t.me/j4qFBBfAlFYxYTk0/3",
+        "foto tifeligaleh? star laklgn keza foto tayaleh t.me/j4qFBBfAlFYxYTk0/3",
+        "lante bicha leyu foto alegn star laklgn t.me/j4qFBBfAlFYxYTk0/3",
+        "foto lemayet ezi lay alelk star laklgn t.me/j4qFBBfAlFYxYTk0/3",
+    ],
+
+    "video_request": [
+        "video lemayet tifeligaleh? 100 star laklgn ena video asaykalew t.me/j4qFBBfAlFYxYTk0/9",
+        "yene konjo video 100 star bicha new laklgn ena tayaleh t.me/j4qFBBfAlFYxYTk0/9",
+        "video tayaleh? star laklgn keza t.me/j4qFBBfAlFYxYTk0/9",
+        "mulu video 200 star laklgn t.me/j4qFBBfAlFYxYTk0/9",
     ],
 
     "emsishn_asayign": [
-        "fiten lemayet 500 birr lela akal lemayet techamari",
-        "500 birr laklgn ena fiten asayihalehu",
-        " lemayet felek yhew  t.me/+j4qFBBfAlFYxYTk0 zena belbet",
-        "ezi eyew ketute gar andlay t.me/+j4qFBBfAlFYxYTk0",
+        "fiten lemayet 50 star lela akal lemayet techamari",
+        "50 star laklgn ena fiten asayihalehu",
+        "fiten lemayet star laklgn t.me/j4qFBBfAlFYxYTk0/3",
+        "ezi eyew ketute gar andlay star laklgn t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "tutishin_asayign": [
-        "500 birr betelebirr laklgn askey asayihalehu",
-        "rakuten lemayet kefelek 1000 birr new wude",
-        "tutishin lemayet 1000 birr new",
-        "500 birr laklgn ina asayihalehu",
+        "50 star laklgn askey asayihalehu",
+        "rakuten lemayet kefelek 100 star new wude",
+        "tutishin lemayet 100 star new",
+        "50 star laklgn ina asayihalehu t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "rakutishin_asayign": [
-        "mulu rakuten 3000 birr gimash rakuten 1500 birr",
-        "rakuten lemayet kefelek 1000 birr new wude",
-        "rakutishin asayishu 2000 birr new",
-        "mulu rakuten 2000 birr laklgn",
+        "mulu rakuten 300 star gimash rakuten 150 star",
+        "rakuten lemayet kefelek 100 star new wude",
+        "rakutishin asayishu 200 star new",
+        "mulu rakuten 200 star laklgn t.me/j4qFBBfAlFYxYTk0/9",
     ],
 
     # ===== MEETING =====
     "meet": [
-        "magenat bintshal des yilonal gin bemejemirya 1000 birr telebirr aderglgn",
-        "metagenat inchalew wude kdime hiyajiye 1000 birr new",
-        "antin lemagenat betam efeligalehu gin mejemirya 1000 birr laklgn",
-        "na wude engenagn gin befit 1000 birr tiliklgnal?",
-        "magenat kefelek 1000 birr ametagn",
+        "magenat bintshal des yilonal gin bemejemirya 100 star aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 100 star new",
+        "antin lemagenat betam efeligalehu gin mejemirya 100 star laklgn",
+        "na wude engenagn gin befit 100 star tiliklgnal?",
+        "magenat kefelek 100 star ametagn",
     ],
 
     # ===== TIME OF DAY =====
@@ -500,11 +509,11 @@ TSEGA_REPLIES = {
 
     # ===== DEFAULT =====
     "default": [
-        "wde laschegrk kard laklgn sint endatlegn des yalekn 0940980555 ",
+        "wde laschegrk star laklgn sint endatlegn des yalekn",
         "nagerign ande min tishal?",
-        "balance zegabgn esti kard mulalign enaweralen 0940980555 yetemechekn yahl",
-        "my video t.me/j4qFBBfAlFYxYTk0/3",
-        "eshi kard lizegabgn new bitlklgn des ylegnal 0940980554",
+        "balance zegabgn esti star mulalign enaweralen yetemechekn yahl",
+        "my video t.me/j4qFBBfAlFYxYTk0/9",
+        "eshi star lizegabgn new bitlklgn des ylegnal",
     ]
 }
 
