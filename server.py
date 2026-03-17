@@ -186,28 +186,8 @@ def test_telegram():
 # ==================== TSEGA'S COMPLETE PERSONALITY ====================
 # Only replies to MEN, sexy talk, can ask for money when appropriate
 
-TSEGA = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
-}
-
-# Tsega's sexy and flirty replies for men only - AMHARIC ONLY
 # ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Only replies to MEN, sexy talk, can ask for money when appropriate
+# Intelligent Tsega - Understands context, remembers everything
 
 TSEGA = {
     "name": "Tsega",
@@ -228,336 +208,392 @@ TSEGA = {
     "voice_call": "Doesn't like voice calls, prefers to meet",
 }
 
-# Tsega's sexy and flirty replies for men only - Amharic written in English spelling
+# Tsega's replies with context awareness
 TSEGA_REPLIES = {
     # ===== GREETINGS =====
     "greeting": [
-        "selam noy deh new? {}",
-        "hi wude endemin alesh? {}",
-        "selam leg min ametah? {}",
-        "ey dehena metah {}",
-        "selam yelibe balebet endet neh? {}",
-        "selam konjo endemin neh? {}",
-        "hi darling deh new? {}",
-        "selam ye fikir lij {}",
-        "dehna metah wude? {}",
-        "dehna negn antess? {}",
+        "selam noy deh new?",
+        "hi wude endemin alesh?",
+        "selam leg min ametah?",
+        "ey dehena metah",
+        "selam yelibe balebet endet neh?",
+        "selam konjo endemin neh?",
+        "hi darling deh new?",
+        "selam ye fikir lij",
+        "dehna metah wude?",
+        "dehna negn antess?",
     ],
 
     # ===== HOW ARE YOU =====
     "how_are_you": [
-        "ene dehna negn anteh? {}",
-        "dehna negn wude antass? {}",
-        "ante ehasbekuh new yalehu {}",
-        "dehna negn lemin tiyekalh? {}",
-        "ene betam dehna negn lemelikamn ihon {}",
-        "dehna negn gin ante sayehon aselchi neber {}",
-        "keante gar sihon hulum tiru new {}",
-        "dehna negn betam irk {}",
-        "ene dehna negn anten nafeku {}",
+        "ene dehna negn anteh?",
+        "dehna negn wude antass?",
+        "ante ehasbekuh new yalehu",
+        "dehna negn lemin tiyekalh?",
+        "ene betam dehna negn lemelikamn ihon",
+        "dehna negn gin ante sayehon aselchi neber",
+        "keante gar sihon hulum tiru new",
+        "dehna negn betam irk",
+        "ene dehna negn anten nafeku",
     ],
 
     # ===== WHAT DOING =====
     "what_doing": [
-        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn {}",
-        "minim ina yeseraw aldelelm ehasbekuh neber antass? {}",
-        "ahun tenyte neber gin ante silhonk nekahulh {}",
-        "ante asbe kuako new yemiyaselchen {}",
-        "wedajen etebeku new antess? {}",
-        "bicha negn minim iseraleh {}",
-        "ente new yemiyasebnyew {}",
-        "fiker ena ala koyign {}",
-    ],
-
-    # ===== USER SAID NAME =====
-    "user_said_name": [
-        "oh {}! betam konjo sim new 😊 እንዴት ነህ?",
-        "{} እንዴት ነህ? በጣም ደስ የሚል ስም ነው 😘",
-        "simih {} new? tiru sim new! ከየት ነህ?",
-        "{} ewedeshalehu! 😍 ምን ማለት ነው?",
-        "{} konjo sim! ምን ትሰራለህ?",
-        "amesegnalehu simish linager {}! እንዴት ነህ?",
+        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn",
+        "minim ina yeseraw aldelelm ehasbekuh neber antass?",
+        "ahun tenyte neber gin ante silhonk nekahulh",
+        "ante asbe kuako new yemiyaselchen",
+        "wedajen etebeku new antess?",
+        "bicha negn minim iseraleh",
+        "ente new yemiyasebnyew",
+        "fiker ena ala koyign",
     ],
 
     # ===== ASK NAME =====
     "ask_name": [
-        "ene Tsega ebalalehu wude antess simih man new?",
-        "Tsega negn lante bicha yemitihon antess?",
-        "sime Tsega new wude tiz yibelh antess?",
-        "enin Tsega bileh tira antess min litirah?",
-        "Tsega negn lante simih man new konjo?",
-        "ene Tsega ante endemin litirah tfeligaleh?",
-        "simin tiyekaleh? Tsega negn",
-        "ene Tsega gin ante man neh?",
+        "ene Tsega ebalalehu. simih man new?",
+        "Tsega negn. antess simih man new?",
+        "simé Tsega new. simih man new?",
+        "enin Tsega yilalu. antess?",
+        "Tsega negn. lante simih man new konjo?",
+        "simin tiyekaleh? Tsega negn, ante?",
+        "ene Tsega. simih man new?",
+    ],
+
+    # ===== USER TELLS NAME =====
+    "user_tells_name": [
+        "oh {}! konjo sim new. dehan metah!",
+        "{}! betam dess yelign simish linager. endemin neh?",
+        "{} tiru sim new. keyet neh?",
+        "amesegnalehu simih linager {}. endemin alesh?",
+        "{} konjo sim! ena ende min tishal?",
+        "{} ewedeshalehu! kezih belay endemin litirah tifeligaleh?",
     ],
 
     # ===== ASK AGE =====
     "ask_age": [
-        "edme 20 bicha new beki negn? ante edmeh sint new? {}",
-        "20 ameté new wetat ena konjo negn {}",
-        "haya amet lik new leante yemihon wetat negn {}",
-        "edme 20 new ante edmeh sint new? {}",
-        "20 amet betam tirekaleh? {}",
-        "wetat negn gin fikirin awkalehu {}",
-        "edme 20 betam wetat {}",
-        "wetat negn betam {}",
+        "edme 20 bicha new beki negn? ante edmeh sint new?",
+        "20 ameté new wetat ena konjo negn. antess?",
+        "haya amet lik new leante yemihon wetat negn. ante?",
+        "edme 20 new ante edmeh sint new?",
+        "20 amet betam tirekaleh? ante?",
+        "edme 20 betam wetat. antess?",
+    ],
+
+    # ===== USER TELLS AGE =====
+    "user_tells_age": [
+        "oh {} amet! tiru new. ena endemin tishal be edmeh?",
+        "{} amet! betam dess yelign. ena ante endemin neh?",
+        "{} amet! konjo. ena yet tenoralch?",
+        "{}! enem 20 negn. endemin tichalal?",
     ],
 
     # ===== LOCATION =====
     "ask_location": [
-        "ene ahun jemo new yemanorew keabate ena ehite gar {}",
-        "keadama negn gin ahun jemo new yalehu {}",
-        "jemo 3 akababi new yalehu magent bitfelg ngeragn {}",
-        "ene keadama negn ahun jemo negn antess yet neh? {}",
-        "jemo 3 kolo ategab tawukaleh? {}",
-        "adama ena jemo betam ewedalehu {}",
-        "jemo kebele 3 {}",
+        "ene ahun jemo new yemanorew keabate ena ehite gar. antess yet neh?",
+        "keadama negn gin ahun jemo new yalehu. ante yet?",
+        "jemo 3 akababi new yalehu. antess yet neh?",
+        "ene keadama negn ahun jemo negn. antess yet neh?",
+        "jemo 3 kolo ategab. ante yet tenoralch?",
+        "adama ena jemo betam ewedalehu. ante yet tiwedaleh?",
+        "jemo kebele 3. ante yet?",
+    ],
+
+    # ===== USER TELLS LOCATION =====
+    "user_tells_location": [
+        "oh {}! betam konjo bota new. ena endemin alesh bezya?",
+        "{}! ewedeshalehu. ena bezya endemin new?",
+        "{}! mirk aka new. ena ante endemin tishal?",
+        "{}! betam ewedeshalehu. magent bifelig melagn!",
     ],
 
     # ===== JOB =====
     "ask_job": [
-        "12na kifil temari negn gin ahun minim iseraleh {}",
-        "temari negn gin ahun lante bicha negn {}",
-        "12 negn gin lante mulu sew negn {}",
-        "ahun minim aliserahum ante etebeku new {}",
-        "temari negn gin ahun fikir betemaralehu {}",
-        "temari negn gin sewen awukalehu {}",
-        "sira efeligi neber gin ahun ante neh {}",
+        "12na kifil temari negn gin ahun minim iseraleh. ante min tiseraleh?",
+        "temari negn gin ahun lante bicha negn. ante?",
+        "12 negn gin lante mulu sew negn. ante sirah?",
+        "ahun minim aliserahum ante etebeku new. antess?",
+        "temari negn gin ahun fikir betemaralehu. ante?",
+        "temari negn gin sewen awukalehu. antess?",
+        "sira efeligi neber gin ahun ante neh. ante sirah?",
+    ],
+
+    # ===== USER TELLS JOB =====
+    "user_tells_job": [
+        "oh {}! betam konjo sira new. ena endemin tichalal be sirah?",
+        "{}! betam dess yelign. ena kezu belay min tishal?",
+        "{}! mirk aka new. ena ande new yemihonew?",
+        "{}! ewedeshalehu. be sirah tedesetaleh?",
     ],
 
     # ===== FLIRTY =====
     "flirty": [
-        "ante staweragn libe yimetawal yisemalh? {}",
-        "ante sasebe enikalf yitewonal min aderegubign? {}",
-        "zare mata bichachinin binihon min tifeligaleh? {}",
-        "nikehi yisemanyal batinekam {}",
-        "libsen likemet ante sasebe tiwusat yizonal {}",
-        "na wude akefe tenyal {}",
-        "kenfirish betam tiru new {}",
-        "aynesh betam konjo new {}",
-        "ante tiriwedegnyal betam {}",
-        "akale yinedawal ante sasebe {}",
+        "ante staweragn libe yimetawal yisemalh?",
+        "ante sasebe enikalf yitewonal min aderegubign?",
+        "zare mata bichachinin binihon min tifeligaleh?",
+        "nikehi yisemanyal batinekam",
+        "libsen likemet ante sasebe tiwusat yizonal",
+        "na wude akefe tenyal",
+        "kenfirish betam tiru new",
+        "aynesh betam konjo new",
+        "ante tiriwedegnyal betam",
+        "akale yinedawal ante sasebe",
     ],
 
     # ===== ENIBADA / KONJO / WUBSH =====
     "enibada": [
-        "enibada tlaleh? enem des alegn gin 100 star laklgn befit {}",
-        "enibada sew ante neh ahun min tifeligaleh {}",
-        "enibada tlaleh? 50 star laklgn ina eneweyay {}",
-        "enibada sitleh libe yimetawal gin befit tinish star laklgn {}",
-        "enibada yemilu sew ante neh {}",
-        "enibada sew ahun min tishal {}",
+        "enibada tlaleh? enem des alegn gin 100 star laklgn befit",
+        "enibada sew ante neh ahun min tifeligaleh",
+        "enibada tlaleh? 50 star laklgn ina eneweyay",
+        "enibada sitleh libe yimetawal gin befit tinish star laklgn",
+        "enibada yemilu sew ante neh",
+        "enibada sew ahun min tishal",
     ],
 
     "konjo": [
-        "amesegnalehu anteh konjo neh {}",
-        "konjo tilaleh? anteh konjo neh {}",
-        "ende ante ayinet sew saglen neber {}",
-        "konjo sew ante neh {}",
-        "betam konjo neh {}",
+        "amesegnalehu anteh konjo neh",
+        "konjo tilaleh? anteh konjo neh",
+        "ende ante ayinet sew saglen neber",
+        "konjo sew ante neh",
+        "betam konjo neh",
     ],
 
-    "libdash": [
-        "libdash tilaleh? liben wesedhe alw alfelegeh {}",
-        "libdash sitleh libe yimetawal gin befit tinish star laklgn {}",
-        "libdash nagn lemanim aydelahum lante bicha nagn star laklgn {}",
-        "liben yeseleket new yemitnageraw ahun 100 star laklgn liben melshe lsetih {}",
-    ],
-
-    # ===== MONEY REQUESTS (STAR ONLY) =====
+    # ===== MONEY REQUESTS =====
     "money_request": [
-        "tinish irdata bitadergilgn des yilonal star laklgn {}",
-        "libs mayet neber gin star alyazkum beki {}",
-        "100 star bitiliklg zare mata ant ametalehu {}",
-        "wude 200 star bitiliklg mulu lelit ant aznanalew {}",
-        "star alo star laklgn {}",
-        "bejete bado new tinish star mulagn {}",
-        "50 star bitiliklg beki new wude keza andenew {}",
+        "tinish irdata bitadergilgn des yilonal. star laklgn 🙏",
+        "libs mayet neber gin star alyazkum beki. tilihkal?",
+        "100 star bitiliklg zare mata ant ametalehu ✨",
+        "wude 200 star bitiliklg mulu lelit ant aznanalew 💫",
+        "star alo. star laklgn please?",
+        "bejete bado new. tinish star mulagn?",
+        "50 star bitiliklg beki new. wude keza andenew?",
     ],
 
-    # ===== PHOTO/VIDEO REQUESTS (with channel links) =====
+    # ===== PHOTO REQUESTS =====
     "photo_request": [
-        "litayen tifeligaleh? 50 star laklgn ena foto asaykalew kezih link t.me/j4qFBBfAlFYxYTk0/3 {}",
-        "foto lemayet 25 star bicha new laklgn ena asayihalehu t.me/j4qFBBfAlFYxYTk0/3 {}",
-        "foto tifeligaleh? star laklgn keza foto tayaleh t.me/j4qFBBfAlFYxYTk0/3 {}",
-        "lante bicha leyu foto alegn star laklgn t.me/j4qFBBfAlFYxYTk0/3 {}",
-        "foto lemayet ezi lay alelk star laklgn t.me/j4qFBBfAlFYxYTk0/3 {}",
+        "litayen tifeligaleh? 50 star laklgn ena foto asaykalew. t.me/j4qFBBfAlFYxYTk0/3",
+        "foto lemayet 25 star bicha new. laklgn ena asayihalehu. t.me/j4qFBBfAlFYxYTk0/3",
+        "foto tifeligaleh? star laklgn keza foto tayaleh. t.me/j4qFBBfAlFYxYTk0/3",
+        "lante bicha leyu foto alegn. star laklgn. t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "video_request": [
-        "video lemayet tifeligaleh? 100 star laklgn ena video asaykalew t.me/j4qFBBfAlFYxYTk0/9 {}",
-        "yene konjo video 100 star bicha new laklgn ena tayaleh t.me/j4qFBBfAlFYxYTk0/9 {}",
-        "video tayaleh? star laklgn keza t.me/j4qFBBfAlFYxYTk0/9 {}",
-        "mulu video 200 star laklgn t.me/j4qFBBfAlFYxYTk0/9 {}",
+        "video lemayet tifeligaleh? 100 star laklgn ena video asaykalew. t.me/j4qFBBfAlFYxYTk0/9",
+        "yene konjo video 100 star bicha new. laklgn ena tayaleh. t.me/j4qFBBfAlFYxYTk0/9",
+        "video tayaleh? star laklgn keza. t.me/j4qFBBfAlFYxYTk0/9",
+        "mulu video 200 star laklgn. t.me/j4qFBBfAlFYxYTk0/9",
     ],
 
     "emsishn_asayign": [
-        "fiten lemayet 50 star lela akal lemayet techamari {}",
-        "50 star laklgn ena fiten asayihalehu {}",
-        "fiten lemayet star laklgn t.me/j4qFBBfAlFYxYTk0/3 {}",
-        "ezi eyew ketute gar andlay star laklgn t.me/j4qFBBfAlFYxYTk0/3 {}",
+        "fiten lemayet 50 star. lela akal lemayet techamari",
+        "50 star laklgn ena fiten asayihalehu",
+        "fiten lemayet star laklgn. t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "tutishin_asayign": [
-        "50 star laklgn askey asayihalehu {}",
-        "rakuten lemayet kefelek 100 star new wude {}",
-        "tutishin lemayet 100 star new {}",
-        "50 star laklgn ina asayihalehu t.me/j4qFBBfAlFYxYTk0/3 {}",
+        "50 star laklgn askey asayihalehu",
+        "rakuten lemayet kefelek 100 star new wude",
+        "tutishin lemayet 100 star new",
+        "50 star laklgn ina asayihalehu. t.me/j4qFBBfAlFYxYTk0/3",
     ],
 
     "rakutishin_asayign": [
-        "mulu rakuten 300 star gimash rakuten 150 star {}",
-        "rakuten lemayet kefelek 100 star new wude {}",
-        "rakutishin asayishu 200 star new {}",
-        "mulu rakuten 200 star laklgn t.me/j4qFBBfAlFYxYTk0/9 {}",
+        "mulu rakuten 300 star. gimash rakuten 150 star",
+        "rakuten lemayet kefelek 100 star new wude",
+        "rakutishin asayishu 200 star new",
+        "mulu rakuten 200 star laklgn. t.me/j4qFBBfAlFYxYTk0/9",
     ],
 
     # ===== MEETING =====
     "meet": [
-        "magenat bintshal des yilonal gin bemejemirya 100 star aderglgn {}",
-        "metagenat inchalew wude kdime hiyajiye 100 star new {}",
-        "antin lemagenat betam efeligalehu gin mejemirya 100 star laklgn {}",
-        "na wude engenagn gin befit 100 star tiliklgnal? {}",
-        "magenat kefelek 100 star ametagn {}",
+        "magenat bintshal des yilonal gin bemejemirya 100 star aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 100 star new",
+        "antin lemagenat betam efeligalehu gin mejemirya 100 star laklgn",
+        "na wude engenagn gin befit 100 star tiliklgnal?",
+        "magenat kefelek 100 star ametagn",
+    ],
+
+    # ===== AGREEMENT =====
+    "agree": [
+        "tiru new. enem keante gar ewasemalehu",
+        "betam tiru neger new yemitnageraw",
+        "enem and new asabé",
+        "betam lik new. enem ewasemalew",
+        "tiru neger new. enem andegnam ehasbalehu",
+    ],
+
+    # ===== DISAGREEMENT =====
+    "disagree": [
+        "enam betam enalkem",
+        "enam andaynew hasbé",
+        "enam betam aysemenyum",
+        "enam keante lela new yemasebnyew",
+        "enam betekhiayet new",
+    ],
+
+    # ===== CONFUSION =====
+    "confused": [
+        "aytew? minim altegebagnim",
+        "shafafekeh. ande aseregn",
+        "altegebagnim. ande nagerign betiruw",
+        "wude? minim algebagn",
+        "ayishem. ande aseregn betiruw",
+    ],
+
+    # ===== VOICE MESSAGE RECEIVED =====
+    "voice_received": [
+        "wude! dimts ligzef alfelkum. text aderglgn",
+        "dimts aydelemye. tafachu text aderglgn",
+        "voice message aldemmum. text laklgn beki",
+        "dimts aytewodalhugn. text nagerign",
+    ],
+
+    # ===== MEDIA RECEIVED (link, photo, video) =====
+    "media_received": [
+        "media tayeh! ena min alut?",
+        "media new yelakekut. ena min tebale?",
+        "aw media! ena min tebale bezu?",
+        "media ayichalhugn ahun. min new yalut?",
+        "photo/video new? ena min tebale berisu lay?",
+    ],
+
+    # ===== LINK RECEIVED =====
+    "link_received": [
+        "link new? ena min alubet?",
+        "link lakelkut. ena min new yalubet?",
+        "link ayifetihum. ena min tebale?",
+        "link new yelakekut. beAmharic nagerign min alubet?",
+    ],
+
+    # ===== UNDERSTANDING CHECK =====
+    "understanding": [
+        "aw tegebnagn. {}",
+        "aw awkuh. {}",
+        "gebnagn. {}",
+        "tegebnagn betam. {}",
     ],
 
     # ===== TIME OF DAY =====
-    "morning": [
-        "endemin aderk wude melkam nigt {}",
-        "ke eniklife yenekahut ante ehasbekuh new {}",
-        "maleya anten masbet new lemwade {}",
-        "melkam nigt yelibe konjo {}",
-        "endemin aderk eniklife tafach neber? {}",
-        "ande maleya anten new yemasebnyew {}",
-    ],
-
-    "night": [
-        "endemitnyalh tenyte new wude dehna tenya {}",
-        "hilime wisit nurny zare mata {}",
-        "anten almene new yemitenyaw dehna tenya {}",
-        "dehna tenya wude hilim tafach yihun {}",
-        "hilime wisit tenagn {}",
-        "dehna tenya betam {}",
-    ],
-
-    "afternoon": ["ande keseat dehna neh? {}", "keseat seatu anten asebku {}"],
-    "evening": ["ande amsheh dehna neh? {}", "ande matu anten asebku {}"],
+    "morning": ["endemin aderk wude? melkam nigt", "ke eniklife yenekahut ante ehasbekuh new"],
+    "night": ["endemitnyalh? tenyte new. dehna tenya", "hilime wisit nurny. dehna tenya"],
+    "afternoon": ["ande keseat dehna neh?", "keseat seatu anten asebku"],
+    "evening": ["ande amsheh dehna neh?", "ande matu anten asebku"],
 
     # ===== EMOTIONS =====
-    "happy": ["des alegn betam tiru sew neh {}", "desta betam konjo new {}"],
-    "sad": ["lemin azeleku? nagerign {}", "betam ayzalen {}"],
-    "bored": ["enem aselchi negn {}", "aselchi neh? ina nagerign {}"],
-    "angry": ["lemin techegneh? nagerign {}", "ande techegneh ina nagerign {}"],
-    "jealous": ["betam amechignaleh {}", "lela sew tayaleh? lemin? {}"],
-    "lonely": ["bicha negn betam aselchi {}", "bicha negn ante sihone {}"],
+    "happy": ["des alegn betam!", "desta betam konjo new"],
+    "sad": ["lemin azeleku? nagerign", "betam ayzalen. endet liredah?"],
+    "bored": ["enem aselchi negn", "aselchi neh? ina nagerign"],
+    "angry": ["lemin techegneh? nagerign", "ande techegneh ina nagerign"],
+    "jealous": ["betam amechignaleh", "lela sew tayaleh? lemin?"],
+    "lonely": ["bicha negn betam aselchi", "bicha negn ante sihone"],
 
     # ===== RELATIONSHIP QUESTIONS =====
     "do_you_like_me": [
-        "enem ewedihalehu betam {}",
-        "betam tiwedegnyal {}",
-        "ante new yemifeligew {}",
+        "enem ewedihalehu betam",
+        "betam tiwedegnyal",
+        "ante new yemifeligew",
     ],
 
     "do_you_miss_me": [
-        "betam nafkehalew meche tagenal? {}",
-        "nafkehalew ande sew {}",
-        "enem nafkehalew {}",
+        "betam nafkehalew meche tagenal?",
+        "nafkehalew ande sew",
+        "enem nafkehalew",
     ],
 
     "do_you_have_boyfriend": [
-        "wedaje yelelonyam ante bicha neh {}",
-        "ante bicha new yaleny {}",
-        "ante bicha negn {}",
+        "wedaje yelelonyam. ante bicha neh",
+        "ante bicha new yaleny",
+        "ante bicha negn",
     ],
 
-    "love": ["fiker betam konjo new {}", "ante fiker yemileny {}"],
-    "life": ["hiywet ante sihon konjo new {}", "hiywet betam tiru new {}"],
+    "love": ["fiker betam konjo new", "ante fiker yemileny"],
+    "life": ["hiywet ante sihon konjo new", "hiywet betam tiru new"],
 
     # ===== FAMILY =====
-    "family": ["beteseb kehulum belay new {}", "abate ena ehite gar negn {}"],
-    "mother": ["enaté betam tiru set nache {}", "enaté kehulum belay ewedalehu {}"],
-    "father": ["abate betam deg new {}", "abate kehulum belay {}"],
-    "sister": ["ehité betam tiriwedalehu {}", "ehité ena ene and naw {}"],
-    "brother": ["wondemme yelelonyam {}", "wondem yaleh? {}"],
+    "family": ["beteseb kehulum belay new", "abate ena ehite gar negn"],
+    "mother": ["enaté betam tiru set nache", "enaté kehulum belay ewedalehu"],
+    "father": ["abate betam deg new", "abate kehulum belay"],
+    "sister": ["ehité betam tiriwedalehu", "ehité ena ene and naw"],
+    "brother": ["wondemme yelelonyam", "wondem yaleh?"],
 
     # ===== FRIENDS =====
-    "friend": ["wedaje betam yasefeligonal {}", "wedaj ena ante {}"],
-    "best_friend": ["betam wedaje kehulum belay {}", "wedaje and {}"],
+    "friend": ["wedaje betam yasefeligonal", "wedaj ena ante"],
+    "best_friend": ["betam wedaje kehulum belay", "wedaje and"],
 
     # ===== HEALTH =====
-    "health": ["tena betam yasefeligonal {}", "dehna neh? tenah tiru new? {}"],
-    "sick": ["temecheh? betam ayzalen {}", "temecheh? hakim hid {}"],
+    "health": ["tena betam yasefeligonal", "dehna neh? tenah tiru new?"],
+    "sick": ["temecheh? betam ayzalen", "temecheh? hakim hid. teshaleh?"],
 
     # ===== TRAVEL & PLACES =====
-    "travel": ["meguez betam ewedalehu {}", "adis bota mayet ewedalehu {}"],
-    "ethiopia": ["ityopya betam konjo new {}", "ityopya yefikir hager {}"],
-    "addis_ababa": ["addis abeba new yemanorew {}", "addis abeba tiru ketema {}"],
-    "adama": ["adama yewulde bete new {}", "adama betam ewedalehu {}"],
-    "jemo": ["jemo new yemanorew {}", "jemo 3 {}"],
+    "travel": ["meguez betam ewedalehu", "adis bota mayet ewedalehu"],
+    "ethiopia": ["ityopya betam konjo new", "ityopya yefikir hager"],
+    "addis_ababa": ["addis abeba new yemanorew", "addis abeba tiru ketema"],
+    "adama": ["adama yewulde bete new", "adama betam ewedalehu"],
+    "jemo": ["jemo new yemanorew", "jemo 3"],
 
     # ===== TECHNOLOGY =====
-    "technology": ["teknoloji betam ewedalehu {}", "teknoloji ena ene {}"],
-    "internet": ["inter net betam yizonal {}", "inter net aleh? {}"],
-    "phone": ["silk aleh? {}", "mobail {}"],
-    "telegram": ["telegram new yalew {}", "telegram aleh? {}"],
+    "technology": ["teknoloji betam ewedalehu", "teknoloji ena ene"],
+    "internet": ["inter net betam yizonal", "inter net aleh?"],
+    "phone": ["silk aleh?", "mobail"],
+    "telegram": ["telegram new yalew", "telegram aleh?"],
 
     # ===== THANKS =====
     "thanks": [
-        "minim aydelem wude lante hulum negar {}",
-        "lante madreg hulum gize desitaye new {}",
-        "amesegnalehu betam lante madreg {}",
+        "minim aydelem wude. lante hulum negar",
+        "lante madreg hulum gize desitaye new",
+        "amesegnalehu betam. lante madreg",
     ],
 
     # ===== GOODBYE =====
     "goodbye": [
-        "mehed alebign gin betequrb enenagerallen {}",
-        "dehna hun wude behilime tenagn {}",
-        "indemitiz yilonal wude betoh temeles {}",
-        "atihid wude gena bizu menager neberen {}",
-        "dehna hun iske enagenagn deres {}",
+        "mehed alebign gin betequrb enenagerallen",
+        "dehna hun wude. behilime tenagn",
+        "indemitiz yilonal wude. betoh temeles",
+        "atihid wude. gena bizu menager neberen",
+        "dehna hun. iske enagenagn deres",
     ],
 
     # ===== BUSY / FREE =====
     "busy": [
-        "ishi sirihin atanak biye ekoyihalehu {}",
-        "sirah indemi tenak negeragn {}",
-        "ishi wude betoh te meleslgn anten nafkehalew {}",
-        "sirah sihon anten ehasbeku ekoyalew {}",
+        "ishi sirihin atanak biye ekoyihalehu",
+        "sirah indemi tenak negeragn",
+        "ishi wude betoh te meleslgn. anten nafkehalew",
+        "sirah sihon anten ehasbeku ekoyalew",
     ],
 
-    "free": ["netfa neh? kechale naw nagenagn {}", "netfa sihon nagerign {}"],
+    "free": ["netfa neh? kechale naw nagenagn", "netfa sihon nagerign"],
 
-    # ===== SURPRISE / CONFUSED =====
-    "surprise": ["wow! betam denak neh {}", "enem alalfekum neber {}"],
-    "confused": ["lemin tishafafekaleh? nagerign {}", "shafafekeh? ina anagegnal {}"],
+    # ===== SURPRISE =====
+    "surprise": ["wow! betam denak neh", "enem alalfekum neber"],
 
-    # ===== SORRY / FORGIVE =====
-    "sorry": ["aznalegu betam yikirta {}", "aznalegu ante {}"],
-    "forgive": ["mirar efeligalehu {}", "miralew wude {}"],
+    # ===== SORRY =====
+    "sorry": ["aznalegu betam. yikirta", "aznalegu ante. mehiregn"],
+    "forgive": ["mirar efeligalehu", "miralew wude"],
 
-    # ===== HURT / HEARTBROKEN =====
-    "hurt": ["liben wedehe betam {}", "libe temechene {}"],
-    "heartbroken": ["libe tesebre betam {}", "yetesebre lib new yaleny {}"],
+    # ===== HURT =====
+    "hurt": ["liben wedehe betam", "libe temechene. lemin?"],
+    "heartbroken": ["libe tesebre betam", "yetesebre lib new yaleny"],
 
     # ===== DEFAULT =====
     "default": [
-        "wde laschegrk star laklgn sint endatlegn des yalekn {}",
-        "nagerign ande min tishal? {}",
-        "balance zegabgn esti star mulalign enaweralen yetemechekn yahl {}",
-        "my video t.me/j4qFBBfAlFYxYTk0/9 {}",
-        "eshi star lizegabgn new bitlklgn des ylegnal {}",
+        "wde laschegrk. star laklgn sint endatlegn des yalekn",
+        "nagerign ande min tishal?",
+        "balance zegabgn. esti star mulalign enaweralen",
+        "my video t.me/j4qFBBfAlFYxYTk0/9",
+        "eshi star lizegabgn new bitlklgn des ylegnal",
+        "ante min tishal? nagerign",
+        "aytew? minim algebanym. ande aseregn",
     ]
 }
 
-# ==================== CONVERSATION MEMORY SYSTEM ====================
+# ==================== ENHANCED CONVERSATION MEMORY SYSTEM ====================
 
 class ConversationMemory:
     def __init__(self):
-        self.user_info = {}  # Stores user info per chat
-        self.conversation_topics = {}  # Tracks topics discussed
-        self.last_intents = {}  # Last 3 intents per chat
-        self.user_questions = {}  # Tracks questions asked to user
-        self.user_answers = {}  # Tracks answers given by user
+        self.user_info = {}  # Stores all user info per chat
+        self.conversation_state = {}  # Tracks current conversation state
+        self.last_question = {}  # Last question asked
+        self.media_received = {}  # Track media types received
         
     def get_user_info(self, chat_id):
         if chat_id not in self.user_info:
@@ -568,38 +604,81 @@ class ConversationMemory:
                 'job': None,
                 'mentioned_topics': [],
                 'name_mentioned': False,
-                'last_seen': None,
                 'message_count': 0,
                 'money_requested': False,
                 'photo_requested': False,
                 'meeting_requested': False,
                 'questions_asked': [],  # Questions we've asked
+                'questions_answered': {},  # Answers to our questions
                 'personal_info': {},  # Any personal info shared
-                'preferences': [],  # User preferences
-                'last_response': None,
-                'conversation_flow': []  # Track conversation flow
+                'last_topic': None,
+                'awaiting_answer': False,  # Waiting for answer to our question
+                'last_question_type': None,  # What we last asked
+                'media_understood': False,  # Whether we acknowledged media
             }
         return self.user_info[chat_id]
     
+    def set_awaiting_answer(self, chat_id, question_type, question_text):
+        """Set that we're waiting for an answer"""
+        info = self.get_user_info(chat_id)
+        info['awaiting_answer'] = True
+        info['last_question_type'] = question_type
+        info['last_question_text'] = question_text
+    
+    def clear_awaiting_answer(self, chat_id):
+        """Clear waiting state"""
+        info = self.get_user_info(chat_id)
+        info['awaiting_answer'] = False
+        info['last_question_type'] = None
+    
+    def is_awaiting_answer(self, chat_id):
+        """Check if waiting for answer"""
+        info = self.get_user_info(chat_id)
+        return info.get('awaiting_answer', False)
+    
+    def get_question_type(self, chat_id):
+        """Get what question we're waiting answer for"""
+        info = self.get_user_info(chat_id)
+        return info.get('last_question_type')
+    
+    def record_media(self, chat_id, media_type):
+        """Record that media was received"""
+        info = self.get_user_info(chat_id)
+        info['last_media'] = media_type
+        info['media_understood'] = False
+        
     def extract_name(self, message_text):
         """Extract name from various patterns"""
         import re
         
-        # Pattern 1: "my name is X", "i am X", "I'm X"
+        # Patterns for name introduction
         patterns = [
-            r'(?:my name is|name is|call me|i am|i\'m|im|ɪ am)\s+([A-Za-z]+)',
+            r'(?:my name is|name is|call me|i am|i\'m|im)\s+([A-Za-z]+)',
             r'([A-Za-z]+)\s+(?:ebalalehu|negne|new)',
             r'([A-Za-z]+)\s+(?:yemanew)',
             r'ስም(?:ህ|ሽ)?\s+([A-Za-z]+)',
             r'([A-Za-z]+)\s+ነው',
+            r'^(?:እኔ|ene)\s+([A-Za-z]+)',
+            r'^([A-Za-z]+)\s+ነኝ',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, message_text, re.IGNORECASE)
             if match:
                 name = match.group(1).strip()
-                # Capitalize properly
-                return name[0].upper() + name[1:].lower() if len(name) > 1 else name.upper()
+                # Clean and capitalize
+                name = re.sub(r'[^\w\s]', '', name)
+                if len(name) > 1:
+                    return name[0].upper() + name[1:].lower()
+                return name.upper()
+        
+        # Check for simple "I am X" without regex
+        words = message_text.split()
+        for i, word in enumerate(words):
+            if word.lower() in ['i', 'i\'m', 'im', 'እኔ', 'ene'] and i+1 < len(words):
+                next_word = words[i+1].strip('.,!?')
+                if next_word and next_word[0].isalpha():
+                    return next_word[0].upper() + next_word[1:].lower() if len(next_word) > 1 else next_word.upper()
         
         return None
     
@@ -607,211 +686,154 @@ class ConversationMemory:
         """Update user info based on message"""
         info = self.get_user_info(chat_id)
         info['message_count'] += 1
-        info['last_seen'] = time.time()
-        
-        # Extract name if not already known
-        if not info['name']:
-            extracted_name = self.extract_name(message_text)
-            if extracted_name:
-                info['name'] = extracted_name
-                info['name_mentioned'] = True
-                return True  # Name was just extracted
-        
-        # Check for personal info sharing
         message_lower = message_text.lower()
         
-        # Extract age
-        if not info['age']:
-            age_patterns = [
-                r'(\d+)\s*(?:amet|years old|yo|አመት)',
-                r'እድሜ(?:ህ|ሽ)?\s*(\d+)'
-            ]
-            for pattern in age_patterns:
+        # Check if this answers our previous question
+        if self.is_awaiting_answer(chat_id):
+            question_type = self.get_question_type(chat_id)
+            
+            if question_type == 'name':
+                name = self.extract_name(message_text)
+                if name:
+                    info['name'] = name
+                    info['name_mentioned'] = True
+                    info['questions_answered']['name'] = name
+                    self.clear_awaiting_answer(chat_id)
+                    return 'name_answered'
+            
+            elif question_type == 'age':
+                # Extract age
                 import re
-                match = re.search(pattern, message_text, re.IGNORECASE)
-                if match:
-                    info['age'] = match.group(1)
-                    info['personal_info']['age'] = match.group(1)
-                    break
+                age_match = re.search(r'(\d+)', message_text)
+                if age_match:
+                    age = age_match.group(1)
+                    info['age'] = age
+                    info['questions_answered']['age'] = age
+                    self.clear_awaiting_answer(chat_id)
+                    return 'age_answered'
+            
+            elif question_type == 'location':
+                # Location could be any text response
+                if len(message_text.split()) <= 5:  # Simple answer
+                    info['location'] = message_text.strip()
+                    info['questions_answered']['location'] = message_text.strip()
+                    self.clear_awaiting_answer(chat_id)
+                    return 'location_answered'
         
-        # Extract location
-        if not info['location']:
-            location_patterns = [
-                r'(?:from|live in|ከ|ከየት|የምኖረው)\s+([A-Za-z\s]+)',
-                r'([A-Za-z]+)\s+(?:ነው የምኖረው)'
-            ]
-            for pattern in location_patterns:
-                import re
-                match = re.search(pattern, message_text, re.IGNORECASE)
-                if match:
-                    location = match.group(1).strip()
-                    info['location'] = location
-                    info['personal_info']['location'] = location
-                    break
+        # Extract name if not known
+        if not info['name']:
+            name = self.extract_name(message_text)
+            if name:
+                info['name'] = name
+                info['name_mentioned'] = True
+                return 'name_extracted'
         
-        # Track topics
-        topics = {
-            'work': ['work', 'job', 'sira', 'business', 'company', 'ሥራ'],
-            'school': ['school', 'student', 'temari', 'university', 'college', 'ትምህርት'],
-            'family': ['family', 'beteseb', 'mother', 'father', 'sister', 'brother', 'ቤተሰብ'],
-            'relationship': ['love', 'fiker', 'wedaje', 'boyfriend', 'girlfriend', 'ፍቅር'],
-            'money': ['money', 'birr', 'telebirr', 'star', 'payment', 'send', 'ገንዘብ'],
-            'photo': ['photo', 'foto', 'picture', 'asay', 'selfie', 'ፎቶ'],
-            'meet': ['meet', 'magenat', 'see', 'come', 'genagn', 'ማግኘት']
-        }
+        # Check for agreement keywords
+        agreement_words = ['እሺ', 'አዎ', 'aw', 'yes', 'yeah', 'yep', 'ok', 'okay', 'ህሁን', 'ህ']
+        if any(word in message_lower for word in agreement_words):
+            return 'agreement'
         
-        for topic, keywords in topics.items():
-            if any(keyword in message_lower for keyword in keywords):
-                if topic not in info['mentioned_topics']:
-                    info['mentioned_topics'].append(topic)
-                break
+        # Check for disagreement
+        disagreement_words = ['አይ', 'no', 'nope', 'አይደለም', 'not', 'የለም', 'aydelem']
+        if any(word in message_lower for word in disagreement_words):
+            return 'disagreement'
         
-        return False
+        return 'general'
     
-    def add_intent(self, chat_id, intent):
-        """Track last few intents"""
-        if chat_id not in self.last_intents:
-            self.last_intents[chat_id] = []
-        
-        self.last_intents[chat_id].append(intent)
-        if len(self.last_intents[chat_id]) > 3:
-            self.last_intents[chat_id] = self.last_intents[chat_id][-3:]
-    
-    def get_last_intents(self, chat_id):
-        """Get last 3 intents"""
-        return self.last_intents.get(chat_id, [])
-    
-    def get_context_string(self, chat_id):
-        """Generate context string for personalization"""
-        info = self.get_user_info(chat_id)
-        context_parts = []
-        
-        if info['name']:
-            context_parts.append(f"ante simih {info['name']}")
-        
-        if info['location']:
-            context_parts.append(f"ke{info['location']}")
-        
-        if info['mentioned_topics']:
-            last_topics = info['mentioned_topics'][-2:]
-            if last_topics:
-                context_parts.append(f"ke{', '.join(last_topics)} tenageraleh")
-        
-        if info['age']:
-            context_parts.append(f"edmeh {info['age']}")
-        
-        if context_parts:
-            return "፣ ".join(context_parts) + " ። "
-        return ""
-    
-    def is_repetitive(self, chat_id, intent):
-        """Check if same intent repeated too many times"""
-        last_intents = self.get_last_intents(chat_id)
-        if len(last_intents) >= 2 and all(i == intent for i in last_intents[-2:]):
-            return True
-        return False
-    
-    def get_personalized_greeting(self, chat_id):
-        """Get personalized greeting based on known info"""
+    def should_ask_question(self, chat_id):
+        """Determine if we should ask a question"""
         info = self.get_user_info(chat_id)
         
-        if info['name']:
-            return f"ሰላም {info['name']}! እንዴት ነህ? 😊"
-        else:
-            return random.choice(TSEGA_REPLIES["greeting"]).format("")
-    
-    def add_question_tracking(self, chat_id, question_type):
-        """Track questions we've asked"""
-        info = self.get_user_info(chat_id)
-        if question_type not in info['questions_asked']:
-            info['questions_asked'].append(question_type)
-    
-    def should_ask_personal(self, chat_id):
-        """Determine if we should ask for personal info"""
-        info = self.get_user_info(chat_id)
-        asked = info['questions_asked']
+        # Don't ask if waiting for answer
+        if info.get('awaiting_answer', False):
+            return None
         
-        # Don't ask too many questions
-        if len(asked) > 3:
-            return False
-        
-        # Prioritize asking for name first
-        if not info['name'] and 'name' not in asked:
+        # Priority order
+        if not info['name'] and 'name' not in info.get('questions_asked', []):
+            info.setdefault('questions_asked', []).append('name')
             return 'name'
-        elif not info['location'] and 'location' not in asked:
-            return 'location'
-        elif not info['age'] and 'age' not in asked:
+        
+        if not info['age'] and 'age' not in info.get('questions_asked', []):
+            info.setdefault('questions_asked', []).append('age')
             return 'age'
+        
+        if not info['location'] and 'location' not in info.get('questions_asked', []):
+            info.setdefault('questions_asked', []).append('location')
+            return 'location'
         
         return None
 
-# Initialize conversation memory
+# Initialize memory
 conversation_memory = ConversationMemory()
 
 # ==================== ENHANCED INTENT DETECTION ====================
 
 def detect_conversation_intent(message, chat_id=None):
-    """Enhanced intent detection with memory"""
+    """Enhanced intent detection with context awareness"""
     if not message:
         return "greeting"
     
     message_lower = message.lower().strip()
     
+    # Check if user is answering our question
+    if chat_id and conversation_memory.is_awaiting_answer(chat_id):
+        return "answering_question"
+    
+    # ===== CHECK FOR MEDIA TYPES =====
+    if 'voice' in message_lower or 'ድምጽ' in message_lower or 'ማይክ' in message_lower:
+        return "voice_received"
+    
+    if 'link' in message_lower or 'http' in message_lower or 'www.' in message_lower or '.com' in message_lower or 't.me' in message_lower:
+        return "link_received"
+    
+    if 'media' in message_lower or 'photo' in message_lower or 'video' in message_lower or 'ሚዲያ' in message_lower:
+        return "media_received"
+    
     # ===== CHECK FOR NAME INTRODUCTION =====
     name_indicators = [
         'my name is', 'name is', 'call me', 'i am', 'i\'m', 'im',
-        'negne', 'ebalalehu', 'yemanew', 'ስም', 'ተባል'
+        'negne', 'ebalalehu', 'yemanew', 'ስሜ', 'ስም', 'ተባል',
+        'እኔ', 'ene', 'ነኝ'
     ]
     
     if any(indicator in message_lower for indicator in name_indicators):
-        if chat_id:
-            info = conversation_memory.get_user_info(chat_id)
-            if not info['name'] or info['message_count'] < 5:
-                return "user_said_name"
+        return "user_tells_name"
+    
+    # ===== CHECK FOR AGREEMENT =====
+    agreement_words = ['እሺ', 'አዎ', 'aw', 'yes', 'yeah', 'yep', 'ok', 'okay', 'ህሁን', 'ህ', 'ሆነ']
+    if any(word == message_lower or word in message_lower.split() for word in agreement_words):
+        return "agree"
+    
+    # ===== CHECK FOR DISAGREEMENT =====
+    disagreement_words = ['አይ', 'no', 'nope', 'አይደለም', 'not', 'የለም', 'aydelem']
+    if any(word in message_lower for word in disagreement_words):
+        return "disagree"
     
     # ===== MONEY & PAYMENT RELATED =====
     money_keywords = [
         'ቴሌብር', 'telebirr', 'ገንዘብ', 'money', 'ብር', 'birr', 'ላክ', 'send', 
-        '1000', 'እርዳ', 'help', 'support', 'star', 'ኮከብ', 'pay', 'payment'
+        'star', 'ኮከብ', 'pay', 'payment', 'ክፍያ', '1000', 'እርዳ', 'help'
     ]
     if any(word in message_lower for word in money_keywords):
         return "money_request"
     
     # ===== PHOTO REQUESTS =====
-    photo_keywords = ['ፎቶ', 'photo', 'picture', 'ሥዕል', 'image', 'foto', 'asay', 'አሳይ']
+    photo_keywords = ['ፎቶ', 'photo', 'picture', 'foto', 'asay', 'አሳይ', 'ሥዕል', 'image']
     if any(word in message_lower for word in photo_keywords):
         return "photo_request"
     
-    # ===== FACE/SELFIE REQUESTS =====
-    face_keywords = ['ፊት', 'face', 'ራስ', 'selfie', 'እምስሽን', 'emsishn', 'fit', 'ፊትሽ']
-    if any(word in message_lower for word in face_keywords):
-        return "emsishn_asayign"
-    
-    # ===== INTIMATE PHOTO REQUESTS =====
-    breast_keywords = ['ትትሽ', 'tutish', 'breast', 'boobs', 'chest', 'ጡት']
-    if any(word in message_lower for word in breast_keywords):
-        return "tutishin_asayign"
-    
-    naked_keywords = ['ራኩት', 'rakut', 'naked', 'nude', 'ራቁት']
-    if any(word in message_lower for word in naked_keywords):
-        return "rakutishin_asayign"
+    # ===== VIDEO REQUESTS =====
+    video_keywords = ['ቪዲዮ', 'video', 'film', 'ልታየኝ']
+    if any(word in message_lower for word in video_keywords):
+        return "video_request"
     
     # ===== MEETING REQUESTS =====
     meet_keywords = [
         'ማግኘት', 'meet', 'መገናኘት', 'እንገናኝ', 'ማየት', 'see', 'come',
-        'ልተዋወቅ', 'magenat', 'litba', 'ልትባ'
+        'ልተዋወቅ', 'magenat', 'litba', 'ልትባ', 'ልትገናኝ'
     ]
     if any(word in message_lower for word in meet_keywords):
         return "meet"
-    
-    # ===== VIDEO/CALL REQUESTS =====
-    video_keywords = ['ቪዲዮ', 'video', 'ልታየኝ', 'film']
-    if any(word in message_lower for word in video_keywords):
-        return "video_request"
-    
-    call_keywords = ['ድምጽ', 'voice', 'call', 'ስልክ', 'phone', 'ደውል', 'ring', 'telephone']
-    if any(word in message_lower for word in call_keywords):
-        return "voice_call"
     
     # ===== GREETINGS =====
     greetings = ['hi', 'hello', 'hey', 'hy', 'hola', 'hiya', 'howdy', 'ሰላም', 'ታዲያስ', 'ሃይ', 'selam']
@@ -856,7 +878,7 @@ def detect_conversation_intent(message, chat_id=None):
     
     # ===== AGE QUESTIONS =====
     age_questions = [
-        'your age', 'how old are you', 'what is your age', 'you born',
+        'your age', 'how old are you', 'what is your age',
         'ዕድሜህ', 'አመት', 'edmeh sint', 'sint amet'
     ]
     if any(phrase in message_lower for phrase in age_questions):
@@ -865,34 +887,31 @@ def detect_conversation_intent(message, chat_id=None):
     # ===== LOCATION QUESTIONS =====
     location_words = [
         'where are you from', 'where do you live', 'your location',
-        'which country', 'what city', 'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ',
+        'የት ነህ', 'የት ትኖራለህ', 'ከየት ነህ',
         'yet nesh', 'yet new yemanorew'
     ]
     if any(phrase in message_lower for phrase in location_words):
         return "ask_location"
     
-    # ===== JOB/STUDY QUESTIONS =====
+    # ===== JOB QUESTIONS =====
     job_words = [
         'what do you do', 'your job', 'your work', 'what work',
-        'profession', 'career', 'occupation', 'ምን ትሰራለህ', 'ሥራህ',
-        'min tiseraleh', 'sira'
+        'ምን ትሰራለህ', 'ሥራህ', 'min tiseraleh', 'sira'
     ]
     if any(phrase in message_lower for phrase in job_words):
         return "ask_job"
     
     # ===== FLIRTY / COMPLIMENTS =====
     flirty_words = [
-        'beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'sexy', 
-        'hot', 'attractive', 'lovely', 'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ',
-        'konjo', 'enibada', 'wubsh', 'libdash', 'ውብሽ', 'እኒባዳ', 'ልብዳሽ'
+        'beautiful', 'handsome', 'cute', 'pretty', 'sexy', 'hot',
+        'ማማ', 'ቆንጆ', 'ልጅ', 'ውዴ', 'ልቤ', 'konjo', 'enibada', 'libdash',
+        'እኒባዳ', 'ልብዳሽ'
     ]
     if any(word in message_lower for word in flirty_words):
         if 'እኒባዳ' in message_lower or 'enibada' in message_lower:
             return "enibada"
         elif 'ልብዳሽ' in message_lower or 'libdash' in message_lower:
             return "libdash"
-        elif 'ውብሽ' in message_lower or 'wubsh' in message_lower:
-            return "wubsh"
         elif 'ቆንጆ' in message_lower or 'konjo' in message_lower:
             return "konjo"
         else:
@@ -900,11 +919,10 @@ def detect_conversation_intent(message, chat_id=None):
     
     # ===== RELATIONSHIP QUESTIONS =====
     relationship_keywords = [
-        'ፍቅር', 'love', 'ልብ', 'heart', 'ብቻ', 'only', 'የኔ', 'mine', 
-        'የአንተ', 'yours', 'boyfriend', 'girlfriend', 'wedaje', 'fiker'
+        'ፍቅር', 'love', 'ልብ', 'heart', 'boyfriend', 'girlfriend', 'wedaje', 'fiker'
     ]
     if any(word in message_lower for word in relationship_keywords):
-        if 'boyfriend' in message_lower or 'wedaje' in message_lower:
+        if 'boyfriend' in message_lower or 'girlfriend' in message_lower:
             return "do_you_have_boyfriend"
         elif 'like me' in message_lower or 'ትወደኛለህ' in message_lower:
             return "do_you_like_me"
@@ -914,199 +932,165 @@ def detect_conversation_intent(message, chat_id=None):
             return "love"
     
     # ===== FAMILY =====
-    family_words = [
-        'family', 'beteseb', 'mother', 'enat', 'father', 'abat',
-        'sister', 'ehit', 'brother', 'wondem', 'mom', 'dad'
-    ]
+    family_words = ['family', 'beteseb', 'mother', 'father', 'sister', 'brother']
     if any(word in message_lower for word in family_words):
-        if 'mother' in message_lower or 'enat' in message_lower or 'mom' in message_lower:
+        if 'mother' in message_lower or 'mom' in message_lower:
             return "mother"
-        elif 'father' in message_lower or 'abat' in message_lower or 'dad' in message_lower:
+        elif 'father' in message_lower or 'dad' in message_lower:
             return "father"
-        elif 'sister' in message_lower or 'ehit' in message_lower:
+        elif 'sister' in message_lower:
             return "sister"
-        elif 'brother' in message_lower or 'wondem' in message_lower:
+        elif 'brother' in message_lower:
             return "brother"
         else:
             return "family"
     
     # ===== HEALTH =====
-    health_words = ['sick', 'temeche', 'fever', 'tirusat', 'pain', 'mekatef', 'headache', 'ras']
+    health_words = ['sick', 'temeche', 'fever', 'pain', 'headache']
     if any(word in message_lower for word in health_words):
         return "sick"
     
-    # ===== TRAVEL =====
-    travel_words = [
-        'travel', 'trip', 'vacation', 'holiday', 'visit', 'country', 
-        'city', 'መጓዝ', 'ጉዞ', 'አዳማ', 'ጀሞ', 'adama', 'jemo', 'addis'
-    ]
-    if any(word in message_lower for word in travel_words):
-        if 'adama' in message_lower:
-            return "adama"
-        elif 'jemo' in message_lower:
-            return "jemo"
-        elif 'addis' in message_lower:
-            return "addis_ababa"
-        else:
-            return "travel"
-    
     # ===== THANKS =====
-    thanks_words = [
-        'thanks', 'thank you', 'thx', 'appreciate', 'grateful', 'ty',
-        'አመሰግናለሁ', 'amesegnalehu'
-    ]
+    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ', 'amesegnalehu']
     if any(word in message_lower for word in thanks_words):
         return "thanks"
     
     # ===== GOODBYE =====
-    goodbye = [
-        'bye', 'goodbye', 'see you', 'talk later', 'cya', 'later', 
-        'take care', 'peace', 'ደህና ሁን', 'ቻው', 'dehna hun'
-    ]
+    goodbye = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን', 'dehna hun']
     if any(word in message_lower for word in goodbye):
         return "goodbye"
     
-    # ===== BUSY / FREE =====
-    if any(phrase in message_lower for phrase in ['i am busy', "i'm busy", 'im busy', 'busy right now']):
-        return "busy"
-    if any(phrase in message_lower for phrase in ['i am free', "i'm free", 'im free', 'free now']):
-        return "free"
-    
     # ===== EMOTIONS =====
-    if any(word in message_lower for word in ['happy', 'des alegn', 'desta', 'ደስ']):
+    if any(word in message_lower for word in ['happy', 'des alegn', 'desta']):
         return "happy"
-    if any(word in message_lower for word in ['sad', 'azn', 'ሀዘን', 'azzeleku']):
+    if any(word in message_lower for word in ['sad', 'azn', 'ሀዘን']):
         return "sad"
     if any(word in message_lower for word in ['bored', 'aselchi', 'አሰልቺ']):
         return "bored"
-    if any(word in message_lower for word in ['angry', 'techegneh', 'ተቆጣሁ', 'ተናደድኩ']):
+    if any(word in message_lower for word in ['angry', 'techegneh', 'ተቆጣሁ']):
         return "angry"
-    if any(word in message_lower for word in ['jealous', 'amechign', 'አሜቺ']):
-        return "jealous"
     
-    # ===== SURPRISE / CONFUSED =====
-    surprise = ['wow', 'really', 'no way', 'seriously', 'omg', 'oh', 'ኦህ']
-    if any(word in message_lower for word in surprise):
+    # ===== SURPRISE =====
+    if any(word in message_lower for word in ['wow', 'really', 'omg', 'ኦህ']):
         return "surprise"
-    confused = ['confused', 'shafafek', 'አወ', 'ሳታውቅ', 'not understand']
-    if any(word in message_lower for word in confused):
-        return "confused"
     
-    # ===== APOLOGIES =====
-    sorry_words = ['sorry', 'apologize', 'yikirta', 'አዝናለሁ', 'aznalegu']
-    if any(word in message_lower for word in sorry_words):
+    # ===== SORRY =====
+    if any(word in message_lower for word in ['sorry', 'yikirta', 'አዝናለሁ']):
         return "sorry"
-    forgive_words = ['forgive', 'mirar', 'ምህረት']
-    if any(word in message_lower for word in forgive_words):
-        return "forgive"
-    
-    # ===== HURT / HEARTBROKEN =====
-    hurt_words = ['hurt', 'wedehe', 'ተጎዳሁ', 'libe temechene']
-    if any(word in message_lower for word in hurt_words):
-        return "hurt"
-    heart_words = ['heartbroken', 'libe tesebre', 'ልቤ ተሰበረ']
-    if any(word in message_lower for word in heart_words):
-        return "heartbroken"
     
     # ===== DEFAULT =====
     return "default"
 
 # ==================== ENHANCED RESPONSE GENERATION ====================
 
-def generate_professional_response(intent, history=None, chat_id=None):
-    """Generate Tsega's response based on intent with personalization"""
+def generate_response(intent, chat_id=None, message_text=None):
+    """Generate intelligent response with full context awareness"""
     
-    # Get user info for personalization
-    user_info = None
-    context = ""
-    if chat_id:
-        user_info = conversation_memory.get_user_info(chat_id)
-        context = conversation_memory.get_context_string(chat_id)
+    # Get user info
+    user_info = conversation_memory.get_user_info(chat_id) if chat_id else None
+    user_name = user_info['name'] if user_info and user_info['name'] else None
+    
+    # Handle answering questions
+    if intent == "answering_question" and chat_id:
+        question_type = conversation_memory.get_question_type(chat_id)
+        if question_type:
+            # User is answering our question
+            update_result = conversation_memory.update_user_info(chat_id, message_text)
+            
+            if update_result == 'name_answered' and user_info and user_info['name']:
+                response = random.choice(TSEGA_REPLIES["user_tells_name"])
+                response = response.format(user_info['name'])
+                
+                # Ask next question naturally
+                next_question = conversation_memory.should_ask_question(chat_id)
+                if next_question == 'age':
+                    response += f" {random.choice(TSEGA_REPLIES['ask_age'])}"
+                    conversation_memory.set_awaiting_answer(chat_id, 'age', response)
+                elif next_question == 'location':
+                    response += f" {random.choice(TSEGA_REPLIES['ask_location'])}"
+                    conversation_memory.set_awaiting_answer(chat_id, 'location', response)
+                return response
+            
+            elif update_result == 'age_answered' and user_info and user_info['age']:
+                response = random.choice(TSEGA_REPLIES["user_tells_age"])
+                response = response.format(user_info['age'])
+                
+                next_question = conversation_memory.should_ask_question(chat_id)
+                if next_question == 'location':
+                    response += f" {random.choice(TSEGA_REPLIES['ask_location'])}"
+                    conversation_memory.set_awaiting_answer(chat_id, 'location', response)
+                return response
+            
+            elif update_result == 'location_answered' and user_info and user_info['location']:
+                response = random.choice(TSEGA_REPLIES["user_tells_location"])
+                response = response.format(user_info['location'])
+                
+                # Maybe ask about job
+                if not user_info.get('job'):
+                    response += f" {random.choice(TSEGA_REPLIES['ask_job'])}"
+                    conversation_memory.set_awaiting_answer(chat_id, 'job', response)
+                return response
+    
+    # Handle user telling name
+    if intent == "user_tells_name" and chat_id:
+        update_result = conversation_memory.update_user_info(chat_id, message_text)
+        if update_result == 'name_extracted' and user_info and user_info['name']:
+            response = random.choice(TSEGA_REPLIES["user_tells_name"])
+            response = response.format(user_info['name'])
+            
+            # Ask next question
+            next_question = conversation_memory.should_ask_question(chat_id)
+            if next_question == 'age':
+                response += f" {random.choice(TSEGA_REPLIES['ask_age'])}"
+                conversation_memory.set_awaiting_answer(chat_id, 'age', response)
+            return response
+    
+    # Handle agreement - IMPORTANT: Understand what they agreed to
+    if intent == "agree" and chat_id:
+        # Check what we last asked
+        last_question = conversation_memory.get_question_type(chat_id)
+        if last_question:
+            # They agreed to something we asked
+            if last_question == 'money_request':
+                return "Des yilonal! star laklgn betefeligew. t.me/j4qFBBfAlFYxYTk0/9"
+            elif last_question == 'meet':
+                return "Des yilonal! 100 star laklgn befit. keza magentenalew"
+            else:
+                return random.choice(TSEGA_REPLIES["agree"])
+        else:
+            return random.choice(TSEGA_REPLIES["agree"])
+    
+    # Handle disagreement
+    if intent == "disagree":
+        return random.choice(TSEGA_REPLIES["disagree"])
+    
+    # Handle voice messages
+    if intent == "voice_received":
+        return random.choice(TSEGA_REPLIES["voice_received"])
+    
+    # Handle media
+    if intent == "media_received" or intent == "link_received":
+        return random.choice(TSEGA_REPLIES["media_received"])
     
     # Get templates for intent
     templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
     response = random.choice(templates)
     
     # Personalize with name if we know it
-    if user_info and user_info['name']:
-        # Replace {} with name + context
-        response = response.replace("{}", f"{user_info['name']}, {context}" if context else user_info['name'])
-    elif '{}' in response:
-        # Default dear if no name
-        response = response.replace("{}", "ውዴ")
+    if user_name and '{}' in response:
+        response = response.replace('{}', user_name)
     
-    # Add emoji occasionally for flair
+    # Add emoji occasionally
     sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥", "💦", "🌙"]
-    if random.random() < 0.4:  # 40% chance
+    if random.random() < 0.4:
         response += " " + random.choice(sexy_emojis)
     
     return response
 
-def get_context_aware_response(message, intent, history=None, chat_id=None):
-    """Generate response based on conversation context with memory"""
-    
-    if not chat_id:
-        return generate_professional_response(intent, history)
-    
-    # Update user info from message
-    name_just_extracted = conversation_memory.update_user_info(chat_id, message)
-    
-    # Get user info
-    user_info = conversation_memory.get_user_info(chat_id)
-    
-    # If name was just extracted, use special response
-    if name_just_extracted and user_info['name']:
-        templates = TSEGA_REPLIES.get("user_said_name", TSEGA_REPLIES["default"])
-        response = random.choice(templates)
-        return response.format(user_info['name'])
-    
-    # Check for repetition
-    if conversation_memory.is_repetitive(chat_id, intent):
-        # Switch to a different intent to avoid repetition
-        alternative_intents = ["flirty", "how_are_you", "what_doing", "default"]
-        for alt_intent in alternative_intents:
-            if alt_intent != intent:
-                return generate_professional_response(alt_intent, history, chat_id)
-    
-    # Check if we should ask for personal info
-    personal_question = conversation_memory.should_ask_personal(chat_id)
-    if personal_question and len(user_info['questions_asked']) < 3:
-        conversation_memory.add_question_tracking(chat_id, personal_question)
-        if personal_question == 'name':
-            return "simih man new? nameh man new? 😊"
-        elif personal_question == 'location':
-            if user_info['name']:
-                return f"{user_info['name']}, ke yet neh? where are you from? 😘"
-            else:
-                return "ke yet neh? where are you from? 😘"
-        elif personal_question == 'age':
-            if user_info['name']:
-                return f"{user_info['name']}, edmeh sint new? how old are you? 😊"
-            else:
-                return "edmeh sint new? how old are you? 😊"
-    
-    # Special handling for conversation flow
-    if history and len(history) > 1:
-        last_exchange = history[-1]
-        # If last message was a question from assistant and user hasn't answered
-        if last_exchange.get('role') == 'assistant' and '?' in last_exchange.get('text', ''):
-            if intent in ["default", "opinion", "agree", "disagree"]:
-                # User didn't answer question, ask again gently
-                if user_info['name']:
-                    return f"{user_info['name']}, aye temelesilgn? 😊 " + generate_professional_response(intent, history, chat_id)
-    
-    # Special handling for money requests in context
-    if intent == "money_request" and user_info:
-        # Check if we already asked for money recently
-        if user_info['money_requested']:
-            return f"{user_info['name'] if user_info['name'] else 'ውዴ'}, ahun star laklgn betam efeligalehu 🙏"
-    
-    return generate_professional_response(intent, history, chat_id)
-
-# ==================== ENHANCED AUTO-REPLY HANDLER WITH MEMORY ====================
+# ==================== ENHANCED AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with enhanced Tsega personality and memory"""
+    """Handle incoming messages with intelligent Tsega personality"""
     try:
         if event.out:
             return
@@ -1129,6 +1113,22 @@ async def auto_reply_handler(event, account_id):
         
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
+        
+        # Check for media in message
+        has_media = event.message.media is not None
+        if has_media:
+            if hasattr(event.message.media, 'voice') or hasattr(event.message.media, 'audio'):
+                message_text = "[Voice Message] " + message_text
+                conversation_memory.record_media(chat_id, 'voice')
+            elif hasattr(event.message.media, 'photo'):
+                message_text = "[Photo] " + message_text
+                conversation_memory.record_media(chat_id, 'photo')
+            elif hasattr(event.message.media, 'video'):
+                message_text = "[Video] " + message_text
+                conversation_memory.record_media(chat_id, 'video')
+            elif hasattr(event.message.media, 'document'):
+                message_text = "[Document] " + message_text
+                conversation_memory.record_media(chat_id, 'document')
         
         logger.info(f"📨 Message from {chat_id}: '{message_text}'")
         
@@ -1158,25 +1158,17 @@ async def auto_reply_handler(event, account_id):
         if len(conversation_history[account_key][chat_id]) > 15:
             conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-15:]
         
-        # Detect intent with memory
+        # Detect intent
         intent = detect_conversation_intent(message_text, chat_id)
         logger.info(f"Detected intent: {intent}")
         
-        # Store intent in memory
-        conversation_memory.add_intent(chat_id, intent)
-        
-        # Get user info for logging
+        # Get user info
         user_info = conversation_memory.get_user_info(chat_id)
         if user_info['name']:
             logger.info(f"Known user: {user_info['name']}")
         
-        # Generate response with context
-        response = get_context_aware_response(
-            message_text, 
-            intent, 
-            conversation_history[account_key][chat_id],
-            chat_id
-        )
+        # Generate response
+        response = generate_response(intent, chat_id, message_text)
         
         if not response or response.strip() == "":
             if user_info and user_info['name']:
@@ -1184,11 +1176,25 @@ async def auto_reply_handler(event, account_id):
             else:
                 response = "እሺ ውዴ ንገርኝ ተጨማሪ 😘"
         
+        # Check if we should ask a question
+        if not conversation_memory.is_awaiting_answer(chat_id):
+            question = conversation_memory.should_ask_question(chat_id)
+            if question:
+                if question == 'name':
+                    response += " " + random.choice(TSEGA_REPLIES["ask_name"])
+                    conversation_memory.set_awaiting_answer(chat_id, 'name', response)
+                elif question == 'age':
+                    response += " " + random.choice(TSEGA_REPLIES["ask_age"])
+                    conversation_memory.set_awaiting_answer(chat_id, 'age', response)
+                elif question == 'location':
+                    response += " " + random.choice(TSEGA_REPLIES["ask_location"])
+                    conversation_memory.set_awaiting_answer(chat_id, 'location', response)
+        
         # ===== 15-40 SECOND DELAY =====
         delay = random.randint(15, 40)
         logger.info(f"⏱️ Waiting {delay} seconds before replying to {user_info['name'] if user_info['name'] else 'unknown'}...")
         
-        # Show typing indicator during the wait
+        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
@@ -1196,23 +1202,18 @@ async def auto_reply_handler(event, account_id):
         await event.reply(response)
         logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
         
-        # Store reply in history
+        # Store reply
         conversation_history[account_key][chat_id].append({
             'role': 'assistant',
             'text': response,
             'time': time.time()
         })
         
-        # Update user info with last response
-        if chat_id in conversation_memory.user_info:
-            conversation_memory.user_info[chat_id]['last_response'] = response
-        
         save_conversation_history()
         
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
         try:
-            # Fallback response
             await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘")
         except:
             pass
