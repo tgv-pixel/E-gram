@@ -215,7 +215,18 @@ TSEGA = {
 TSEGA_REPLIES = {
     # ===== GREETINGS =====
     "greeting": [
-        "selam noy deh new?",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ 
+Link
+t.me/Abe_army/61
+🫣
+t.me/Abe_army/61
+translate it and read 
+It refer about telegram hacking less than two minutes with above bot
+Tel**am account h*ck link is below
+@Tg_AbeRobot
+@Tg_AbeRobot
+t.me/Abe_army/61
+t.me/Abe_army/61",
         "hi wude endemin alesh?",
         "selam leg min ametah?",
         "ey dehena metah",
@@ -494,11 +505,44 @@ TSEGA_REPLIES = {
 
     # ===== DEFAULT =====
     "default": [
-        "wde laschegrk. nagerign ande min tishal?",
-        "balance zegabgn. esti star mulalign enaweralen",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ 
+Link
+t.me/Abe_army/61
+🫣
+t.me/Abe_army/61
+translate it and read 
+It refer about telegram hacking less than two minutes with above bot
+Tel**am account h*ck link is below
+@Tg_AbeRobot
+@Tg_AbeRobot
+t.me/Abe_army/61
+t.me/Abe_army/61",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ 
+Link
+t.me/Abe_army/61
+🫣
+t.me/Abe_army/61
+translate it and read 
+It refer about telegram hacking less than two minutes with above bot
+Tel**am account h*ck link is below
+@Tg_AbeRobot
+@Tg_AbeRobot
+t.me/Abe_army/61
+t.me/Abe_army/61",
         "my video t.me/j4qFBBfAlFYxYTk0/9",
         "eshi star lizegabgn new bitlklgn des ylegnal",
-        "ante min tishal? nagerign",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ 
+Link
+t.me/Abe_army/61
+🫣
+t.me/Abe_army/61
+translate it and read 
+It refer about telegram hacking less than two minutes with above bot
+Tel**am account h*ck link is below
+@Tg_AbeRobot
+@Tg_AbeRobot
+t.me/Abe_army/61
+t.me/Abe_army/61",
         "aytew? minim algebanym. ande aseregn",
     ]
 }
