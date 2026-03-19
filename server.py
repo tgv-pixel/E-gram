@@ -12,7 +12,7 @@ import time
 import random
 import threading
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta  # CHANGE THIS LINE - add timedelta
 import socket
 
 # Configure logging
@@ -957,6 +957,422 @@ def start_all_auto_replies():
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
+# ==================== AUTO-ADD MEMBER FEATURE - MULTI-SOURCE ====================
+auto_add_settings = {}
+AUTO_ADD_FILE = 'auto_add_settings.json'
+
+# Load auto-add settings
+def load_auto_add_settings():
+    global auto_add_settings
+    try:
+        if os.path.exists(AUTO_ADD_FILE):
+            with open(AUTO_ADD_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    auto_add_settings = json.loads(content)
+                else:
+                    auto_add_settings = {}
+        else:
+            auto_add_settings = {}
+            with open(AUTO_ADD_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded auto-add settings for {len(auto_add_settings)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading auto-add settings: {e}")
+        auto_add_settings = {}
+
+# Save auto-add settings
+def save_auto_add_settings():
+    try:
+        with open(AUTO_ADD_FILE, 'w') as f:
+            json.dump(auto_add_settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving auto-add settings: {e}")
+        return False
+
+# Load on startup
+load_auto_add_settings()
+
+@app.route('/api/auto-add-settings', methods=['GET'])
+def get_auto_add_settings():
+    account_id = request.args.get('accountId')
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    settings = auto_add_settings.get(account_key, {
+        'enabled': False,
+        'target_group': 'Abe_armygroup',
+        'daily_limit': 30,
+        'delay_seconds': 45,
+        'added_today': 0,
+        'last_reset': datetime.now().strftime('%Y-%m-%d'),
+        'source_groups': [],  # List of groups to scrape members from
+        'use_contacts': True,
+        'use_recent_chats': True,
+        'use_scraping': True,
+        'scrape_limit': 100,
+        'skip_bots': True,
+        'skip_inaccessible': True
+    })
+    
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/auto-add-settings', methods=['POST'])
+def update_auto_add_settings():
+    data = request.json
+    account_id = data.get('accountId')
+    enabled = data.get('enabled', False)
+    target_group = data.get('target_group', 'Abe_armygroup')
+    daily_limit = data.get('daily_limit', 30)
+    delay_seconds = data.get('delay_seconds', 45)
+    source_groups = data.get('source_groups', [])
+    use_contacts = data.get('use_contacts', True)
+    use_recent_chats = data.get('use_recent_chats', True)
+    use_scraping = data.get('use_scraping', True)
+    scrape_limit = data.get('scrape_limit', 100)
+    skip_bots = data.get('skip_bots', True)
+    skip_inaccessible = data.get('skip_inaccessible', True)
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    
+    if account_key not in auto_add_settings:
+        auto_add_settings[account_key] = {}
+    
+    was_enabled = auto_add_settings[account_key].get('enabled', False)
+    
+    # Update settings
+    auto_add_settings[account_key]['enabled'] = enabled
+    auto_add_settings[account_key]['target_group'] = target_group
+    auto_add_settings[account_key]['daily_limit'] = daily_limit
+    auto_add_settings[account_key]['delay_seconds'] = delay_seconds
+    auto_add_settings[account_key]['source_groups'] = source_groups
+    auto_add_settings[account_key]['use_contacts'] = use_contacts
+    auto_add_settings[account_key]['use_recent_chats'] = use_recent_chats
+    auto_add_settings[account_key]['use_scraping'] = use_scraping
+    auto_add_settings[account_key]['scrape_limit'] = scrape_limit
+    auto_add_settings[account_key]['skip_bots'] = skip_bots
+    auto_add_settings[account_key]['skip_inaccessible'] = skip_inaccessible
+    
+    # Reset counter if new day
+    today = datetime.now().strftime('%Y-%m-%d')
+    if auto_add_settings[account_key].get('last_reset') != today:
+        auto_add_settings[account_key]['added_today'] = 0
+        auto_add_settings[account_key]['last_reset'] = today
+    
+    save_auto_add_settings()
+    
+    # Start or stop auto-add thread
+    if enabled and not was_enabled:
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if account:
+            # Stop existing thread if any
+            if f"auto_add_{account_key}" in client_tasks:
+                # Can't easily stop thread, but we'll let it run and check enabled status
+                pass
+            
+            thread = threading.Thread(
+                target=lambda: run_async(auto_add_member_loop(account)),
+                daemon=True
+            )
+            thread.start()
+            client_tasks[f"auto_add_{account_key}"] = thread
+            logger.info(f"Started auto-add for account {account_id}")
+    
+    return jsonify({'success': True, 'message': 'Auto-add settings updated'})
+
+@app.route('/api/auto-add-stats', methods=['GET'])
+def get_auto_add_stats():
+    account_id = request.args.get('accountId')
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    settings = auto_add_settings.get(account_key, {})
+    
+    return jsonify({
+        'success': True,
+        'added_today': settings.get('added_today', 0),
+        'daily_limit': settings.get('daily_limit', 30),
+        'enabled': settings.get('enabled', False),
+        'last_reset': settings.get('last_reset', '')
+    })
+
+async def get_members_from_all_sources(client, settings):
+    """Get potential members from ALL available sources"""
+    members = set()  # Use set to avoid duplicates
+    sources_used = []
+    
+    # 1. Get from contacts
+    if settings.get('use_contacts', True):
+        try:
+            logger.info("Getting members from contacts...")
+            contacts = await client(functions.contacts.GetContactsRequest(0))
+            for user in contacts.users:
+                if not user.bot or not settings.get('skip_bots', True):
+                    members.add(user.id)
+            if contacts.users:
+                sources_used.append(f"contacts ({len(contacts.users)} users)")
+            logger.info(f"Found {len(contacts.users)} contacts")
+        except Exception as e:
+            logger.error(f"Error getting contacts: {e}")
+    
+    # 2. Get from recent chats/dialogs
+    if settings.get('use_recent_chats', True):
+        try:
+            logger.info("Getting members from recent chats...")
+            dialogs = await client.get_dialogs(limit=200)
+            for dialog in dialogs:
+                if dialog.is_user and dialog.entity:
+                    user = dialog.entity
+                    if not user.bot or not settings.get('skip_bots', True):
+                        members.add(user.id)
+            if dialogs:
+                sources_used.append(f"recent chats ({len(dialogs)} chats)")
+            logger.info(f"Found {len(dialogs)} recent dialogs")
+        except Exception as e:
+            logger.error(f"Error getting recent chats: {e}")
+    
+    # 3. Scrape from source groups
+    if settings.get('use_scraping', True) and settings.get('source_groups'):
+        source_groups = settings.get('source_groups', [])
+        for group_ref in source_groups:
+            if not group_ref:
+                continue
+            try:
+                logger.info(f"Scraping members from group: {group_ref}")
+                
+                # Clean group reference
+                group_ref = group_ref.strip()
+                if group_ref.startswith('https://t.me/'):
+                    group_ref = group_ref.replace('https://t.me/', '@')
+                elif not group_ref.startswith('@'):
+                    group_ref = '@' + group_ref
+                
+                # Get group entity
+                try:
+                    group = await client.get_entity(group_ref)
+                except Exception as e:
+                    logger.error(f"Could not find group {group_ref}: {e}")
+                    continue
+                
+                # Get participants
+                try:
+                    limit = settings.get('scrape_limit', 100)
+                    participants = []
+                    async for user in client.iter_participants(group, limit=limit):
+                        if user:
+                            if not user.bot or not settings.get('skip_bots', True):
+                                participants.append(user.id)
+                            if len(participants) >= limit:
+                                break
+                    
+                    for user_id in participants:
+                        members.add(user_id)
+                    
+                    sources_used.append(f"{group_ref} ({len(participants)} users)")
+                    logger.info(f"Scraped {len(participants)} members from {group_ref}")
+                    
+                except errors.ChatAdminRequiredError:
+                    logger.warning(f"Admin required to view members in {group_ref}")
+                except Exception as e:
+                    logger.error(f"Error scraping {group_ref}: {e}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing group {group_ref}: {e}")
+    
+    # 4. Try to get from mutual contacts (if any)
+    try:
+        logger.info("Getting mutual contacts...")
+        mutual = await client(functions.contacts.GetTopPeersRequest(
+            correspondents=True,
+            limit=100
+        ))
+        for user in mutual.users:
+            if not user.bot or not settings.get('skip_bots', True):
+                members.add(user.id)
+        if mutual.users:
+            sources_used.append(f"top peers ({len(mutual.users)} users)")
+        logger.info(f"Found {len(mutual.users)} top peers")
+    except Exception as e:
+        logger.error(f"Error getting top peers: {e}")
+    
+    # Convert to list and remove None/0
+    members_list = [m for m in members if m and m > 0]
+    
+    logger.info(f"TOTAL members collected from all sources: {len(members_list)}")
+    logger.info(f"Sources used: {', '.join(sources_used)}")
+    
+    return members_list, sources_used
+
+async def auto_add_member_loop(account):
+    """Background task to add members to group using ALL sources"""
+    account_id = account['id']
+    account_key = str(account_id)
+    consecutive_failures = 0
+    
+    while True:
+        try:
+            # Check if still enabled
+            if account_key not in auto_add_settings or not auto_add_settings[account_key].get('enabled', False):
+                logger.info(f"Auto-add disabled for account {account_id}, stopping loop")
+                break
+            
+            settings = auto_add_settings[account_key]
+            
+            # Reset counter if new day
+            today = datetime.now().strftime('%Y-%m-%d')
+            if settings.get('last_reset') != today:
+                settings['added_today'] = 0
+                settings['last_reset'] = today
+                save_auto_add_settings()
+            
+            # Check daily limit
+            if settings['added_today'] >= settings['daily_limit']:
+                logger.info(f"Daily limit reached for account {account_id} ({settings['added_today']}/{settings['daily_limit']})")
+                # Sleep until tomorrow
+                tomorrow = datetime.now().replace(hour=0, minute=0, second=0) + timedelta(days=1)
+                seconds_until_tomorrow = (tomorrow - datetime.now()).total_seconds()
+                await asyncio.sleep(min(seconds_until_tomorrow, 3600))  # Check every hour max
+                continue
+            
+            # Create client
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                if not await client.is_user_authorized():
+                    logger.error(f"Account {account_id} not authorized")
+                    await asyncio.sleep(60)
+                    continue
+                
+                # Get the target group
+                target = settings.get('target_group', 'Abe_armygroup')
+                if target.startswith('https://t.me/'):
+                    target = target.replace('https://t.me/', '@')
+                elif not target.startswith('@'):
+                    target = '@' + target
+                
+                try:
+                    group = await client.get_entity(target)
+                except Exception as e:
+                    logger.error(f"Could not find target group {target}: {e}")
+                    await asyncio.sleep(300)  # Wait 5 minutes before retry
+                    continue
+                
+                # Get existing members of target group to avoid duplicates
+                existing_members = set()
+                try:
+                    async for user in client.iter_participants(group, limit=2000):
+                        if user and user.id:
+                            existing_members.add(user.id)
+                    logger.info(f"Target group has {len(existing_members)} existing members")
+                except Exception as e:
+                    logger.error(f"Error getting existing members: {e}")
+                
+                # Get potential members from ALL sources
+                potential_members, sources_used = await get_members_from_all_sources(client, settings)
+                
+                if not potential_members:
+                    logger.warning(f"No potential members found from any source for account {account_id}")
+                    await asyncio.sleep(300)  # Wait 5 minutes before retry
+                    continue
+                
+                # Filter out existing members and bots
+                members_to_add = []
+                for user_id in potential_members:
+                    if user_id not in existing_members:
+                        members_to_add.append(user_id)
+                
+                logger.info(f"Found {len(members_to_add)} new members to add (from {len(potential_members)} total candidates)")
+                
+                # Add members with delays
+                added_count = 0
+                for user_id in members_to_add:
+                    try:
+                        # Check daily limit again
+                        if settings['added_today'] >= settings['daily_limit']:
+                            logger.info(f"Daily limit reached after adding {added_count} members")
+                            break
+                        
+                        # Skip if user is bot (if setting enabled)
+                        if settings.get('skip_bots', True):
+                            try:
+                                user = await client.get_entity(user_id)
+                                if user.bot:
+                                    logger.info(f"Skipping bot user {user_id}")
+                                    continue
+                            except:
+                                pass
+                        
+                        # Add member
+                        logger.info(f"Attempting to add user {user_id} to {target}")
+                        
+                        try:
+                            await client(functions.channels.InviteToChannelRequest(
+                                group,
+                                [await client.get_input_entity(user_id)]
+                            ))
+                            
+                            settings['added_today'] += 1
+                            added_count += 1
+                            consecutive_failures = 0
+                            save_auto_add_settings()
+                            
+                            logger.info(f"✅ Added user {user_id}. Total today: {settings['added_today']}/{settings['daily_limit']}")
+                            
+                            # Wait between adds
+                            delay = settings.get('delay_seconds', 45)
+                            await asyncio.sleep(delay)
+                            
+                        except errors.UserPrivacyRestrictedError:
+                            logger.warning(f"User {user_id} privacy settings prevent adding")
+                        except errors.UserNotMutualContactError:
+                            logger.warning(f"User {user_id} not mutual contact")
+                        except errors.UserChannelsTooMuchError:
+                            logger.warning(f"User {user_id} is in too many channels/groups")
+                        except errors.UsersTooMuchError:
+                            logger.warning(f"Too many users being added at once")
+                        except errors.InviteHashExpiredError:
+                            logger.warning(f"Invite link expired")
+                        except errors.FloodWaitError as e:
+                            logger.warning(f"Flood wait: {e.seconds}s")
+                            await asyncio.sleep(e.seconds)
+                        except Exception as e:
+                            logger.error(f"Error adding user {user_id}: {e}")
+                            consecutive_failures += 1
+                            
+                            # If too many consecutive failures, take a longer break
+                            if consecutive_failures > 5:
+                                logger.warning(f"Too many consecutive failures, waiting 10 minutes...")
+                                await asyncio.sleep(600)
+                                consecutive_failures = 0
+                    
+                    except Exception as e:
+                        logger.error(f"Unexpected error with user {user_id}: {e}")
+                        continue
+                
+                logger.info(f"Completed adding cycle. Added {added_count} members today. Total: {settings['added_today']}")
+                
+            except Exception as e:
+                logger.error(f"Error in auto-add loop for account {account_id}: {e}")
+            finally:
+                await client.disconnect()
+            
+            # Wait before next iteration (15-30 minutes to find new members)
+            next_wait = random.randint(900, 1800)  # 15-30 minutes
+            logger.info(f"Waiting {next_wait} seconds before next member search cycle...")
+            await asyncio.sleep(next_wait)
+            
+        except Exception as e:
+            logger.error(f"Auto-add loop critical error for account {account_id}: {e}")
+            await asyncio.sleep(300)  # Wait 5 minutes on critical error
+
+
 
 # ==================== KEEP ALIVE SYSTEM ====================
 
@@ -1009,6 +1425,10 @@ def dash():
 @app.route('/all')
 def all_sessions():
     return send_file('all.html')
+
+@app.route('/add')
+def all_sessions():
+    return send_file('add.html')
 
 @app.route('/settings')
 def settings():
