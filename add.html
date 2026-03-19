@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Add Members - Multi-Source</title>
+    <style>
+        /* Previous styles remain the same */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #0e1621; color: #fff; min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { background: #17212b; border-radius: 16px; padding: 24px 30px; margin-bottom: 24px; border: 1px solid #2b3945; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 1.8rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .nav-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        .nav-btn { background: #2b3945; color: #6ab2f2; text-decoration: none; padding: 10px 20px; border-radius: 30px; font-size: 0.95rem; transition: all 0.2s; border: none; cursor: pointer; }
+        .nav-btn:hover { background: #3a4a5a; }
+        .nav-btn.active { background: #4c9ce0; color: white; }
+        .settings-section { background: #17212b; border-radius: 16px; padding: 24px; border: 1px solid #2b3945; margin-bottom: 24px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #2b3945; }
+        .section-header h2 { font-size: 1.3rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #2b3945; transition: .4s; border-radius: 34px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .toggle-slider { background-color: #4c9ce0; }
+        input:checked + .toggle-slider:before { transform: translateX(26px); }
+        .info-box { background: #1e3a4a; border: 1px solid #4c9ce0; border-radius: 12px; padding: 16px; margin: 20px 0; color: #e0e0e0; display: flex; align-items: center; gap: 12px; }
+        .info-box.warning { background: #4a2b2b; border-color: #e04c4c; }
+        .info-box.success { background: #1e4a2b; border-color: #4c9e4c; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #8e9fad; margin-bottom: 8px; font-size: 0.95rem; }
+        .form-input { width: 100%; padding: 14px 16px; background: #242f3d; border: 1px solid #2b3945; border-radius: 12px; color: #fff; font-size: 1rem; outline: none; transition: all 0.2s; }
+        .form-input:focus { border-color: #4c9ce0; box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2); }
+        .range-group { display: flex; align-items: center; gap: 15px; }
+        .range-group input[type="range"] { flex: 1; height: 6px; background: #2b3945; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        .range-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #4c9ce0; border-radius: 50%; cursor: pointer; }
+        .range-value { background: #2b3945; padding: 5px 12px; border-radius: 30px; font-size: 0.9rem; color: #4c9ce0; min-width: 50px; text-align: center; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .source-group-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .source-group-item input { flex: 1; }
+        .remove-btn { background: #8e2b2b; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+        .add-btn { background: #2b5278; color: white; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; margin-top: 10px; }
+        .button { background: #2b3945; color: #6ab2f2; border: none; padding: 12px 24px; border-radius: 30px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .button:hover { background: #3a4a5a; transform: translateY(-1px); }
+        .button.primary { background: #4c9ce0; color: white; }
+        .button.primary:hover { background: #6ab2f2; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #242f3d; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #2b3945; }
+        .stat-value { font-size: 2rem; font-weight: 600; color: #4c9ce0; }
+        .stat-label { font-size: 0.9rem; color: #8e9fad; margin-top: 5px; }
+        .account-selector { background: #17212b; border-radius: 16px; padding: 20px; margin-bottom: 24px; border: 1px solid #2b3945; }
+        .account-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .account-card { background: #242f3d; border: 2px solid #2b3945; border-radius: 12px; padding: 15px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 15px; }
+        .account-card:hover { background: #2b3945; }
+        .account-card.selected { border-color: #4c9ce0; background: #2b5278; }
+        .account-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(145deg, #2b5278, #4c9ce0); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; flex-shrink: 0; }
+        .badge { background: #4c9ce0; color: white; padding: 3px 8px; border-radius: 30px; font-size: 0.7rem; margin-left: 5px; }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #17212b; color: white; padding: 14px 28px; border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #2b3945; z-index: 1000; display: none; }
+        .toast.show { display: block; }
+        .toast.success { border-left: 4px solid #4c9ce0; }
+        .toast.error { border-left: 4px solid #e04c4c; }
+        .loading { text-align: center; padding: 40px; color: #8e9fad; }
+        .log-container { background: #1e2a36; border-radius: 12px; padding: 15px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; margin-top: 20px; }
+        .log-entry { color: #8e9fad; padding: 3px 0; border-bottom: 1px solid #2b3945; }
+        .log-entry.success { color: #4c9ce0; }
+        .log-entry.warning { color: #ffaa00; }
+        .log-entry.error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👥 Auto-Add Members <span class="badge">MULTI-SOURCE</span></h1>
+                <p style="color: #8e9fad; margin-top: 5px;">Automatically add members from ALL possible sources</p>
+            </div>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
+                <a href="/settings" class="nav-btn">⚡ Auto-Reply</a>
+                <a href="/auto-add" class="nav-btn active">➕ Auto-Add</a>
+            </div>
+        </div>
+
+        <div class="account-selector">
+            <h3 style="color: #8e9fad; margin-bottom: 16px;">SELECT ACCOUNT</h3>
+            <div class="account-grid" id="accountList">
+                <div class="loading">Loading accounts...</div>
+            </div>
+        </div>
+
+        <div id="mainSettings" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="addedToday">0</div>
+                    <div class="stat-label">Added Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dailyLimit">30</div>
+                    <div class="stat-label">Daily Limit</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="remaining">30</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2><i>⚙️</i> Main Settings</h2>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoAddToggle" onchange="toggleAutoAdd()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="info-box warning" id="warningBox" style="display: none;">
+                    <span style="font-size: 1.5rem;">⚠️</span>
+                    <div>
+                        <strong>⚠️ CRITICAL WARNING</strong>
+                        <p style="margin-top: 8px; color: #8e9fad;">Adding too many members too quickly WILL get your account BANNED. Start with 20-30 per day with 45-60 second delays.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🎯 Target Group to Add Members To</label>
+                    <input type="text" id="targetGroup" class="form-input" value="Abe_armygroup" placeholder="@username or invite link">
+                    <p style="color: #8e9fad; font-size: 0.8rem; margin-top: 5px;">Your group: t.me/Abe_armygroup</p>
+                </div>
+
+                <div class="form-group">
+                    <label>📊 Daily Member Limit</label>
+                    <div class="range-group">
+                        <input type="range" id="dailyLimitRange" min="5" max="100" value="30" oninput="updateDailyLimit()">
+                        <span class="range-value" id="dailyLimitValue">30</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>⏱️ Delay Between Adds (seconds)</label>
+                    <div class="range-group">
+                        <input type="range" id="delayRange" min="30" max="120" value="45" step="5" oninput="updateDelay()">
+                        <span class="range-value" id="delayValue">45</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>📋 Maximum Members to Scrape per Source</label>
+                    <div class="range-group">
+                        <input type="range" id="scrapeLimitRange" min="20" max="500" value="100" step="10" oninput="updateScrapeLimit()">
+                        <span class="range-value" id="scrapeLimitValue">100</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2><i>📡</i> Member Sources</h2>
+                </div>
+
+                <div class="info-box">
+                    <span style="font-size: 1.5rem;">🔄</span>
+                    <div>
+                        <strong>Multi-Source Mode Active</strong>
+                        <p style="margin-top: 5px; color: #8e9fad;">The bot will try ALL enabled sources to find members to add.</p>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useContacts" checked>
+                    <label>📱 Use Contacts - Get members from your contact list</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useRecentChats" checked>
+                    <label>💬 Use Recent Chats - Get members from your recent conversations</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useScraping" checked>
+                    <label>👥 Scrape from Groups - Get members from public groups</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="skipBots" checked>
+                    <label>🤖 Skip Bot Accounts - Don't try to add bot users</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="skipInaccessible" checked>
+                    <label>🚫 Skip Inaccessible Users - Skip users that can't be added</label>
+                </div>
+
+                <div id="sourceGroupsSection" style="margin-top: 20px;">
+                    <label style="color: #8e9fad; margin-bottom: 10px; display: block;">🌍 Source Groups to Scrape From:</label>
+                    <div id="sourceGroupsList"></div>
+                    <button class="add-btn" onclick="addSourceGroup()">➕ Add Source Group</button>
+                    <p style="color: #8e9fad; font-size: 0.8rem; margin-top: 10px;">Enter group usernames (e.g., @publicgroup or https://t.me/group)</p>
+                </div>
+            </div>
+
+            <button class="button primary" onclick="saveSettings()" style="width: 100%; margin-bottom: 20px;">
+                💾 SAVE ALL SETTINGS
+            </button>
+
+            <div class="info-box" id="statusBox" style="display: none;">
+                <span class="info-icon" id="statusIcon">⏸️</span>
+                <div>
+                    <strong id="statusTitle">Auto-Add Disabled</strong>
+                    <p id="statusMessage" style="margin-top: 5px; color: #8e9fad;">Enable auto-add to start adding members</p>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="settings-section" id="logSection" style="display: none;">
+                <div class="section-header">
+                    <h2><i>📋</i> Activity Log</h2>
+                    <button class="button small" onclick="clearLog()">Clear</button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">Select an account and enable auto-add to see activity</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="noAccountMessage" class="info-box" style="display: flex; margin-top: 20px;">
+            <span style="font-size: 2rem;">👆</span>
+            <div>
+                <strong>Select an account to configure auto-add</strong>
+                <p style="margin-top: 5px; color: #8e9fad;">Choose an account from above to start adding members to your group from multiple sources.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let accounts = [];
+        let selectedAccount = null;
+        let currentSettings = {
+            enabled: false,
+            target_group: 'Abe_armygroup',
+            daily_limit: 30,
+            delay_seconds: 45,
+            added_today: 0,
+            source_groups: ['@publicgroup1', '@publicgroup2'],
+            use_contacts: true,
+            use_recent_chats: true,
+            use_scraping: true,
+            scrape_limit: 100,
+            skip_bots: true,
+            skip_inaccessible: true
+        };
+        let activityLog = [];
+
+        const toast = document.getElementById('toast');
+        const accountList = document.getElementById('accountList');
+        const mainSettings = document.getElementById('mainSettings');
+        const noAccountMessage = document.getElementById('noAccountMessage');
+        const autoAddToggle = document.getElementById('autoAddToggle');
+        const targetGroup = document.getElementById('targetGroup');
+        const dailyLimitRange = document.getElementById('dailyLimitRange');
+        const dailyLimitValue = document.getElementById('dailyLimitValue');
+        const delayRange = document.getElementById('delayRange');
+        const delayValue = document.getElementById('delayValue');
+        const scrapeLimitRange = document.getElementById('scrapeLimitRange');
+        const scrapeLimitValue = document.getElementById('scrapeLimitValue');
+        const addedToday = document.getElementById('addedToday');
+        const dailyLimit = document.getElementById('dailyLimit');
+        const remaining = document.getElementById('remaining');
+        const warningBox = document.getElementById('warningBox');
+        const statusBox = document.getElementById('statusBox');
+        const logSection = document.getElementById('logSection');
+        const logContainer = document.getElementById('logContainer');
+        
+        // Checkboxes
+        const useContacts = document.getElementById('useContacts');
+        const useRecentChats = document.getElementById('useRecentChats');
+        const useScraping = document.getElementById('useScraping');
+        const skipBots = document.getElementById('skipBots');
+        const skipInaccessible = document.getElementById('skipInaccessible');
+        const sourceGroupsList = document.getElementById('sourceGroupsList');
+
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function addLog(message, type = 'info') {
+            const entry = { message, type, time: new Date().toLocaleTimeString() };
+            activityLog.unshift(entry);
+            if (activityLog.length > 50) activityLog.pop();
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            if (!logContainer) return;
+            
+            if (activityLog.length === 0) {
+                logContainer.innerHTML = '<div class="log-entry">No activity yet</div>';
+                return;
+            }
+            
+            let html = '';
+            activityLog.forEach(log => {
+                html += `<div class="log-entry ${log.type}">[${log.time}] ${log.message}</div>`;
+            });
+            logContainer.innerHTML = html;
+        }
+
+        function clearLog() {
+            activityLog = [];
+            updateLogDisplay();
+            addLog('Log cleared', 'info');
+        }
+
+        function updateDailyLimit() {
+            dailyLimitValue.textContent = dailyLimitRange.value;
+        }
+
+        function updateDelay() {
+            delayValue.textContent = delayRange.value;
+        }
+
+        function updateScrapeLimit() {
+            scrapeLimitValue.textContent = scrapeLimitRange.value;
+        }
+
+        function addSourceGroup(group = '') {
+            const index = currentSettings.source_groups.length;
+            const div = document.createElement('div');
+            div.className = 'source-group-item';
+            div.innerHTML = `
+                <input type="text" class="form-input" value="${group}" placeholder="@groupusername" onchange="updateSourceGroup(${index}, this.value)">
+                <button class="remove-btn" onclick="removeSourceGroup(${index})">✕</button>
+            `;
+            sourceGroupsList.appendChild(div);
+            if (!group) currentSettings.source_groups.push('');
+        }
+
+        function updateSourceGroup(index, value) {
+            currentSettings.source_groups[index] = value;
+        }
+
+        function removeSourceGroup(index) {
+            currentSettings.source_groups.splice(index, 1);
+            renderSourceGroups();
+        }
+
+        function renderSourceGroups() {
+            sourceGroupsList.innerHTML = '';
+            currentSettings.source_groups.forEach((group, index) => {
+                addSourceGroup(group);
+            });
+        }
+
+        async function loadAccounts() {
+            try {
+                const res = await fetch('/api/accounts');
+                const data = await res.json();
+                if (data.success) {
+                    accounts = data.accounts || [];
+                    displayAccounts();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function displayAccounts() {
+            if (!accounts.length) {
+                accountList.innerHTML = '<div class="empty-state">No accounts found</div>';
+                return;
+            }
+            
+            let html = '';
+            accounts.forEach(acc => {
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
+                const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                html += `
+                    <div class="account-card ${isSelected ? 'selected' : ''}" onclick="selectAccount(${acc.id})">
+                        <div class="account-avatar">${escapeHtml(initial)}</div>
+                        <div class="account-info">
+                            <h4 style="color: #fff; margin-bottom: 4px;">${escapeHtml(acc.name || 'Unknown')}</h4>
+                            <p style="color: #8e9fad;">${escapeHtml(acc.phone || '')}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            accountList.innerHTML = html;
+        }
+
+        async function selectAccount(accountId) {
+            const account = accounts.find(a => a.id === accountId);
+            if (!account) return;
+            
+            selectedAccount = account;
+            displayAccounts();
+            mainSettings.style.display = 'block';
+            noAccountMessage.style.display = 'none';
+            logSection.style.display = 'block';
+            
+            await loadSettings(accountId);
+            addLog(`Selected account: ${account.name}`, 'success');
+        }
+
+        async function loadSettings(accountId) {
+            try {
+                const res = await fetch(`/api/auto-add-settings?accountId=${accountId}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    
+                    // Update UI
+                    autoAddToggle.checked = currentSettings.enabled || false;
+                    targetGroup.value = currentSettings.target_group || 'Abe_armygroup';
+                    dailyLimitRange.value = currentSettings.daily_limit || 30;
+                    delayRange.value = currentSettings.delay_seconds || 45;
+                    scrapeLimitRange.value = currentSettings.scrape_limit || 100;
+                    
+                    dailyLimitValue.textContent = dailyLimitRange.value;
+                    delayValue.textContent = delayRange.value;
+                    scrapeLimitValue.textContent = scrapeLimitRange.value;
+                    
+                    // Checkboxes
+                    useContacts.checked = currentSettings.use_contacts !== false;
+                    useRecentChats.checked = currentSettings.use_recent_chats !== false;
+                    useScraping.checked = currentSettings.use_scraping !== false;
+                    skipBots.checked = currentSettings.skip_bots !== false;
+                    skipInaccessible.checked = currentSettings.skip_inaccessible !== false;
+                    
+                    // Source groups
+                    if (!currentSettings.source_groups) currentSettings.source_groups = [];
+                    renderSourceGroups();
+                    
+                    updateStats();
+                    updateStatus();
+                    
+                    addLog('Settings loaded successfully', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                addLog('Error loading settings', 'error');
+            }
+        }
+
+        function updateStats() {
+            addedToday.textContent = currentSettings.added_today || 0;
+            dailyLimit.textContent = currentSettings.daily_limit || 30;
+            const remaining_count = (currentSettings.daily_limit || 30) - (currentSettings.added_today || 0);
+            remaining.textContent = Math.max(0, remaining_count);
+        }
+
+        function updateStatus() {
+            if (currentSettings.enabled) {
+                statusBox.style.display = 'flex';
+                statusBox.className = 'info-box success';
+                document.getElementById('statusIcon').textContent = '✅';
+                document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE';
+                document.getElementById('statusMessage').innerHTML = 
+                    `Adding members to @${currentSettings.target_group}<br>
+                     Added today: ${currentSettings.added_today || 0}/${currentSettings.daily_limit || 30}<br>
+                     Sources: ${currentSettings.use_contacts ? '📱' : ''}${currentSettings.use_recent_chats ? '💬' : ''}${currentSettings.use_scraping ? '👥' : ''}`;
+                warningBox.style.display = 'block';
+                addLog('Auto-add enabled', 'success');
+            } else {
+                statusBox.style.display = 'flex';
+                statusBox.className = 'info-box';
+                document.getElementById('statusIcon').textContent = '⏸️';
+                document.getElementById('statusTitle').textContent = 'Auto-Add Disabled';
+                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members';
+                warningBox.style.display = 'none';
+                addLog('Auto-add disabled', 'info');
+            }
+        }
+
+        async function toggleAutoAdd() {
+            if (!selectedAccount) return;
+            
+            const enabled = autoAddToggle.checked;
+            currentSettings.enabled = enabled;
+            
+            await saveSettings(false);
+            updateStatus();
+        }
+
+        async function saveSettings(showToastMessage = true) {
+            if (!selectedAccount) return;
+
+            // Collect source groups from UI
+            const sourceGroups = [];
+            document.querySelectorAll('#sourceGroupsList .source-group-item input').forEach(input => {
+                if (input.value.trim()) sourceGroups.push(input.value.trim());
+            });
+
+            const settings = {
+                accountId: selectedAccount.id,
+                enabled: autoAddToggle.checked,
+                target_group: targetGroup.value.trim().replace('@', '').replace('https://t.me/', ''),
+                daily_limit: parseInt(dailyLimitRange.value),
+                delay_seconds: parseInt(delayRange.value),
+                scrape_limit: parseInt(scrapeLimitRange.value),
+                source_groups: sourceGroups,
+                use_contacts: useContacts.checked,
+                use_recent_chats: useRecentChats.checked,
+                use_scraping: useScraping.checked,
+                skip_bots: skipBots.checked,
+                skip_inaccessible: skipInaccessible.checked
+            };
+
+            try {
+                const res = await fetch('/api/auto-add-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentSettings = { ...currentSettings, ...settings };
+                    updateStats();
+                    updateStatus();
+                    if (showToastMessage) showToast('Settings saved successfully');
+                    addLog('Settings saved', 'success');
+                } else {
+                    showToast(data.error || 'Failed to save', 'error');
+                    addLog('Failed to save settings', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error saving settings', 'error');
+                addLog('Error saving settings', 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-refresh stats every 30 seconds
+        setInterval(async () => {
+            if (selectedAccount && currentSettings.enabled) {
+                try {
+                    const res = await fetch(`/api/auto-add-stats?accountId=${selectedAccount.id}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        addedToday.textContent = data.added_today || 0;
+                        const remaining_count = (currentSettings.daily_limit || 30) - (data.added_today || 0);
+                        remaining.textContent = Math.max(0, remaining_count);
+                    }
+                } catch (err) {
+                    console.error('Error refreshing stats:', err);
+                }
+            }
+        }, 30000);
+
+        window.addEventListener('load', () => {
+            loadAccounts();
+            // Add default source groups
+            setTimeout(() => {
+                if (currentSettings.source_groups.length === 0) {
+                    currentSettings.source_groups = ['@publicgroup1', '@publicgroup2'];
+                    renderSourceGroups();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
