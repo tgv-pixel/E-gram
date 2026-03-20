@@ -1395,9 +1395,9 @@ def dash():
 def all_sessions():
     return send_file('all.html')
 
-@app.route('/add')
-def all_sessions():  # ❌ DUPLICATE FUNCTION NAME!
-    return send_file('add.html')
+@app.route('/auto-add')
+def auto_add():
+    return send_file('auto_add.html')
 
 @app.route('/settings')
 def settings():
