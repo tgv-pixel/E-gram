@@ -1577,7 +1577,7 @@ def dash():
 def all_sessions():
     return send_file('all.html')
 
-@@app.route('/auto-add')
+@app.route('/auto-add')
 def auto_add():
     return send_file('auto_add.html')
 @app.route('/settings')
