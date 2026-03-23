@@ -1623,6 +1623,8 @@ def keep_alive():
 
 # ==================== PAGE ROUTES ====================
 
+# ==================== PAGE ROUTES ====================
+
 @app.route('/')
 def home():
     return send_file('login.html')
@@ -1634,11 +1636,6 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     return send_file('dashboard.html')
-    
-    @app.route('/disabled')
-def disabled_auto_add():
-    return send_file('disabled_dashboard.html')
-
 
 @app.route('/dash')
 def dash():
@@ -1651,6 +1648,7 @@ def all_sessions():
 @app.route('/auto-add')
 def auto_add():
     return send_file('auto_add.html')
+
 @app.route('/settings')
 def settings():
     return send_file('settings.html')
