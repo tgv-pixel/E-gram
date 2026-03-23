@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Disabled Auto-Add Accounts - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #0e1621;
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+            border: 1px solid #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 span {
+            background: #ff6b6b;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 30px;
+            color: white;
+        }
+
+        .header p {
+            color: #8e9fad;
+            margin-top: 5px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .nav-btn:hover {
+            background: #3a4a5a;
+            transform: translateY(-1px);
+        }
+
+        .nav-btn.active {
+            background: #4c9ce0;
+            color: white;
+        }
+
+        .nav-btn.warning {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .nav-btn.warning:hover {
+            background: #ff8e8e;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #2b3945;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: #ff6b6b;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+
+        .stat-label {
+            color: #8e9fad;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Accounts Grid */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .account-card {
+            background: #17212b;
+            border-radius: 16px;
+            border: 1px solid #2b3945;
+            overflow: hidden;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .account-card:hover {
+            transform: translateY(-4px);
+            border-color: #ff6b6b;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .account-header {
+            background: #242f3d;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #2b3945;
+        }
+
+        .account-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ff6b6b, #ff8e8e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .account-info {
+            flex: 1;
+        }
+
+        .account-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .account-phone {
+            font-size: 0.85rem;
+            color: #8e9fad;
+        }
+
+        .disabled-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        .account-body {
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #2b3945;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #8e9fad;
+            font-size: 0.85rem;
+        }
+
+        .info-value {
+            color: #fff;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .info-value.warning {
+            color: #ff6b6b;
+        }
+
+        .account-actions {
+            padding: 15px 20px 20px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid #2b3945;
+            background: #1e2a36;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: #2b3945;
+            color: #6ab2f2;
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: #3a4a5a;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.primary {
+            background: #4c9ce0;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #6ab2f2;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: #17212b;
+            border-radius: 16px;
+            border: 1px solid #2b3945;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #8e9fad;
+            margin-bottom: 20px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #8e9fad;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #2b3945;
+            border-radius: 50%;
+            border-top-color: #4c9ce0;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #17212b;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid #2b3945;
+            z-index: 1000;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.success {
+            border-left: 4px solid #4c9ce0;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ff6b6b;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            background: #17212b;
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2b3945;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filter-info {
+            color: #8e9fad;
+            font-size: 0.9rem;
+        }
+
+        .filter-info strong {
+            color: #ff6b6b;
+        }
+
+        .refresh-btn {
+            background: #2b3945;
+            color: #6ab2f2;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #3a4a5a;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .accounts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .nav-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>
+                    ⚠️ Disabled Auto-Add Accounts 
+                    <span>INACTIVE</span>
+                </h1>
+                <p>Accounts that are not actively adding members to your group</p>
+            </div>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
+                <a href="/settings" class="nav-btn">⚡ Auto-Reply</a>
+                <a href="/auto-add" class="nav-btn">➕ Auto-Add</a>
+                <a href="/disabled-auto-add" class="nav-btn warning active">⚠️ Disabled Accounts</a>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDisabled">0</div>
+                <div class="stat-label">Total Disabled Accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalAccounts">0</div>
+                <div class="stat-label">Total Accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="enabledCount">0</div>
+                <div class="stat-label">Active Auto-Add</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="disabledPercent">0%</div>
+                <div class="stat-label">Disabled Percentage</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-info">
+                📋 Showing <strong id="displayCount">0</strong> accounts with auto-add disabled
+            </div>
+            <button class="refresh-btn" onclick="loadAccounts()">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <!-- Accounts List -->
+        <div id="accountsContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                Loading disabled accounts...
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let accounts = [];
+        let autoAddSettings = {};
+
+        const toast = document.getElementById('toast');
+
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadAutoAddSettings() {
+            try {
+                const accountsList = accounts;
+                for (const acc of accountsList) {
+                    try {
+                        const res = await fetch(`/api/auto-add-settings?accountId=${acc.id}`);
+                        const data = await res.json();
+                        if (data.success) {
+                            autoAddSettings[acc.id] = data.settings;
+                        } else {
+                            autoAddSettings[acc.id] = { enabled: false };
+                        }
+                    } catch (err) {
+                        console.error(`Error loading settings for account ${acc.id}:`, err);
+                        autoAddSettings[acc.id] = { enabled: false };
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading auto-add settings:', err);
+            }
+        }
+
+        async function loadAccounts() {
+            try {
+                const res = await fetch('/api/accounts');
+                const data = await res.json();
+                
+                if (data.success) {
+                    accounts = data.accounts || [];
+                    
+                    await loadAutoAddSettings();
+                    
+                    displayAccounts();
+                    updateStats();
+                } else {
+                    showToast('Failed to load accounts', 'error');
+                }
+            } catch (err) {
+                console.error('Error loading accounts:', err);
+                showToast('Error loading accounts', 'error');
+                document.getElementById('accountsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Failed to Load Accounts</h3>
+                        <p>Please check your connection and try again.</p>
+                        <button class="action-btn primary" onclick="loadAccounts()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function isAutoAddEnabled(accountId) {
+            const settings = autoAddSettings[accountId];
+            return settings && settings.enabled === true;
+        }
+
+        function getDisabledAccounts() {
+            return accounts.filter(acc => !isAutoAddEnabled(acc.id));
+        }
+
+        function displayAccounts() {
+            const container = document.getElementById('accountsContainer');
+            const disabledAccounts = getDisabledAccounts();
+            const displayCount = document.getElementById('displayCount');
+            displayCount.textContent = disabledAccounts.length;
+            
+            if (disabledAccounts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎉</div>
+                        <h3>All Accounts Are Active!</h3>
+                        <p>All your accounts have auto-add enabled. Great job!</p>
+                        <a href="/auto-add" class="action-btn primary" style="display: inline-flex; width: auto; padding: 12px 24px; margin-top: 10px;">
+                            ➕ Manage Auto-Add Settings
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="accounts-grid">';
+            
+            disabledAccounts.forEach(acc => {
+                const settings = autoAddSettings[acc.id] || {};
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
+                const targetGroup = settings.target_group || 'Abe_armygroup';
+                const dailyLimit = settings.daily_limit || 100;
+                const addedToday = settings.added_today || 0;
+                
+                html += `
+                    <div class="account-card">
+                        <div class="account-header">
+                            <div class="account-avatar">${escapeHtml(initial)}</div>
+                            <div class="account-info">
+                                <div class="account-name">${escapeHtml(acc.name || 'Unknown')}</div>
+                                <div class="account-phone">${escapeHtml(acc.phone || 'No phone')}</div>
+                                <div class="disabled-badge">⚠️ Auto-Add DISABLED</div>
+                            </div>
+                        </div>
+                        <div class="account-body">
+                            <div class="info-row">
+                                <span class="info-label">🎯 Target Group</span>
+                                <span class="info-value">@${escapeHtml(targetGroup)}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">📊 Daily Limit</span>
+                                <span class="info-value">${dailyLimit} members/day</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">✅ Added Today</span>
+                                <span class="info-value ${addedToday > 0 ? '' : 'warning'}">${addedToday}/${dailyLimit}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">🔗 Auto-Join</span>
+                                <span class="info-value">${settings.auto_join !== false ? '✅ Enabled' : '❌ Disabled'}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">📡 Member Sources</span>
+                                <span class="info-value">
+                                    ${settings.use_contacts ? '📱' : ''}
+                                    ${settings.use_recent_chats ? '💬' : ''}
+                                    ${settings.use_scraping ? '👥' : ''}
+                                    ${(!settings.use_contacts && !settings.use_recent_chats && !settings.use_scraping) ? '❌ None' : ''}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="account-actions">
+                            <a href="/auto-add" class="action-btn primary" onclick="return selectAccountAndNavigate(${acc.id})">
+                                ⚡ Enable Auto-Add
+                            </a>
+                            <button class="action-btn" onclick="quickEnable(${acc.id})">
+                                🚀 Quick Enable
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function quickEnable(accountId) {
+            if (!confirm('Enable auto-add for this account with default settings?')) return;
+            
+            try {
+                const res = await fetch(`/api/auto-add-settings?accountId=${accountId}`);
+                const data = await res.json();
+                
+                let settings = {
+                    accountId: accountId,
+                    enabled: true,
+                    target_group: 'Abe_armygroup',
+                    daily_limit: 100,
+                    delay_seconds: 30,
+                    source_groups: ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
+                    use_contacts: true,
+                    use_recent_chats: true,
+                    use_scraping: true,
+                    scrape_limit: 150,
+                    skip_bots: true,
+                    skip_inaccessible: true,
+                    auto_join: true
+                };
+                
+                if (data.success && data.settings) {
+                    settings = { ...settings, ...data.settings, enabled: true };
+                }
+                
+                const updateRes = await fetch('/api/auto-add-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await updateRes.json();
+                
+                if (result.success) {
+                    showToast('Auto-add enabled successfully!', 'success');
+                    autoAddSettings[accountId] = { ...autoAddSettings[accountId], enabled: true };
+                    displayAccounts();
+                    updateStats();
+                } else {
+                    showToast(result.error || 'Failed to enable auto-add', 'error');
+                }
+            } catch (err) {
+                console.error('Error enabling auto-add:', err);
+                showToast('Error enabling auto-add', 'error');
+            }
+        }
+
+        function selectAccountAndNavigate(accountId) {
+            sessionStorage.setItem('selectedAccountId', accountId);
+            return true;
+        }
+
+        function updateStats() {
+            const totalAccounts = accounts.length;
+            const disabledAccounts = getDisabledAccounts();
+            const totalDisabled = disabledAccounts.length;
+            const enabledCount = totalAccounts - totalDisabled;
+            const disabledPercent = totalAccounts > 0 ? Math.round((totalDisabled / totalAccounts) * 100) : 0;
+            
+            document.getElementById('totalDisabled').textContent = totalDisabled;
+            document.getElementById('totalAccounts').textContent = totalAccounts;
+            document.getElementById('enabledCount').textContent = enabledCount;
+            document.getElementById('disabledPercent').textContent = `${disabledPercent}%`;
+        }
+
+        let refreshInterval = null;
+        
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                loadAccounts();
+            }, 30000);
+        }
+
+        window.addEventListener('load', () => {
+            loadAccounts();
+            startAutoRefresh();
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
+</body>
+</html>
