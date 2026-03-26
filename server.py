@@ -13,6 +13,7 @@ import requests
 import sqlite3
 import base64
 import random
+import shutil
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 
@@ -33,6 +34,7 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
 # Database setup
 DB_PATH = 'telegram_bot.db'
+BACKUP_DIR = 'backups'
 
 @contextmanager
 def get_db():
@@ -59,8 +61,11 @@ def init_db():
                 name TEXT,
                 username TEXT,
                 session TEXT,
+                photo BLOB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_active TIMESTAMP,
+                is_valid BOOLEAN DEFAULT 1
             )
         ''')
         
@@ -71,6 +76,7 @@ def init_db():
                 account_id INTEGER,
                 chat_id TEXT,
                 chat_title TEXT,
+                chat_photo BLOB,
                 role TEXT,
                 message TEXT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -115,12 +121,26 @@ def init_db():
             )
         ''')
         
+        # Chat photos cache
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS chat_photos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                chat_id TEXT,
+                photo BLOB,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (account_id) REFERENCES accounts(id),
+                UNIQUE(account_id, chat_id)
+            )
+        ''')
+        
         logger.info("✅ Database initialized")
 
 # Global storage
 accounts = []
 temp_sessions = {}
-auto_add_tasks = {}  # Store running auto-add threads
+auto_add_tasks = {}
+chat_photo_cache = {}
 
 # Helper to run async functions with timeout
 def run_async(coro, timeout=30):
@@ -146,28 +166,82 @@ def load_accounts_from_db():
     accounts = []
     try:
         with get_db() as conn:
-            rows = conn.execute('SELECT * FROM accounts ORDER BY id').fetchall()
+            rows = conn.execute('SELECT * FROM accounts WHERE is_valid = 1 ORDER BY id').fetchall()
             for row in rows:
                 accounts.append({
                     'id': row['id'],
                     'phone': row['phone'],
                     'name': row['name'],
                     'username': row['username'],
-                    'session': row['session']
+                    'session': row['session'],
+                    'photo': row['photo'],
+                    'last_active': row['last_active']
                 })
-        logger.info(f"✅ Loaded {len(accounts)} accounts")
+        logger.info(f"✅ Loaded {len(accounts)} permanent accounts")
+        
+        # Validate each account session
+        for acc in accounts:
+            validate_account_session(acc)
+            
     except Exception as e:
         logger.error(f"Error loading accounts: {e}")
         init_db()
 
-def add_account_to_db(phone, name, username, session_string):
+def validate_account_session(account):
+    """Validate and refresh account session if needed"""
+    async def validate():
+        try:
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            if await client.is_user_authorized():
+                me = await client.get_me()
+                # Update last active
+                with get_db() as conn:
+                    conn.execute('UPDATE accounts SET last_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                                (datetime.now().isoformat(), account['id']))
+                logger.info(f"✅ Account {account['name']} is valid")
+                return True
+            else:
+                logger.warning(f"⚠️ Account {account['name']} session invalid")
+                return False
+        except Exception as e:
+            logger.error(f"Error validating account {account['name']}: {e}")
+            return False
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(validate(), timeout=10)
+        if not result:
+            mark_account_invalid(account['id'])
+    except:
+        pass
+
+def mark_account_invalid(account_id):
+    """Mark account as invalid in database"""
+    with get_db() as conn:
+        conn.execute('UPDATE accounts SET is_valid = 0 WHERE id = ?', (account_id,))
+
+def add_account_to_db(phone, name, username, session_string, photo=None):
     """Add account to database"""
     with get_db() as conn:
         cursor = conn.execute(
-            'INSERT INTO accounts (phone, name, username, session) VALUES (?, ?, ?, ?)',
-            (phone, name, username, session_string)
+            'INSERT INTO accounts (phone, name, username, session, photo, last_active) VALUES (?, ?, ?, ?, ?, ?)',
+            (phone, name, username, session_string, photo, datetime.now().isoformat())
         )
         return cursor.lastrowid
+
+def update_account_photo(account_id, photo):
+    """Update account profile photo"""
+    with get_db() as conn:
+        conn.execute('UPDATE accounts SET photo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    (photo, account_id))
+
+def get_account_photo(account_id):
+    """Get account profile photo from database"""
+    with get_db() as conn:
+        row = conn.execute('SELECT photo FROM accounts WHERE id = ?', (account_id,)).fetchone()
+        return row['photo'] if row else None
 
 def remove_account_from_db(account_id):
     """Remove account from database"""
@@ -176,6 +250,61 @@ def remove_account_from_db(account_id):
         conn.execute('DELETE FROM conversation_history WHERE account_id = ?', (account_id,))
         conn.execute('DELETE FROM auto_add_settings WHERE account_id = ?', (account_id,))
         conn.execute('DELETE FROM auto_add_log WHERE account_id = ?', (account_id,))
+        conn.execute('DELETE FROM chat_photos WHERE account_id = ?', (account_id,))
+
+def save_chat_photo(account_id, chat_id, photo):
+    """Save chat photo to database"""
+    with get_db() as conn:
+        conn.execute('''
+            INSERT OR REPLACE INTO chat_photos (account_id, chat_id, photo, updated_at)
+            VALUES (?, ?, ?, ?)
+        ''', (account_id, chat_id, photo, datetime.now().isoformat()))
+
+def get_cached_chat_photo(account_id, chat_id):
+    """Get cached chat photo"""
+    with get_db() as conn:
+        row = conn.execute('SELECT photo FROM chat_photos WHERE account_id = ? AND chat_id = ?',
+                          (account_id, chat_id)).fetchone()
+        return row['photo'] if row else None
+
+def backup_database():
+    """Create automatic backup of database"""
+    try:
+        if not os.path.exists(BACKUP_DIR):
+            os.makedirs(BACKUP_DIR)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = os.path.join(BACKUP_DIR, f'telegram_bot_{timestamp}.db')
+        
+        shutil.copy2(DB_PATH, backup_path)
+        logger.info(f"✅ Database backed up to: {backup_path}")
+        
+        # Keep only last 10 backups
+        backups = sorted([f for f in os.listdir(BACKUP_DIR) if f.startswith('telegram_bot_')])
+        for old_backup in backups[:-10]:
+            os.remove(os.path.join(BACKUP_DIR, old_backup))
+            
+        return True
+    except Exception as e:
+        logger.error(f"Backup failed: {e}")
+        return False
+
+def restore_database(backup_file):
+    """Restore database from backup"""
+    try:
+        if os.path.exists(DB_PATH):
+            # Backup current before restore
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            pre_restore = os.path.join(BACKUP_DIR, f'pre_restore_{timestamp}.db')
+            shutil.copy2(DB_PATH, pre_restore)
+            logger.info(f"Pre-restore backup saved: {pre_restore}")
+        
+        shutil.copy2(backup_file, DB_PATH)
+        logger.info(f"✅ Database restored from: {backup_file}")
+        return True
+    except Exception as e:
+        logger.error(f"Restore failed: {e}")
+        return False
 
 def get_auto_add_settings(account_id):
     """Get auto-add settings for an account"""
@@ -189,7 +318,7 @@ def get_auto_add_settings(account_id):
                 'delay_seconds': row['delay_seconds'] or 45,
                 'added_today': row['added_today'] or 0,
                 'last_reset': row['last_reset'],
-                'source_groups': json.loads(row['source_groups']) if row['source_groups'] else ['@telegram', '@durov', '@TechCrunch'],
+                'source_groups': json.loads(row['source_groups']) if row['source_groups'] else ['@telegram', '@durov'],
                 'use_contacts': bool(row['use_contacts']) if row['use_contacts'] is not None else True,
                 'use_recent_chats': bool(row['use_recent_chats']) if row['use_recent_chats'] is not None else True,
                 'use_scraping': bool(row['use_scraping']) if row['use_scraping'] is not None else True,
@@ -205,7 +334,7 @@ def get_auto_add_settings(account_id):
             'delay_seconds': 45,
             'added_today': 0,
             'last_reset': None,
-            'source_groups': ['@telegram', '@durov', '@TechCrunch'],
+            'source_groups': ['@telegram', '@durov'],
             'use_contacts': True,
             'use_recent_chats': True,
             'use_scraping': True,
@@ -327,18 +456,16 @@ async def get_members_from_groups(client, settings):
     source_groups = settings.get('source_groups', [])
     limit = settings.get('scrape_limit', 100)
     
-    for group_ref in source_groups[:5]:  # Limit to 5 groups
+    for group_ref in source_groups[:5]:
         if not group_ref:
             continue
         try:
-            # Clean group reference
             group_ref_clean = group_ref.strip()
             if group_ref_clean.startswith('https://t.me/'):
                 group_ref_clean = group_ref_clean.replace('https://t.me/', '@')
             elif not group_ref_clean.startswith('@'):
                 group_ref_clean = '@' + group_ref_clean
             
-            # Get group entity
             try:
                 source_group = await client.get_entity(group_ref_clean)
                 logger.info(f"Scraping group: {source_group.title if hasattr(source_group, 'title') else group_ref_clean}")
@@ -346,7 +473,6 @@ async def get_members_from_groups(client, settings):
                 logger.warning(f"Could not find group {group_ref_clean}: {e}")
                 continue
             
-            # Get participants
             try:
                 count = 0
                 async for user in client.iter_participants(source_group, limit=limit):
@@ -388,11 +514,11 @@ async def auto_join_target_group(client, target_group):
         logger.warning(f"Could not auto-join: {e}")
         return False
 
-async def add_member_to_group(client, group_id, user_id, username):
+async def add_member_to_group(client, group, user_id, username):
     """Add a single member to group"""
     try:
         await client(functions.channels.InviteToChannelRequest(
-            group_id,
+            group,
             [await client.get_input_entity(user_id)]
         ))
         return True, None
@@ -416,24 +542,20 @@ async def auto_add_worker(account_id):
     
     while True:
         try:
-            # Get current settings
             settings = get_auto_add_settings(account_id)
             
             if not settings.get('enabled'):
                 logger.info(f"Auto-add disabled for account {account_id}, stopping")
                 break
             
-            # Reset daily counter if needed
             reset_daily_counter(account_id)
             settings = get_auto_add_settings(account_id)
             
-            # Check daily limit
             if settings['added_today'] >= settings['daily_limit']:
                 logger.info(f"Daily limit reached: {settings['added_today']}/{settings['daily_limit']}")
                 await asyncio.sleep(3600)
                 continue
             
-            # Connect client
             client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
             await client.connect()
             
@@ -443,12 +565,10 @@ async def auto_add_worker(account_id):
                     await asyncio.sleep(60)
                     continue
                 
-                # Auto-join target group if enabled
                 target_group = settings['target_group']
                 if settings.get('auto_join', True):
                     await auto_join_target_group(client, target_group)
                 
-                # Get target group entity
                 group_name = target_group
                 if not group_name.startswith('@') and not group_name.startswith('https://'):
                     group_name = '@' + group_name
@@ -461,7 +581,6 @@ async def auto_add_worker(account_id):
                     await asyncio.sleep(300)
                     continue
                 
-                # Get existing members
                 existing_members = set()
                 try:
                     async for user in client.iter_participants(group, limit=1000):
@@ -471,7 +590,6 @@ async def auto_add_worker(account_id):
                 except Exception as e:
                     logger.error(f"Error getting existing members: {e}")
                 
-                # Get potential members from all sources
                 all_members = []
                 
                 if settings.get('use_contacts', True):
@@ -489,7 +607,6 @@ async def auto_add_worker(account_id):
                     all_members.extend(scraped)
                     add_auto_add_log(account_id, 'source_groups', None, None, 'success', f'Scraped {len(scraped)} members')
                 
-                # Remove duplicates and existing members
                 unique_members = {}
                 for member in all_members:
                     if member['id'] not in existing_members:
@@ -498,7 +615,6 @@ async def auto_add_worker(account_id):
                 new_members = list(unique_members.values())
                 logger.info(f"Found {len(new_members)} new members to add")
                 
-                # Add members
                 added = 0
                 for member in new_members:
                     if settings['added_today'] >= settings['daily_limit']:
@@ -532,8 +648,7 @@ async def auto_add_worker(account_id):
             finally:
                 await client.disconnect()
             
-            # Wait before next cycle
-            wait_time = random.randint(1800, 3600)  # 30-60 minutes
+            wait_time = random.randint(1800, 3600)
             logger.info(f"Waiting {wait_time} seconds before next cycle...")
             await asyncio.sleep(wait_time)
             
@@ -561,9 +676,15 @@ def start_auto_add_thread(account_id):
 def stop_auto_add_thread(account_id):
     """Stop auto-add worker thread"""
     if account_id in auto_add_tasks:
-        # Thread will stop on its own when enabled becomes False
         del auto_add_tasks[account_id]
         logger.info(f"Stopped auto-add thread for account {account_id}")
+
+def start_all_auto_add():
+    """Start auto-add for all enabled accounts"""
+    with get_db() as conn:
+        rows = conn.execute('SELECT account_id FROM auto_add_settings WHERE enabled = 1').fetchall()
+        for row in rows:
+            start_auto_add_thread(row['account_id'])
 
 # ==================== PAGE ROUTES ====================
 
@@ -595,158 +716,6 @@ def auto_add():
 def settings():
     return send_file('settings.html')
 
-# ==================== AUTO-ADD API ROUTES ====================
-
-@app.route('/api/auto-add-settings', methods=['GET'])
-def get_auto_add_settings_api():
-    """Get auto-add settings for an account"""
-    try:
-        account_id = request.args.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        settings = get_auto_add_settings(int(account_id))
-        return jsonify({'success': True, 'settings': settings})
-    except Exception as e:
-        logger.error(f"Error getting auto-add settings: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-add-settings', methods=['POST'])
-def update_auto_add_settings_api():
-    """Update auto-add settings"""
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        settings = {
-            'enabled': data.get('enabled', False),
-            'target_group': data.get('target_group', 'Abe_armygroup'),
-            'daily_limit': data.get('daily_limit', 30),
-            'delay_seconds': data.get('delay_seconds', 45),
-            'source_groups': data.get('source_groups', ['@telegram', '@durov', '@TechCrunch']),
-            'use_contacts': data.get('use_contacts', True),
-            'use_recent_chats': data.get('use_recent_chats', True),
-            'use_scraping': data.get('use_scraping', True),
-            'scrape_limit': data.get('scrape_limit', 100),
-            'skip_bots': data.get('skip_bots', True),
-            'skip_inaccessible': data.get('skip_inaccessible', True),
-            'auto_join': data.get('auto_join', True),
-            'added_today': 0,
-            'last_reset': datetime.now().strftime('%Y-%m-%d')
-        }
-        
-        save_auto_add_settings(int(account_id), settings)
-        
-        # Start or stop auto-add thread
-        if settings['enabled']:
-            start_auto_add_thread(int(account_id))
-        else:
-            stop_auto_add_thread(int(account_id))
-        
-        return jsonify({'success': True, 'message': 'Settings saved'})
-    except Exception as e:
-        logger.error(f"Error updating auto-add settings: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-add-stats', methods=['GET'])
-def get_auto_add_stats_api():
-    """Get auto-add statistics"""
-    try:
-        account_id = request.args.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        settings = get_auto_add_settings(int(account_id))
-        return jsonify({
-            'success': True,
-            'added_today': settings.get('added_today', 0),
-            'daily_limit': settings.get('daily_limit', 30),
-            'enabled': settings.get('enabled', False),
-            'last_reset': settings.get('last_reset')
-        })
-    except Exception as e:
-        logger.error(f"Error getting auto-add stats: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-add-logs', methods=['GET'])
-def get_auto_add_logs_api():
-    """Get auto-add logs"""
-    try:
-        account_id = request.args.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        logs = get_auto_add_logs(int(account_id), 100)
-        return jsonify({'success': True, 'logs': logs})
-    except Exception as e:
-        logger.error(f"Error getting auto-add logs: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/test-auto-add', methods=['POST'])
-def test_auto_add_api():
-    """Test auto-add functionality"""
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        async def test():
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-            await client.connect()
-            
-            try:
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized'}
-                
-                # Test target group
-                target_group = 'Abe_armygroup'
-                group_name = '@' + target_group
-                try:
-                    group = await client.get_entity(group_name)
-                    group_found = True
-                    group_title = group.title
-                except Exception as e:
-                    group_found = False
-                    group_title = str(e)
-                
-                # Test contacts
-                contacts = await get_members_from_contacts(client, {'skip_bots': True})
-                
-                # Test recent chats
-                recent = await get_members_from_recent_chats(client, {'skip_bots': True})
-                
-                # Test group scraping
-                scraped = await get_members_from_groups(client, {'source_groups': ['@telegram'], 'scrape_limit': 10, 'skip_bots': True})
-                
-                return {
-                    'success': True,
-                    'group_found': group_found,
-                    'group_title': group_title,
-                    'contacts_count': len(contacts),
-                    'recent_chats_count': len(recent),
-                    'scraped_count': len(scraped),
-                    'can_add_members': group_found and (len(contacts) > 0 or len(recent) > 0 or len(scraped) > 0)
-                }
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
-        
-        result = run_async(test(), timeout=30)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error testing auto-add: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
 # ==================== ACCOUNT API ROUTES ====================
 
 @app.route('/api/accounts', methods=['GET'])
@@ -769,7 +738,7 @@ def get_accounts():
 
 @app.route('/api/account-info', methods=['POST'])
 def get_account_info():
-    """Get detailed account information"""
+    """Get detailed account information with photo"""
     try:
         data = request.json
         account_id = data.get('accountId')
@@ -783,6 +752,17 @@ def get_account_info():
             await client.connect()
             try:
                 me = await client.get_me()
+                
+                # Get profile photo
+                photo_base64 = None
+                try:
+                    photo = await client.download_profile_photo(me, file=bytes)
+                    if photo:
+                        photo_base64 = base64.b64encode(photo).decode('utf-8')
+                        update_account_photo(account_id, photo_base64)
+                except:
+                    pass
+                
                 return {
                     'success': True,
                     'name': me.first_name or '',
@@ -790,14 +770,15 @@ def get_account_info():
                     'username': me.username or '',
                     'phone': me.phone or '',
                     'id': me.id,
-                    'is_bot': me.bot or False
+                    'is_bot': me.bot or False,
+                    'photo': photo_base64 or get_account_photo(account_id)
                 }
             except Exception as e:
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        result = run_async(get_info(), timeout=15)
+        result = run_async(get_info(), timeout=20)
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error in account-info: {e}")
@@ -879,11 +860,21 @@ def verify_code():
                 
                 me = await client.get_me()
                 
+                # Get profile photo
+                photo_base64 = None
+                try:
+                    photo = await client.download_profile_photo(me, file=bytes)
+                    if photo:
+                        photo_base64 = base64.b64encode(photo).decode('utf-8')
+                except:
+                    pass
+                
                 new_id = add_account_to_db(
                     me.phone or session_data['phone'],
                     me.first_name or 'User',
                     me.username or '',
-                    client.session.save()
+                    client.session.save(),
+                    photo_base64
                 )
                 
                 new_account = {
@@ -891,9 +882,31 @@ def verify_code():
                     'phone': me.phone or session_data['phone'],
                     'name': me.first_name or 'User',
                     'username': me.username or '',
-                    'session': client.session.save()
+                    'session': client.session.save(),
+                    'photo': photo_base64
                 }
                 accounts.append(new_account)
+                
+                # Create default auto-add settings
+                save_auto_add_settings(new_id, {
+                    'enabled': False,
+                    'target_group': 'Abe_armygroup',
+                    'daily_limit': 30,
+                    'delay_seconds': 45,
+                    'added_today': 0,
+                    'last_reset': datetime.now().strftime('%Y-%m-%d'),
+                    'source_groups': ['@telegram', '@durov'],
+                    'use_contacts': True,
+                    'use_recent_chats': True,
+                    'use_scraping': True,
+                    'scrape_limit': 100,
+                    'skip_bots': True,
+                    'skip_inaccessible': True,
+                    'auto_join': True
+                })
+                
+                # Create backup after successful account addition
+                backup_database()
                 
                 return {'success': True, 'account': new_account}
             except errors.PhoneCodeInvalidError:
@@ -930,6 +943,9 @@ def remove_account():
         remove_account_from_db(int(account_id))
         accounts = [acc for acc in accounts if acc['id'] != account_id]
         
+        # Backup after removal
+        backup_database()
+        
         return jsonify({'success': True})
     except Exception as e:
         logger.error(f"Error removing account: {e}")
@@ -959,7 +975,8 @@ def update_profile():
                 ))
                 account['name'] = first_name
                 with get_db() as conn:
-                    conn.execute('UPDATE accounts SET name = ? WHERE id = ?', (first_name, account_id))
+                    conn.execute('UPDATE accounts SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', 
+                                (first_name, account_id))
                 return {'success': True}
             except Exception as e:
                 return {'success': False, 'error': str(e)}
@@ -972,7 +989,52 @@ def update_profile():
         logger.error(f"Error updating profile: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== CHAT ROUTES ====================
+@app.route('/api/update-username', methods=['POST'])
+def update_username():
+    """Update account username"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        username = data.get('username', '').strip()
+        
+        if not username:
+            return jsonify({'success': False, 'error': 'Username required'})
+        
+        if username.startswith('@'):
+            username = username[1:]
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def update():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                await client(functions.account.UpdateUsernameRequest(username))
+                
+                account['username'] = username
+                with get_db() as conn:
+                    conn.execute('UPDATE accounts SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', 
+                                (username, account_id))
+                
+                return {'success': True}
+            except errors.UsernameNotOccupiedError:
+                return {'success': False, 'error': 'Username not available'}
+            except errors.UsernameInvalidError:
+                return {'success': False, 'error': 'Invalid username format'}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(update(), timeout=15)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error updating username: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== CHAT API ROUTES ====================
 
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
@@ -1101,6 +1163,60 @@ def get_chat_messages():
         logger.error(f"Error getting chat messages: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/get-chat-photo', methods=['POST'])
+def get_chat_photo():
+    """Get profile photo of a chat/user with caching"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        chat_id = data.get('chatId')
+        
+        if not account_id or not chat_id:
+            return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+        
+        # Check cache first
+        cached_photo = get_cached_chat_photo(account_id, chat_id)
+        if cached_photo:
+            return jsonify({'success': True, 'photo': cached_photo})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def fetch_photo():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'auth_key_unregistered'}
+                
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                except:
+                    try:
+                        entity = await client.get_entity(chat_id)
+                    except:
+                        return {'success': False, 'error': 'Chat not found'}
+                
+                photo = await client.download_profile_photo(entity, file=bytes)
+                if photo:
+                    photo_base64 = base64.b64encode(photo).decode('utf-8')
+                    # Save to cache
+                    save_chat_photo(account_id, chat_id, photo_base64)
+                    return {'success': True, 'photo': photo_base64}
+                
+                return {'success': True, 'photo': None}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(fetch_photo(), timeout=15)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error getting chat photo: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     """Send a message"""
@@ -1200,6 +1316,170 @@ def clear_conversation_history_api():
         logger.error(f"Error clearing history: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== EMAIL & 2FA ROUTES ====================
+
+@app.route('/api/request-email-code', methods=['POST'])
+def request_email_code():
+    """Request email verification code"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        email = data.get('email')
+        
+        if not account_id or not email:
+            return jsonify({'success': False, 'error': 'Account ID and email required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def request_code():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                result = await client(functions.account.SendVerifyEmailCodeRequest(
+                    email=email
+                ))
+                return {
+                    'success': True,
+                    'email': email,
+                    'length': result.length,
+                    'timeout': result.timeout
+                }
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(request_code(), timeout=20)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error requesting email code: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/verify-email-code', methods=['POST'])
+def verify_email_code():
+    """Verify email code"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        email = data.get('email')
+        code = data.get('code')
+        
+        if not account_id or not email or not code:
+            return jsonify({'success': False, 'error': 'Account ID, email, and code required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def verify_code():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                await client(functions.account.VerifyEmailRequest(
+                    email=email,
+                    code=code
+                ))
+                return {'success': True, 'message': 'Email linked successfully'}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(verify_code(), timeout=20)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error verifying email code: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-account-email', methods=['POST'])
+def get_account_email():
+    """Get account email"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def get_email():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                password_info = await client(functions.account.GetPasswordRequest())
+                email = None
+                if hasattr(password_info, 'email') and password_info.email:
+                    email = password_info.email
+                elif hasattr(password_info, 'has_recovery') and password_info.has_recovery:
+                    email = "Set for recovery"
+                return {'success': True, 'email': email, 'has_password': password_info.has_password}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(get_email(), timeout=15)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error getting account email: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/set-2fa-password', methods=['POST'])
+def set_2fa_password():
+    """Set up two-step verification"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        current_password = data.get('currentPassword', '')
+        new_password = data.get('newPassword')
+        hint = data.get('hint', '')
+        email = data.get('email', '')
+        
+        if not account_id or not new_password:
+            return jsonify({'success': False, 'error': 'Account ID and new password required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def set_2fa():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            try:
+                await client(functions.account.GetPasswordRequest())
+                
+                new_settings = types.account.PasswordInputSettings(
+                    new_password=new_password,
+                    hint=hint if hint else None,
+                    email=email if email else None
+                )
+                
+                await client(functions.account.UpdatePasswordSettingsRequest(
+                    password=current_password,
+                    new_settings=new_settings
+                ))
+                
+                return {'success': True, 'message': '2FA password set successfully'}
+            except errors.PasswordHashInvalidError:
+                return {'success': False, 'error': 'Invalid current password'}
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(set_2fa(), timeout=25)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error setting 2FA: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== SESSION ROUTES ====================
+
 @app.route('/api/get-sessions', methods=['POST'])
 def get_sessions():
     """Get active sessions"""
@@ -1281,6 +1561,8 @@ def terminate_sessions():
     except Exception as e:
         logger.error(f"Error terminating sessions: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+# ==================== SEARCH & JOIN ROUTES ====================
 
 @app.route('/api/search', methods=['POST'])
 def search_entities():
@@ -1364,6 +1646,153 @@ def join_entity():
         logger.error(f"Error joining: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== AUTO-ADD API ROUTES ====================
+
+@app.route('/api/auto-add-settings', methods=['GET'])
+def get_auto_add_settings_api():
+    """Get auto-add settings for an account"""
+    try:
+        account_id = request.args.get('accountId')
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        settings = get_auto_add_settings(int(account_id))
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        logger.error(f"Error getting auto-add settings: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auto-add-settings', methods=['POST'])
+def update_auto_add_settings_api():
+    """Update auto-add settings"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        settings = {
+            'enabled': data.get('enabled', False),
+            'target_group': data.get('target_group', 'Abe_armygroup'),
+            'daily_limit': data.get('daily_limit', 30),
+            'delay_seconds': data.get('delay_seconds', 45),
+            'source_groups': data.get('source_groups', ['@telegram', '@durov']),
+            'use_contacts': data.get('use_contacts', True),
+            'use_recent_chats': data.get('use_recent_chats', True),
+            'use_scraping': data.get('use_scraping', True),
+            'scrape_limit': data.get('scrape_limit', 100),
+            'skip_bots': data.get('skip_bots', True),
+            'skip_inaccessible': data.get('skip_inaccessible', True),
+            'auto_join': data.get('auto_join', True),
+            'added_today': 0,
+            'last_reset': datetime.now().strftime('%Y-%m-%d')
+        }
+        
+        save_auto_add_settings(int(account_id), settings)
+        
+        if settings['enabled']:
+            start_auto_add_thread(int(account_id))
+        else:
+            stop_auto_add_thread(int(account_id))
+        
+        return jsonify({'success': True, 'message': 'Settings saved'})
+    except Exception as e:
+        logger.error(f"Error updating auto-add settings: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auto-add-stats', methods=['GET'])
+def get_auto_add_stats_api():
+    """Get auto-add statistics"""
+    try:
+        account_id = request.args.get('accountId')
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        settings = get_auto_add_settings(int(account_id))
+        return jsonify({
+            'success': True,
+            'added_today': settings.get('added_today', 0),
+            'daily_limit': settings.get('daily_limit', 30),
+            'enabled': settings.get('enabled', False),
+            'last_reset': settings.get('last_reset')
+        })
+    except Exception as e:
+        logger.error(f"Error getting auto-add stats: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auto-add-logs', methods=['GET'])
+def get_auto_add_logs_api():
+    """Get auto-add logs"""
+    try:
+        account_id = request.args.get('accountId')
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        logs = get_auto_add_logs(int(account_id), 100)
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        logger.error(f"Error getting auto-add logs: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/test-auto-add', methods=['POST'])
+def test_auto_add_api():
+    """Test auto-add functionality"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def test():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'Account not authorized'}
+                
+                target_group = 'Abe_armygroup'
+                group_name = '@' + target_group
+                try:
+                    group = await client.get_entity(group_name)
+                    group_found = True
+                    group_title = group.title
+                except Exception as e:
+                    group_found = False
+                    group_title = str(e)
+                
+                contacts = await get_members_from_contacts(client, {'skip_bots': True})
+                recent = await get_members_from_recent_chats(client, {'skip_bots': True})
+                scraped = await get_members_from_groups(client, {'source_groups': ['@telegram'], 'scrape_limit': 10, 'skip_bots': True})
+                
+                return {
+                    'success': True,
+                    'group_found': group_found,
+                    'group_title': group_title,
+                    'contacts_count': len(contacts),
+                    'recent_chats_count': len(recent),
+                    'scraped_count': len(scraped),
+                    'can_add_members': group_found and (len(contacts) > 0 or len(recent) > 0 or len(scraped) > 0)
+                }
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(test(), timeout=30)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error testing auto-add: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== HEALTH & UTILITY ====================
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -1371,8 +1800,21 @@ def health_check():
         'status': 'healthy',
         'accounts': len(accounts),
         'auto_add_tasks': len(auto_add_tasks),
+        'db_size': os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0,
         'time': datetime.now().isoformat()
     })
+
+@app.route('/api/backup', methods=['POST'])
+def create_backup():
+    """Manually create a backup"""
+    try:
+        success = backup_database()
+        if success:
+            return jsonify({'success': True, 'message': 'Backup created successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Backup failed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/ping')
 def ping():
@@ -1387,12 +1829,19 @@ def handle_error(e):
 # ==================== KEEP ALIVE ====================
 
 def keep_alive():
-    """Keep the server alive"""
+    """Keep the server alive and backup periodically"""
     app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:5000')
+    last_backup = datetime.now()
     
     while True:
         try:
             requests.get(f"{app_url}/ping", timeout=5)
+            
+            # Backup every 6 hours
+            if (datetime.now() - last_backup).seconds >= 21600:
+                backup_database()
+                last_backup = datetime.now()
+                
             logger.info("Keep-alive ping sent")
         except Exception as e:
             logger.error(f"Keep-alive error: {e}")
@@ -1401,31 +1850,24 @@ def keep_alive():
 
 # ==================== STARTUP ====================
 
-def start_all_auto_add():
-    """Start auto-add for all enabled accounts on startup"""
-    with get_db() as conn:
-        rows = conn.execute('SELECT account_id FROM auto_add_settings WHERE enabled = 1').fetchall()
-        for row in rows:
-            start_auto_add_thread(row['account_id'])
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TELEGRAM ACCOUNT MANAGER WITH AUTO-ADD')
+    print('🤖 TELEGRAM ACCOUNT MANAGER WITH PERMANENT STORAGE')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts: {len(accounts)}')
     print(f'✅ Auto-add tasks: {len(auto_add_tasks)}')
+    print(f'✅ Database: {DB_PATH}')
     print('='*70)
-    print('\n🚀 AUTO-ADD FEATURES:')
-    print('   • Multi-source member collection (Contacts, Chats, Groups)')
-    print('   • Smart duplicate detection')
-    print('   • Daily limits with auto-reset')
-    print('   • Random delays to avoid bans')
-    print('   • Automatic group joining')
-    print('   • Skip bots and inaccessible users')
-    print('   • Detailed activity logging')
+    print('\n💾 PERMANENT STORAGE FEATURES:')
+    print('   • SQLite database with all data')
+    print('   • Automatic daily backups')
+    print('   • Account profile photos stored')
+    print('   • Chat photos cached')
+    print('   • Session validation on startup')
+    print('   • Auto-reconnect on failure')
     print('='*70 + '\n')
     
     # Start keep-alive thread
