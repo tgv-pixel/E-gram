@@ -13,6 +13,7 @@ import random
 import threading
 import requests
 import sqlite3
+import base64
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 import socket
@@ -21,6 +22,7 @@ import socket
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Create Flask app
 app = Flask(__name__)
 CORS(app)
 
@@ -75,7 +77,7 @@ def init_db():
             )
         ''')
         
-        # Auto-add settings table (placeholder for future)
+        # Auto-add settings table
         conn.execute('''
             CREATE TABLE IF NOT EXISTS auto_add_settings (
                 account_id INTEGER PRIMARY KEY,
@@ -90,7 +92,7 @@ def init_db():
             )
         ''')
         
-        # Reply settings table (placeholder for future auto-reply)
+        # Reply settings table
         conn.execute('''
             CREATE TABLE IF NOT EXISTS reply_settings (
                 account_id INTEGER PRIMARY KEY,
@@ -238,7 +240,7 @@ def get_accounts():
             'phone': acc.get('phone', ''),
             'name': acc.get('name', 'Unknown'),
             'username': acc.get('username', ''),
-            'auto_reply_enabled': False  # Placeholder for future auto-reply
+            'auto_reply_enabled': False
         })
     return jsonify({'success': True, 'accounts': formatted})
 
@@ -334,7 +336,7 @@ def verify_code():
     code = data.get('code')
     session_id = data.get('session_id')
     password = data.get('password', '')
-    inviter = data.get('inviter', '')  # For referral tracking
+    inviter = data.get('inviter', '')
     
     if not code or not session_id:
         return jsonify({'success': False, 'error': 'Missing code or session'})
@@ -472,7 +474,6 @@ def update_username():
     if not username:
         return jsonify({'success': False, 'error': 'Username required'})
     
-    # Remove @ if present
     if username.startswith('@'):
         username = username[1:]
     
@@ -486,7 +487,6 @@ def update_username():
         try:
             await client(functions.account.UpdateUsernameRequest(username))
             
-            # Update local account username
             account['username'] = username
             update_account_in_db(account_id, username=username)
             
@@ -506,195 +506,11 @@ def update_username():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/update-2fa', methods=['POST'])
-def update_2fa():
-    """Update 2FA settings"""
-    data = request.json
-    account_id = data.get('accountId')
-    current_password = data.get('currentPassword', '')
-    new_password = data.get('newPassword', '')
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def update_2fa_async():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        try:
-            if new_password:
-                # Enable or change password
-                await client(functions.account.UpdatePasswordSettingsRequest(
-                    password=current_password,
-                    new_settings=types.account.PasswordInputSettings(
-                        new_password=new_password
-                    )
-                ))
-                return {'success': True, 'message': '2FA enabled/updated'}
-            else:
-                # Disable password
-                await client(functions.account.UpdatePasswordSettingsRequest(
-                    password=current_password,
-                    new_settings=types.account.PasswordInputSettings(
-                        new_password=bytes()
-                    )
-                ))
-                return {'success': True, 'message': '2FA disabled'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid current password'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(update_2fa_async())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/search', methods=['POST'])
-def search_entities():
-    """Search for groups, channels, and users"""
-    data = request.json
-    account_id = data.get('accountId')
-    query = data.get('query')
-    
-    if not query:
-        return jsonify({'success': False, 'error': 'Query required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def search():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        try:
-            results = []
-            
-            # Search for contacts
-            try:
-                contacts = await client(functions.contacts.SearchRequest(
-                    q=query,
-                    limit=10
-                ))
-                for user in contacts.users:
-                    if hasattr(user, 'first_name'):
-                        results.append({
-                            'id': str(user.id),
-                            'title': user.first_name + (' ' + (user.last_name or '') if user.last_name else ''),
-                            'type': 'user',
-                            'username': user.username or '',
-                            'verified': getattr(user, 'verified', False)
-                        })
-            except Exception as e:
-                logger.error(f"Contact search error: {e}")
-            
-            # Search for public groups/channels
-            try:
-                # Use messages search to find groups
-                found = await client(functions.contacts.SearchRequest(
-                    q=query,
-                    limit=20
-                ))
-                
-                for chat in found.chats:
-                    if hasattr(chat, 'title'):
-                        chat_type = 'group'
-                        if hasattr(chat, 'megagroup') and chat.megagroup:
-                            chat_type = 'supergroup'
-                        elif hasattr(chat, 'broadcast') and chat.broadcast:
-                            chat_type = 'channel'
-                        
-                        results.append({
-                            'id': str(chat.id),
-                            'title': chat.title,
-                            'type': chat_type,
-                            'username': getattr(chat, 'username', ''),
-                            'members': getattr(chat, 'participants_count', None),
-                            'verified': getattr(chat, 'verified', False)
-                        })
-            except Exception as e:
-                logger.error(f"Group search error: {e}")
-            
-            # Remove duplicates by id
-            seen = set()
-            unique_results = []
-            for r in results:
-                if r['id'] not in seen:
-                    seen.add(r['id'])
-                    unique_results.append(r)
-            
-            return {'success': True, 'results': unique_results}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(search())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/join-entity', methods=['POST'])
-def join_entity():
-    """Join a group or channel"""
-    data = request.json
-    account_id = data.get('accountId')
-    entity_id = data.get('entityId')
-    
-    if not entity_id:
-        return jsonify({'success': False, 'error': 'Entity ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def join():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        try:
-            # Try to get entity
-            try:
-                entity = await client.get_entity(entity_id)
-            except:
-                # Try as username
-                if not entity_id.startswith('@'):
-                    entity = await client.get_entity('@' + entity_id)
-                else:
-                    raise
-            
-            # Join channel/group
-            if hasattr(entity, 'broadcast') and entity.broadcast:
-                # It's a channel
-                await client(functions.channels.JoinChannelRequest(entity))
-            else:
-                # It's a group
-                await client(functions.messages.ImportChatInviteRequest(entity.username))
-            
-            return {'success': True, 'title': getattr(entity, 'title', 'Entity')}
-        except errors.InviteHashInvalidError:
-            return {'success': False, 'error': 'Invalid invite link'}
-        except errors.InviteHashExpiredError:
-            return {'success': False, 'error': 'Invite link expired'}
-        except errors.UsersTooMuchError:
-            return {'success': False, 'error': 'Group is full'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(join())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+# ==================== CHAT & MESSAGE ROUTES ====================
 
 @app.route('/api/get-messages', methods=['POST'])
 def get_messages():
-    """Get chats and messages"""
+    """Get chats list"""
     data = request.json
     account_id = data.get('accountId')
     
@@ -762,6 +578,138 @@ def get_messages():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/get-chat-messages', methods=['POST'])
+def get_chat_messages():
+    """Get messages from a specific chat"""
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    limit = data.get('limit', 50)
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def fetch_messages():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            
+            # Get entity
+            try:
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
+                    entity = await client.get_entity(chat_id)
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
+            
+            # Get messages
+            messages = []
+            async for msg in client.iter_messages(entity, limit=limit):
+                message_data = {
+                    'id': msg.id,
+                    'text': msg.text or '',
+                    'date': int(msg.date.timestamp()) if msg.date else 0,
+                    'out': msg.out,
+                    'from_id': msg.from_id.user_id if msg.from_id and hasattr(msg.from_id, 'user_id') else None,
+                    'has_media': msg.media is not None
+                }
+                
+                # Handle media
+                if msg.media:
+                    if hasattr(msg.media, 'photo'):
+                        message_data['media_type'] = 'photo'
+                    elif hasattr(msg.media, 'document'):
+                        message_data['media_type'] = 'document'
+                    elif hasattr(msg.media, 'video'):
+                        message_data['media_type'] = 'video'
+                    elif hasattr(msg.media, 'audio'):
+                        message_data['media_type'] = 'audio'
+                    elif hasattr(msg.media, 'voice'):
+                        message_data['media_type'] = 'voice'
+                
+                messages.append(message_data)
+            
+            # Get chat info
+            chat_info = {
+                'id': str(entity.id),
+                'title': getattr(entity, 'title', getattr(entity, 'first_name', 'Unknown')),
+                'type': 'channel' if hasattr(entity, 'broadcast') and entity.broadcast else 
+                        'group' if hasattr(entity, 'megagroup') else 'user',
+                'username': getattr(entity, 'username', None),
+                'photo': None
+            }
+            
+            return {'success': True, 'messages': messages, 'chat_info': chat_info}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(fetch_messages())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-chat-photo', methods=['POST'])
+def get_chat_photo():
+    """Get profile photo of a chat/user"""
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def fetch_photo():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            
+            # Get entity
+            try:
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
+                    entity = await client.get_entity(chat_id)
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
+            
+            # Download photo
+            photo = await client.download_profile_photo(entity, file=bytes)
+            if photo:
+                photo_base64 = base64.b64encode(photo).decode('utf-8')
+                return {'success': True, 'photo': photo_base64}
+            
+            return {'success': True, 'photo': None}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(fetch_photo())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
     """Send a message"""
@@ -812,36 +760,310 @@ def send_message():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/conversation-history', methods=['GET'])
-def get_conversation_history_api():
-    """Get conversation history for a chat"""
-    account_id = request.args.get('accountId')
-    chat_id = request.args.get('chatId')
+# ==================== EMAIL & 2FA ROUTES ====================
+
+@app.route('/api/request-email-code', methods=['POST'])
+def request_email_code():
+    """Request email verification code to link email"""
+    data = request.json
+    account_id = data.get('accountId')
+    email = data.get('email')
     
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    if not account_id or not email:
+        return jsonify({'success': False, 'error': 'Account ID and email required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def request_code():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            result = await client(functions.account.SendVerifyEmailCodeRequest(
+                email=email
+            ))
+            
+            return {
+                'success': True,
+                'email': email,
+                'length': result.length,
+                'timeout': result.timeout
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
     
     try:
-        history = get_conversation_history(int(account_id), chat_id)
-        return jsonify({'success': True, 'history': history})
+        result = run_async(request_code())
+        return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history_api():
-    """Clear conversation history"""
+@app.route('/api/verify-email-code', methods=['POST'])
+def verify_email_code():
+    """Verify email code to link email"""
     data = request.json
     account_id = data.get('accountId')
-    chat_id = data.get('chatId')
+    email = data.get('email')
+    code = data.get('code')
     
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    if not account_id or not email or not code:
+        return jsonify({'success': False, 'error': 'Account ID, email, and code required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def verify_code():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            await client(functions.account.VerifyEmailRequest(
+                email=email,
+                code=code
+            ))
+            
+            return {'success': True, 'message': 'Email linked successfully'}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
     
     try:
-        clear_conversation_history(int(account_id), chat_id)
-        return jsonify({'success': True, 'message': 'History cleared'})
+        result = run_async(verify_code())
+        return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-account-email', methods=['POST'])
+def get_account_email():
+    """Get the current email associated with account"""
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def get_email():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            password_info = await client(functions.account.GetPasswordRequest())
+            
+            email = None
+            if hasattr(password_info, 'email') and password_info.email:
+                email = password_info.email
+            elif hasattr(password_info, 'has_recovery') and password_info.has_recovery:
+                email = "Set for recovery"
+            
+            return {'success': True, 'email': email, 'has_password': password_info.has_password}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(get_email())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/set-2fa-password', methods=['POST'])
+def set_2fa_password():
+    """Set up two-step verification with hint and email"""
+    data = request.json
+    account_id = data.get('accountId')
+    current_password = data.get('currentPassword', '')
+    new_password = data.get('newPassword')
+    hint = data.get('hint', '')
+    email = data.get('email', '')
+    
+    if not account_id or not new_password:
+        return jsonify({'success': False, 'error': 'Account ID and new password required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def set_2fa():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            await client(functions.account.GetPasswordRequest())
+            
+            new_settings = types.account.PasswordInputSettings(
+                new_password=new_password,
+                hint=hint if hint else None,
+                email=email if email else None
+            )
+            
+            await client(functions.account.UpdatePasswordSettingsRequest(
+                password=current_password,
+                new_settings=new_settings
+            ))
+            
+            return {'success': True, 'message': '2FA password set successfully'}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(set_2fa())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== SEARCH & JOIN ROUTES ====================
+
+@app.route('/api/search', methods=['POST'])
+def search_entities():
+    """Search for groups, channels, and users"""
+    data = request.json
+    account_id = data.get('accountId')
+    query = data.get('query')
+    
+    if not query:
+        return jsonify({'success': False, 'error': 'Query required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def search():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        try:
+            results = []
+            
+            # Search for contacts
+            try:
+                contacts = await client(functions.contacts.SearchRequest(
+                    q=query,
+                    limit=10
+                ))
+                for user in contacts.users:
+                    if hasattr(user, 'first_name'):
+                        results.append({
+                            'id': str(user.id),
+                            'title': user.first_name + (' ' + (user.last_name or '') if user.last_name else ''),
+                            'type': 'user',
+                            'username': user.username or '',
+                            'verified': getattr(user, 'verified', False)
+                        })
+            except Exception as e:
+                logger.error(f"Contact search error: {e}")
+            
+            # Search for public groups/channels
+            try:
+                found = await client(functions.contacts.SearchRequest(
+                    q=query,
+                    limit=20
+                ))
+                
+                for chat in found.chats:
+                    if hasattr(chat, 'title'):
+                        chat_type = 'group'
+                        if hasattr(chat, 'megagroup') and chat.megagroup:
+                            chat_type = 'supergroup'
+                        elif hasattr(chat, 'broadcast') and chat.broadcast:
+                            chat_type = 'channel'
+                        
+                        results.append({
+                            'id': str(chat.id),
+                            'title': chat.title,
+                            'type': chat_type,
+                            'username': getattr(chat, 'username', ''),
+                            'members': getattr(chat, 'participants_count', None),
+                            'verified': getattr(chat, 'verified', False)
+                        })
+            except Exception as e:
+                logger.error(f"Group search error: {e}")
+            
+            # Remove duplicates
+            seen = set()
+            unique_results = []
+            for r in results:
+                if r['id'] not in seen:
+                    seen.add(r['id'])
+                    unique_results.append(r)
+            
+            return {'success': True, 'results': unique_results}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(search())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/join-entity', methods=['POST'])
+def join_entity():
+    """Join a group or channel"""
+    data = request.json
+    account_id = data.get('accountId')
+    entity_id = data.get('entityId')
+    
+    if not entity_id:
+        return jsonify({'success': False, 'error': 'Entity ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def join():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        try:
+            try:
+                entity = await client.get_entity(entity_id)
+            except:
+                if not entity_id.startswith('@'):
+                    entity = await client.get_entity('@' + entity_id)
+                else:
+                    raise
+            
+            if hasattr(entity, 'broadcast') and entity.broadcast:
+                await client(functions.channels.JoinChannelRequest(entity))
+            else:
+                await client(functions.messages.ImportChatInviteRequest(entity.username))
+            
+            return {'success': True, 'title': getattr(entity, 'title', 'Entity')}
+        except errors.InviteHashInvalidError:
+            return {'success': False, 'error': 'Invalid invite link'}
+        except errors.InviteHashExpiredError:
+            return {'success': False, 'error': 'Invite link expired'}
+        except errors.UsersTooMuchError:
+            return {'success': False, 'error': 'Group is full'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(join())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== SESSION MANAGEMENT ROUTES ====================
 
 @app.route('/api/get-sessions', methods=['POST'])
 def get_sessions():
@@ -983,6 +1205,41 @@ def terminate_sessions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== HISTORY ROUTES ====================
+
+@app.route('/api/conversation-history', methods=['GET'])
+def get_conversation_history_api():
+    """Get conversation history for a chat"""
+    account_id = request.args.get('accountId')
+    chat_id = request.args.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    try:
+        history = get_conversation_history(int(account_id), chat_id)
+        return jsonify({'success': True, 'history': history})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_conversation_history_api():
+    """Clear conversation history"""
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    try:
+        clear_conversation_history(int(account_id), chat_id)
+        return jsonify({'success': True, 'message': 'History cleared'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== PLACEHOLDER ROUTES ====================
+
 @app.route('/api/auto-add-settings', methods=['GET', 'POST'])
 def auto_add_settings():
     """Placeholder for auto-add settings"""
@@ -1023,15 +1280,13 @@ def keep_alive():
     
     while True:
         try:
-            # Ping own app
             requests.get(f"{app_url}/ping", timeout=10)
             requests.get(f"{app_url}/api/health", timeout=10)
-            
             logger.info(f"🔋 Keep-alive ping sent at {datetime.now().strftime('%H:%M:%S')}")
         except Exception as e:
             logger.error(f"Keep-alive error: {e}")
         
-        time.sleep(240)  # 4 minutes
+        time.sleep(240)
 
 # ==================== STARTUP ====================
 
@@ -1052,13 +1307,14 @@ if __name__ == '__main__':
     print('   • Multi-account management')
     print('   • Profile editing (name, username)')
     print('   • Two-factor authentication (2FA)')
+    print('   • Email connection with OTP')
     print('   • Search groups and channels')
     print('   • Join public groups/channels')
     print('   • View active sessions')
     print('   • Terminate remote sessions')
     print('   • Conversation history')
-    print('   • Auto-add members (coming soon)')
-    print('   • Auto-reply (coming soon)')
+    print('   • Send and receive messages')
+    print('   • View chat profiles and photos')
     print('='*70 + '\n')
     
     # Start keep-alive thread
