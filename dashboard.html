@@ -60,6 +60,8 @@
             font-size: 1.4rem;
             font-weight: 600;
             color: white;
+            background-size: cover;
+            background-position: center;
         }
 
         .current-info {
@@ -132,6 +134,8 @@
             font-weight: 600;
             color: white;
             flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
         }
 
         .dropdown-info {
@@ -382,6 +386,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
         }
 
         .chat-header-avatar {
@@ -526,6 +531,12 @@
 
         .send-btn:hover:not(:disabled) {
             background: #6ab2f2;
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Settings Panel */
@@ -603,6 +614,8 @@
             justify-content: center;
             font-size: 1.8rem;
             font-weight: 600;
+            background-size: cover;
+            background-position: center;
         }
 
         .profile-name {
@@ -711,6 +724,8 @@
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
+            background-size: cover;
+            background-position: center;
         }
 
         .result-info {
@@ -963,7 +978,7 @@
             <div class="messages-header" id="messagesHeader" style="display: none;">
                 <div style="display: flex; align-items: center;">
                     <button class="mobile-back-btn" onclick="showChatsPanel()">←</button>
-                    <div class="chat-header-info">
+                    <div class="chat-header-info" onclick="viewChatInfo()">
                         <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
                         <div class="chat-header-details">
                             <span class="chat-header-title" id="currentChatTitle"></span>
@@ -978,7 +993,7 @@
             </div>
             <div class="compose-area" id="composeArea" style="display: none;">
                 <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                <button class="send-btn" onclick="sendMessage()">📤</button>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
             </div>
         </div>
 
@@ -1072,6 +1087,7 @@
         const messagesListDiv = document.getElementById('messagesList');
         const composeArea = document.getElementById('composeArea');
         const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
         const totalChatsSpan = document.getElementById('totalChats');
         const settingsPanel = document.getElementById('settingsPanel');
         const searchInput = document.getElementById('searchInput');
@@ -1220,7 +1236,7 @@
                 
                 html += `
                     <div class="dropdown-item" onclick="switchAccount(${acc.id})">
-                        <div class="dropdown-avatar">${escapeHtml(initial)}</div>
+                        <div class="dropdown-avatar" id="dropdownAvatar_${acc.id}">${escapeHtml(initial)}</div>
                         <div class="dropdown-info">
                             <div class="dropdown-name">${escapeHtml(accName)}</div>
                             <div class="dropdown-phone">${escapeHtml(accPhone)}</div>
@@ -1268,7 +1284,34 @@
             
             await loadChats();
             await loadAccountSettings();
+            
+            // Load account avatar
+            loadAccountAvatar(accountId);
         };
+
+        // Load account avatar for dropdown
+        async function loadAccountAvatar(accountId) {
+            try {
+                const res = await fetch('/api/account-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: accountId })
+                });
+                
+                const data = await res.json();
+                if (data.success && data.photo) {
+                    const avatarElement = document.getElementById(`dropdownAvatar_${accountId}`);
+                    if (avatarElement) {
+                        avatarElement.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
+                        avatarElement.style.backgroundSize = 'cover';
+                        avatarElement.style.backgroundPosition = 'center';
+                        avatarElement.textContent = '';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading account avatar:', err);
+            }
+        }
 
         // Load Account Settings
         async function loadAccountSettings() {
@@ -1283,10 +1326,19 @@
                 
                 const data = await res.json();
                 if (data.success) {
-                    document.getElementById('profileAvatar').textContent = (data.name || '?').charAt(0).toUpperCase();
+                    const profileAvatar = document.getElementById('profileAvatar');
+                    profileAvatar.textContent = (data.name || '?').charAt(0).toUpperCase();
                     document.getElementById('profileName').textContent = data.name || 'Unknown';
                     document.getElementById('profileUsername').textContent = data.username ? '@' + data.username : 'No username';
                     document.getElementById('profilePhone').textContent = data.phone || '';
+                    
+                    // Load profile photo if available
+                    if (data.photo) {
+                        profileAvatar.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
+                        profileAvatar.style.backgroundSize = 'cover';
+                        profileAvatar.style.backgroundPosition = 'center';
+                        profileAvatar.textContent = '';
+                    }
                 }
                 
                 // Load email info
@@ -1439,6 +1491,7 @@
             currentChat = { id: chatId, title: chatTitle };
             
             currentChatTitle.textContent = chatTitle;
+            chatHeaderAvatar.textContent = chatTitle.charAt(0).toUpperCase();
             
             const chat = chats.find(c => c.id === chatId);
             if (chat) {
@@ -1449,12 +1502,38 @@
             messagesHeader.style.display = 'flex';
             composeArea.style.display = 'flex';
             messageInput.disabled = false;
+            sendBtn.disabled = false;
             
             await loadMessages(chatId);
             await loadConversationHistory(chatId);
+            await loadChatHeaderPhoto(chatId);
             showMessagesPanel();
             displayChats();
         };
+
+        async function loadChatHeaderPhoto(chatId) {
+            try {
+                const res = await fetch('/api/get-chat-photo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: currentAccount.id,
+                        chatId: chatId
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success && data.photo) {
+                    const photoUrl = `data:image/jpeg;base64,${data.photo}`;
+                    chatHeaderAvatar.style.backgroundImage = `url(${photoUrl})`;
+                    chatHeaderAvatar.style.backgroundSize = 'cover';
+                    chatHeaderAvatar.style.backgroundPosition = 'center';
+                    chatHeaderAvatar.textContent = '';
+                }
+            } catch (err) {
+                console.error('Error loading chat header photo:', err);
+            }
+        }
 
         async function loadMessages(chatId) {
             if (!currentAccount || !chatId) return;
@@ -1477,39 +1556,6 @@
                 if (data.success) {
                     currentMessages = data.messages || [];
                     currentChatInfo = data.chat_info;
-                    
-                    // Update chat header with profile info
-                    if (currentChatInfo) {
-                        currentChatTitle.textContent = currentChatInfo.title;
-                        const avatarLetter = (currentChatInfo.title || '?').charAt(0).toUpperCase();
-                        chatHeaderAvatar.textContent = avatarLetter;
-                        
-                        let subtitle = currentChatInfo.type;
-                        if (currentChatInfo.username) {
-                            subtitle += ` · @${currentChatInfo.username}`;
-                        }
-                        chatHeaderSubtitle.textContent = subtitle;
-                        
-                        // Load photo for header
-                        if (data.chat_info.photo) {
-                            const photoRes = await fetch('/api/get-chat-photo', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    accountId: currentAccount.id,
-                                    chatId: chatId
-                                })
-                            });
-                            const photoData = await photoRes.json();
-                            if (photoData.success && photoData.photo) {
-                                const photoUrl = `data:image/jpeg;base64,${photoData.photo}`;
-                                chatHeaderAvatar.style.backgroundImage = `url(${photoUrl})`;
-                                chatHeaderAvatar.style.backgroundSize = 'cover';
-                                chatHeaderAvatar.style.backgroundPosition = 'center';
-                                chatHeaderAvatar.textContent = '';
-                            }
-                        }
-                    }
                     
                     if (currentMessages.length === 0) {
                         messagesListDiv.innerHTML = '<div class="empty-state">💬 No messages yet<br>Start the conversation!</div>';
@@ -1581,6 +1627,7 @@
             
             messageInput.value = '';
             messageInput.disabled = true;
+            sendBtn.disabled = true;
             
             try {
                 const res = await fetch('/api/send-message', {
@@ -1608,6 +1655,7 @@
                 messageInput.value = message;
             } finally {
                 messageInput.disabled = false;
+                sendBtn.disabled = false;
                 messageInput.focus();
             }
         }
@@ -1656,6 +1704,25 @@
 
         function viewChatHistory() {
             toggleSettings();
+        }
+
+        function viewChatInfo() {
+            // Show chat info modal
+            if (currentChatInfo) {
+                modalContent.innerHTML = `
+                    <h3>Chat Information</h3>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div class="chat-header-avatar" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto;">${(currentChatInfo.title || '?').charAt(0).toUpperCase()}</div>
+                        <h4 style="margin-top: 15px;">${escapeHtml(currentChatInfo.title)}</h4>
+                        <p style="color: #8e9fad;">${currentChatInfo.type || 'user'}</p>
+                        ${currentChatInfo.username ? `<p style="color: #6ab2f2;">@${escapeHtml(currentChatInfo.username)}</p>` : ''}
+                    </div>
+                    <div class="modal-actions">
+                        <button class="settings-btn" onclick="closeModal()">Close</button>
+                    </div>
+                `;
+                modal.classList.add('show');
+            }
         }
 
         async function clearHistory() {
@@ -1905,7 +1972,8 @@
                     showToast(data.error || 'Failed to set 2FA', 'error');
                 }
             } catch (err) {
-                showToast('Error setting 2FA', 'error');
+                console.error('2FA error:', err);
+                showToast('Error setting 2FA. Please try again.', 'error');
             }
         }
 
