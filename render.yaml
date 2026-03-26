@@ -1,5 +1,5 @@
 services:
-  # Service 1: Main Tsega Auto-Reply
+  # Service 1: Main Telegram Account Manager
   - type: web
     name: tsega-main
     runtime: python
@@ -14,10 +14,16 @@ services:
         value: 08bdab35790bf1fdf20c16a50bd323b8
       - key: PYTHON_VERSION
         value: 3.11.0
-    healthCheckPath: /health
+      - key: PORT
+        value: 5000
+    healthCheckPath: /api/health
     autoDeploy: true
+    disk:
+      name: data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
 
-  # Service 2: Tsega Star Earning
+  # Service 2: Tsega Star Earning System
   - type: web
     name: tsega-star
     runtime: python
@@ -36,5 +42,27 @@ services:
         value: "@Abe_army"
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PORT
+        value: 5001
     healthCheckPath: /health
     autoDeploy: true
+    disk:
+      name: star-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+# Backup cron job for database
+  - type: cron
+    name: db-backup
+    runtime: python
+    region: oregon
+    schedule: "0 0 * * *"  # Daily at midnight UTC
+    buildCommand: pip install -r requirements.txt
+    startCommand: python backup_db.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    disk:
+      name: backup-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
