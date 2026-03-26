@@ -3,647 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Multi-Account Dashboard</title>
+    <title>Telegram Account Manager</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background: #0e1621;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #fff;
-            overflow: hidden;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #0e1621; height: 100vh; display: flex; flex-direction: column; color: #fff; overflow: hidden; }
+        
         /* Header */
-        .app-header {
-            background: #17212b;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #2b3945;
-            flex-shrink: 0;
-            height: 60px;
-            z-index: 10;
-        }
-
-        .account-switcher {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 30px;
-            background: #242f3d;
-            position: relative;
-        }
-
-        .current-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            font-weight: 600;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .current-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .current-name {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .current-phone {
-            font-size: 0.75rem;
-            color: #8e9fad;
-        }
-
-        .dropdown-icon {
-            color: #8e9fad;
-            font-size: 1.2rem;
-        }
-
-        .account-dropdown {
-            position: absolute;
-            top: 60px;
-            left: 16px;
-            background: #17212b;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            width: 280px;
-            display: none;
-            z-index: 100;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
+        .app-header { background: #17212b; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2b3945; height: 60px; flex-shrink: 0; }
+        .account-switcher { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 12px; border-radius: 30px; background: #242f3d; position: relative; }
+        .current-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(145deg, #2b5278, #4c9ce0); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 600; background-size: cover; background-position: center; }
+        .current-info { display: flex; flex-direction: column; }
+        .current-name { font-size: 1rem; font-weight: 600; }
+        .current-phone { font-size: 0.75rem; color: #8e9fad; }
+        .dropdown-icon { color: #8e9fad; font-size: 1.2rem; margin-left: 8px; }
+        .account-dropdown { position: absolute; top: 60px; left: 16px; background: #17212b; border: 1px solid #2b3945; border-radius: 12px; width: 280px; display: none; z-index: 100; max-height: 400px; overflow-y: auto; }
         .account-dropdown.show { display: block; }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            gap: 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #2b3945;
-        }
-
+        .dropdown-item { display: flex; align-items: center; padding: 12px 16px; gap: 12px; cursor: pointer; border-bottom: 1px solid #2b3945; }
         .dropdown-item:hover { background: #242f3d; }
-
-        .dropdown-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #2b5278;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            background: #2b3945;
-            color: #6ab2f2;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            cursor: pointer;
-        }
-
-        .settings-btn-header, .refresh-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            padding: 0;
-            font-size: 1.2rem;
-        }
-
+        .dropdown-avatar { width: 36px; height: 36px; border-radius: 50%; background: #2b5278; display: flex; align-items: center; justify-content: center; font-weight: 600; background-size: cover; background-position: center; }
+        .header-actions { display: flex; gap: 8px; }
+        .header-actions button { background: #2b3945; color: #6ab2f2; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
+        .settings-btn-header, .refresh-btn { width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 1.2rem; }
+        
         /* Main layout */
-        .main-layout {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        
         /* Chats panel */
-        .chats-panel {
-            width: 350px;
-            background: #17212b;
-            border-right: 1px solid #2b3945;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chats-panel-header {
-            padding: 16px;
-            border-bottom: 1px solid #2b3945;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .chats-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-        }
-
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-bottom: 4px;
-        }
-
+        .chats-panel { width: 350px; background: #17212b; border-right: 1px solid #2b3945; display: flex; flex-direction: column; overflow: hidden; }
+        .chats-panel-header { padding: 16px; border-bottom: 1px solid #2b3945; display: flex; justify-content: space-between; }
+        .chats-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+        .chat-item { display: flex; align-items: center; padding: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 4px; }
         .chat-item:hover { background: #242f3d; }
         .chat-item.active { background: #2b5278; }
-
-        .chat-avatar {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-right: 12px;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .chat-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .chat-name {
-            font-weight: 600;
-            font-size: 1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-time {
-            font-size: 0.75rem;
-            color: #8e9fad;
-        }
-
-        .chat-last-msg {
-            font-size: 0.85rem;
-            color: #8e9fad;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-status {
-            font-size: 0.7rem;
-            color: #4c9ce0;
-        }
-
-        .chat-unread {
-            background: #4c9ce0;
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            margin-left: 8px;
-        }
-
+        .chat-avatar { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(145deg, #2b5278, #4c9ce0); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; margin-right: 12px; background-size: cover; background-position: center; }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-name { font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-time { font-size: 0.75rem; color: #8e9fad; }
+        .chat-last-msg { font-size: 0.85rem; color: #8e9fad; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-status { font-size: 0.7rem; color: #4c9ce0; margin-top: 2px; }
+        .chat-unread { background: #4c9ce0; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 12px; margin-left: 8px; }
+        
         /* Messages panel */
-        .messages-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .messages-header {
-            background: #17212b;
-            padding: 12px 20px;
-            border-bottom: 1px solid #2b3945;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-
-        .chat-header-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .chat-header-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 600;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .chat-header-status {
-            font-size: 0.7rem;
-            color: #8e9fad;
-        }
-
+        .messages-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .messages-header { background: #17212b; padding: 12px 20px; border-bottom: 1px solid #2b3945; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+        .chat-header-info { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .chat-header-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(145deg, #2b5278, #4c9ce0); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 600; background-size: cover; background-position: center; }
+        .chat-header-status { font-size: 0.7rem; color: #8e9fad; }
         .chat-header-status.online { color: #4c9ce0; }
-
-        .messages-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .message-wrapper {
-            display: flex;
-            flex-direction: column;
-            max-width: 85%;
-        }
-
+        .messages-scroll { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .message-wrapper { display: flex; flex-direction: column; max-width: 85%; }
         .message-wrapper.outgoing { align-self: flex-end; }
         .message-wrapper.incoming { align-self: flex-start; }
-
-        .message-bubble {
-            padding: 8px 12px;
-            border-radius: 18px;
-            word-wrap: break-word;
-        }
-
-        .incoming .message-bubble {
-            background: #17212b;
-            border-bottom-left-radius: 4px;
-        }
-
-        .outgoing .message-bubble {
-            background: #2b5278;
-            border-bottom-right-radius: 4px;
-        }
-
-        /* Media styles */
-        .media-container {
-            margin: 5px 0;
-            cursor: pointer;
-        }
-
-        .media-image {
-            max-width: 300px;
-            max-height: 250px;
-            border-radius: 12px;
-            cursor: pointer;
-        }
-
-        .media-video {
-            max-width: 300px;
-            max-height: 250px;
-            border-radius: 12px;
-        }
-
-        .sticker-container {
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .sticker-image {
-            max-width: 128px;
-            max-height: 128px;
-        }
-
-        .media-document {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-        }
-
+        .message-bubble { padding: 8px 12px; border-radius: 18px; word-wrap: break-word; }
+        .incoming .message-bubble { background: #17212b; border-bottom-left-radius: 4px; }
+        .outgoing .message-bubble { background: #2b5278; border-bottom-right-radius: 4px; }
+        .media-image { max-width: 300px; max-height: 250px; border-radius: 12px; cursor: pointer; }
+        .media-video { max-width: 300px; max-height: 250px; border-radius: 12px; }
+        .sticker-image { max-width: 128px; max-height: 128px; }
+        .media-document { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; cursor: pointer; }
         .document-icon { font-size: 2rem; }
-        .document-name { font-weight: 600; font-size: 0.9rem; }
+        .document-name { font-weight: 600; }
         .document-size { font-size: 0.7rem; color: #8e9fad; }
-
-        .message-meta {
-            display: flex;
-            justify-content: flex-end;
-            gap: 4px;
-            margin-top: 2px;
-            font-size: 0.65rem;
-            color: #8e9fad;
-        }
-
-        /* Typing indicator */
-        .typing-indicator {
-            display: none;
-            padding: 8px 12px;
-            background: #17212b;
-            border-radius: 18px;
-            width: fit-content;
-            margin-bottom: 12px;
-        }
-
-        .typing-indicator span {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #8e9fad;
-            margin: 0 2px;
-            animation: typing 1.4s infinite;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-
+        .message-meta { display: flex; justify-content: flex-end; gap: 4px; margin-top: 2px; font-size: 0.65rem; color: #8e9fad; }
+        .typing-indicator { display: none; padding: 8px 12px; background: #17212b; border-radius: 18px; width: fit-content; margin-bottom: 12px; }
+        .typing-indicator span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #8e9fad; margin: 0 2px; animation: typing 1.4s infinite; }
+        @keyframes typing { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-10px); } }
+        
         /* Compose area */
-        .compose-area {
-            background: #17212b;
-            padding: 12px 20px;
-            border-top: 1px solid #2b3945;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .attach-btn {
-            background: #2b3945;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.3rem;
-            color: #6ab2f2;
-        }
-
-        .compose-input {
-            flex: 1;
-            background: #242f3d;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 18px;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        .send-btn {
-            background: #4c9ce0;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            color: white;
-            font-size: 1.3rem;
-        }
-
+        .compose-area { background: #17212b; padding: 12px 20px; border-top: 1px solid #2b3945; display: flex; gap: 12px; align-items: center; }
+        .attach-btn { background: #2b3945; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; color: #6ab2f2; }
+        .compose-input { flex: 1; background: #242f3d; border: none; border-radius: 30px; padding: 12px 18px; color: #fff; font-size: 1rem; outline: none; }
+        .send-btn { background: #4c9ce0; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; color: white; font-size: 1.3rem; }
+        
         /* Settings Panel */
-        .settings-panel {
-            width: 380px;
-            background: #17212b;
-            border-left: 1px solid #2b3945;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .settings-header {
-            padding: 20px;
-            border-bottom: 1px solid #2b3945;
-            display: flex;
-            justify-content: space-between;
-        }
-
+        .settings-panel { width: 380px; background: #17212b; border-left: 1px solid #2b3945; display: flex; flex-direction: column; overflow-y: auto; }
+        .settings-header { padding: 20px; border-bottom: 1px solid #2b3945; display: flex; justify-content: space-between; }
         .settings-content { padding: 20px; }
         .settings-section { margin-bottom: 24px; }
         .settings-section h4 { margin-bottom: 15px; }
-
-        .profile-preview {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            background: #242f3d;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .profile-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            font-weight: 600;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .settings-btn {
-            width: 100%;
-            padding: 12px;
-            background: #2b3945;
-            border: none;
-            border-radius: 30px;
-            color: #6ab2f2;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-
+        .profile-preview { display: flex; align-items: center; gap: 15px; padding: 15px; background: #242f3d; border-radius: 12px; margin-bottom: 20px; }
+        .profile-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(145deg, #2b5278, #4c9ce0); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 600; background-size: cover; background-position: center; }
+        .settings-btn { width: 100%; padding: 12px; background: #2b3945; border: none; border-radius: 30px; color: #6ab2f2; cursor: pointer; margin-bottom: 10px; }
         .settings-btn.danger { background: #8e2b2b; color: white; }
-
-        /* Channel Info Modal */
-        .channel-info {
-            background: #242f3d;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 10px 0;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #2b3945;
-        }
-
+        
         /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal.show { display: flex; }
-
-        .modal-content {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 450px;
-            width: 90%;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 12px;
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            color: #fff;
-            margin: 10px 0;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
+        .modal-content { background: #17212b; border-radius: 16px; padding: 24px; max-width: 450px; width: 90%; }
+        .modal-content input { width: 100%; padding: 12px; background: #242f3d; border: 1px solid #2b3945; border-radius: 12px; color: #fff; margin: 10px 0; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        
         /* Media Modal */
-        .media-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-
+        .media-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; }
         .media-modal.show { display: flex; }
-        .media-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            font-size: 2rem;
-            cursor: pointer;
-        }
+        .media-modal-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 2rem; cursor: pointer; }
         .media-modal-image { max-width: 90%; max-height: 90vh; }
         .media-modal-video { max-width: 90%; max-height: 90vh; }
-
+        
         /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #17212b;
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: 1px solid #2b3945;
-            z-index: 1000;
-            display: none;
-        }
-
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #17212b; padding: 12px 24px; border-radius: 30px; border: 1px solid #2b3945; z-index: 1000; display: none; }
         .toast.show { display: block; }
         .toast.success { border-left: 4px solid #4c9ce0; }
         .toast.error { border-left: 4px solid #e04c4c; }
-
-        .loading, .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #8e9fad;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #2b3945;
-            border-radius: 50%;
-            border-top-color: #4c9ce0;
-            animation: spin 1s linear infinite;
-        }
-
+        
+        .loading, .empty-state { text-align: center; padding: 40px; color: #8e9fad; }
+        .loading-spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #2b3945; border-radius: 50%; border-top-color: #4c9ce0; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
+        
         @media (max-width: 768px) {
             .chats-panel { width: 100%; }
-            .messages-panel {
-                display: none;
-                position: fixed;
-                top: 60px;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 20;
-            }
+            .messages-panel { display: none; position: fixed; top: 60px; left: 0; right: 0; bottom: 0; z-index: 20; background: #0e1621; }
             .messages-panel.show { display: flex; }
-            .settings-panel {
-                position: fixed;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                transform: translateX(100%);
-                transition: transform 0.3s;
-                z-index: 30;
-            }
+            .settings-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; transform: translateX(100%); transition: transform 0.3s; z-index: 30; }
             .settings-panel.show { transform: translateX(0); }
-            .mobile-back-btn {
-                background: transparent;
-                color: #6ab2f2;
-                border: none;
-                font-size: 1.5rem;
-                margin-right: 10px;
-                cursor: pointer;
-            }
+            .mobile-back-btn { background: transparent; color: #6ab2f2; border: none; font-size: 1.5rem; margin-right: 10px; cursor: pointer; }
         }
     </style>
 </head>
@@ -667,10 +140,7 @@
 
     <div class="main-layout">
         <div class="chats-panel" id="chatsPanel">
-            <div class="chats-panel-header">
-                <h3>CHATS</h3>
-                <span class="badge" id="totalChats">0</span>
-            </div>
+            <div class="chats-panel-header"><h3>CHATS</h3><span class="badge" id="totalChats">0</span></div>
             <div class="chats-scroll" id="chatsList"><div class="loading">Loading chats...</div></div>
         </div>
 
@@ -678,7 +148,7 @@
             <div class="messages-header" id="messagesHeader" style="display: none;">
                 <div style="display: flex; align-items: center;">
                     <button class="mobile-back-btn" onclick="showChatsPanel()">←</button>
-                    <div class="chat-header-info" onclick="showChannelInfo()">
+                    <div class="chat-header-info" onclick="showChatInfo()">
                         <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
                         <div class="chat-header-details">
                             <span class="chat-header-title" id="currentChatTitle"></span>
@@ -686,12 +156,9 @@
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="toggleMute()" id="muteBtn" style="background:#2b3945; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">🔔</button>
-                    <button onclick="showChannelInfo()" style="background:#2b3945; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">ℹ️</button>
-                </div>
+                <div><button onclick="toggleMute()" id="muteBtn" style="background:#2b3945; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">🔔</button></div>
             </div>
-            <div class="messages-scroll" id="messagesList"><div class="empty-state">👈 Select a chat to start messaging</div></div>
+            <div class="messages-scroll" id="messagesList"><div class="empty-state">👈 Select a chat</div></div>
             <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
             <div class="compose-area" id="composeArea" style="display: none;">
                 <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
@@ -702,21 +169,11 @@
         </div>
 
         <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
-                <h3>⚙️ Settings</h3>
-                <button class="close-settings-btn" onclick="toggleSettings()">✕</button>
-            </div>
+            <div class="settings-header"><h3>⚙️ Settings</h3><button class="close-settings-btn" onclick="toggleSettings()">✕</button></div>
             <div class="settings-content">
                 <div class="settings-section">
                     <h4>👤 Profile</h4>
-                    <div class="profile-preview">
-                        <div class="profile-avatar" id="profileAvatar">?</div>
-                        <div>
-                            <div class="profile-name" id="profileName">Loading...</div>
-                            <div class="profile-username" id="profileUsername">@username</div>
-                            <div class="profile-phone" id="profilePhone"></div>
-                        </div>
-                    </div>
+                    <div class="profile-preview"><div class="profile-avatar" id="profileAvatar">?</div><div><div id="profileName">Loading...</div><div id="profileUsername">@username</div><div id="profilePhone"></div></div></div>
                     <button class="settings-btn" onclick="editProfile()">✏️ Edit Name</button>
                     <button class="settings-btn" onclick="editUsername()">@ Change Username</button>
                 </div>
@@ -742,7 +199,7 @@
     </div>
 
     <script>
-        let accounts = [], currentAccount = null, currentChat = null, chats = [], currentMessages = [], refreshInterval = null, typingTimeout = null, isMuted = false;
+        let accounts = [], currentAccount = null, currentChat = null, chats = [], currentMessages = [], pendingFile = null, isMuted = false, refreshInterval = null;
 
         const toast = document.getElementById('toast'), dropdown = document.getElementById('accountDropdown'), switcher = document.getElementById('accountSwitcher');
         const currentAvatar = document.getElementById('currentAvatar'), currentName = document.getElementById('currentName'), currentPhone = document.getElementById('currentPhone');
@@ -750,14 +207,13 @@
         const chatHeaderAvatar = document.getElementById('chatHeaderAvatar'), chatHeaderStatus = document.getElementById('chatHeaderStatus');
         const messagesListDiv = document.getElementById('messagesList'), composeArea = document.getElementById('composeArea'), messageInput = document.getElementById('messageInput');
         const totalChatsSpan = document.getElementById('totalChats'), settingsPanel = document.getElementById('settingsPanel');
-        const modal = document.getElementById('modal'), modalContent = document.getElementById('modalContent');
-        const mediaModal = document.getElementById('mediaModal'), mediaModalContent = document.getElementById('mediaModalContent');
+        const modal = document.getElementById('modal'), modalContent = document.getElementById('modalContent'), mediaModal = document.getElementById('mediaModal'), mediaModalContent = document.getElementById('mediaModalContent');
 
         function showToast(msg, type = 'success') { toast.textContent = msg; toast.className = `toast show ${type}`; setTimeout(() => toast.classList.remove('show'), 3000); }
         function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         function formatTime(ts) { if (!ts) return ''; return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-        function formatDate(ts) { if (!ts) return ''; const d = new Date(ts * 1000), now = new Date(); return d.toDateString() === now.toDateString() ? formatTime(ts) : d.toLocaleDateString(); }
-        function formatFileSize(bytes) { if (!bytes) return ''; const s = ['B', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(1024)); return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + s[i]; }
+        function formatDate(ts) { if (!ts) return ''; const d = new Date(ts * 1000); return d.toDateString() === new Date().toDateString() ? formatTime(ts) : d.toLocaleDateString(); }
+        function formatFileSize(b) { if (!b) return ''; const s = ['B', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(b) / Math.log(1024)); return (b / Math.pow(1024, i)).toFixed(1) + ' ' + s[i]; }
         function showChatsPanel() { if (window.innerWidth <= 768) { document.getElementById('chatsPanel').style.display = 'block'; document.getElementById('messagesPanel').classList.remove('show'); } }
         function showMessagesPanel() { if (window.innerWidth <= 768) { document.getElementById('chatsPanel').style.display = 'none'; document.getElementById('messagesPanel').classList.add('show'); } }
         function toggleSettings() { if (window.innerWidth <= 768) settingsPanel.classList.toggle('show'); else settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none'; }
@@ -779,7 +235,7 @@
                         await loadAccountSettings();
                     } else showNoAccountState();
                 }
-            } catch (err) { chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server</div>'; }
+            } catch (err) { chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect</div>'; }
         }
 
         function updateHeaderForCurrentAccount() {
@@ -810,15 +266,11 @@
         window.switchAccount = async function(id) {
             const acc = accounts.find(a => a.id == id);
             if (!acc) return;
-            currentAccount = acc;
-            currentChat = null;
-            updateHeaderForCurrentAccount();
-            renderDropdown();
+            currentAccount = acc; currentChat = null;
+            updateHeaderForCurrentAccount(); renderDropdown();
             dropdown.classList.remove('show');
-            messagesHeader.style.display = 'none';
-            composeArea.style.display = 'none';
-            await loadChats();
-            await loadAccountSettings();
+            messagesHeader.style.display = 'none'; composeArea.style.display = 'none';
+            await loadChats(); await loadAccountSettings();
         };
 
         async function loadAccountSettings() {
@@ -865,11 +317,8 @@
                 const letter = (chat.title || '?').charAt(0).toUpperCase();
                 html += `<div class="chat-item ${active}" onclick="selectChat('${escapeHtml(chat.id)}', '${escapeHtml(chat.title)}')">
                     <div class="chat-avatar" data-chat-id="${escapeHtml(chat.id)}">${escapeHtml(letter)}</div>
-                    <div class="chat-info">
-                        <div class="chat-row"><span class="chat-name">${escapeHtml(chat.title)}</span><span class="chat-time">${escapeHtml(time)}</span></div>
-                        <div class="chat-last-msg">${escapeHtml(chat.lastMessage || 'No messages')}${unread}</div>
-                        ${chat.participants_count ? `<div class="chat-status">👥 ${chat.participants_count} members</div>` : ''}
-                    </div>
+                    <div class="chat-info"><div><span class="chat-name">${escapeHtml(chat.title)}</span><span class="chat-time">${escapeHtml(time)}</span></div>
+                    <div class="chat-last-msg">${escapeHtml(chat.lastMessage || 'No messages')}${unread}</div></div>
                 </div>`;
             });
             chatsListDiv.innerHTML = html;
@@ -906,8 +355,7 @@
                 const data = await res.json();
                 if (data.success && data.photo) {
                     chatHeaderAvatar.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
-                    chatHeaderAvatar.style.backgroundSize = 'cover';
-                    chatHeaderAvatar.textContent = '';
+                    chatHeaderAvatar.style.backgroundSize = 'cover'; chatHeaderAvatar.textContent = '';
                 }
             } catch (err) { console.error(err); }
         }
@@ -920,12 +368,11 @@
                 if (data.success) {
                     currentMessages = data.messages || [];
                     if (currentMessages.length) displayMessages(currentMessages);
-                    else messagesListDiv.innerHTML = '<div class="empty-state">💬 No messages yet<br>Send a message to start!</div>';
+                    else messagesListDiv.innerHTML = '<div class="empty-state">💬 No messages yet</div>';
                     if (data.chat_info) {
                         if (data.chat_info.online) chatHeaderStatus.innerHTML = '<span style="color:#4c9ce0;">● online</span>';
                         else if (data.chat_info.last_seen) chatHeaderStatus.innerHTML = `last seen ${formatDate(data.chat_info.last_seen)}`;
                         else chatHeaderStatus.innerHTML = data.chat_info.type || 'user';
-                        if (data.chat_info.participants_count) chatHeaderStatus.innerHTML += ` · ${data.chat_info.participants_count} members`;
                     }
                 } else messagesListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error)}</div>`;
             } catch (err) { messagesListDiv.innerHTML = '<div class="empty-state">Failed to load messages</div>'; }
@@ -937,22 +384,11 @@
                 const time = formatTime(msg.date);
                 const bubble = msg.out ? 'outgoing' : 'incoming';
                 let content = '';
-                if (msg.media_type === 'sticker' && msg.sticker_emoji) {
-                    content = `<div class="sticker-container"><div class="sticker-emoji" style="font-size:3rem;">${msg.sticker_emoji}</div></div>`;
-                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
-                } else if (msg.media_type === 'photo' && msg.media_thumb) {
-                    content = `<div class="media-container" onclick="showMedia('${msg.media_thumb}', 'photo')"><img class="media-image" src="data:image/jpeg;base64,${msg.media_thumb}"></div>`;
-                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
-                } else if (msg.media_type === 'video') {
-                    content = `<div class="media-container"><video class="media-video" controls><source src="/api/media/${msg.id}" onerror="this.src=''"></video></div>`;
-                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
-                } else if (msg.media_type === 'document') {
-                    content = `<div class="media-document" onclick="downloadMedia('${msg.media_url}', '${msg.media_name}')">
-                        <div class="document-icon">📄</div><div><div class="document-name">${escapeHtml(msg.media_name)}</div><div class="document-size">${formatFileSize(msg.media_size)}</div></div>
-                    </div>`;
-                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
-                } else if (msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
-                else content = `<div><em>Media message</em></div>`;
+                if (msg.media_type === 'sticker') content = `<div class="sticker-container"><div style="font-size:3rem;">🎨</div></div>`;
+                else if (msg.media_type === 'photo' && msg.media_data) content = `<div class="media-container" onclick="showMedia('${msg.media_data}', 'photo')"><img class="media-image" src="data:image/jpeg;base64,${msg.media_data}"></div>`;
+                else if (msg.media_type === 'video') content = `<div class="media-container"><video class="media-video" controls><source src="/api/media/${msg.id}"></video></div>`;
+                else if (msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
+                else content = `<div><em>Media</em></div>`;
                 html += `<div class="message-wrapper ${bubble}"><div class="message-bubble">${content}<div class="message-meta"><span>${time}</span>${msg.out ? '✓✓' : ''}</div></div></div>`;
             });
             messagesListDiv.innerHTML = html;
@@ -977,24 +413,21 @@
                     res = await fetch('/api/send-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, chatId: currentChat.id, message: msg }) });
                 }
                 const data = await res.json();
-                if (data.success) { messageInput.value = ''; showToast('Message sent'); await loadMessages(currentChat.id); }
-                else showToast(data.error || 'Failed to send', 'error');
-            } catch (err) { showToast('Error sending message', 'error'); }
+                if (data.success) { messageInput.value = ''; showToast('Sent'); await loadMessages(currentChat.id); }
+                else showToast(data.error || 'Failed', 'error');
+            } catch (err) { showToast('Error', 'error'); }
             finally { messageInput.disabled = false; messageInput.focus(); }
         }
 
-        let pendingFile = null;
         function uploadMedia(input) {
             if (input.files && input.files[0]) { pendingFile = input.files[0]; showToast(`Selected: ${pendingFile.name}`); messageInput.focus(); }
             input.value = '';
         }
 
         function showMedia(data, type) {
-            mediaModalContent.innerHTML = type === 'video' ? `<video class="media-modal-video" controls autoplay><source src="data:video/mp4;base64,${data}"></video>` : `<img class="media-modal-image" src="data:image/jpeg;base64,${data}">`;
+            mediaModalContent.innerHTML = type === 'video' ? `<video class="media-modal-video" controls><source src="data:video/mp4;base64,${data}"></video>` : `<img class="media-modal-image" src="data:image/jpeg;base64,${data}">`;
             mediaModal.classList.add('show');
         }
-
-        function downloadMedia(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
 
         messageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
 
@@ -1002,10 +435,7 @@
             try {
                 const res = await fetch('/api/get-channel-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, channelId: chatId }) });
                 const data = await res.json();
-                if (data.success) {
-                    isMuted = data.is_muted;
-                    document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔔';
-                }
+                if (data.success) { isMuted = data.is_muted; document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔔'; }
             } catch (err) { console.error(err); }
         }
 
@@ -1017,28 +447,19 @@
             } catch (err) { showToast('Error', 'error'); }
         }
 
-        async function showChannelInfo() {
+        async function showChatInfo() {
             if (!currentChat) return;
             try {
                 const res = await fetch('/api/get-channel-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, channelId: currentChat.id }) });
                 const data = await res.json();
                 if (data.success) {
-                    modalContent.innerHTML = `
-                        <h3>${escapeHtml(data.title)}</h3>
-                        <div class="channel-info">
-                            <div class="info-row"><span>Username</span><span>${data.username ? '@' + data.username : 'None'}</span></div>
-                            <div class="info-row"><span>Type</span><span>${data.type || 'Chat'}</span></div>
-                            <div class="info-row"><span>Members</span><span>${data.participants_count || 'N/A'}</span></div>
-                            <div class="info-row"><span>Online</span><span>${data.online_count || 0}</span></div>
-                            <div class="info-row"><span>Verified</span><span>${data.is_verified ? '✓' : '✗'}</span></div>
-                            <div class="info-row"><span>Muted</span><span>${data.is_muted ? 'Yes' : 'No'}</span></div>
-                            ${data.description ? `<div class="info-row"><span>Description</span><span style="word-break:break-word;">${escapeHtml(data.description)}</span></div>` : ''}
-                        </div>
-                        <div class="modal-actions"><button class="settings-btn" onclick="closeModal()">Close</button></div>
-                    `;
+                    modalContent.innerHTML = `<h3>${escapeHtml(data.title)}</h3><div class="info-row"><span>Members:</span><span>${data.participants_count || 'N/A'}</span></div>
+                    <div class="info-row"><span>Online:</span><span>${data.online_count || 0}</span></div><div class="info-row"><span>Username:</span><span>${data.username ? '@' + data.username : 'None'}</span></div>
+                    <div class="info-row"><span>Verified:</span><span>${data.is_verified ? '✓' : '✗'}</span></div>${data.description ? `<div class="info-row"><span>Description:</span><span>${escapeHtml(data.description)}</span></div>` : ''}
+                    <div class="modal-actions"><button class="settings-btn" onclick="closeModal()">Close</button></div>`;
                     modal.classList.add('show');
                 }
-            } catch (err) { showToast('Error loading info', 'error'); }
+            } catch (err) { showToast('Error', 'error'); }
         }
 
         function editProfile() { const name = prompt('Enter new name:', document.getElementById('profileName').textContent); if (name) updateProfile(name); }
@@ -1056,17 +477,12 @@
             try {
                 const res = await fetch('/api/update-username', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, username: user }) });
                 const data = await res.json();
-                if (data.success) showToast('Username updated');
-                else showToast(data.error, 'error');
+                if (data.success) showToast('Username updated'); else showToast(data.error, 'error');
             } catch (err) { showToast('Error', 'error'); }
         }
 
         function showEmailSetup() {
-            modalContent.innerHTML = `
-                <h3>Email Settings</h3>
-                <input type="email" id="emailInput" placeholder="Enter your email">
-                <div class="modal-actions"><button class="settings-btn" onclick="sendEmailCode()">Send Code</button><button onclick="closeModal()">Cancel</button></div>
-            `;
+            modalContent.innerHTML = `<h3>Email Settings</h3><input type="email" id="emailInput" placeholder="Enter your email"><div class="modal-actions"><button class="settings-btn" onclick="sendEmailCode()">Send Code</button><button onclick="closeModal()">Cancel</button></div>`;
             modal.classList.add('show');
         }
 
@@ -1088,20 +504,12 @@
             try {
                 const res = await fetch('/api/verify-email-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, email, code }) });
                 const data = await res.json();
-                if (data.success) { showToast('Email verified!'); closeModal(); }
-                else showToast(data.error, 'error');
+                if (data.success) { showToast('Email verified!'); closeModal(); } else showToast(data.error, 'error');
             } catch (err) { showToast('Error', 'error'); }
         }
 
         function show2FA() {
-            modalContent.innerHTML = `
-                <h3>Two-Step Verification</h3>
-                <input type="password" id="currentPwd" placeholder="Current password (if set)">
-                <input type="password" id="newPwd" placeholder="New password">
-                <input type="text" id="hint" placeholder="Password hint (optional)">
-                <input type="email" id="email2fa" placeholder="Recovery email (optional)">
-                <div class="modal-actions"><button class="settings-btn" onclick="set2FA()">Enable</button><button onclick="closeModal()">Cancel</button></div>
-            `;
+            modalContent.innerHTML = `<h3>Two-Step Verification</h3><input type="password" id="currentPwd" placeholder="Current password (if set)"><input type="password" id="newPwd" placeholder="New password"><input type="text" id="hint" placeholder="Hint (optional)"><input type="email" id="email2fa" placeholder="Recovery email (optional)"><div class="modal-actions"><button class="settings-btn" onclick="set2FA()">Enable</button><button onclick="closeModal()">Cancel</button></div>`;
             modal.classList.add('show');
         }
 
@@ -1110,12 +518,11 @@
             const newPwd = document.getElementById('newPwd').value;
             const hint = document.getElementById('hint').value;
             const email = document.getElementById('email2fa').value;
-            if (!newPwd) { showToast('Enter new password', 'error'); return; }
+            if (!newPwd) { showToast('Enter password', 'error'); return; }
             try {
                 const res = await fetch('/api/set-2fa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, currentPassword: current, newPassword: newPwd, hint, email }) });
                 const data = await res.json();
-                if (data.success) { showToast('2FA enabled'); closeModal(); }
-                else showToast(data.error, 'error');
+                if (data.success) { showToast('2FA enabled'); closeModal(); } else showToast(data.error, 'error');
             } catch (err) { showToast('Error', 'error'); }
         }
 
@@ -1125,9 +532,7 @@
                 const data = await res.json();
                 if (data.success && data.sessions) {
                     let list = 'Active Sessions:\n\n';
-                    data.sessions.forEach(s => {
-                        list += `${s.device_model} (${s.platform})\nIP: ${s.ip} · ${s.country}\nLast: ${new Date(s.date_active * 1000).toLocaleString()}\n${s.current ? '➡️ CURRENT\n' : ''}---\n`;
-                    });
+                    data.sessions.forEach(s => { list += `${s.device_model} (${s.platform})\nIP: ${s.ip} · ${s.country}\nLast: ${new Date(s.date_active * 1000).toLocaleString()}\n${s.current ? '➡️ CURRENT\n' : ''}---\n`; });
                     alert(list);
                 }
             } catch (err) { showToast('Error', 'error'); }
