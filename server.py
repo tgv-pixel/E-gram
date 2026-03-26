@@ -1317,10 +1317,9 @@ def clear_conversation_history_api():
         return jsonify({'success': False, 'error': str(e)})
 
 # ==================== EMAIL & 2FA ROUTES ====================
-
 @app.route('/api/request-email-code', methods=['POST'])
 def request_email_code():
-    """Request email verification code"""
+    """Request email verification code to link email"""
     try:
         data = request.json
         account_id = data.get('accountId')
@@ -1337,21 +1336,31 @@ def request_email_code():
             client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
             await client.connect()
             try:
+                # Get password info first
+                password_info = await client(functions.account.GetPasswordRequest())
+                
+                # Send verification email
                 result = await client(functions.account.SendVerifyEmailCodeRequest(
-                    email=email
+                    purpose=types.account.EmailPurposeLoginSetup(
+                        email=email
+                    )
                 ))
+                
                 return {
                     'success': True,
                     'email': email,
                     'length': result.length,
                     'timeout': result.timeout
                 }
+            except errors.FloodWaitError as e:
+                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
             except Exception as e:
+                logger.error(f"Email request error: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        result = run_async(request_code(), timeout=20)
+        result = run_async(request_code(), timeout=30)
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error requesting email code: {e}")
@@ -1359,7 +1368,7 @@ def request_email_code():
 
 @app.route('/api/verify-email-code', methods=['POST'])
 def verify_email_code():
-    """Verify email code"""
+    """Verify email code to link email"""
     try:
         data = request.json
         account_id = data.get('accountId')
@@ -1377,61 +1386,31 @@ def verify_email_code():
             client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
             await client.connect()
             try:
+                # Verify email code
                 await client(functions.account.VerifyEmailRequest(
                     email=email,
                     code=code
                 ))
+                
                 return {'success': True, 'message': 'Email linked successfully'}
+            except errors.PhoneCodeInvalidError:
+                return {'success': False, 'error': 'Invalid verification code'}
+            except errors.PhoneCodeExpiredError:
+                return {'success': False, 'error': 'Code expired. Please request a new one'}
             except Exception as e:
+                logger.error(f"Email verification error: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        result = run_async(verify_code(), timeout=20)
+        result = run_async(verify_code(), timeout=30)
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error verifying email code: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-account-email', methods=['POST'])
-def get_account_email():
-    """Get account email"""
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        async def get_email():
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-            await client.connect()
-            try:
-                password_info = await client(functions.account.GetPasswordRequest())
-                email = None
-                if hasattr(password_info, 'email') and password_info.email:
-                    email = password_info.email
-                elif hasattr(password_info, 'has_recovery') and password_info.has_recovery:
-                    email = "Set for recovery"
-                return {'success': True, 'email': email, 'has_password': password_info.has_password}
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
-        
-        result = run_async(get_email(), timeout=15)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error getting account email: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
 @app.route('/api/set-2fa-password', methods=['POST'])
 def set_2fa_password():
-    """Set up two-step verification"""
+    """Set up two-step verification with hint and email"""
     try:
         data = request.json
         account_id = data.get('accountId')
@@ -1451,33 +1430,42 @@ def set_2fa_password():
             client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
             await client.connect()
             try:
-                await client(functions.account.GetPasswordRequest())
+                # Get current password settings
+                password_info = await client(functions.account.GetPasswordRequest())
                 
+                # Prepare new password settings
                 new_settings = types.account.PasswordInputSettings(
-                    new_password=new_password,
-                    hint=hint if hint else None,
-                    email=email if email else None
+                    new_algo=password_info.new_algo,
+                    new_password_hash=bytes(new_password, 'utf-8'),
+                    hint=hint if hint else ""
                 )
                 
+                # Add email if provided
+                if email:
+                    new_settings.email = email
+                
+                # Update password settings
                 await client(functions.account.UpdatePasswordSettingsRequest(
-                    password=current_password,
+                    password=current_password if current_password else password_info.current_password,
                     new_settings=new_settings
                 ))
                 
                 return {'success': True, 'message': '2FA password set successfully'}
             except errors.PasswordHashInvalidError:
                 return {'success': False, 'error': 'Invalid current password'}
+            except errors.FloodWaitError as e:
+                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
             except Exception as e:
+                logger.error(f"2FA error: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        result = run_async(set_2fa(), timeout=25)
+        result = run_async(set_2fa(), timeout=30)
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error setting 2FA: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
 # ==================== SESSION ROUTES ====================
 
 @app.route('/api/get-sessions', methods=['POST'])
