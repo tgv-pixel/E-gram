@@ -45,10 +45,6 @@
             position: relative;
         }
 
-        .account-switcher:hover {
-            background: #2b3945;
-        }
-
         .current-avatar {
             width: 42px;
             height: 42px;
@@ -59,7 +55,6 @@
             justify-content: center;
             font-size: 1.4rem;
             font-weight: 600;
-            color: white;
             background-size: cover;
             background-position: center;
         }
@@ -72,7 +67,6 @@
         .current-name {
             font-size: 1rem;
             font-weight: 600;
-            color: #fff;
         }
 
         .current-phone {
@@ -83,7 +77,6 @@
         .dropdown-icon {
             color: #8e9fad;
             font-size: 1.2rem;
-            margin-left: 8px;
         }
 
         .account-dropdown {
@@ -94,16 +87,13 @@
             border: 1px solid #2b3945;
             border-radius: 12px;
             width: 280px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             display: none;
             z-index: 100;
             max-height: 400px;
             overflow-y: auto;
         }
 
-        .account-dropdown.show {
-            display: block;
-        }
+        .account-dropdown.show { display: block; }
 
         .dropdown-item {
             display: flex;
@@ -111,17 +101,10 @@
             padding: 12px 16px;
             gap: 12px;
             cursor: pointer;
-            transition: background 0.2s;
             border-bottom: 1px solid #2b3945;
         }
 
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background: #242f3d;
-        }
+        .dropdown-item:hover { background: #242f3d; }
 
         .dropdown-avatar {
             width: 36px;
@@ -132,83 +115,30 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            color: white;
-            flex-shrink: 0;
             background-size: cover;
             background-position: center;
-        }
-
-        .dropdown-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .dropdown-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .dropdown-phone {
-            font-size: 0.7rem;
-            color: #8e9fad;
-        }
-
-        .remove-item {
-            color: #ff6b6b;
-            border-top: 1px solid #2b3945;
         }
 
         .header-actions {
             display: flex;
             gap: 8px;
-            align-items: center;
         }
 
         .header-actions button {
             background: #2b3945;
             color: #6ab2f2;
-            text-decoration: none;
+            border: none;
             padding: 8px 16px;
             border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: 0.2s;
-            white-space: nowrap;
-            border: none;
             cursor: pointer;
         }
 
-        .header-actions button:hover {
-            background: #3a4a5a;
-        }
-
-        .settings-btn-header {
+        .settings-btn-header, .refresh-btn {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             padding: 0;
             font-size: 1.2rem;
-        }
-
-        .refresh-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            padding: 0;
-            font-size: 1.2rem;
-        }
-
-        .refresh-btn.refreshing {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
 
         /* Main layout */
@@ -216,8 +146,6 @@
             display: flex;
             flex: 1;
             overflow: hidden;
-            min-height: 0;
-            height: calc(100vh - 60px);
         }
 
         /* Chats panel */
@@ -227,8 +155,6 @@
             border-right: 1px solid #2b3945;
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
-            height: 100%;
             overflow: hidden;
         }
 
@@ -237,45 +163,12 @@
             border-bottom: 1px solid #2b3945;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            background: #17212b;
-        }
-
-        .chats-panel-header h3 {
-            color: #8e9fad;
-            font-weight: 500;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
-        }
-
-        .chats-panel-header .badge {
-            background: #2b5278;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.75rem;
         }
 
         .chats-scroll {
             flex: 1;
             overflow-y: auto;
             padding: 8px;
-            height: 100%;
-            min-height: 0;
-        }
-
-        .chats-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .chats-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chats-scroll::-webkit-scrollbar-thumb {
-            background: #2b3945;
-            border-radius: 10px;
         }
 
         .chat-item {
@@ -284,17 +177,11 @@
             padding: 12px;
             border-radius: 12px;
             cursor: pointer;
-            transition: background 0.2s;
             margin-bottom: 4px;
         }
 
-        .chat-item:hover {
-            background: #242f3d;
-        }
-
-        .chat-item.active {
-            background: #2b5278;
-        }
+        .chat-item:hover { background: #242f3d; }
+        .chat-item.active { background: #2b5278; }
 
         .chat-avatar {
             width: 54px;
@@ -306,9 +193,7 @@
             justify-content: center;
             font-size: 1.5rem;
             font-weight: 600;
-            color: white;
             margin-right: 12px;
-            flex-shrink: 0;
             background-size: cover;
             background-position: center;
         }
@@ -318,27 +203,17 @@
             min-width: 0;
         }
 
-        .chat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-
         .chat-name {
             font-weight: 600;
             font-size: 1rem;
-            color: #fff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 180px;
         }
 
         .chat-time {
             font-size: 0.75rem;
             color: #8e9fad;
-            flex-shrink: 0;
         }
 
         .chat-last-msg {
@@ -349,11 +224,15 @@
             text-overflow: ellipsis;
         }
 
+        .chat-status {
+            font-size: 0.7rem;
+            color: #4c9ce0;
+        }
+
         .chat-unread {
             background: #4c9ce0;
             color: white;
             font-size: 0.7rem;
-            font-weight: 600;
             padding: 2px 6px;
             border-radius: 12px;
             margin-left: 8px;
@@ -362,12 +241,8 @@
         /* Messages panel */
         .messages-panel {
             flex: 1;
-            background: #0e1621;
             display: flex;
             flex-direction: column;
-            min-width: 0;
-            position: relative;
-            height: 100%;
             overflow: hidden;
         }
 
@@ -375,7 +250,6 @@
             background: #17212b;
             padding: 12px 20px;
             border-bottom: 1px solid #2b3945;
-            flex-shrink: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -399,26 +273,16 @@
             justify-content: center;
             font-size: 1.2rem;
             font-weight: 600;
-            color: white;
             background-size: cover;
             background-position: center;
         }
 
-        .chat-header-details {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .chat-header-subtitle {
-            font-size: 0.75rem;
+        .chat-header-status {
+            font-size: 0.7rem;
             color: #8e9fad;
         }
+
+        .chat-header-status.online { color: #4c9ce0; }
 
         .messages-scroll {
             flex: 1;
@@ -427,21 +291,6 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            background: #0e1621;
-            min-height: 0;
-        }
-
-        .messages-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .messages-scroll::-webkit-scrollbar-thumb {
-            background: #2b3945;
-            border-radius: 10px;
         }
 
         .message-wrapper {
@@ -450,42 +299,100 @@
             max-width: 85%;
         }
 
-        .message-wrapper.outgoing {
-            align-self: flex-end;
-        }
-
-        .message-wrapper.incoming {
-            align-self: flex-start;
-        }
+        .message-wrapper.outgoing { align-self: flex-end; }
+        .message-wrapper.incoming { align-self: flex-start; }
 
         .message-bubble {
             padding: 8px 12px;
             border-radius: 18px;
             word-wrap: break-word;
-            line-height: 1.4;
-            font-size: 0.95rem;
         }
 
         .incoming .message-bubble {
             background: #17212b;
-            color: #fff;
             border-bottom-left-radius: 4px;
         }
 
         .outgoing .message-bubble {
             background: #2b5278;
-            color: #fff;
             border-bottom-right-radius: 4px;
         }
 
-        .message-meta {
+        /* Media styles */
+        .media-container {
+            margin: 5px 0;
+            cursor: pointer;
+        }
+
+        .media-image {
+            max-width: 300px;
+            max-height: 250px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .media-video {
+            max-width: 300px;
+            max-height: 250px;
+            border-radius: 12px;
+        }
+
+        .sticker-container {
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .sticker-image {
+            max-width: 128px;
+            max-height: 128px;
+        }
+
+        .media-document {
             display: flex;
             align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .document-icon { font-size: 2rem; }
+        .document-name { font-weight: 600; font-size: 0.9rem; }
+        .document-size { font-size: 0.7rem; color: #8e9fad; }
+
+        .message-meta {
+            display: flex;
             justify-content: flex-end;
             gap: 4px;
             margin-top: 2px;
             font-size: 0.65rem;
             color: #8e9fad;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            padding: 8px 12px;
+            background: #17212b;
+            border-radius: 18px;
+            width: fit-content;
+            margin-bottom: 12px;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8e9fad;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
         }
 
         /* Compose area */
@@ -496,7 +403,17 @@
             display: flex;
             gap: 12px;
             align-items: center;
-            flex-shrink: 0;
+        }
+
+        .attach-btn {
+            background: #2b3945;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.3rem;
+            color: #6ab2f2;
         }
 
         .compose-input {
@@ -510,33 +427,15 @@
             outline: none;
         }
 
-        .compose-input::placeholder {
-            color: #8e9fad;
-        }
-
         .send-btn {
             background: #4c9ce0;
             border: none;
             width: 45px;
             height: 45px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
             color: white;
             font-size: 1.3rem;
-            transition: 0.2s;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            background: #6ab2f2;
-            transform: scale(1.05);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         /* Settings Panel */
@@ -547,7 +446,6 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            flex-shrink: 0;
         }
 
         .settings-header {
@@ -555,53 +453,20 @@
             border-bottom: 1px solid #2b3945;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
 
-        .settings-header h3 {
-            color: #fff;
-            font-size: 1.2rem;
-        }
-
-        .close-settings-btn {
-            background: none;
-            border: none;
-            color: #8e9fad;
-            font-size: 1.5rem;
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            transition: 0.2s;
-        }
-
-        .close-settings-btn:hover {
-            background: #242f3d;
-            color: #fff;
-        }
-
-        .settings-content {
-            padding: 20px;
-        }
-
-        .settings-section {
-            margin-bottom: 24px;
-        }
-
-        .settings-section h4 {
-            color: #fff;
-            margin-bottom: 15px;
-            font-size: 1rem;
-        }
+        .settings-content { padding: 20px; }
+        .settings-section { margin-bottom: 24px; }
+        .settings-section h4 { margin-bottom: 15px; }
 
         .profile-preview {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
             padding: 15px;
             background: #242f3d;
             border-radius: 12px;
+            margin-bottom: 20px;
         }
 
         .profile-avatar {
@@ -618,21 +483,6 @@
             background-position: center;
         }
 
-        .profile-name {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .profile-username {
-            color: #8e9fad;
-            font-size: 0.85rem;
-        }
-
-        .profile-phone {
-            color: #8e9fad;
-            font-size: 0.8rem;
-        }
-
         .settings-btn {
             width: 100%;
             padding: 12px;
@@ -642,168 +492,23 @@
             color: #6ab2f2;
             cursor: pointer;
             margin-bottom: 10px;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
         }
 
-        .settings-btn:hover {
-            background: #3a4a5a;
-            transform: translateY(-1px);
+        .settings-btn.danger { background: #8e2b2b; color: white; }
+
+        /* Channel Info Modal */
+        .channel-info {
+            background: #242f3d;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
         }
 
-        .settings-btn.danger {
-            background: #8e2b2b;
-            color: white;
-        }
-
-        .settings-btn.danger:hover {
-            background: #a53333;
-        }
-
-        .setting-item {
+        .info-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #242f3d;
-            border-radius: 12px;
-            margin-bottom: 10px;
-        }
-
-        /* Search box */
-        .search-box {
-            margin-bottom: 15px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px;
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 30px;
-            color: #fff;
-            outline: none;
-            font-size: 0.9rem;
-        }
-
-        .search-input:focus {
-            border-color: #4c9ce0;
-        }
-
-        .search-results {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .search-result {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #242f3d;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .search-result:hover {
-            background: #2b3945;
-        }
-
-        .result-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #2b5278;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .result-info {
-            flex: 1;
-        }
-
-        .result-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .result-type {
-            font-size: 0.7rem;
-            color: #8e9fad;
-        }
-
-        .join-btn {
-            background: #4c9ce0;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        /* History container */
-        .history-container {
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 10px;
-            background: #1e2a36;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .history-message {
-            padding: 10px;
-            border-radius: 12px;
-        }
-
-        .history-message.user {
-            background: #2b3945;
-            align-self: flex-start;
-        }
-
-        .history-message.assistant {
-            background: #2b5278;
-            align-self: flex-end;
-        }
-
-        .history-message .message-text {
-            font-size: 0.85rem;
-        }
-
-        .history-message .message-time {
-            font-size: 0.65rem;
-            color: #8e9fad;
-            margin-top: 5px;
-        }
-
-        /* Loading and empty states */
-        .loading, .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #8e9fad;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #2b3945;
-            border-radius: 50%;
-            border-top-color: #4c9ce0;
-            animation: spin 1s linear infinite;
+            padding: 8px 0;
+            border-bottom: 1px solid #2b3945;
         }
 
         /* Modal */
@@ -820,9 +525,7 @@
             justify-content: center;
         }
 
-        .modal.show {
-            display: flex;
-        }
+        .modal.show { display: flex; }
 
         .modal-content {
             background: #17212b;
@@ -832,12 +535,7 @@
             width: 90%;
         }
 
-        .modal-content h3 {
-            margin-bottom: 15px;
-            color: #fff;
-        }
-
-        .modal-content input, .modal-content textarea {
+        .modal-content input {
             width: 100%;
             padding: 12px;
             background: #242f3d;
@@ -845,11 +543,6 @@
             border-radius: 12px;
             color: #fff;
             margin: 10px 0;
-            outline: none;
-        }
-
-        .modal-content input:focus, .modal-content textarea:focus {
-            border-color: #4c9ce0;
         }
 
         .modal-actions {
@@ -858,6 +551,32 @@
             margin-top: 20px;
         }
 
+        /* Media Modal */
+        .media-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .media-modal.show { display: flex; }
+        .media-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .media-modal-image { max-width: 90%; max-height: 90vh; }
+        .media-modal-video { max-width: 90%; max-height: 90vh; }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -865,39 +584,37 @@
             left: 50%;
             transform: translateX(-50%);
             background: #17212b;
-            color: white;
             padding: 12px 24px;
             border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             border: 1px solid #2b3945;
             z-index: 1000;
             display: none;
-            animation: slideUp 0.3s ease;
         }
 
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
+        .toast.show { display: block; }
+        .toast.success { border-left: 4px solid #4c9ce0; }
+        .toast.error { border-left: 4px solid #e04c4c; }
+
+        .loading, .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #8e9fad;
         }
 
-        .toast.show {
-            display: block;
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #2b3945;
+            border-radius: 50%;
+            border-top-color: #4c9ce0;
+            animation: spin 1s linear infinite;
         }
 
-        .toast.success {
-            border-left: 4px solid #4c9ce0;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .toast.error {
-            border-left: 4px solid #e04c4c;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            .chats-panel {
-                width: 100%;
-            }
-            
+            .chats-panel { width: 100%; }
             .messages-panel {
                 display: none;
                 position: fixed;
@@ -905,34 +622,21 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                width: 100%;
                 z-index: 20;
-                background: #0e1621;
             }
-            
-            .messages-panel.show {
-                display: flex;
-            }
-            
+            .messages-panel.show { display: flex; }
             .settings-panel {
                 position: fixed;
                 top: 0;
                 right: 0;
                 bottom: 0;
                 width: 100%;
-                z-index: 30;
                 transform: translateX(100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.3s;
+                z-index: 30;
             }
-            
-            .settings-panel.show {
-                transform: translateX(0);
-            }
-            
+            .settings-panel.show { transform: translateX(0); }
             .mobile-back-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 background: transparent;
                 color: #6ab2f2;
                 border: none;
@@ -953,12 +657,10 @@
             </div>
             <span class="dropdown-icon">▼</span>
         </div>
-
         <div class="account-dropdown" id="accountDropdown"></div>
-
         <div class="header-actions">
             <button class="settings-btn-header" onclick="toggleSettings()">⚙️</button>
-            <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">↻</button>
+            <button class="refresh-btn" onclick="refreshAll()">↻</button>
             <button onclick="location.href='/login'">➕ Add</button>
         </div>
     </div>
@@ -969,1224 +671,483 @@
                 <h3>CHATS</h3>
                 <span class="badge" id="totalChats">0</span>
             </div>
-            <div class="chats-scroll" id="chatsList">
-                <div class="loading">Loading chats...</div>
-            </div>
+            <div class="chats-scroll" id="chatsList"><div class="loading">Loading chats...</div></div>
         </div>
 
         <div class="messages-panel" id="messagesPanel">
             <div class="messages-header" id="messagesHeader" style="display: none;">
                 <div style="display: flex; align-items: center;">
                     <button class="mobile-back-btn" onclick="showChatsPanel()">←</button>
-                    <div class="chat-header-info" onclick="viewChatInfo()">
+                    <div class="chat-header-info" onclick="showChannelInfo()">
                         <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
                         <div class="chat-header-details">
                             <span class="chat-header-title" id="currentChatTitle"></span>
-                            <span class="chat-header-subtitle" id="chatHeaderSubtitle"></span>
+                            <span class="chat-header-status" id="chatHeaderStatus"></span>
                         </div>
                     </div>
                 </div>
-                <button onclick="viewChatHistory()" style="background: #2b3945; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;">📜</button>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="toggleMute()" id="muteBtn" style="background:#2b3945; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">🔔</button>
+                    <button onclick="showChannelInfo()" style="background:#2b3945; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">ℹ️</button>
+                </div>
             </div>
-            <div class="messages-scroll" id="messagesList">
-                <div class="empty-state">👈 Select a chat to start messaging</div>
-            </div>
+            <div class="messages-scroll" id="messagesList"><div class="empty-state">👈 Select a chat to start messaging</div></div>
+            <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
             <div class="compose-area" id="composeArea" style="display: none;">
+                <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
                 <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤</button>
+                <button class="send-btn" onclick="sendMessage()">📤</button>
             </div>
+            <input type="file" id="fileInput" style="display:none" onchange="uploadMedia(this)">
         </div>
 
         <div class="settings-panel" id="settingsPanel">
             <div class="settings-header">
-                <h3>⚙️ Account Settings</h3>
+                <h3>⚙️ Settings</h3>
                 <button class="close-settings-btn" onclick="toggleSettings()">✕</button>
             </div>
             <div class="settings-content">
                 <div class="settings-section">
-                    <h4>👤 Profile Information</h4>
+                    <h4>👤 Profile</h4>
                     <div class="profile-preview">
                         <div class="profile-avatar" id="profileAvatar">?</div>
                         <div>
                             <div class="profile-name" id="profileName">Loading...</div>
                             <div class="profile-username" id="profileUsername">@username</div>
-                            <div class="profile-phone" id="profilePhone">+251...</div>
+                            <div class="profile-phone" id="profilePhone"></div>
                         </div>
                     </div>
-                    <button class="settings-btn" onclick="editProfile()">✏️ Edit Profile</button>
+                    <button class="settings-btn" onclick="editProfile()">✏️ Edit Name</button>
                     <button class="settings-btn" onclick="editUsername()">@ Change Username</button>
                 </div>
-
-                <div class="settings-section">
-                    <h4>📧 Email Settings</h4>
-                    <div id="emailInfo" class="setting-item">
-                        <span>Loading email info...</span>
-                    </div>
-                </div>
-
                 <div class="settings-section">
                     <h4>🔒 Security</h4>
-                    <button class="settings-btn" onclick="show2FASettings()">🔐 Two-Step Verification</button>
+                    <button class="settings-btn" onclick="show2FA()">🔐 Two-Step Verification</button>
+                    <button class="settings-btn" onclick="showEmailSetup()">📧 Email Settings</button>
                     <button class="settings-btn" onclick="showSessions()">📱 Active Sessions</button>
-                    <button class="settings-btn" onclick="terminateOtherSessions()">🚪 Terminate Other Sessions</button>
                 </div>
-
-                <div class="settings-section">
-                    <h4>🔍 Search & Join</h4>
-                    <div class="search-box">
-                        <input type="text" class="search-input" id="searchInput" placeholder="Search groups, channels, users..." oninput="performSearchDebounced()">
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
-                    <button class="settings-btn" onclick="joinByLink()">➕ Join by Username/Link</button>
-                </div>
-
-                <div class="settings-section">
-                    <h4>📜 Conversation History</h4>
-                    <div class="history-container" id="historyContainer">
-                        <div class="empty-state">Select a chat to view history</div>
-                    </div>
-                    <button class="settings-btn" id="clearHistoryBtn" style="display: none;" onclick="clearHistory()">🗑️ Clear History</button>
-                </div>
-
                 <div class="settings-section">
                     <h4>⚠️ Danger Zone</h4>
-                    <button class="settings-btn danger" onclick="removeCurrentAccount()">🗑️ Remove Account</button>
+                    <button class="settings-btn danger" onclick="removeAccount()">🗑️ Remove Account</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="toast" id="toast"></div>
-    <div class="modal" id="modal">
-        <div class="modal-content" id="modalContent"></div>
+    <div class="modal" id="modal"><div class="modal-content" id="modalContent"></div></div>
+    <div class="media-modal" id="mediaModal">
+        <div class="media-modal-close" onclick="closeMediaModal()">✕</div>
+        <div class="media-modal-content" id="mediaModalContent"></div>
     </div>
 
     <script>
-        // State
-        let accounts = [];
-        let currentAccount = null;
-        let currentChat = null;
-        let chats = [];
-        let currentMessages = [];
-        let currentChatInfo = null;
-        let refreshInterval = null;
-        let searchTimeout = null;
+        let accounts = [], currentAccount = null, currentChat = null, chats = [], currentMessages = [], refreshInterval = null, typingTimeout = null, isMuted = false;
 
-        // DOM Elements
-        const toast = document.getElementById('toast');
-        const dropdown = document.getElementById('accountDropdown');
-        const switcher = document.getElementById('accountSwitcher');
-        const currentAvatar = document.getElementById('currentAvatar');
-        const currentName = document.getElementById('currentName');
-        const currentPhone = document.getElementById('currentPhone');
-        const chatsListDiv = document.getElementById('chatsList');
-        const messagesHeader = document.getElementById('messagesHeader');
-        const currentChatTitle = document.getElementById('currentChatTitle');
-        const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
-        const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
-        const messagesListDiv = document.getElementById('messagesList');
-        const composeArea = document.getElementById('composeArea');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const totalChatsSpan = document.getElementById('totalChats');
-        const settingsPanel = document.getElementById('settingsPanel');
-        const searchInput = document.getElementById('searchInput');
-        const searchResults = document.getElementById('searchResults');
-        const historyContainer = document.getElementById('historyContainer');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modalContent');
+        const toast = document.getElementById('toast'), dropdown = document.getElementById('accountDropdown'), switcher = document.getElementById('accountSwitcher');
+        const currentAvatar = document.getElementById('currentAvatar'), currentName = document.getElementById('currentName'), currentPhone = document.getElementById('currentPhone');
+        const chatsListDiv = document.getElementById('chatsList'), messagesHeader = document.getElementById('messagesHeader'), currentChatTitle = document.getElementById('currentChatTitle');
+        const chatHeaderAvatar = document.getElementById('chatHeaderAvatar'), chatHeaderStatus = document.getElementById('chatHeaderStatus');
+        const messagesListDiv = document.getElementById('messagesList'), composeArea = document.getElementById('composeArea'), messageInput = document.getElementById('messageInput');
+        const totalChatsSpan = document.getElementById('totalChats'), settingsPanel = document.getElementById('settingsPanel');
+        const modal = document.getElementById('modal'), modalContent = document.getElementById('modalContent');
+        const mediaModal = document.getElementById('mediaModal'), mediaModalContent = document.getElementById('mediaModalContent');
 
-        // Helper Functions
-        function showToast(message, type = 'success') {
-            toast.textContent = message;
-            toast.className = `toast show ${type}`;
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
+        function showToast(msg, type = 'success') { toast.textContent = msg; toast.className = `toast show ${type}`; setTimeout(() => toast.classList.remove('show'), 3000); }
+        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function formatTime(ts) { if (!ts) return ''; return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+        function formatDate(ts) { if (!ts) return ''; const d = new Date(ts * 1000), now = new Date(); return d.toDateString() === now.toDateString() ? formatTime(ts) : d.toLocaleDateString(); }
+        function formatFileSize(bytes) { if (!bytes) return ''; const s = ['B', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(1024)); return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + s[i]; }
+        function showChatsPanel() { if (window.innerWidth <= 768) { document.getElementById('chatsPanel').style.display = 'block'; document.getElementById('messagesPanel').classList.remove('show'); } }
+        function showMessagesPanel() { if (window.innerWidth <= 768) { document.getElementById('chatsPanel').style.display = 'none'; document.getElementById('messagesPanel').classList.add('show'); } }
+        function toggleSettings() { if (window.innerWidth <= 768) settingsPanel.classList.toggle('show'); else settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'flex' : 'none'; }
+        function closeModal() { modal.classList.remove('show'); }
+        function closeMediaModal() { mediaModal.classList.remove('show'); mediaModalContent.innerHTML = ''; }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp * 1000);
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            
-            if (date >= today) {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } else {
-                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-            }
-        }
-
-        function showChatsPanel() {
-            if (window.innerWidth <= 768) {
-                document.getElementById('chatsPanel').style.display = 'block';
-                document.getElementById('messagesPanel').classList.remove('show');
-            }
-        }
-
-        function showMessagesPanel() {
-            if (window.innerWidth <= 768) {
-                document.getElementById('chatsPanel').style.display = 'none';
-                document.getElementById('messagesPanel').classList.add('show');
-            }
-        }
-
-        function toggleSettings() {
-            if (window.innerWidth <= 768) {
-                settingsPanel.classList.toggle('show');
-            } else {
-                if (settingsPanel.style.display === 'none' || !settingsPanel.style.display) {
-                    settingsPanel.style.display = 'flex';
-                    loadAccountSettings();
-                } else {
-                    settingsPanel.style.display = 'none';
-                }
-            }
-        }
-
-        function closeModal() {
-            modal.classList.remove('show');
-        }
-
-        // Load Accounts
         async function loadAccounts() {
             try {
                 const res = await fetch('/api/accounts');
                 const data = await res.json();
-                
                 if (data.success) {
                     accounts = data.accounts || [];
-                    
-                    if (accounts.length > 0) {
-                        const lastAccountId = localStorage.getItem('lastSelectedAccount');
-                        if (lastAccountId) {
-                            currentAccount = accounts.find(a => a.id == lastAccountId) || accounts[0];
-                        } else {
-                            currentAccount = accounts[0];
-                        }
-                        
+                    if (accounts.length) {
+                        const lastId = localStorage.getItem('lastSelectedAccount');
+                        currentAccount = accounts.find(a => a.id == lastId) || accounts[0];
                         updateHeaderForCurrentAccount();
                         renderDropdown();
                         await loadChats();
                         await loadAccountSettings();
-                    } else {
-                        currentAccount = null;
-                        updateHeaderForNoAccount();
-                        renderDropdown();
-                        showNoAccountState();
-                    }
-                } else {
-                    showToast('Failed to load accounts', 'error');
+                    } else showNoAccountState();
                 }
-            } catch (err) {
-                console.error('Error fetching accounts:', err);
-                chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server</div>';
-            }
+            } catch (err) { chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server</div>'; }
         }
 
         function updateHeaderForCurrentAccount() {
             if (!currentAccount) return;
-            
-            const name = currentAccount.name || 'User';
-            const phone = currentAccount.phone || '';
-            const initial = name.charAt(0).toUpperCase() || '?';
-            
-            currentAvatar.textContent = initial;
-            currentName.textContent = name;
-            currentPhone.textContent = phone;
-            
+            currentAvatar.textContent = (currentAccount.name || '?').charAt(0).toUpperCase();
+            currentName.textContent = currentAccount.name || 'User';
+            currentPhone.textContent = currentAccount.phone || '';
             localStorage.setItem('lastSelectedAccount', currentAccount.id);
         }
 
-        function updateHeaderForNoAccount() {
-            currentAvatar.textContent = '?';
-            currentName.textContent = 'No Account';
-            currentPhone.textContent = '';
-        }
-
         function showNoAccountState() {
-            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <button onclick="location.href=\'/login\'" style="background:#4c9ce0; color:white; border:none; padding:10px 20px; border-radius:30px; cursor:pointer; margin-top:10px;">Add Account</button></div>';
-            messagesHeader.style.display = 'none';
-            composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">Add an account to start messaging</div>';
-            totalChatsSpan.textContent = '0';
+            chatsListDiv.innerHTML = '<div class="empty-state">No accounts.<br><button onclick="location.href=\'/login\'" style="background:#4c9ce0; border:none; padding:10px 20px; border-radius:30px; margin-top:10px; cursor:pointer;">Add Account</button></div>';
+            messagesHeader.style.display = 'none'; composeArea.style.display = 'none';
         }
 
         function renderDropdown() {
-            if (!accounts.length) {
-                dropdown.innerHTML = '<div class="dropdown-item">No accounts</div>';
-                return;
-            }
-            
+            if (!accounts.length) { dropdown.innerHTML = '<div class="dropdown-item">No accounts</div>'; return; }
             let html = '';
             accounts.forEach(acc => {
-                const accName = acc.name || 'User';
-                const accPhone = acc.phone || '';
-                const initial = accName.charAt(0).toUpperCase() || '?';
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
                 const isCurrent = acc.id === currentAccount?.id ? '✓' : '';
-                
-                html += `
-                    <div class="dropdown-item" onclick="switchAccount(${acc.id})">
-                        <div class="dropdown-avatar" id="dropdownAvatar_${acc.id}">${escapeHtml(initial)}</div>
-                        <div class="dropdown-info">
-                            <div class="dropdown-name">${escapeHtml(accName)}</div>
-                            <div class="dropdown-phone">${escapeHtml(accPhone)}</div>
-                        </div>
-                        <span style="color:#6ab2f2;">${isCurrent}</span>
-                    </div>
-                `;
+                html += `<div class="dropdown-item" onclick="switchAccount(${acc.id})"><div class="dropdown-avatar">${escapeHtml(initial)}</div><div><div>${escapeHtml(acc.name)}</div><div style="font-size:0.7rem;color:#8e9fad;">${escapeHtml(acc.phone)}</div></div><span>${isCurrent}</span></div>`;
             });
-            
-            html += `
-                <div class="dropdown-item remove-item" onclick="removeCurrentAccount()">
-                    <div class="dropdown-avatar" style="background: #8e2b2b;">−</div>
-                    <div class="dropdown-info">
-                        <div class="dropdown-name" style="color: #ff6b6b;">Remove Current Account</div>
-                    </div>
-                </div>
-            `;
-            
+            html += `<div class="dropdown-item" style="color:#ff6b6b;" onclick="removeAccount()">🗑️ Remove Current Account</div>`;
             dropdown.innerHTML = html;
         }
 
-        window.switchAccount = async function(accountId) {
-            accountId = parseInt(accountId);
-            const newAccount = accounts.find(a => a.id === accountId);
-            
-            if (!newAccount || newAccount.id === currentAccount?.id) {
-                dropdown.classList.remove('show');
-                return;
-            }
-            
-            currentAccount = newAccount;
+        window.switchAccount = async function(id) {
+            const acc = accounts.find(a => a.id == id);
+            if (!acc) return;
+            currentAccount = acc;
             currentChat = null;
-            currentMessages = [];
-            currentChatInfo = null;
-            
             updateHeaderForCurrentAccount();
             renderDropdown();
             dropdown.classList.remove('show');
-            
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">👈 Select a chat to start messaging</div>';
-            historyContainer.innerHTML = '<div class="empty-state">Select a chat to view history</div>';
-            clearHistoryBtn.style.display = 'none';
-            
             await loadChats();
             await loadAccountSettings();
-            
-            // Load account avatar
-            loadAccountAvatar(accountId);
         };
 
-        // Load account avatar for dropdown
-        async function loadAccountAvatar(accountId) {
-            try {
-                const res = await fetch('/api/account-info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: accountId })
-                });
-                
-                const data = await res.json();
-                if (data.success && data.photo) {
-                    const avatarElement = document.getElementById(`dropdownAvatar_${accountId}`);
-                    if (avatarElement) {
-                        avatarElement.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
-                        avatarElement.style.backgroundSize = 'cover';
-                        avatarElement.style.backgroundPosition = 'center';
-                        avatarElement.textContent = '';
-                    }
-                }
-            } catch (err) {
-                console.error('Error loading account avatar:', err);
-            }
-        }
-
-        // Load Account Settings
         async function loadAccountSettings() {
             if (!currentAccount) return;
-            
             try {
-                const res = await fetch('/api/account-info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
+                const res = await fetch('/api/account-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id }) });
                 const data = await res.json();
                 if (data.success) {
-                    const profileAvatar = document.getElementById('profileAvatar');
-                    profileAvatar.textContent = (data.name || '?').charAt(0).toUpperCase();
-                    document.getElementById('profileName').textContent = data.name || 'Unknown';
+                    document.getElementById('profileName').textContent = data.name;
                     document.getElementById('profileUsername').textContent = data.username ? '@' + data.username : 'No username';
-                    document.getElementById('profilePhone').textContent = data.phone || '';
-                    
-                    // Load profile photo if available
+                    document.getElementById('profilePhone').textContent = data.phone;
                     if (data.photo) {
-                        profileAvatar.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
-                        profileAvatar.style.backgroundSize = 'cover';
-                        profileAvatar.style.backgroundPosition = 'center';
-                        profileAvatar.textContent = '';
+                        const url = `data:image/jpeg;base64,${data.photo}`;
+                        document.getElementById('profileAvatar').style.backgroundImage = `url(${url})`;
+                        document.getElementById('profileAvatar').style.backgroundSize = 'cover';
+                        document.getElementById('profileAvatar').textContent = '';
                     }
                 }
-                
-                // Load email info
-                const emailRes = await fetch('/api/get-account-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const emailData = await emailRes.json();
-                const emailInfo = document.getElementById('emailInfo');
-                if (emailData.success) {
-                    if (emailData.email) {
-                        emailInfo.innerHTML = `
-                            <div class="setting-item">
-                                <span>📧 Connected Email</span>
-                                <span style="color: #4c9ce0;">${escapeHtml(emailData.email)}</span>
-                            </div>
-                            <button class="settings-btn" onclick="connectEmail()">Change Email</button>
-                        `;
-                    } else {
-                        emailInfo.innerHTML = `
-                            <div class="setting-item">
-                                <span>📧 No Email Connected</span>
-                                <span style="color: #8e9fad;">Not set</span>
-                            </div>
-                            <button class="settings-btn" onclick="connectEmail()">Connect Email</button>
-                        `;
-                    }
-                }
-            } catch (err) {
-                console.error('Error loading account settings:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Load Chats
         async function loadChats() {
             if (!currentAccount) return;
-            
             chatsListDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading chats...</div>';
-            
             try {
-                const res = await fetch('/api/get-messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
+                const res = await fetch('/api/get-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id }) });
                 const data = await res.json();
-                
                 if (data.success) {
                     chats = data.chats || [];
                     totalChatsSpan.textContent = chats.length;
                     displayChats();
-                    
-                    if (currentChat) {
-                        const stillExists = chats.find(c => c.id === currentChat.id);
-                        if (stillExists) {
-                            await loadMessages(currentChat.id);
-                            await loadConversationHistory(currentChat.id);
-                        }
-                    }
-                } else {
-                    if (data.error === 'auth_key_unregistered') {
-                        showToast('Session expired. Please re-add this account.', 'error');
-                    } else {
-                        chatsListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error || 'Failed to load chats')}</div>`;
-                    }
-                }
-            } catch (err) {
-                console.error('Error loading chats:', err);
-                chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>';
-            }
+                    if (currentChat) { const exists = chats.find(c => c.id === currentChat.id); if (exists) await loadMessages(currentChat.id); }
+                } else chatsListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error)}</div>`;
+            } catch (err) { chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>'; }
         }
 
         function displayChats() {
-            if (!chats || chats.length === 0) {
-                chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>';
-                return;
-            }
-            
+            if (!chats.length) { chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>'; return; }
             let html = '';
             chats.forEach(chat => {
-                const activeClass = (currentChat && currentChat.id === chat.id) ? 'active' : '';
-                const time = chat.lastMessageDate ? formatTime(chat.lastMessageDate) : '';
+                const active = (currentChat && currentChat.id === chat.id) ? 'active' : '';
+                const time = chat.lastMessageDate ? formatDate(chat.lastMessageDate) : '';
                 const unread = chat.unread ? `<span class="chat-unread">${chat.unread}</span>` : '';
-                const avatarLetter = (chat.title || '?').charAt(0).toUpperCase();
-                let typeIcon = chat.type === 'channel' ? '📢' : (chat.type === 'group' ? '👥' : '👤');
-                
-                html += `
-                    <div class="chat-item ${activeClass}" onclick="selectChat('${escapeHtml(chat.id)}', '${escapeHtml(chat.title)}')">
-                        <div class="chat-avatar" data-chat-id="${escapeHtml(chat.id)}">${escapeHtml(avatarLetter)}</div>
-                        <div class="chat-info">
-                            <div class="chat-row">
-                                <div style="display: flex; align-items: center; gap: 5px;">
-                                    <span class="chat-name">${escapeHtml(chat.title || 'Unknown')}</span>
-                                    <span style="font-size: 0.8rem;">${typeIcon}</span>
-                                </div>
-                                <span class="chat-time">${escapeHtml(time)}</span>
-                            </div>
-                            <div class="chat-last-msg">
-                                ${escapeHtml(chat.lastMessage || 'No messages')}
-                                ${unread}
-                            </div>
-                        </div>
+                const letter = (chat.title || '?').charAt(0).toUpperCase();
+                html += `<div class="chat-item ${active}" onclick="selectChat('${escapeHtml(chat.id)}', '${escapeHtml(chat.title)}')">
+                    <div class="chat-avatar" data-chat-id="${escapeHtml(chat.id)}">${escapeHtml(letter)}</div>
+                    <div class="chat-info">
+                        <div class="chat-row"><span class="chat-name">${escapeHtml(chat.title)}</span><span class="chat-time">${escapeHtml(time)}</span></div>
+                        <div class="chat-last-msg">${escapeHtml(chat.lastMessage || 'No messages')}${unread}</div>
+                        ${chat.participants_count ? `<div class="chat-status">👥 ${chat.participants_count} members</div>` : ''}
                     </div>
-                `;
+                </div>`;
             });
-            
             chatsListDiv.innerHTML = html;
-            
-            // Load photos for chats
-            chats.forEach(chat => {
-                loadChatPhoto(chat.id);
-            });
+            chats.forEach(chat => loadChatPhoto(chat.id));
         }
 
         async function loadChatPhoto(chatId) {
-            if (!currentAccount) return;
-            
             try {
-                const res = await fetch('/api/get-chat-photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: chatId
-                    })
-                });
-                
+                const res = await fetch('/api/get-chat-photo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, chatId: chatId }) });
                 const data = await res.json();
-                
                 if (data.success && data.photo) {
-                    const photoUrl = `data:image/jpeg;base64,${data.photo}`;
-                    const chatAvatar = document.querySelector(`.chat-avatar[data-chat-id="${chatId}"]`);
-                    if (chatAvatar) {
-                        chatAvatar.style.backgroundImage = `url(${photoUrl})`;
-                        chatAvatar.style.backgroundSize = 'cover';
-                        chatAvatar.style.backgroundPosition = 'center';
-                        chatAvatar.textContent = '';
-                    }
+                    const av = document.querySelector(`.chat-avatar[data-chat-id="${chatId}"]`);
+                    if (av) { av.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`; av.style.backgroundSize = 'cover'; av.textContent = ''; }
                 }
-            } catch (err) {
-                console.error('Error loading chat photo:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Select Chat
-        window.selectChat = async function(chatId, chatTitle) {
-            currentChat = { id: chatId, title: chatTitle };
-            
-            currentChatTitle.textContent = chatTitle;
-            chatHeaderAvatar.textContent = chatTitle.charAt(0).toUpperCase();
-            
-            const chat = chats.find(c => c.id === chatId);
-            if (chat) {
-                let subtitle = chat.type || 'user';
-                chatHeaderSubtitle.textContent = subtitle;
-            }
-            
+        window.selectChat = async function(id, title) {
+            currentChat = { id, title };
+            currentChatTitle.textContent = title;
+            chatHeaderAvatar.textContent = title.charAt(0).toUpperCase();
             messagesHeader.style.display = 'flex';
             composeArea.style.display = 'flex';
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            
-            await loadMessages(chatId);
-            await loadConversationHistory(chatId);
-            await loadChatHeaderPhoto(chatId);
+            await loadMessages(id);
+            await loadChatHeaderPhoto(id);
+            await loadChannelInfo(id);
             showMessagesPanel();
             displayChats();
         };
 
-        async function loadChatHeaderPhoto(chatId) {
+        async function loadChatHeaderPhoto(id) {
             try {
-                const res = await fetch('/api/get-chat-photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: chatId
-                    })
-                });
-                
+                const res = await fetch('/api/get-chat-photo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, chatId: id }) });
                 const data = await res.json();
                 if (data.success && data.photo) {
-                    const photoUrl = `data:image/jpeg;base64,${data.photo}`;
-                    chatHeaderAvatar.style.backgroundImage = `url(${photoUrl})`;
+                    chatHeaderAvatar.style.backgroundImage = `url(data:image/jpeg;base64,${data.photo})`;
                     chatHeaderAvatar.style.backgroundSize = 'cover';
-                    chatHeaderAvatar.style.backgroundPosition = 'center';
                     chatHeaderAvatar.textContent = '';
                 }
-            } catch (err) {
-                console.error('Error loading chat header photo:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         async function loadMessages(chatId) {
-            if (!currentAccount || !chatId) return;
-            
             messagesListDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading messages...</div>';
-            
             try {
-                const res = await fetch('/api/get-chat-messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: chatId,
-                        limit: 100
-                    })
-                });
-                
+                const res = await fetch('/api/get-chat-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, chatId: chatId, limit: 100 }) });
                 const data = await res.json();
-                
                 if (data.success) {
                     currentMessages = data.messages || [];
-                    currentChatInfo = data.chat_info;
-                    
-                    if (currentMessages.length === 0) {
-                        messagesListDiv.innerHTML = '<div class="empty-state">💬 No messages yet<br>Start the conversation!</div>';
-                    } else {
-                        displayMessages(currentMessages);
+                    if (currentMessages.length) displayMessages(currentMessages);
+                    else messagesListDiv.innerHTML = '<div class="empty-state">💬 No messages yet<br>Send a message to start!</div>';
+                    if (data.chat_info) {
+                        if (data.chat_info.online) chatHeaderStatus.innerHTML = '<span style="color:#4c9ce0;">● online</span>';
+                        else if (data.chat_info.last_seen) chatHeaderStatus.innerHTML = `last seen ${formatDate(data.chat_info.last_seen)}`;
+                        else chatHeaderStatus.innerHTML = data.chat_info.type || 'user';
+                        if (data.chat_info.participants_count) chatHeaderStatus.innerHTML += ` · ${data.chat_info.participants_count} members`;
                     }
-                } else {
-                    messagesListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error || 'Failed to load messages')}</div>`;
-                }
-            } catch (err) {
-                console.error('Error loading messages:', err);
-                messagesListDiv.innerHTML = '<div class="empty-state">Failed to load messages</div>';
-            }
+                } else messagesListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error)}</div>`;
+            } catch (err) { messagesListDiv.innerHTML = '<div class="empty-state">Failed to load messages</div>'; }
         }
 
         function displayMessages(messages) {
-            if (!messages || messages.length === 0) return;
-            
             let html = '';
             messages.forEach(msg => {
-                const date = new Date(msg.date * 1000);
-                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const bubbleClass = msg.out ? 'outgoing' : 'incoming';
-                
-                let messageContent = '';
-                
-                if (msg.has_media) {
-                    let mediaIcon = '📎';
-                    if (msg.media_type === 'photo') mediaIcon = '📷';
-                    else if (msg.media_type === 'video') mediaIcon = '🎥';
-                    else if (msg.media_type === 'audio') mediaIcon = '🎵';
-                    else if (msg.media_type === 'voice') mediaIcon = '🎤';
-                    else if (msg.media_type === 'document') mediaIcon = '📄';
-                    
-                    messageContent = `<div style="color: #6ab2f2; margin-bottom: 5px;">${mediaIcon} Media</div>`;
-                    if (msg.text) {
-                        messageContent += `<div>${escapeHtml(msg.text)}</div>`;
-                    }
-                } else if (msg.text) {
-                    messageContent = `<div>${escapeHtml(msg.text)}</div>`;
-                } else {
-                    messageContent = `<div><em>Empty message</em></div>`;
-                }
-                
-                html += `
-                    <div class="message-wrapper ${bubbleClass}">
-                        <div class="message-bubble">
-                            ${messageContent}
-                            <div class="message-meta">
-                                <span>${escapeHtml(timeStr)}</span>
-                                ${msg.out ? '✓✓' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
+                const time = formatTime(msg.date);
+                const bubble = msg.out ? 'outgoing' : 'incoming';
+                let content = '';
+                if (msg.media_type === 'sticker' && msg.sticker_emoji) {
+                    content = `<div class="sticker-container"><div class="sticker-emoji" style="font-size:3rem;">${msg.sticker_emoji}</div></div>`;
+                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
+                } else if (msg.media_type === 'photo' && msg.media_thumb) {
+                    content = `<div class="media-container" onclick="showMedia('${msg.media_thumb}', 'photo')"><img class="media-image" src="data:image/jpeg;base64,${msg.media_thumb}"></div>`;
+                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
+                } else if (msg.media_type === 'video') {
+                    content = `<div class="media-container"><video class="media-video" controls><source src="/api/media/${msg.id}" onerror="this.src=''"></video></div>`;
+                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
+                } else if (msg.media_type === 'document') {
+                    content = `<div class="media-document" onclick="downloadMedia('${msg.media_url}', '${msg.media_name}')">
+                        <div class="document-icon">📄</div><div><div class="document-name">${escapeHtml(msg.media_name)}</div><div class="document-size">${formatFileSize(msg.media_size)}</div></div>
+                    </div>`;
+                    if (msg.text) content += `<div>${escapeHtml(msg.text)}</div>`;
+                } else if (msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
+                else content = `<div><em>Media message</em></div>`;
+                html += `<div class="message-wrapper ${bubble}"><div class="message-bubble">${content}<div class="message-meta"><span>${time}</span>${msg.out ? '✓✓' : ''}</div></div></div>`;
             });
-            
             messagesListDiv.innerHTML = html;
-            
-            setTimeout(() => {
-                messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
-            }, 100);
+            setTimeout(() => messagesListDiv.scrollTop = messagesListDiv.scrollHeight, 100);
         }
 
-        // Send Message
         async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message || !currentAccount || !currentChat) return;
-            
-            messageInput.value = '';
+            const msg = messageInput.value.trim();
+            if (!msg && !pendingFile) return;
             messageInput.disabled = true;
-            sendBtn.disabled = true;
-            
             try {
-                const res = await fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: currentChat.id,
-                        message: message
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    showToast('Message sent');
-                    await loadMessages(currentChat.id);
-                    await loadConversationHistory(currentChat.id);
+                let res;
+                if (pendingFile) {
+                    const fd = new FormData();
+                    fd.append('accountId', currentAccount.id);
+                    fd.append('chatId', currentChat.id);
+                    fd.append('file', pendingFile);
+                    if (msg) fd.append('caption', msg);
+                    res = await fetch('/api/send-media', { method: 'POST', body: fd });
+                    pendingFile = null;
                 } else {
-                    showToast(data.error || 'Failed to send', 'error');
-                    messageInput.value = message;
+                    res = await fetch('/api/send-message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, chatId: currentChat.id, message: msg }) });
                 }
-            } catch (err) {
-                showToast('Error sending message', 'error');
-                messageInput.value = message;
-            } finally {
-                messageInput.disabled = false;
-                sendBtn.disabled = false;
-                messageInput.focus();
-            }
-        }
-
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Conversation History
-        async function loadConversationHistory(chatId) {
-            if (!currentAccount) return;
-            
-            historyContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading history...</div>';
-            
-            try {
-                const res = await fetch(`/api/conversation-history?accountId=${currentAccount.id}&chatId=${encodeURIComponent(chatId)}`);
                 const data = await res.json();
-                
-                if (data.success && data.history && data.history.length > 0) {
-                    let html = '';
-                    data.history.forEach(msg => {
-                        const role = msg.role || 'user';
-                        const time = msg.time ? new Date(msg.time).toLocaleString() : '';
-                        
-                        html += `
-                            <div class="history-message ${role}">
-                                <div class="message-text">${escapeHtml(msg.message)}</div>
-                                <div class="message-time">${escapeHtml(time)}</div>
-                            </div>
-                        `;
-                    });
-                    historyContainer.innerHTML = html;
-                    clearHistoryBtn.style.display = 'block';
-                } else {
-                    historyContainer.innerHTML = '<div class="empty-state">No conversation history yet</div>';
-                    clearHistoryBtn.style.display = 'none';
-                }
-            } catch (err) {
-                console.error('Error loading history:', err);
-                historyContainer.innerHTML = '<div class="empty-state">Failed to load history</div>';
-            }
+                if (data.success) { messageInput.value = ''; showToast('Message sent'); await loadMessages(currentChat.id); }
+                else showToast(data.error || 'Failed to send', 'error');
+            } catch (err) { showToast('Error sending message', 'error'); }
+            finally { messageInput.disabled = false; messageInput.focus(); }
         }
 
-        function viewChatHistory() {
-            toggleSettings();
+        let pendingFile = null;
+        function uploadMedia(input) {
+            if (input.files && input.files[0]) { pendingFile = input.files[0]; showToast(`Selected: ${pendingFile.name}`); messageInput.focus(); }
+            input.value = '';
         }
 
-        function viewChatInfo() {
-            // Show chat info modal
-            if (currentChatInfo) {
-                modalContent.innerHTML = `
-                    <h3>Chat Information</h3>
-                    <div style="text-align: center; margin: 20px 0;">
-                        <div class="chat-header-avatar" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto;">${(currentChatInfo.title || '?').charAt(0).toUpperCase()}</div>
-                        <h4 style="margin-top: 15px;">${escapeHtml(currentChatInfo.title)}</h4>
-                        <p style="color: #8e9fad;">${currentChatInfo.type || 'user'}</p>
-                        ${currentChatInfo.username ? `<p style="color: #6ab2f2;">@${escapeHtml(currentChatInfo.username)}</p>` : ''}
-                    </div>
-                    <div class="modal-actions">
-                        <button class="settings-btn" onclick="closeModal()">Close</button>
-                    </div>
-                `;
-                modal.classList.add('show');
-            }
+        function showMedia(data, type) {
+            mediaModalContent.innerHTML = type === 'video' ? `<video class="media-modal-video" controls autoplay><source src="data:video/mp4;base64,${data}"></video>` : `<img class="media-modal-image" src="data:image/jpeg;base64,${data}">`;
+            mediaModal.classList.add('show');
         }
 
-        async function clearHistory() {
-            if (!currentAccount || !currentChat) return;
-            if (!confirm('Clear conversation history for this chat?')) return;
-            
+        function downloadMedia(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+
+        messageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+
+        async function loadChannelInfo(chatId) {
             try {
-                const res = await fetch('/api/clear-history', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: currentChat.id
-                    })
-                });
-                
+                const res = await fetch('/api/get-channel-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, channelId: chatId }) });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('History cleared');
-                    await loadConversationHistory(currentChat.id);
-                } else {
-                    showToast(data.error || 'Failed to clear history', 'error');
+                    isMuted = data.is_muted;
+                    document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔔';
                 }
-            } catch (err) {
-                showToast('Error clearing history', 'error');
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Profile Settings
-        function editProfile() {
-            const newName = prompt('Enter new display name:', document.getElementById('profileName').textContent);
-            if (newName && newName.trim()) {
-                updateProfile(newName.trim());
-            }
+        async function toggleMute() {
+            try {
+                const res = await fetch('/api/toggle-mute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, channelId: currentChat.id, mute: !isMuted }) });
+                const data = await res.json();
+                if (data.success) { isMuted = data.muted; document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔔'; showToast(isMuted ? 'Muted' : 'Unmuted'); }
+            } catch (err) { showToast('Error', 'error'); }
         }
 
+        async function showChannelInfo() {
+            if (!currentChat) return;
+            try {
+                const res = await fetch('/api/get-channel-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, channelId: currentChat.id }) });
+                const data = await res.json();
+                if (data.success) {
+                    modalContent.innerHTML = `
+                        <h3>${escapeHtml(data.title)}</h3>
+                        <div class="channel-info">
+                            <div class="info-row"><span>Username</span><span>${data.username ? '@' + data.username : 'None'}</span></div>
+                            <div class="info-row"><span>Type</span><span>${data.type || 'Chat'}</span></div>
+                            <div class="info-row"><span>Members</span><span>${data.participants_count || 'N/A'}</span></div>
+                            <div class="info-row"><span>Online</span><span>${data.online_count || 0}</span></div>
+                            <div class="info-row"><span>Verified</span><span>${data.is_verified ? '✓' : '✗'}</span></div>
+                            <div class="info-row"><span>Muted</span><span>${data.is_muted ? 'Yes' : 'No'}</span></div>
+                            ${data.description ? `<div class="info-row"><span>Description</span><span style="word-break:break-word;">${escapeHtml(data.description)}</span></div>` : ''}
+                        </div>
+                        <div class="modal-actions"><button class="settings-btn" onclick="closeModal()">Close</button></div>
+                    `;
+                    modal.classList.add('show');
+                }
+            } catch (err) { showToast('Error loading info', 'error'); }
+        }
+
+        function editProfile() { const name = prompt('Enter new name:', document.getElementById('profileName').textContent); if (name) updateProfile(name); }
         async function updateProfile(name) {
             try {
-                const res = await fetch('/api/update-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        firstName: name
-                    })
-                });
-                
+                const res = await fetch('/api/update-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, firstName: name }) });
                 const data = await res.json();
-                if (data.success) {
-                    showToast('Profile updated');
-                    currentAccount.name = name;
-                    updateHeaderForCurrentAccount();
-                    renderDropdown();
-                    await loadAccountSettings();
-                } else {
-                    showToast(data.error || 'Failed to update', 'error');
-                }
-            } catch (err) {
-                showToast('Error updating profile', 'error');
-            }
+                if (data.success) { showToast('Profile updated'); currentAccount.name = name; updateHeaderForCurrentAccount(); await loadAccountSettings(); }
+                else showToast(data.error, 'error');
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        function editUsername() {
-            const newUsername = prompt('Enter new username (without @):', '');
-            if (newUsername && newUsername.trim()) {
-                updateUsername(newUsername.trim());
-            }
-        }
-
-        async function updateUsername(username) {
+        function editUsername() { const user = prompt('Enter username (without @):'); if (user) updateUsername(user); }
+        async function updateUsername(user) {
             try {
-                const res = await fetch('/api/update-username', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        username: username
-                    })
-                });
-                
+                const res = await fetch('/api/update-username', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, username: user }) });
                 const data = await res.json();
-                if (data.success) {
-                    showToast('Username updated');
-                    await loadAccountSettings();
-                } else {
-                    showToast(data.error || 'Failed to update username', 'error');
-                }
-            } catch (err) {
-                showToast('Error updating username', 'error');
-            }
+                if (data.success) showToast('Username updated');
+                else showToast(data.error, 'error');
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        // Email Connection
-        let pendingEmail = null;
-
-        function connectEmail() {
+        function showEmailSetup() {
             modalContent.innerHTML = `
-                <h3>Connect Email</h3>
-                <p style="color: #8e9fad; margin-bottom: 15px;">Enter your email to receive verification code</p>
-                <input type="email" id="emailInput" placeholder="your@email.com">
-                <div class="modal-actions">
-                    <button class="settings-btn" onclick="sendEmailCode()">Send Code</button>
-                    <button class="settings-btn" onclick="closeModal()">Cancel</button>
-                </div>
+                <h3>Email Settings</h3>
+                <input type="email" id="emailInput" placeholder="Enter your email">
+                <div class="modal-actions"><button class="settings-btn" onclick="sendEmailCode()">Send Code</button><button onclick="closeModal()">Cancel</button></div>
             `;
             modal.classList.add('show');
         }
 
         async function sendEmailCode() {
-            const email = document.getElementById('emailInput')?.value.trim();
-            if (!email) {
-                showToast('Please enter email', 'error');
-                return;
-            }
-            
-            pendingEmail = email;
-            
+            const email = document.getElementById('emailInput').value;
+            if (!email) { showToast('Enter email', 'error'); return; }
             try {
-                const res = await fetch('/api/request-email-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        email: email
-                    })
-                });
-                
+                const res = await fetch('/api/send-email-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, email }) });
                 const data = await res.json();
-                
                 if (data.success) {
-                    showToast('Verification code sent to ' + email);
-                    
-                    modalContent.innerHTML = `
-                        <h3>Verify Email</h3>
-                        <p style="color: #8e9fad; margin-bottom: 15px;">Enter the 6-digit code sent to ${escapeHtml(email)}</p>
-                        <input type="text" id="codeInput" placeholder="6-digit code" maxlength="6">
-                        <div class="modal-actions">
-                            <button class="settings-btn" onclick="verifyEmailCode()">Verify</button>
-                            <button class="settings-btn" onclick="closeModal()">Cancel</button>
-                        </div>
-                    `;
-                } else {
-                    showToast(data.error || 'Failed to send code', 'error');
-                }
-            } catch (err) {
-                showToast('Error sending code', 'error');
-            }
+                    modalContent.innerHTML = `<h3>Verify Email</h3><p>Code sent to ${email}</p><input type="text" id="codeInput" placeholder="Enter 6-digit code"><div class="modal-actions"><button class="settings-btn" onclick="verifyEmailCode('${email}')">Verify</button><button onclick="closeModal()">Cancel</button></div>`;
+                } else showToast(data.error, 'error');
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        async function verifyEmailCode() {
-            const code = document.getElementById('codeInput')?.value.trim();
-            if (!code || code.length !== 6) {
-                showToast('Please enter 6-digit code', 'error');
-                return;
-            }
-            
+        async function verifyEmailCode(email) {
+            const code = document.getElementById('codeInput').value;
+            if (!code) { showToast('Enter code', 'error'); return; }
             try {
-                const res = await fetch('/api/verify-email-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        email: pendingEmail,
-                        code: code
-                    })
-                });
-                
+                const res = await fetch('/api/verify-email-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, email, code }) });
                 const data = await res.json();
-                
-                if (data.success) {
-                    showToast('Email connected successfully!');
-                    closeModal();
-                    await loadAccountSettings();
-                } else {
-                    showToast(data.error || 'Verification failed', 'error');
-                }
-            } catch (err) {
-                showToast('Error verifying code', 'error');
-            }
+                if (data.success) { showToast('Email verified!'); closeModal(); }
+                else showToast(data.error, 'error');
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        // 2FA Settings
-        function show2FASettings() {
+        function show2FA() {
             modalContent.innerHTML = `
                 <h3>Two-Step Verification</h3>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <div style="margin-bottom: 15px;">
-                        <label>Current Password (if set)</label>
-                        <input type="password" id="currentPassword" placeholder="Leave empty if not set">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label>New Password</label>
-                        <input type="password" id="newPassword" placeholder="Enter new password">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label>Password Hint (optional)</label>
-                        <input type="text" id="passwordHint" placeholder="e.g., My favorite color">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label>Recovery Email (optional)</label>
-                        <input type="email" id="recoveryEmail" placeholder="your@email.com">
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button class="settings-btn" onclick="update2FA()">Save</button>
-                    <button class="settings-btn" onclick="closeModal()">Cancel</button>
-                </div>
+                <input type="password" id="currentPwd" placeholder="Current password (if set)">
+                <input type="password" id="newPwd" placeholder="New password">
+                <input type="text" id="hint" placeholder="Password hint (optional)">
+                <input type="email" id="email2fa" placeholder="Recovery email (optional)">
+                <div class="modal-actions"><button class="settings-btn" onclick="set2FA()">Enable</button><button onclick="closeModal()">Cancel</button></div>
             `;
             modal.classList.add('show');
         }
 
-        async function update2FA() {
-            const currentPassword = document.getElementById('currentPassword')?.value || '';
-            const newPassword = document.getElementById('newPassword')?.value;
-            const hint = document.getElementById('passwordHint')?.value || '';
-            const email = document.getElementById('recoveryEmail')?.value || '';
-            
-            if (!newPassword) {
-                showToast('Please enter a new password', 'error');
-                return;
-            }
-            
-            if (newPassword.length < 4) {
-                showToast('Password must be at least 4 characters', 'error');
-                return;
-            }
-            
+        async function set2FA() {
+            const current = document.getElementById('currentPwd').value;
+            const newPwd = document.getElementById('newPwd').value;
+            const hint = document.getElementById('hint').value;
+            const email = document.getElementById('email2fa').value;
+            if (!newPwd) { showToast('Enter new password', 'error'); return; }
             try {
-                const res = await fetch('/api/set-2fa-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        currentPassword: currentPassword,
-                        newPassword: newPassword,
-                        hint: hint,
-                        email: email
-                    })
-                });
-                
+                const res = await fetch('/api/set-2fa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id, currentPassword: current, newPassword: newPwd, hint, email }) });
                 const data = await res.json();
-                
-                if (data.success) {
-                    showToast(data.message || '2FA password set successfully');
-                    closeModal();
-                } else {
-                    showToast(data.error || 'Failed to set 2FA', 'error');
-                }
-            } catch (err) {
-                console.error('2FA error:', err);
-                showToast('Error setting 2FA. Please try again.', 'error');
-            }
+                if (data.success) { showToast('2FA enabled'); closeModal(); }
+                else showToast(data.error, 'error');
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        // Sessions
         async function showSessions() {
             try {
-                const res = await fetch('/api/get-sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
+                const res = await fetch('/api/get-sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id }) });
                 const data = await res.json();
                 if (data.success && data.sessions) {
-                    let sessionList = 'Active Sessions:\n\n';
+                    let list = 'Active Sessions:\n\n';
                     data.sessions.forEach(s => {
-                        sessionList += `${s.device_model} (${s.platform})\n`;
-                        sessionList += `IP: ${s.ip} · ${s.country}\n`;
-                        sessionList += `Last active: ${new Date(s.date_active * 1000).toLocaleString()}\n`;
-                        sessionList += s.current ? '➡️ CURRENT DEVICE\n' : '';
-                        sessionList += '---\n';
+                        list += `${s.device_model} (${s.platform})\nIP: ${s.ip} · ${s.country}\nLast: ${new Date(s.date_active * 1000).toLocaleString()}\n${s.current ? '➡️ CURRENT\n' : ''}---\n`;
                     });
-                    alert(sessionList);
-                } else {
-                    showToast('Failed to load sessions', 'error');
+                    alert(list);
                 }
-            } catch (err) {
-                showToast('Error loading sessions', 'error');
-            }
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        async function terminateOtherSessions() {
-            if (!confirm('Terminate all other active sessions? You will be logged out from other devices.')) return;
-            
+        async function removeAccount() {
+            if (!confirm(`Remove "${currentAccount.name}"?`)) return;
             try {
-                const res = await fetch('/api/terminate-sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || 'Sessions terminated');
-                } else {
-                    showToast(data.error || 'Failed to terminate sessions', 'error');
-                }
-            } catch (err) {
-                showToast('Error terminating sessions', 'error');
-            }
+                const res = await fetch('/api/remove-account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: currentAccount.id }) });
+                if (res.ok) { showToast('Account removed'); await loadAccounts(); }
+            } catch (err) { showToast('Error', 'error'); }
         }
 
-        // Search
-        function performSearchDebounced() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => performSearch(), 500);
-        }
+        function refreshAll() { if (currentAccount) { loadChats(); if (currentChat) loadMessages(currentChat.id); } showToast('Refreshed'); }
 
-        async function performSearch() {
-            const query = searchInput.value.trim();
-            if (!query || !currentAccount) {
-                searchResults.innerHTML = '';
-                return;
-            }
-            
-            searchResults.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching...</div>';
-            
-            try {
-                const res = await fetch('/api/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        query: query
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success && data.results && data.results.length > 0) {
-                    searchResults.innerHTML = data.results.map(item => {
-                        let typeIcon = '👤';
-                        if (item.type === 'channel') typeIcon = '📢';
-                        else if (item.type === 'group' || item.type === 'supergroup') typeIcon = '👥';
-                        
-                        return `
-                            <div class="search-result" onclick="joinEntity('${escapeHtml(item.id)}', '${escapeHtml(item.title)}')">
-                                <div class="result-avatar">${typeIcon}</div>
-                                <div class="result-info">
-                                    <div class="result-title">${escapeHtml(item.title)}</div>
-                                    <div class="result-type">${item.type}${item.members ? ' · ' + item.members + ' members' : ''}</div>
-                                    ${item.username ? `<div style="font-size: 0.7rem; color: #6ab2f2;">@${escapeHtml(item.username)}</div>` : ''}
-                                </div>
-                                <button class="join-btn">Join</button>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    searchResults.innerHTML = '<div class="empty-state">No results found</div>';
-                }
-            } catch (err) {
-                console.error('Search error:', err);
-                searchResults.innerHTML = '<div class="empty-state">Search failed</div>';
-            }
-        }
+        document.addEventListener('click', e => { if (!switcher.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.remove('show'); });
+        switcher.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('show'); });
 
-        async function joinEntity(entityId, title) {
-            if (!confirm(`Join "${title}"?`)) return;
-            
-            try {
-                const res = await fetch('/api/join-entity', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        entityId: entityId
-                    })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast(`Joined ${title}`);
-                    searchResults.innerHTML = '';
-                    searchInput.value = '';
-                } else {
-                    showToast(data.error || 'Failed to join', 'error');
-                }
-            } catch (err) {
-                showToast('Error joining', 'error');
-            }
-        }
-
-        function joinByLink() {
-            const link = prompt('Enter group/channel username or link (e.g., @groupname or https://t.me/groupname)');
-            if (link) {
-                joinEntity(link, link);
-            }
-        }
-
-        // Remove Account
-        async function removeCurrentAccount() {
-            if (!currentAccount) return;
-            if (!confirm(`Remove account "${currentAccount.name}"? This action cannot be undone.`)) return;
-            
-            try {
-                const res = await fetch('/api/remove-account', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Account removed');
-                    await loadAccounts();
-                    if (window.innerWidth <= 768) {
-                        toggleSettings();
-                    }
-                } else {
-                    showToast(data.error || 'Failed to remove', 'error');
-                }
-            } catch (err) {
-                showToast('Error removing account', 'error');
-            }
-        }
-
-        function refreshAll() {
-            if (currentAccount) {
-                loadChats();
-                if (currentChat) {
-                    loadMessages(currentChat.id);
-                }
-                loadAccountSettings();
-                showToast('Refreshed');
-            }
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!switcher.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        switcher.addEventListener('click', function(event) {
-            event.stopPropagation();
-            dropdown.classList.toggle('show');
-        });
-
-        // Initialize
-        window.addEventListener('load', () => {
-            loadAccounts();
-            
-            refreshInterval = setInterval(() => {
-                if (currentAccount) {
-                    loadChats();
-                }
-            }, 30000);
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (refreshInterval) clearInterval(refreshInterval);
-        });
-
-        // Window resize handler
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                settingsPanel.classList.remove('show');
-                settingsPanel.style.display = '';
-                document.getElementById('chatsPanel').style.display = '';
-                document.getElementById('messagesPanel').classList.remove('show');
-            }
-        });
+        window.addEventListener('load', () => { loadAccounts(); refreshInterval = setInterval(() => { if (currentAccount) loadChats(); }, 30000); });
+        window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
     </script>
 </body>
 </html>
