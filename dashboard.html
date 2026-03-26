@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Multi-Account Dashboard</title>
+    <title>Telegram Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -21,7 +21,7 @@
             overflow: hidden;
         }
 
-        /* Header */
+        /* Header - Telegram Style */
         .app-header {
             background: #17212b;
             padding: 8px 16px;
@@ -30,10 +30,68 @@
             justify-content: space-between;
             border-bottom: 1px solid #2b3945;
             flex-shrink: 0;
-            height: 60px;
+            height: 56px;
             z-index: 10;
         }
 
+        /* Search Container - In Header */
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: #242f3d;
+            border: none;
+            border-radius: 28px;
+            padding: 10px 16px 10px 40px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            background: #2b3945;
+        }
+
+        .search-input::placeholder {
+            color: #8e9fad;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8e9fad;
+            font-size: 1rem;
+        }
+
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #17212b;
+            border: 1px solid #2b3945;
+            border-radius: 12px;
+            margin-top: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            z-index: 200;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .search-results-dropdown.show {
+            display: block;
+        }
+
+        /* Account Switcher */
         .account-switcher {
             display: flex;
             align-items: center;
@@ -50,16 +108,15 @@
         }
 
         .current-avatar {
-            width: 42px;
-            height: 42px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             background: linear-gradient(145deg, #2b5278, #4c9ce0);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            color: white;
         }
 
         .current-info {
@@ -68,32 +125,29 @@
         }
 
         .current-name {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            color: #fff;
         }
 
         .current-phone {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #8e9fad;
         }
 
         .dropdown-icon {
             color: #8e9fad;
-            font-size: 1.2rem;
-            margin-left: 8px;
+            font-size: 1rem;
         }
 
-        /* Dropdown menu */
+        /* Dropdown */
         .account-dropdown {
             position: absolute;
-            top: 60px;
-            left: 16px;
+            top: 50px;
+            left: 0;
             background: #17212b;
             border: 1px solid #2b3945;
             border-radius: 12px;
             width: 280px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             display: none;
             z-index: 100;
             max-height: 400px;
@@ -114,10 +168,6 @@
             border-bottom: 1px solid #2b3945;
         }
 
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
         .dropdown-item:hover {
             background: #242f3d;
         }
@@ -131,32 +181,6 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .dropdown-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .dropdown-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .dropdown-phone {
-            font-size: 0.7rem;
-            color: #8e9fad;
-        }
-
-        .remove-item {
-            color: #ff6b6b;
-            border-top: 1px solid #2b3945;
         }
 
         .header-actions {
@@ -165,117 +189,63 @@
             align-items: center;
         }
 
-        .header-actions a, .header-actions button {
+        .icon-btn {
             background: #2b3945;
-            color: #6ab2f2;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: 0.2s;
-            white-space: nowrap;
             border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
+            font-size: 1.2rem;
+            transition: 0.2s;
+            color: #6ab2f2;
         }
 
-        .header-actions a:hover, .header-actions button:hover {
+        .icon-btn:hover {
             background: #3a4a5a;
         }
 
-        .settings-btn-header {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            padding: 0;
-            font-size: 1.2rem;
-        }
-
-        .refresh-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            padding: 0;
-            font-size: 1.2rem;
-        }
-
-        .refresh-btn.refreshing {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Main layout */
+        /* Main Layout */
         .main-layout {
             display: flex;
             flex: 1;
             overflow: hidden;
-            min-height: 0;
-            height: calc(100vh - 60px);
+            height: calc(100vh - 56px);
         }
 
-        /* Chats panel */
+        /* Chats Panel */
         .chats-panel {
-            width: 350px;
+            width: 360px;
             background: #17212b;
             border-right: 1px solid #2b3945;
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
-            height: 100%;
             overflow: hidden;
         }
 
-        .chats-panel-header {
+        .chats-header {
             padding: 16px;
             border-bottom: 1px solid #2b3945;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-shrink: 0;
-            background: #17212b;
         }
 
-        .chats-panel-header h3 {
+        .chats-header h3 {
             color: #8e9fad;
+            font-size: 0.9rem;
             font-weight: 500;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
         }
 
-        .chats-panel-header .badge {
-            background: #2b5278;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-        }
-
-        .chats-scroll {
+        .chats-list {
             flex: 1;
             overflow-y: auto;
             padding: 8px;
-            height: 100%;
-            min-height: 0;
         }
 
-        .chats-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .chats-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chats-scroll::-webkit-scrollbar-thumb {
-            background: #2b3945;
-            border-radius: 10px;
-        }
-
-        /* Chat items */
         .chat-item {
             display: flex;
             align-items: center;
@@ -283,7 +253,7 @@
             border-radius: 12px;
             cursor: pointer;
             transition: background 0.2s;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .chat-item:hover {
@@ -295,19 +265,17 @@
         }
 
         .chat-avatar {
-            width: 54px;
-            height: 54px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             background: linear-gradient(145deg, #2b5278, #4c9ce0);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 600;
-            color: white;
             margin-right: 12px;
             flex-shrink: 0;
-            position: relative;
         }
 
         .chat-info {
@@ -315,31 +283,29 @@
             min-width: 0;
         }
 
-        .chat-row {
+        .chat-name-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 4px;
         }
 
         .chat-name {
             font-weight: 600;
-            font-size: 1rem;
-            color: #fff;
+            font-size: 0.95rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 180px;
         }
 
         .chat-time {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #8e9fad;
             flex-shrink: 0;
+            margin-left: 8px;
         }
 
         .chat-last-msg {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #8e9fad;
             white-space: nowrap;
             overflow: hidden;
@@ -350,21 +316,17 @@
             background: #4c9ce0;
             color: white;
             font-size: 0.7rem;
-            font-weight: 600;
             padding: 2px 6px;
             border-radius: 12px;
             margin-left: 8px;
         }
 
-        /* Messages panel */
+        /* Messages Panel */
         .messages-panel {
             flex: 1;
-            background: #0e1621;
             display: flex;
             flex-direction: column;
-            min-width: 0;
-            position: relative;
-            height: 100%;
+            background: #0e1621;
             overflow: hidden;
         }
 
@@ -372,10 +334,9 @@
             background: #17212b;
             padding: 12px 20px;
             border-bottom: 1px solid #2b3945;
-            flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             height: 60px;
         }
 
@@ -393,55 +354,33 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            color: white;
-        }
-
-        .chat-header-details {
-            display: flex;
-            flex-direction: column;
         }
 
         .chat-header-title {
-            font-size: 1.1rem;
             font-weight: 600;
-            color: #fff;
+            font-size: 1rem;
         }
 
-        .chat-header-subtitle {
-            font-size: 0.75rem;
+        .chat-header-status {
+            font-size: 0.7rem;
             color: #8e9fad;
         }
 
-        .messages-scroll {
+        .messages-list {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            background: #0e1621;
-            min-height: 0;
-        }
-
-        .messages-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .messages-scroll::-webkit-scrollbar-thumb {
-            background: #2b3945;
-            border-radius: 10px;
+            gap: 8px;
         }
 
         .message-wrapper {
             display: flex;
             flex-direction: column;
-            max-width: 85%;
+            max-width: 75%;
         }
 
         .message-wrapper.outgoing {
@@ -457,32 +396,28 @@
             border-radius: 18px;
             word-wrap: break-word;
             line-height: 1.4;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .incoming .message-bubble {
             background: #17212b;
-            color: #fff;
             border-bottom-left-radius: 4px;
         }
 
         .outgoing .message-bubble {
             background: #2b5278;
-            color: #fff;
             border-bottom-right-radius: 4px;
         }
 
         .message-meta {
             display: flex;
-            align-items: center;
             justify-content: flex-end;
             gap: 4px;
-            margin-top: 2px;
+            margin-top: 4px;
             font-size: 0.65rem;
             color: #8e9fad;
         }
 
-        /* Compose area */
         .compose-area {
             background: #17212b;
             padding: 12px 20px;
@@ -490,55 +425,65 @@
             display: flex;
             gap: 12px;
             align-items: center;
-            flex-shrink: 0;
         }
 
-        .compose-input {
+        .message-input {
             flex: 1;
             background: #242f3d;
             border: none;
-            border-radius: 30px;
+            border-radius: 24px;
             padding: 12px 18px;
             color: #fff;
-            font-size: 1rem;
+            font-size: 0.95rem;
             outline: none;
-        }
-
-        .compose-input::placeholder {
-            color: #8e9fad;
         }
 
         .send-btn {
             background: #4c9ce0;
             border: none;
-            width: 45px;
-            height: 45px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: white;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             transition: 0.2s;
         }
 
-        .send-btn:hover:not(:disabled) {
+        .send-btn:hover {
             background: #6ab2f2;
         }
 
-        /* Settings Panel */
-        .settings-panel {
-            width: 380px;
-            background: #17212b;
-            border-left: 1px solid #2b3945;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            flex-shrink: 0;
+        /* Settings Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
-        .settings-header {
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #17212b;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
             padding: 20px;
             border-bottom: 1px solid #2b3945;
             display: flex;
@@ -546,30 +491,20 @@
             align-items: center;
         }
 
-        .settings-header h3 {
-            color: #fff;
+        .modal-header h3 {
             font-size: 1.2rem;
         }
 
-        .close-settings-btn {
-            background: none;
-            border: none;
-            color: #8e9fad;
-            font-size: 1.5rem;
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            transition: 0.2s;
-        }
-
-        .close-settings-btn:hover {
-            background: #242f3d;
-            color: #fff;
-        }
-
-        .settings-content {
+        .modal-body {
             padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #2b3945;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
 
         .settings-section {
@@ -577,214 +512,151 @@
         }
 
         .settings-section h4 {
-            color: #fff;
-            margin-bottom: 15px;
-            font-size: 1rem;
+            color: #8e9fad;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 12px;
         }
 
-        .profile-preview {
+        .settings-item {
+            background: #242f3d;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-item:hover {
+            background: #2b3945;
+        }
+
+        .settings-item-left {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 15px;
+            gap: 12px;
+        }
+
+        .settings-item-icon {
+            font-size: 1.3rem;
+        }
+
+        .settings-item-info h5 {
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .settings-item-info p {
+            font-size: 0.75rem;
+            color: #8e9fad;
+        }
+
+        .device-item {
             background: #242f3d;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .device-item.current {
+            border: 1px solid #4c9ce0;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .device-name {
+            font-weight: 600;
+        }
+
+        .device-badge {
+            background: #4c9ce0;
+            font-size: 0.7rem;
+            padding: 2px 8px;
             border-radius: 12px;
         }
 
-        .profile-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #2b5278, #4c9ce0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .profile-username {
-            color: #8e9fad;
-            font-size: 0.85rem;
-        }
-
-        .profile-phone {
-            color: #8e9fad;
+        .device-details {
             font-size: 0.8rem;
-        }
-
-        .settings-btn {
-            width: 100%;
-            padding: 12px;
-            background: #2b3945;
-            border: none;
-            border-radius: 30px;
-            color: #6ab2f2;
-            cursor: pointer;
-            margin-bottom: 10px;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .settings-btn:hover {
-            background: #3a4a5a;
-            transform: translateY(-1px);
-        }
-
-        .settings-btn.danger {
-            background: #8e2b2b;
-            color: white;
-        }
-
-        .settings-btn.danger:hover {
-            background: #a53333;
-        }
-
-        /* Search box */
-        .search-box {
-            margin-bottom: 15px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px;
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 30px;
-            color: #fff;
-            outline: none;
-            font-size: 0.9rem;
-        }
-
-        .search-input:focus {
-            border-color: #4c9ce0;
-        }
-
-        .search-results {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .search-result {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #242f3d;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .search-result:hover {
-            background: #2b3945;
-        }
-
-        .result-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #2b5278;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .result-info {
-            flex: 1;
-        }
-
-        .result-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .result-type {
-            font-size: 0.7rem;
             color: #8e9fad;
         }
 
-        .join-btn {
-            background: #4c9ce0;
+        .terminate-btn {
+            background: #8e2b2b;
             border: none;
-            padding: 5px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
             color: white;
             cursor: pointer;
             font-size: 0.8rem;
+            margin-top: 8px;
         }
 
-        /* Toggle switch */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
+        .btn {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: none;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #2b3945;
-            transition: .4s;
-            border-radius: 24px;
+            font-size: 0.9rem;
+            transition: 0.2s;
         }
 
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
+        .btn-primary {
+            background: #4c9ce0;
+            color: white;
         }
 
-        input:checked + .toggle-slider {
-            background-color: #4c9ce0;
+        .btn-secondary {
+            background: #2b3945;
+            color: #6ab2f2;
         }
 
-        input:checked + .toggle-slider:before {
-            transform: translateX(26px);
+        .btn-danger {
+            background: #8e2b2b;
+            color: white;
         }
 
-        /* Setting item */
-        .setting-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
+        input, select {
             background: #242f3d;
+            border: 1px solid #2b3945;
             border-radius: 12px;
-            margin-bottom: 10px;
+            padding: 12px;
+            color: #fff;
+            width: 100%;
+            margin-bottom: 12px;
+            outline: none;
         }
 
-        /* Loading and empty states */
-        .loading, .empty-state {
+        input:focus {
+            border-color: #4c9ce0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #17212b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: 1px solid #2b3945;
+            z-index: 1100;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .loading {
             text-align: center;
             padding: 40px;
             color: #8e9fad;
@@ -800,175 +672,32 @@
             animation: spin 1s linear infinite;
         }
 
-        .history-container {
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 15px;
-            background: #1e2a36;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .history-message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
-        }
-
-        .history-message.user {
-            background: #2b3945;
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-
-        .history-message.assistant {
-            background: #2b5278;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message-text {
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-
-        .message-time {
-            font-size: 0.65rem;
-            color: #8e9fad;
-            margin-top: 5px;
-            text-align: right;
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #17212b;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            border: 1px solid #2b3945;
-            z-index: 1000;
-            display: none;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
-        }
-
-        .toast.show {
-            display: block;
-        }
-
-        .toast.success {
-            border-left: 4px solid #4c9ce0;
-        }
-
-        .toast.error {
-            border-left: 4px solid #e04c4c;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #17212b;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .modal-content h3 {
-            margin-bottom: 15px;
-            color: #fff;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 12px;
-            background: #242f3d;
-            border: 1px solid #2b3945;
-            border-radius: 12px;
-            color: #fff;
-            margin: 10px 0;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
             .chats-panel {
                 width: 100%;
+                position: absolute;
+                left: 0;
+                top: 56px;
+                bottom: 0;
+                z-index: 10;
+                transform: translateX(0);
+                transition: transform 0.3s;
+            }
+            
+            .chats-panel.hide {
+                transform: translateX(-100%);
             }
             
             .messages-panel {
-                display: none;
-                position: fixed;
-                top: 60px;
-                left: 0;
-                right: 0;
-                bottom: 0;
                 width: 100%;
-                z-index: 20;
-                background: #0e1621;
             }
             
-            .messages-panel.show {
-                display: flex;
-            }
-            
-            .settings-panel {
-                position: fixed;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                z-index: 30;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .settings-panel.show {
-                transform: translateX(0);
-            }
-            
-            .mobile-back-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: transparent;
-                color: #6ab2f2;
-                border: none;
-                font-size: 1.5rem;
-                margin-right: 10px;
-                cursor: pointer;
+            .search-container {
+                max-width: 200px;
             }
         }
     </style>
@@ -986,103 +715,92 @@
 
         <div class="account-dropdown" id="accountDropdown"></div>
 
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search messages or users...">
+            <div class="search-results-dropdown" id="searchResults"></div>
+        </div>
+
         <div class="header-actions">
-            <button class="settings-btn-header" onclick="toggleSettings()">⚙️</button>
-            <button class="refresh-btn" id="refreshBtn" onclick="refreshChats()">↻</button>
-            <a href="/login">➕ Add</a>
+            <button class="icon-btn" onclick="openSettings()">⚙️</button>
+            <a href="/login" class="icon-btn">➕</a>
         </div>
     </div>
 
     <div class="main-layout">
         <div class="chats-panel" id="chatsPanel">
-            <div class="chats-panel-header">
+            <div class="chats-header">
                 <h3>CHATS</h3>
                 <span class="badge" id="totalChats">0</span>
             </div>
-            <div class="chats-scroll" id="chatsList">
+            <div class="chats-list" id="chatsList">
                 <div class="loading">Loading chats...</div>
             </div>
         </div>
 
         <div class="messages-panel" id="messagesPanel">
             <div class="messages-header" id="messagesHeader" style="display: none;">
-                <div style="display: flex; align-items: center;">
-                    <button class="mobile-back-btn" onclick="showChatsPanel()">←</button>
-                    <div class="chat-header-info">
-                        <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
-                        <div class="chat-header-details">
-                            <span class="chat-header-title" id="currentChatTitle"></span>
-                            <span class="chat-header-subtitle" id="chatHeaderSubtitle"></span>
-                        </div>
+                <div class="chat-header-info">
+                    <div class="chat-header-avatar" id="chatHeaderAvatar">?</div>
+                    <div>
+                        <div class="chat-header-title" id="currentChatTitle"></div>
+                        <div class="chat-header-status" id="chatHeaderStatus">Click to view messages</div>
                     </div>
                 </div>
-                <button onclick="viewChatHistory()" style="background: #2b3945; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;">📜</button>
+                <button class="icon-btn" onclick="openChatSettings()">⋮</button>
             </div>
-            <div class="messages-scroll" id="messagesList">
-                <div class="empty-state">👈 Select a chat to start messaging</div>
+            <div class="messages-list" id="messagesList">
+                <div class="loading">Select a chat to start messaging</div>
             </div>
             <div class="compose-area" id="composeArea" style="display: none;">
-                <input type="text" class="compose-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
                 <button class="send-btn" onclick="sendMessage()">📤</button>
             </div>
         </div>
+    </div>
 
-        <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
-                <h3>⚙️ Account Settings</h3>
-                <button class="close-settings-btn" onclick="toggleSettings()">✕</button>
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="icon-btn" onclick="closeSettings()">✕</button>
             </div>
-            <div class="settings-content">
+            <div class="modal-body" id="settingsBody">
                 <div class="settings-section">
-                    <h4>👤 Profile Information</h4>
-                    <div class="profile-preview">
-                        <div class="profile-avatar" id="profileAvatar">?</div>
-                        <div>
-                            <div class="profile-name" id="profileName">Loading...</div>
-                            <div class="profile-username" id="profileUsername">@username</div>
-                            <div class="profile-phone" id="profilePhone">+251...</div>
+                    <h4>Security</h4>
+                    <div class="settings-item" onclick="show2FASettings()">
+                        <div class="settings-item-left">
+                            <span class="settings-item-icon">🔐</span>
+                            <div class="settings-item-info">
+                                <h5>Two-Step Verification</h5>
+                                <p id="2faStatus">Check status</p>
+                            </div>
                         </div>
+                        <span>→</span>
                     </div>
-                    <button class="settings-btn" onclick="editProfile()">✏️ Edit Profile</button>
-                    <button class="settings-btn" onclick="editUsername()">@ Change Username</button>
-                </div>
-
-                <div class="settings-section">
-                    <h4>🔒 Security</h4>
-                    <button class="settings-btn" onclick="show2FASettings()">🔐 Two-Step Verification</button>
-                    <button class="settings-btn" onclick="showSessions()">📱 Active Sessions</button>
-                    <button class="settings-btn" onclick="terminateOtherSessions()">🚪 Terminate Other Sessions</button>
-                </div>
-
-                <div class="settings-section">
-                    <h4>🔍 Search & Join</h4>
-                    <div class="search-box">
-                        <input type="text" class="search-input" id="searchInput" placeholder="Search groups, channels, users..." oninput="performSearchDebounced()">
-                        <div class="search-results" id="searchResults"></div>
+                    <div class="settings-item" onclick="showEmailSettings()">
+                        <div class="settings-item-left">
+                            <span class="settings-item-icon">📧</span>
+                            <div class="settings-item-info">
+                                <h5>Recovery Email</h5>
+                                <p id="emailStatus">Not set</p>
+                            </div>
+                        </div>
+                        <span>→</span>
                     </div>
-                    <button class="settings-btn" onclick="joinByLink()">➕ Join by Username/Link</button>
                 </div>
 
                 <div class="settings-section">
-                    <h4>📜 Conversation History</h4>
-                    <div class="history-container" id="historyContainer">
-                        <div class="empty-state">Select a chat to view history</div>
-                    </div>
-                    <button class="settings-btn" id="clearHistoryBtn" style="display: none;" onclick="clearHistory()">🗑️ Clear History</button>
-                </div>
-
-                <div class="settings-section">
-                    <h4>⚠️ Danger Zone</h4>
-                    <button class="settings-btn danger" onclick="removeCurrentAccount()">🗑️ Remove Account</button>
+                    <h4>Devices</h4>
+                    <div id="devicesList"></div>
+                    <button class="btn btn-secondary" onclick="terminateAllSessions()" style="width: 100%; margin-top: 12px;">Terminate All Other Sessions</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="toast" id="toast"></div>
-    <div class="modal" id="modal">
-        <div class="modal-content" id="modalContent"></div>
-    </div>
 
     <script>
         // State
@@ -1090,9 +808,10 @@
         let currentAccount = null;
         let currentChat = null;
         let chats = [];
-        let messages = [];
+        let currentMessages = [];
         let refreshInterval = null;
         let searchTimeout = null;
+        let isLoadingMessages = false;
 
         // DOM Elements
         const toast = document.getElementById('toast');
@@ -1105,20 +824,15 @@
         const messagesHeader = document.getElementById('messagesHeader');
         const currentChatTitle = document.getElementById('currentChatTitle');
         const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
-        const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
+        const chatHeaderStatus = document.getElementById('chatHeaderStatus');
         const messagesListDiv = document.getElementById('messagesList');
         const composeArea = document.getElementById('composeArea');
         const messageInput = document.getElementById('messageInput');
         const totalChatsSpan = document.getElementById('totalChats');
-        const settingsPanel = document.getElementById('settingsPanel');
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
-        const historyContainer = document.getElementById('historyContainer');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modalContent');
+        const settingsModal = document.getElementById('settingsModal');
 
-        // Helper Functions
         function showToast(message, type = 'success') {
             toast.textContent = message;
             toast.className = `toast show ${type}`;
@@ -1147,33 +861,6 @@
             }
         }
 
-        function showChatsPanel() {
-            if (window.innerWidth <= 768) {
-                document.getElementById('chatsPanel').style.display = 'block';
-                document.getElementById('messagesPanel').classList.remove('show');
-            }
-        }
-
-        function showMessagesPanel() {
-            if (window.innerWidth <= 768) {
-                document.getElementById('chatsPanel').style.display = 'none';
-                document.getElementById('messagesPanel').classList.add('show');
-            }
-        }
-
-        function toggleSettings() {
-            if (window.innerWidth <= 768) {
-                settingsPanel.classList.toggle('show');
-            } else {
-                if (settingsPanel.style.display === 'none' || !settingsPanel.style.display) {
-                    settingsPanel.style.display = 'flex';
-                    loadAccountSettings();
-                } else {
-                    settingsPanel.style.display = 'none';
-                }
-            }
-        }
-
         // Load Accounts
         async function loadAccounts() {
             try {
@@ -1191,27 +878,29 @@
                             currentAccount = accounts[0];
                         }
                         
-                        updateHeaderForCurrentAccount();
+                        updateHeader();
                         renderDropdown();
-                        await loadChatsForCurrentAccount();
-                        await loadAccountSettings();
+                        await loadChats();
+                        await load2FAStatus();
                     } else {
                         currentAccount = null;
-                        updateHeaderForNoAccount();
+                        updateHeader();
                         renderDropdown();
                         showNoAccountState();
                     }
-                } else {
-                    showToast('Failed to load accounts', 'error');
                 }
             } catch (err) {
-                console.error('Error fetching accounts:', err);
-                chatsListDiv.innerHTML = '<div class="empty-state">Cannot connect to server</div>';
+                console.error('Error:', err);
             }
         }
 
-        function updateHeaderForCurrentAccount() {
-            if (!currentAccount) return;
+        function updateHeader() {
+            if (!currentAccount) {
+                currentAvatar.textContent = '?';
+                currentName.textContent = 'No Account';
+                currentPhone.textContent = '';
+                return;
+            }
             
             const name = currentAccount.name || 'User';
             const phone = currentAccount.phone || '';
@@ -1220,22 +909,7 @@
             currentAvatar.textContent = initial;
             currentName.textContent = name;
             currentPhone.textContent = phone;
-            
             localStorage.setItem('lastSelectedAccount', currentAccount.id);
-        }
-
-        function updateHeaderForNoAccount() {
-            currentAvatar.textContent = '?';
-            currentName.textContent = 'No Account';
-            currentPhone.textContent = '';
-        }
-
-        function showNoAccountState() {
-            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <a href="/login" style="color:#6ab2f2;">Add one</a>.</div>';
-            messagesHeader.style.display = 'none';
-            composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">Add an account to start messaging</div>';
-            totalChatsSpan.textContent = '0';
         }
 
         function renderDropdown() {
@@ -1246,31 +920,20 @@
             
             let html = '';
             accounts.forEach(acc => {
-                const accName = acc.name || 'User';
-                const accPhone = acc.phone || '';
-                const initial = accName.charAt(0).toUpperCase() || '?';
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
                 const isCurrent = acc.id === currentAccount?.id ? '✓' : '';
                 
                 html += `
                     <div class="dropdown-item" onclick="switchAccount(${acc.id})">
                         <div class="dropdown-avatar">${escapeHtml(initial)}</div>
                         <div class="dropdown-info">
-                            <div class="dropdown-name">${escapeHtml(accName)}</div>
-                            <div class="dropdown-phone">${escapeHtml(accPhone)}</div>
+                            <div class="dropdown-name">${escapeHtml(acc.name || 'Unknown')}</div>
+                            <div class="dropdown-phone">${escapeHtml(acc.phone || '')}</div>
                         </div>
                         <span style="color:#6ab2f2;">${isCurrent}</span>
                     </div>
                 `;
             });
-            
-            html += `
-                <div class="dropdown-item remove-item" onclick="removeCurrentAccount()">
-                    <div class="dropdown-avatar" style="background: #8e2b2b;">−</div>
-                    <div class="dropdown-info">
-                        <div class="dropdown-name" style="color: #ff6b6b;">Remove Current Account</div>
-                    </div>
-                </div>
-            `;
             
             dropdown.innerHTML = html;
         }
@@ -1278,59 +941,28 @@
         window.switchAccount = async function(accountId) {
             accountId = parseInt(accountId);
             const newAccount = accounts.find(a => a.id === accountId);
-            
-            if (!newAccount || newAccount.id === currentAccount?.id) {
-                dropdown.classList.remove('show');
-                return;
-            }
+            if (!newAccount) return;
             
             currentAccount = newAccount;
             currentChat = null;
             
-            updateHeaderForCurrentAccount();
+            updateHeader();
             renderDropdown();
             dropdown.classList.remove('show');
             
             messagesHeader.style.display = 'none';
             composeArea.style.display = 'none';
-            messagesListDiv.innerHTML = '<div class="empty-state">👈 Select a chat to start messaging</div>';
-            historyContainer.innerHTML = '<div class="empty-state">Select a chat to view history</div>';
-            clearHistoryBtn.style.display = 'none';
+            messagesListDiv.innerHTML = '<div class="loading">Select a chat to start messaging</div>';
             
-            await loadChatsForCurrentAccount();
-            await loadAccountSettings();
+            await loadChats();
+            await load2FAStatus();
         };
 
-        // Load Account Settings
-        async function loadAccountSettings() {
+        // Load Chats (40+ chats)
+        async function loadChats() {
             if (!currentAccount) return;
             
-            try {
-                const res = await fetch('/api/account-info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('profileAvatar').textContent = (data.name || '?').charAt(0).toUpperCase();
-                    document.getElementById('profileName').textContent = data.name || 'Unknown';
-                    document.getElementById('profileUsername').textContent = data.username ? '@' + data.username : 'No username';
-                    document.getElementById('profilePhone').textContent = data.phone || '';
-                }
-            } catch (err) {
-                console.error('Error loading account info:', err);
-            }
-        }
-
-        // Load Chats
-        async function loadChatsForCurrentAccount(showLoading = true) {
-            if (!currentAccount) return;
-            
-            if (showLoading) {
-                chatsListDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading chats...</div>';
-            }
+            chatsListDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading chats...</div>';
             
             try {
                 const res = await fetch('/api/get-messages', {
@@ -1349,26 +981,19 @@
                     if (currentChat) {
                         const stillExists = chats.find(c => c.id === currentChat.id);
                         if (stillExists) {
-                            selectChat(currentChat.id, currentChat.title);
+                            await loadMessages(currentChat.id);
                         }
                     }
                 } else {
-                    if (data.error === 'auth_key_unregistered') {
-                        showToast('Session expired. Please re-add this account.', 'error');
-                    } else if (showLoading) {
-                        chatsListDiv.innerHTML = `<div class="empty-state">Error: ${escapeHtml(data.error || 'Failed to load chats')}</div>`;
-                    }
-                }
-            } catch (err) {
-                console.error('Error loading chats:', err);
-                if (showLoading) {
                     chatsListDiv.innerHTML = '<div class="empty-state">Failed to load chats</div>';
                 }
+            } catch (err) {
+                chatsListDiv.innerHTML = '<div class="empty-state">Error loading chats</div>';
             }
         }
 
         function displayChats() {
-            if (!chats || chats.length === 0) {
+            if (!chats.length) {
                 chatsListDiv.innerHTML = '<div class="empty-state">No chats found</div>';
                 return;
             }
@@ -1384,7 +1009,7 @@
                     <div class="chat-item ${activeClass}" onclick="selectChat('${escapeHtml(chat.id)}', '${escapeHtml(chat.title)}')">
                         <div class="chat-avatar">${escapeHtml(avatarLetter)}</div>
                         <div class="chat-info">
-                            <div class="chat-row">
+                            <div class="chat-name-row">
                                 <span class="chat-name">${escapeHtml(chat.title || 'Unknown')}</span>
                                 <span class="chat-time">${escapeHtml(time)}</span>
                             </div>
@@ -1400,107 +1025,82 @@
             chatsListDiv.innerHTML = html;
         }
 
-        // Select Chat
+        // Load Messages (40+ messages)
         window.selectChat = async function(chatId, chatTitle) {
             currentChat = { id: chatId, title: chatTitle };
             
             currentChatTitle.textContent = chatTitle;
             chatHeaderAvatar.textContent = chatTitle.charAt(0).toUpperCase();
-            
-            const chat = chats.find(c => c.id === chatId);
-            if (chat) {
-                chatHeaderSubtitle.textContent = chat.type || 'user';
-            }
+            chatHeaderStatus.textContent = 'Loading messages...';
             
             messagesHeader.style.display = 'flex';
             composeArea.style.display = 'flex';
             messageInput.disabled = false;
             
-            await loadMessages(chatId);
-            await loadConversationHistory(chatId);
-            showMessagesPanel();
             displayChats();
+            await loadMessages(chatId);
+            
+            if (window.innerWidth <= 768) {
+                document.getElementById('chatsPanel').classList.add('hide');
+            }
         };
 
         async function loadMessages(chatId) {
+            if (isLoadingMessages) return;
+            isLoadingMessages = true;
+            
             messagesListDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading messages...</div>';
             
             try {
-                // For now, just show a placeholder
-                messagesListDiv.innerHTML = '<div class="empty-state">Select a chat to view messages</div>';
-            } catch (err) {
-                console.error('Error loading messages:', err);
-            }
-        }
-
-        async function loadConversationHistory(chatId) {
-            if (!currentAccount) return;
-            
-            historyContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading history...</div>';
-            
-            try {
+                // Get conversation history from database
                 const res = await fetch(`/api/conversation-history?accountId=${currentAccount.id}&chatId=${encodeURIComponent(chatId)}`);
                 const data = await res.json();
                 
-                if (data.success && data.history && data.history.length > 0) {
-                    let html = '';
-                    data.history.forEach(msg => {
-                        const role = msg.role || 'user';
-                        const time = msg.time ? new Date(msg.time).toLocaleString() : '';
-                        
-                        html += `
-                            <div class="history-message ${role}">
-                                <div class="message-text">${escapeHtml(msg.message)}</div>
-                                <div class="message-time">${escapeHtml(time)}</div>
-                            </div>
-                        `;
-                    });
-                    historyContainer.innerHTML = html;
-                    clearHistoryBtn.style.display = 'block';
+                if (data.success && data.history) {
+                    currentMessages = data.history;
+                    displayMessages(currentMessages);
+                    chatHeaderStatus.textContent = `${currentMessages.length} messages`;
                 } else {
-                    historyContainer.innerHTML = '<div class="empty-state">No conversation history yet</div>';
-                    clearHistoryBtn.style.display = 'none';
+                    messagesListDiv.innerHTML = '<div class="empty-state">No messages yet. Start a conversation!</div>';
+                    chatHeaderStatus.textContent = 'No messages';
                 }
             } catch (err) {
-                console.error('Error loading history:', err);
-                historyContainer.innerHTML = '<div class="empty-state">Failed to load history</div>';
+                console.error('Error loading messages:', err);
+                messagesListDiv.innerHTML = '<div class="empty-state">Failed to load messages</div>';
+            } finally {
+                isLoadingMessages = false;
             }
         }
 
-        function viewChatHistory() {
-            toggleSettings();
-            if (window.innerWidth <= 768) {
-                setTimeout(() => {
-                    const historySection = document.querySelector('.settings-section:has(h4:contains("Conversation History"))');
-                    if (historySection) historySection.scrollIntoView();
-                }, 300);
+        function displayMessages(messages) {
+            if (!messages || messages.length === 0) {
+                messagesListDiv.innerHTML = '<div class="empty-state">No messages yet</div>';
+                return;
             }
-        }
-
-        async function clearHistory() {
-            if (!currentAccount || !currentChat) return;
-            if (!confirm('Clear conversation history for this chat?')) return;
             
-            try {
-                const res = await fetch('/api/clear-history', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        chatId: currentChat.id
-                    })
-                });
+            let html = '';
+            messages.forEach(msg => {
+                const role = msg.role || 'user';
+                const bubbleClass = role === 'user' ? 'outgoing' : 'incoming';
+                const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                 
-                const data = await res.json();
-                if (data.success) {
-                    showToast('History cleared');
-                    await loadConversationHistory(currentChat.id);
-                } else {
-                    showToast(data.error || 'Failed to clear history', 'error');
-                }
-            } catch (err) {
-                showToast('Error clearing history', 'error');
-            }
+                html += `
+                    <div class="message-wrapper ${bubbleClass}">
+                        <div class="message-bubble">
+                            ${escapeHtml(msg.message)}
+                            <div class="message-meta">
+                                <span>${escapeHtml(time)}</span>
+                                ${role === 'user' ? '✓' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            messagesListDiv.innerHTML = html;
+            setTimeout(() => {
+                messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
+            }, 100);
         }
 
         // Send Message
@@ -1510,6 +1110,15 @@
             
             messageInput.value = '';
             messageInput.disabled = true;
+            
+            // Add to UI immediately
+            const tempMsg = {
+                role: 'user',
+                message: message,
+                time: new Date().toISOString()
+            };
+            currentMessages.push(tempMsg);
+            displayMessages(currentMessages);
             
             try {
                 const res = await fetch('/api/send-message', {
@@ -1526,14 +1135,14 @@
                 
                 if (data.success) {
                     showToast('Message sent');
-                    await loadConversationHistory(currentChat.id);
+                    await loadMessages(currentChat.id);
                 } else {
                     showToast(data.error || 'Failed to send', 'error');
-                    messageInput.value = message;
+                    await loadMessages(currentChat.id);
                 }
             } catch (err) {
                 showToast('Error sending message', 'error');
-                messageInput.value = message;
+                await loadMessages(currentChat.id);
             } finally {
                 messageInput.disabled = false;
                 messageInput.focus();
@@ -1547,181 +1156,28 @@
             }
         });
 
-        // Profile Settings
-        function editProfile() {
-            const newName = prompt('Enter new display name:', document.getElementById('profileName').textContent);
-            if (newName && newName.trim()) {
-                updateProfile(newName.trim());
-            }
-        }
-
-        async function updateProfile(name) {
-            try {
-                const res = await fetch('/api/update-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        firstName: name
-                    })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Profile updated');
-                    currentAccount.name = name;
-                    updateHeaderForCurrentAccount();
-                    renderDropdown();
-                    await loadAccountSettings();
-                } else {
-                    showToast(data.error || 'Failed to update', 'error');
-                }
-            } catch (err) {
-                showToast('Error updating profile', 'error');
-            }
-        }
-
-        function editUsername() {
-            const newUsername = prompt('Enter new username (without @):', '');
-            if (newUsername && newUsername.trim()) {
-                updateUsername(newUsername.trim());
-            }
-        }
-
-        async function updateUsername(username) {
-            try {
-                const res = await fetch('/api/update-username', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        username: username
-                    })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Username updated');
-                    await loadAccountSettings();
-                } else {
-                    showToast(data.error || 'Failed to update username', 'error');
-                }
-            } catch (err) {
-                showToast('Error updating username', 'error');
-            }
-        }
-
-        // 2FA Settings
-        function show2FASettings() {
-            modalContent.innerHTML = `
-                <h3>Two-Step Verification</h3>
-                <input type="password" id="currentPassword" placeholder="Current password (leave empty if not set)">
-                <input type="password" id="newPassword" placeholder="New password (leave empty to disable)">
-                <div class="modal-actions">
-                    <button class="settings-btn" onclick="update2FA()">Save</button>
-                    <button class="settings-btn" onclick="closeModal()">Cancel</button>
-                </div>
-            `;
-            modal.classList.add('show');
-        }
-
-        async function update2FA() {
-            const currentPassword = document.getElementById('currentPassword')?.value || '';
-            const newPassword = document.getElementById('newPassword')?.value || '';
-            
-            try {
-                const res = await fetch('/api/update-2fa', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        accountId: currentAccount.id,
-                        currentPassword: currentPassword,
-                        newPassword: newPassword
-                    })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || '2FA updated');
-                    closeModal();
-                } else {
-                    showToast(data.error || 'Failed to update 2FA', 'error');
-                }
-            } catch (err) {
-                showToast('Error updating 2FA', 'error');
-            }
-        }
-
-        // Sessions
-        async function showSessions() {
-            try {
-                const res = await fetch('/api/get-sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                if (data.success && data.sessions) {
-                    let sessionList = 'Active Sessions:\n\n';
-                    data.sessions.forEach(s => {
-                        sessionList += `${s.device_model} (${s.platform})\n`;
-                        sessionList += `IP: ${s.ip} · ${s.country}\n`;
-                        sessionList += `Last active: ${new Date(s.date_active * 1000).toLocaleString()}\n`;
-                        sessionList += s.current ? '➡️ CURRENT DEVICE\n' : '';
-                        sessionList += '---\n';
-                    });
-                    alert(sessionList);
-                } else {
-                    showToast('Failed to load sessions', 'error');
-                }
-            } catch (err) {
-                showToast('Error loading sessions', 'error');
-            }
-        }
-
-        async function terminateOtherSessions() {
-            if (!confirm('Terminate all other active sessions? You will be logged out from other devices.')) return;
-            
-            try {
-                const res = await fetch('/api/terminate-sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId: currentAccount.id })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || 'Sessions terminated');
-                } else {
-                    showToast(data.error || 'Failed to terminate sessions', 'error');
-                }
-            } catch (err) {
-                showToast('Error terminating sessions', 'error');
-            }
-        }
-
         // Search
-        function performSearchDebounced() {
+        searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => performSearch(), 500);
-        }
+        });
 
         async function performSearch() {
             const query = searchInput.value.trim();
-            if (!query || !currentAccount) {
-                searchResults.innerHTML = '';
+            if (!query) {
+                searchResults.classList.remove('show');
                 return;
             }
             
             searchResults.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching...</div>';
+            searchResults.classList.add('show');
             
             try {
                 const res = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        accountId: currentAccount.id,
+                        accountId: currentAccount?.id,
                         query: query
                     })
                 });
@@ -1730,22 +1186,20 @@
                 
                 if (data.success && data.results && data.results.length > 0) {
                     searchResults.innerHTML = data.results.map(item => `
-                        <div class="search-result" onclick="joinEntity('${escapeHtml(item.id)}', '${escapeHtml(item.title)}')">
-                            <div class="result-avatar">${item.type === 'user' ? '👤' : (item.type === 'channel' ? '📢' : '👥')}</div>
-                            <div class="result-info">
-                                <div class="result-title">${escapeHtml(item.title)}</div>
-                                <div class="result-type">${item.type}${item.members ? ' · ' + item.members + ' members' : ''}</div>
-                                ${item.username ? `<div style="font-size: 0.7rem; color: #6ab2f2;">@${escapeHtml(item.username)}</div>` : ''}
+                        <div class="dropdown-item" onclick="joinEntity('${escapeHtml(item.id)}', '${escapeHtml(item.title)}')">
+                            <div class="dropdown-avatar">${item.type === 'user' ? '👤' : (item.type === 'channel' ? '📢' : '👥')}</div>
+                            <div class="dropdown-info">
+                                <div class="dropdown-name">${escapeHtml(item.title)}</div>
+                                <div class="dropdown-phone">${item.type}${item.members ? ' · ' + item.members + ' members' : ''}</div>
                             </div>
                             <button class="join-btn">Join</button>
                         </div>
                     `).join('');
                 } else {
-                    searchResults.innerHTML = '<div class="empty-state">No results found</div>';
+                    searchResults.innerHTML = '<div class="dropdown-item">No results found</div>';
                 }
             } catch (err) {
-                console.error('Search error:', err);
-                searchResults.innerHTML = '<div class="empty-state">Search failed</div>';
+                searchResults.innerHTML = '<div class="dropdown-item">Search failed</div>';
             }
         }
 
@@ -1765,8 +1219,9 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast(`Joined ${title}`);
-                    searchResults.innerHTML = '';
+                    searchResults.classList.remove('show');
                     searchInput.value = '';
+                    await loadChats();
                 } else {
                     showToast(data.error || 'Failed to join', 'error');
                 }
@@ -1775,20 +1230,187 @@
             }
         }
 
-        function joinByLink() {
-            const link = prompt('Enter group/channel username or link (e.g., @groupname or https://t.me/groupname)');
-            if (link) {
-                joinEntity(link, link);
+        // 2FA Settings
+        async function load2FAStatus() {
+            try {
+                const res = await fetch('/api/account-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: currentAccount.id })
+                });
+                const data = await res.json();
+                document.getElementById('2faStatus').textContent = 'Set up two-step verification';
+            } catch (err) {
+                console.error('Error:', err);
             }
         }
 
-        // Remove Account
-        async function removeCurrentAccount() {
-            if (!currentAccount) return;
-            if (!confirm(`Remove account "${currentAccount.name}"? This action cannot be undone.`)) return;
+        function show2FASettings() {
+            const modalContent = document.getElementById('settingsBody');
+            const originalContent = modalContent.innerHTML;
+            
+            modalContent.innerHTML = `
+                <div class="settings-section">
+                    <h4>Two-Step Verification</h4>
+                    <input type="password" id="currentPassword" placeholder="Current password (if set)">
+                    <input type="password" id="newPassword" placeholder="New password">
+                    <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                    <input type="text" id="hint" placeholder="Password hint (optional)">
+                    <button class="btn btn-primary" onclick="update2FA()">Save Changes</button>
+                    <button class="btn btn-secondary" onclick="close2FASettings()" style="margin-top: 8px;">Back</button>
+                </div>
+            `;
+        }
+
+        async function update2FA() {
+            const currentPassword = document.getElementById('currentPassword')?.value || '';
+            const newPassword = document.getElementById('newPassword')?.value || '';
+            const confirmPassword = document.getElementById('confirmPassword')?.value || '';
+            
+            if (newPassword && newPassword !== confirmPassword) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
             
             try {
-                const res = await fetch('/api/remove-account', {
+                const res = await fetch('/api/update-2fa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: currentAccount.id,
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || '2FA updated');
+                    closeSettings();
+                } else {
+                    showToast(data.error || 'Failed to update 2FA', 'error');
+                }
+            } catch (err) {
+                showToast('Error updating 2FA', 'error');
+            }
+        }
+
+        function close2FASettings() {
+            closeSettings();
+            openSettings();
+        }
+
+        // Email Settings
+        function showEmailSettings() {
+            const modalContent = document.getElementById('settingsBody');
+            
+            modalContent.innerHTML = `
+                <div class="settings-section">
+                    <h4>Recovery Email</h4>
+                    <input type="email" id="recoveryEmail" placeholder="Enter recovery email">
+                    <button class="btn btn-primary" onclick="updateEmail()">Save Email</button>
+                    <button class="btn btn-secondary" onclick="closeEmailSettings()" style="margin-top: 8px;">Back</button>
+                </div>
+            `;
+        }
+
+        async function updateEmail() {
+            const email = document.getElementById('recoveryEmail')?.value;
+            if (!email) {
+                showToast('Please enter an email', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/update-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: currentAccount.id,
+                        email: email
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Recovery email updated');
+                    document.getElementById('emailStatus').textContent = email;
+                    closeSettings();
+                } else {
+                    showToast(data.error || 'Failed to update email', 'error');
+                }
+            } catch (err) {
+                showToast('Error updating email', 'error');
+            }
+        }
+
+        function closeEmailSettings() {
+            closeSettings();
+            openSettings();
+        }
+
+        // Device Management
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/get-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: currentAccount.id })
+                });
+                
+                const data = await res.json();
+                if (data.success && data.sessions) {
+                    const devicesList = document.getElementById('devicesList');
+                    devicesList.innerHTML = data.sessions.map(session => `
+                        <div class="device-item ${session.current ? 'current' : ''}">
+                            <div class="device-header">
+                                <span class="device-name">${escapeHtml(session.device_model || 'Unknown')}</span>
+                                ${session.current ? '<span class="device-badge">Current</span>' : ''}
+                            </div>
+                            <div class="device-details">
+                                ${escapeHtml(session.platform || 'Unknown')} · ${escapeHtml(session.ip || 'Unknown IP')}<br>
+                                ${escapeHtml(session.country || 'Unknown')}<br>
+                                Last active: ${new Date(session.date_active * 1000).toLocaleString()}
+                            </div>
+                            ${!session.current ? `<button class="terminate-btn" onclick="terminateSession('${session.hash}')">Terminate</button>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Error loading devices:', err);
+            }
+        }
+
+        async function terminateSession(hash) {
+            if (!confirm('Terminate this session?')) return;
+            
+            try {
+                const res = await fetch('/api/terminate-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: currentAccount.id,
+                        hash: hash
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Session terminated');
+                    await loadDevices();
+                } else {
+                    showToast(data.error || 'Failed to terminate', 'error');
+                }
+            } catch (err) {
+                showToast('Error terminating session', 'error');
+            }
+        }
+
+        async function terminateAllSessions() {
+            if (!confirm('Terminate all other sessions?')) return;
+            
+            try {
+                const res = await fetch('/api/terminate-sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ accountId: currentAccount.id })
@@ -1796,33 +1418,46 @@
                 
                 const data = await res.json();
                 if (data.success) {
-                    showToast('Account removed');
-                    await loadAccounts();
-                    if (window.innerWidth <= 768) {
-                        toggleSettings();
-                    }
+                    showToast(data.message || 'Sessions terminated');
+                    await loadDevices();
                 } else {
-                    showToast(data.error || 'Failed to remove', 'error');
+                    showToast(data.error || 'Failed', 'error');
                 }
             } catch (err) {
-                showToast('Error removing account', 'error');
+                showToast('Error', 'error');
             }
         }
 
-        function refreshChats() {
-            if (currentAccount) {
-                loadChatsForCurrentAccount(true);
+        // Modal Functions
+        function openSettings() {
+            settingsModal.classList.add('show');
+            loadDevices();
+        }
+
+        function closeSettings() {
+            settingsModal.classList.remove('show');
+        }
+
+        function openChatSettings() {
+            if (currentChat) {
+                openSettings();
             }
         }
 
-        function closeModal() {
-            modal.classList.remove('show');
+        function showNoAccountState() {
+            chatsListDiv.innerHTML = '<div class="empty-state">No accounts. <a href="/login" style="color:#6ab2f2;">Add one</a>.</div>';
+            messagesHeader.style.display = 'none';
+            composeArea.style.display = 'none';
+            messagesListDiv.innerHTML = '<div class="empty-state">Add an account to start messaging</div>';
         }
 
-        // Close dropdown when clicking outside
+        // Close dropdown
         document.addEventListener('click', function(event) {
             if (!switcher.contains(event.target) && !dropdown.contains(event.target)) {
                 dropdown.classList.remove('show');
+            }
+            if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.classList.remove('show');
             }
         });
 
@@ -1837,23 +1472,16 @@
             
             refreshInterval = setInterval(() => {
                 if (currentAccount) {
-                    loadChatsForCurrentAccount(false);
+                    loadChats();
+                    if (currentChat) {
+                        loadMessages(currentChat.id);
+                    }
                 }
             }, 30000);
         });
 
         window.addEventListener('beforeunload', () => {
             if (refreshInterval) clearInterval(refreshInterval);
-        });
-
-        // Window resize handler
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                settingsPanel.classList.remove('show');
-                settingsPanel.style.display = '';
-                document.getElementById('chatsPanel').style.display = '';
-                document.getElementById('messagesPanel').classList.remove('show');
-            }
         });
     </script>
 </body>
