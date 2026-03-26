@@ -58,7 +58,7 @@ services:
     region: oregon
     schedule: "0 0 * * *"  # Daily at midnight UTC
     buildCommand: pip install -r requirements.txt
-    startCommand: python backup_db.py
+    startCommand: python bot.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
