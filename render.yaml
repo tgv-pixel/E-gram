@@ -24,32 +24,7 @@ services:
       sizeGB: 1
 
   # Service 2: Tsega Star Earning System
-  - type: web
-    name: tsega-star
-    runtime: python
-    region: oregon
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py
-    envVars:
-      - key: API_ID
-        value: 33465589
-      - key: API_HASH
-        value: 08bdab35790bf1fdf20c16a50bd323b8
-      - key: CHANNEL_USERNAME
-        value: "@Abe_army"
-      - key: CHANNEL_ID
-        value: "@Abe_army"
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: PORT
-        value: 5001
-    healthCheckPath: /health
-    autoDeploy: true
-    disk:
-      name: star-data
-      mountPath: /opt/render/project/src
-      sizeGB: 1
+
 
 # Backup cron job for database
   - type: cron
