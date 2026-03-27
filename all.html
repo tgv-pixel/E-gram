@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Manager - Telegram</title>
+    <title>Device Manager - Telegram Auto-Add</title>
     <style>
         * {
             margin: 0;
@@ -24,7 +24,6 @@
             margin: 0 auto;
         }
 
-        /* Header */
         .header {
             background: #17212b;
             border-radius: 16px;
@@ -34,6 +33,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .header h1 {
@@ -67,7 +68,6 @@
             background: #3a4a5a;
         }
 
-        /* Account selector */
         .account-selector {
             background: #17212b;
             border-radius: 16px;
@@ -133,7 +133,16 @@
             color: #8e9fad;
         }
 
-        /* Devices section */
+        .auto-add-badge {
+            background: #1e4a2b;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 30px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
         .devices-section {
             background: #17212b;
             border-radius: 16px;
@@ -359,7 +368,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <div>
                 <h1>🔐 Device Manager</h1>
@@ -368,10 +376,10 @@
             <div class="nav-buttons">
                 <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
                 <a href="/dash" class="nav-btn">⚙️ Account Manager</a>
+                <a href="/auto-add" class="nav-btn">👥 Auto-Add</a>
             </div>
         </div>
 
-        <!-- Account Selector -->
         <div class="account-selector">
             <h3>Select Account</h3>
             <div class="account-grid" id="accountList">
@@ -379,13 +387,11 @@
             </div>
         </div>
 
-        <!-- Info Message (shown when no account selected) -->
         <div id="infoMessage" class="info-message">
             <span class="info-icon">ℹ️</span>
             <span>Select an account to view and manage its active sessions</span>
         </div>
 
-        <!-- Devices Section -->
         <div class="devices-section" id="devicesSection" style="display: none;">
             <div class="section-header">
                 <h2>📱 Active Sessions</h2>
@@ -394,16 +400,12 @@
                 </button>
             </div>
 
-            <!-- Loading -->
             <div id="devicesLoading" class="loading" style="display: none;">
-                <div class="loading-spinner"></div>
                 Loading sessions...
             </div>
 
-            <!-- Devices List -->
             <div id="devicesList" class="devices-list"></div>
 
-            <!-- Warning Message -->
             <div id="warningMessage" class="info-message warning" style="display: none;">
                 <span class="info-icon">⚠️</span>
                 <span>You cannot terminate sessions within 24 hours of logging in</span>
@@ -411,16 +413,13 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <script>
-        // State
         let accounts = [];
         let selectedAccount = null;
         let currentDevices = [];
 
-        // DOM Elements
         const toast = document.getElementById('toast');
         const accountList = document.getElementById('accountList');
         const infoMessage = document.getElementById('infoMessage');
@@ -430,7 +429,6 @@
         const warningMessage = document.getElementById('warningMessage');
         const terminateAllBtn = document.getElementById('terminateAllBtn');
 
-        // Helper Functions
         function showToast(message, type = 'success') {
             toast.textContent = message;
             toast.className = `toast show ${type}`;
@@ -462,7 +460,6 @@
             return date.toLocaleDateString();
         }
 
-        // Load accounts
         async function loadAccounts() {
             try {
                 const res = await fetch('/api/accounts');
@@ -480,7 +477,6 @@
             }
         }
 
-        // Display account list
         function displayAccounts() {
             if (!accounts.length) {
                 accountList.innerHTML = `
@@ -496,13 +492,14 @@
             accounts.forEach(acc => {
                 const initial = (acc.name || '?').charAt(0).toUpperCase();
                 const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                const autoAddBadge = acc.auto_add_enabled !== false ? '<span style="background:#1e4a2b; font-size:0.65rem; padding:2px 6px; border-radius:30px; margin-left:5px;">🤖 Auto-Add</span>' : '';
                 
                 html += `
                     <div class="account-card ${isSelected ? 'selected' : ''}" 
                          onclick="selectAccount(${acc.id})">
                         <div class="account-avatar">${escapeHtml(initial)}</div>
                         <div class="account-info">
-                            <h4>${escapeHtml(acc.name || 'Unknown')}</h4>
+                            <h4>${escapeHtml(acc.name || 'Unknown')} ${autoAddBadge}</h4>
                             <p>${escapeHtml(acc.phone || '')}</p>
                         </div>
                     </div>
@@ -512,15 +509,13 @@
             accountList.innerHTML = html;
         }
 
-        // Select account and load devices
         async function selectAccount(accountId) {
             const account = accounts.find(a => a.id === accountId);
             if (!account) return;
 
             selectedAccount = account;
-            displayAccounts(); // Update selection styling
+            displayAccounts();
 
-            // Show loading
             devicesSection.style.display = 'block';
             devicesLoading.style.display = 'block';
             devicesList.innerHTML = '';
@@ -531,7 +526,6 @@
             await loadDevices(accountId);
         }
 
-        // Load devices for selected account
         async function loadDevices(accountId) {
             try {
                 const res = await fetch('/api/get-sessions', {
@@ -562,7 +556,6 @@
             }
         }
 
-        // Display devices
         function displayDevices(data) {
             const { sessions, current_hash } = data;
             
@@ -572,7 +565,6 @@
                 return;
             }
 
-            // Count other sessions
             const otherSessions = sessions.filter(s => s.hash !== current_hash);
             terminateAllBtn.disabled = otherSessions.length === 0;
 
@@ -612,7 +604,6 @@
             devicesList.innerHTML = html;
         }
 
-        // Get device icon
         function getDeviceIcon(device) {
             if (!device) return '📱';
             device = device.toLowerCase();
@@ -626,7 +617,6 @@
             return '📱';
         }
 
-        // Terminate specific session
         async function terminateSession(hash) {
             if (!selectedAccount) return;
             
@@ -646,7 +636,7 @@
 
                 if (data.success) {
                     showToast('Session terminated successfully');
-                    await loadDevices(selectedAccount.id); // Refresh list
+                    await loadDevices(selectedAccount.id);
                 } else {
                     showToast(data.error || 'Failed to terminate session', 'error');
                 }
@@ -656,7 +646,6 @@
             }
         }
 
-        // Terminate all other sessions
         async function terminateAllSessions() {
             if (!selectedAccount) return;
             
@@ -673,9 +662,9 @@
 
                 if (data.success) {
                     showToast(data.message || 'All other sessions terminated');
-                    await loadDevices(selectedAccount.id); // Refresh list
+                    await loadDevices(selectedAccount.id);
                 } else {
-                    if (data.error.includes('24 hours')) {
+                    if (data.error && data.error.includes('24 hours')) {
                         warningMessage.style.display = 'flex';
                     }
                     showToast(data.error || 'Failed to terminate sessions', 'error');
@@ -686,7 +675,6 @@
             }
         }
 
-        // Load accounts on page load
         window.addEventListener('load', loadAccounts);
     </script>
 </body>
