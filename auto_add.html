@@ -660,7 +660,7 @@
             <div>
                 <h1>
                     👥 Auto-Add Members 
-                    <span>ALWAYS ACTIVE</span>
+                    <span>MULTI-SOURCE</span>
                 </h1>
                 <p>Automatically add members to your group from contacts, chats, and public groups</p>
             </div>
@@ -712,16 +712,16 @@
                         <div class="section-header">
                             <h2>⚙️ Main Controls</h2>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="autoAddToggle" onchange="toggleAutoAdd()" checked>
+                                <input type="checkbox" id="autoAddToggle" onchange="toggleAutoAdd()">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
-                        <div class="info-box warning" id="warningBox">
+                        <div class="info-box warning" id="warningBox" style="display: none;">
                             <span class="info-icon">⚠️</span>
                             <div>
                                 <strong>CRITICAL WARNING</strong>
-                                <p style="margin-top: 5px;">Adding too many members too quickly WILL get your account BANNED. Start with 100-200 per day with 30-50 second delays.</p>
+                                <p style="margin-top: 5px;">Adding too many members too quickly WILL get your account BANNED. Start with 20-30 per day with 45-60 second delays.</p>
                             </div>
                         </div>
 
@@ -737,18 +737,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label>📊 Daily Member Limit (100-500)</label>
+                            <label>📊 Daily Member Limit</label>
                             <div class="range-group">
-                                <input type="range" id="dailyLimitRange" min="100" max="500" value="100" step="10" oninput="updateDailyLimit()">
-                                <span class="range-value" id="dailyLimitValue">100</span>
+                                <input type="range" id="dailyLimitRange" min="5" max="100" value="30" oninput="updateDailyLimit()">
+                                <span class="range-value" id="dailyLimitValue">30</span>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label>⏱️ Delay Between Adds (seconds) - 20-50 seconds recommended</label>
+                            <label>⏱️ Delay Between Adds (seconds)</label>
                             <div class="range-group">
-                                <input type="range" id="delayRange" min="20" max="50" value="30" step="5" oninput="updateDelay()">
-                                <span class="range-value" id="delayValue">30</span>
+                                <input type="range" id="delayRange" min="25" max="120" value="25" step="5" oninput="updateDelay()">
+                                <span class="range-value" id="delayValue">45</span>
                             </div>
                         </div>
 
@@ -826,11 +826,11 @@
             </div>
 
             <!-- Status Box -->
-            <div class="info-box success" id="statusBox">
-                <span class="info-icon" id="statusIcon">✅</span>
+            <div class="info-box" id="statusBox" style="display: none;">
+                <span class="info-icon" id="statusIcon">⏸️</span>
                 <div>
-                    <strong id="statusTitle">Auto-Add ACTIVE</strong>
-                    <p id="statusMessage" style="margin-top: 5px;">Auto-add is enabled by default. Members will be added to your group automatically.</p>
+                    <strong id="statusTitle">Auto-Add Disabled</strong>
+                    <p id="statusMessage" style="margin-top: 5px;">Enable auto-add to start adding members to your group</p>
                 </div>
             </div>
 
@@ -841,7 +841,7 @@
                     <button class="button small" onclick="clearLog()">Clear</button>
                 </div>
                 <div class="log-container" id="logContainer">
-                    <div class="log-entry">Select an account to see auto-add activity</div>
+                    <div class="log-entry">Select an account and enable auto-add to see activity</div>
                 </div>
             </div>
         </div>
@@ -851,7 +851,7 @@
             <span class="info-icon">👆</span>
             <div>
                 <strong>Select an account to get started</strong>
-                <p style="margin-top: 5px;">Choose an account from above to configure auto-add member settings. Auto-add is ENABLED by default for all accounts.</p>
+                <p style="margin-top: 5px;">Choose an account from above to configure auto-add member settings.</p>
             </div>
         </div>
     </div>
@@ -864,17 +864,17 @@
         let accounts = [];
         let selectedAccount = null;
         let currentSettings = {
-            enabled: true,  // ENABLED BY DEFAULT
+            enabled: false,
             target_group: 'Abe_armygroup',
-            daily_limit: 100,
-            delay_seconds: 30,
+            daily_limit: 150,
+            delay_seconds: 25,
             added_today: 0,
             last_reset: '',
             source_groups: ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
             use_contacts: true,
             use_recent_chats: true,
             use_scraping: true,
-            scrape_limit: 100,
+            scrape_limit: 200,
             skip_bots: true,
             skip_inaccessible: true,
             auto_join: true
@@ -1058,7 +1058,6 @@
                         <div class="account-info">
                             <h4>${escapeHtml(acc.name || 'Unknown')}</h4>
                             <p>${escapeHtml(acc.phone || '')}</p>
-                            ${acc.auto_add_enabled !== false ? '<span class="badge">✅ Auto-Add ON</span>' : ''}
                         </div>
                     </div>
                 `;
@@ -1092,11 +1091,11 @@
                     currentSettings = data.settings;
                     
                     // Update UI
-                    autoAddToggle.checked = currentSettings.enabled !== false; // Default true
+                    autoAddToggle.checked = currentSettings.enabled || false;
                     targetGroup.value = currentSettings.target_group || 'Abe_armygroup';
                     autoJoinGroup.checked = currentSettings.auto_join !== false;
-                    dailyLimitRange.value = currentSettings.daily_limit || 100;
-                    delayRange.value = currentSettings.delay_seconds || 30;
+                    dailyLimitRange.value = currentSettings.daily_limit || 30;
+                    delayRange.value = currentSettings.delay_seconds || 45;
                     scrapeLimitRange.value = currentSettings.scrape_limit || 100;
                     
                     dailyLimitValue.textContent = dailyLimitRange.value;
@@ -1109,9 +1108,7 @@
                     skipBots.checked = currentSettings.skip_bots !== false;
                     skipInaccessible.checked = currentSettings.skip_inaccessible !== false;
                     
-                    if (!currentSettings.source_groups || currentSettings.source_groups.length === 0) {
-                        currentSettings.source_groups = ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'];
-                    }
+                    if (!currentSettings.source_groups) currentSettings.source_groups = ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'];
                     renderSourceGroups();
                     
                     updateStats();
@@ -1127,8 +1124,8 @@
 
         function updateStats() {
             addedToday.textContent = currentSettings.added_today || 0;
-            dailyLimit.textContent = currentSettings.daily_limit || 100;
-            const remainingCount = (currentSettings.daily_limit || 100) - (currentSettings.added_today || 0);
+            dailyLimit.textContent = currentSettings.daily_limit || 30;
+            const remainingCount = (currentSettings.daily_limit || 30) - (currentSettings.added_today || 0);
             remaining.textContent = Math.max(0, remainingCount);
         }
 
@@ -1140,15 +1137,15 @@
                 document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE';
                 document.getElementById('statusMessage').innerHTML = 
                     `Adding members to @${currentSettings.target_group}<br>
-                     Added today: ${currentSettings.added_today || 0}/${currentSettings.daily_limit || 100}<br>
+                     Added today: ${currentSettings.added_today || 0}/${currentSettings.daily_limit || 30}<br>
                      Sources: ${useContacts.checked ? '📱' : ''}${useRecentChats.checked ? '💬' : ''}${useScraping.checked ? '👥' : ''}`;
                 warningBox.style.display = 'block';
             } else {
                 statusBox.style.display = 'flex';
-                statusBox.className = 'info-box warning';
+                statusBox.className = 'info-box';
                 document.getElementById('statusIcon').textContent = '⏸️';
                 document.getElementById('statusTitle').textContent = 'Auto-Add Disabled';
-                document.getElementById('statusMessage').innerHTML = 'Auto-add is disabled. Enable to start adding members to your group';
+                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members to your group';
                 warningBox.style.display = 'none';
             }
         }
@@ -1256,7 +1253,7 @@
                             <div>✅ Can Add Members: <span class="${data.can_add_members ? 'test-success' : 'test-fail'}">${data.can_add_members ? 'Yes' : 'No'}</span></div>
                         </div>
                         <div style="margin-top: 10px; color: #8e9fad; font-size: 0.85rem;">
-                            ${data.can_add_members ? 'Ready to start adding members! Auto-add is ACTIVE by default.' : 'No members found to add. Check your sources.'}
+                            ${data.can_add_members ? 'Ready to start adding members!' : 'No members found to add. Check your sources.'}
                         </div>
                     `;
                     addLog('Test completed: ' + (data.can_add_members ? 'Ready to add members' : 'No members found'), data.can_add_members ? 'success' : 'warning');
