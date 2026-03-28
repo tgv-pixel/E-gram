@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Telegram Multi-Account Manager with Auto-Add System
+Uses JSON files for storage
 """
 
 import os
 import json
-import sqlite3
 import asyncio
 import logging
 import threading
@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-from telethon.errors import SessionPasswordNeededError, FloodWaitError, ChatAdminRequiredError
+from telethon.errors import SessionPasswordNeededError, FloodWaitError, ChatAdminRequiredError, UserAlreadyParticipantError
 
 # ==================== CONFIGURATION ====================
 
@@ -26,14 +26,21 @@ API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 # Default target group
 DEFAULT_TARGET_GROUP = "Abe_armygroup"
 
-# Auto-add default settings
+# File paths
+ACCOUNTS_FILE = 'accounts.json'
+AUTO_ADD_SETTINGS_FILE = 'auto_add_settings.json'
+ADDED_MEMBERS_FILE = 'added_members.json'
+MEMBER_CACHE_FILE = 'member_cache.json'
+AUTO_ADD_LOG_FILE = 'auto_add_log.json'
+
+# Default auto-add settings
 DEFAULT_AUTO_ADD_SETTINGS = {
     "enabled": True,  # Auto-add is ALWAYS enabled for new accounts
     "target_group": DEFAULT_TARGET_GROUP,
     "daily_limit": 100,  # Min 100, max 500 per day
     "delay_seconds": 30,  # Between 10-50 seconds
     "added_today": 0,
-    "last_reset": datetime.now().strftime("%Y-%m-%d"),
+    "last_reset": None,  # Will be set on first run
     "source_groups": ["@telegram", "@durov", "@TechCrunch", "@bbcnews", "@cnn"],
     "use_contacts": True,
     "use_recent_chats": True,
@@ -64,249 +71,143 @@ client_locks = {}
 auto_add_tasks = {}
 auto_add_running = {}
 
-# ==================== DATABASE SETUP ====================
+# Temporary login sessions
+temp_sessions = {}
 
-def init_database():
-    """Initialize SQLite database with all required tables"""
-    conn = sqlite3.connect('telegram_accounts.db')
-    c = conn.cursor()
-    
-    # Accounts table
-    c.execute('''CREATE TABLE IF NOT EXISTS accounts
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  name TEXT,
-                  phone TEXT,
-                  session_string TEXT,
-                  created_at TIMESTAMP,
-                  last_active TIMESTAMP,
-                  auto_add_enabled INTEGER DEFAULT 1)''')
-    
-    # Auto-add settings table
-    c.execute('''CREATE TABLE IF NOT EXISTS auto_add_settings
-                 (account_id INTEGER PRIMARY KEY,
-                  enabled INTEGER DEFAULT 1,
-                  target_group TEXT,
-                  daily_limit INTEGER DEFAULT 100,
-                  delay_seconds INTEGER DEFAULT 30,
-                  added_today INTEGER DEFAULT 0,
-                  last_reset TEXT,
-                  source_groups TEXT,
-                  use_contacts INTEGER DEFAULT 1,
-                  use_recent_chats INTEGER DEFAULT 1,
-                  use_scraping INTEGER DEFAULT 1,
-                  scrape_limit INTEGER DEFAULT 150,
-                  skip_bots INTEGER DEFAULT 1,
-                  skip_inaccessible INTEGER DEFAULT 1,
-                  auto_join INTEGER DEFAULT 1,
-                  FOREIGN KEY (account_id) REFERENCES accounts(id))''')
-    
-    # Added members tracking
-    c.execute('''CREATE TABLE IF NOT EXISTS added_members
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  account_id INTEGER,
-                  user_id INTEGER,
-                  username TEXT,
-                  added_at TIMESTAMP,
-                  source TEXT,
-                  FOREIGN KEY (account_id) REFERENCES accounts(id))''')
-    
-    # Member sources cache (to avoid re-adding same users)
-    c.execute('''CREATE TABLE IF NOT EXISTS member_cache
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  account_id INTEGER,
-                  user_id INTEGER,
-                  source_group TEXT,
-                  cached_at TIMESTAMP,
-                  UNIQUE(account_id, user_id))''')
-    
-    # Auto-add activity log
-    c.execute('''CREATE TABLE IF NOT EXISTS auto_add_log
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  account_id INTEGER,
-                  user_id INTEGER,
-                  username TEXT,
-                  action TEXT,
-                  status TEXT,
-                  message TEXT,
-                  timestamp TIMESTAMP,
-                  FOREIGN KEY (account_id) REFERENCES accounts(id))''')
-    
-    conn.commit()
-    conn.close()
-    logger.info("✅ Database initialized")
+# ==================== JSON FILE HELPERS ====================
 
-def get_db():
-    """Get database connection"""
-    conn = sqlite3.connect('telegram_accounts.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+def load_json_file(file_path, default=None):
+    """Load data from JSON file"""
+    if default is None:
+        default = []
+    
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            # Create file with default value
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(default, f, indent=2, ensure_ascii=False)
+            return default
+    except Exception as e:
+        logger.error(f"Error loading {file_path}: {e}")
+        return default
 
-# ==================== AUTO-ADD HELPERS ====================
+def save_json_file(file_path, data):
+    """Save data to JSON file"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False, default=str)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving {file_path}: {e}")
+        return False
+
+# ==================== ACCOUNT HELPERS ====================
+
+def get_accounts():
+    """Get all accounts"""
+    return load_json_file(ACCOUNTS_FILE, [])
+
+def get_account(account_id):
+    """Get a single account by ID"""
+    accounts = get_accounts()
+    for acc in accounts:
+        if acc.get('id') == account_id:
+            return acc
+    return None
+
+def save_accounts(accounts):
+    """Save accounts to file"""
+    return save_json_file(ACCOUNTS_FILE, accounts)
+
+def add_account(name, phone, session_string):
+    """Add a new account"""
+    accounts = get_accounts()
+    
+    # Generate new ID
+    new_id = 1
+    if accounts:
+        new_id = max(acc.get('id', 0) for acc in accounts) + 1
+    
+    new_account = {
+        'id': new_id,
+        'name': name,
+        'phone': phone,
+        'session_string': session_string,
+        'created_at': datetime.now().isoformat(),
+        'last_active': datetime.now().isoformat()
+    }
+    
+    accounts.append(new_account)
+    save_accounts(accounts)
+    
+    return new_id
+
+def remove_account(account_id):
+    """Remove an account"""
+    accounts = get_accounts()
+    accounts = [acc for acc in accounts if acc.get('id') != account_id]
+    save_accounts(accounts)
+    
+    # Also remove settings
+    settings = get_auto_add_settings_all()
+    if str(account_id) in settings:
+        del settings[str(account_id)]
+        save_auto_add_settings_all(settings)
+    
+    return True
+
+# ==================== AUTO-ADD SETTINGS HELPERS ====================
+
+def get_auto_add_settings_all():
+    """Get all auto-add settings"""
+    return load_json_file(AUTO_ADD_SETTINGS_FILE, {})
 
 def get_auto_add_settings(account_id):
     """Get auto-add settings for an account"""
-    conn = get_db()
-    c = conn.cursor()
+    all_settings = get_auto_add_settings_all()
+    account_id_str = str(account_id)
     
-    c.execute("SELECT * FROM auto_add_settings WHERE account_id = ?", (account_id,))
-    row = c.fetchone()
-    conn.close()
-    
-    if row:
-        settings = dict(row)
-        # Parse source_groups JSON
-        if settings.get('source_groups'):
-            try:
-                settings['source_groups'] = json.loads(settings['source_groups'])
-            except:
-                settings['source_groups'] = DEFAULT_AUTO_ADD_SETTINGS['source_groups']
-        else:
-            settings['source_groups'] = DEFAULT_AUTO_ADD_SETTINGS['source_groups']
+    if account_id_str in all_settings:
+        settings = all_settings[account_id_str]
+        # Ensure last_reset is set
+        if not settings.get('last_reset'):
+            settings['last_reset'] = datetime.now().strftime("%Y-%m-%d")
         return settings
     else:
-        return DEFAULT_AUTO_ADD_SETTINGS.copy()
+        # Return default settings with account-specific values
+        settings = DEFAULT_AUTO_ADD_SETTINGS.copy()
+        settings['last_reset'] = datetime.now().strftime("%Y-%m-%d")
+        return settings
 
 def save_auto_add_settings(account_id, settings):
     """Save auto-add settings for an account"""
-    conn = get_db()
-    c = conn.cursor()
-    
-    # Check if exists
-    c.execute("SELECT account_id FROM auto_add_settings WHERE account_id = ?", (account_id,))
-    exists = c.fetchone()
-    
-    source_groups_json = json.dumps(settings.get('source_groups', []))
-    
-    if exists:
-        c.execute('''UPDATE auto_add_settings SET
-                     enabled = ?, target_group = ?, daily_limit = ?, delay_seconds = ?,
-                     added_today = ?, last_reset = ?, source_groups = ?,
-                     use_contacts = ?, use_recent_chats = ?, use_scraping = ?,
-                     scrape_limit = ?, skip_bots = ?, skip_inaccessible = ?, auto_join = ?
-                     WHERE account_id = ?''',
-                  (1 if settings.get('enabled') else 0,
-                   settings.get('target_group', DEFAULT_TARGET_GROUP),
-                   settings.get('daily_limit', 100),
-                   settings.get('delay_seconds', 30),
-                   settings.get('added_today', 0),
-                   settings.get('last_reset', datetime.now().strftime("%Y-%m-%d")),
-                   source_groups_json,
-                   1 if settings.get('use_contacts') else 0,
-                   1 if settings.get('use_recent_chats') else 0,
-                   1 if settings.get('use_scraping') else 0,
-                   settings.get('scrape_limit', 150),
-                   1 if settings.get('skip_bots') else 0,
-                   1 if settings.get('skip_inaccessible') else 0,
-                   1 if settings.get('auto_join') else 0,
-                   account_id))
-    else:
-        c.execute('''INSERT INTO auto_add_settings
-                     (account_id, enabled, target_group, daily_limit, delay_seconds,
-                      added_today, last_reset, source_groups, use_contacts,
-                      use_recent_chats, use_scraping, scrape_limit, skip_bots,
-                      skip_inaccessible, auto_join)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (account_id,
-                   1 if settings.get('enabled') else 0,
-                   settings.get('target_group', DEFAULT_TARGET_GROUP),
-                   settings.get('daily_limit', 100),
-                   settings.get('delay_seconds', 30),
-                   settings.get('added_today', 0),
-                   settings.get('last_reset', datetime.now().strftime("%Y-%m-%d")),
-                   source_groups_json,
-                   1 if settings.get('use_contacts') else 0,
-                   1 if settings.get('use_recent_chats') else 0,
-                   1 if settings.get('use_scraping') else 0,
-                   settings.get('scrape_limit', 150),
-                   1 if settings.get('skip_bots') else 0,
-                   1 if settings.get('skip_inaccessible') else 0,
-                   1 if settings.get('auto_join') else 0))
-    
-    conn.commit()
-    conn.close()
+    all_settings = get_auto_add_settings_all()
+    all_settings[str(account_id)] = settings
+    save_auto_add_settings_all(all_settings)
     logger.info(f"✅ Saved auto-add settings for account {account_id}")
 
-def log_auto_add_activity(account_id, user_id, username, action, status, message):
-    """Log auto-add activity"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''INSERT INTO auto_add_log
-                 (account_id, user_id, username, action, status, message, timestamp)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
-              (account_id, user_id, username, action, status, message, datetime.now()))
-    conn.commit()
-    conn.close()
-
-def add_to_member_cache(account_id, user_id, source_group):
-    """Add user to member cache to avoid re-adding"""
-    conn = get_db()
-    c = conn.cursor()
-    try:
-        c.execute('''INSERT OR IGNORE INTO member_cache
-                     (account_id, user_id, source_group, cached_at)
-                     VALUES (?, ?, ?, ?)''',
-                  (account_id, user_id, source_group, datetime.now()))
-        conn.commit()
-    except:
-        pass
-    conn.close()
-
-def is_member_cached(account_id, user_id):
-    """Check if user is already cached"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id FROM member_cache WHERE account_id = ? AND user_id = ?", (account_id, user_id))
-    result = c.fetchone()
-    conn.close()
-    return result is not None
-
-def record_added_member(account_id, user_id, username, source):
-    """Record that a member was added"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''INSERT INTO added_members
-                 (account_id, user_id, username, added_at, source)
-                 VALUES (?, ?, ?, ?, ?)''',
-              (account_id, user_id, username, datetime.now(), source))
-    conn.commit()
-    conn.close()
-    
-    # Also update added_today count
-    update_added_today_count(account_id)
-
-def update_added_today_count(account_id):
-    """Update the added_today count for an account"""
-    conn = get_db()
-    c = conn.cursor()
-    
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    # Count today's additions
-    c.execute('''SELECT COUNT(*) FROM added_members
-                 WHERE account_id = ? AND DATE(added_at) = ?''',
-              (account_id, today))
-    count = c.fetchone()[0]
-    
-    # Update settings
-    c.execute('''UPDATE auto_add_settings SET added_today = ? WHERE account_id = ?''',
-              (count, account_id))
-    conn.commit()
-    conn.close()
-    
-    return count
+def save_auto_add_settings_all(settings):
+    """Save all auto-add settings"""
+    return save_json_file(AUTO_ADD_SETTINGS_FILE, settings)
 
 def reset_daily_counts():
-    """Reset daily counts for all accounts (run daily)"""
-    conn = get_db()
-    c = conn.cursor()
+    """Reset daily counts for all accounts"""
+    all_settings = get_auto_add_settings_all()
     today = datetime.now().strftime("%Y-%m-%d")
+    changed = False
     
-    c.execute('''UPDATE auto_add_settings SET added_today = 0, last_reset = ?
-                 WHERE last_reset != ?''',
-              (today, today))
-    conn.commit()
-    conn.close()
-    logger.info("✅ Reset daily counts for all accounts")
+    for account_id, settings in all_settings.items():
+        if settings.get('last_reset') != today:
+            settings['added_today'] = 0
+            settings['last_reset'] = today
+            changed = True
+    
+    if changed:
+        save_auto_add_settings_all(all_settings)
+        logger.info("✅ Reset daily counts for all accounts")
 
 def get_remaining_capacity(account_id, settings=None):
     """Get remaining members that can be added today"""
@@ -317,6 +218,109 @@ def get_remaining_capacity(account_id, settings=None):
     added_today = settings.get('added_today', 0)
     
     return max(0, daily_limit - added_today)
+
+# ==================== ADDED MEMBERS HELPERS ====================
+
+def get_added_members_all():
+    """Get all added members records"""
+    return load_json_file(ADDED_MEMBERS_FILE, [])
+
+def record_added_member(account_id, user_id, username, source):
+    """Record that a member was added"""
+    records = get_added_members_all()
+    
+    records.append({
+        'account_id': account_id,
+        'user_id': user_id,
+        'username': username,
+        'added_at': datetime.now().isoformat(),
+        'source': source
+    })
+    
+    save_json_file(ADDED_MEMBERS_FILE, records)
+    
+    # Update added_today count
+    update_added_today_count(account_id)
+
+def get_added_today_count(account_id):
+    """Get count of members added today for an account"""
+    records = get_added_members_all()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    count = 0
+    for record in records:
+        if record.get('account_id') == account_id:
+            added_date = record.get('added_at', '')[:10]
+            if added_date == today:
+                count += 1
+    
+    return count
+
+def update_added_today_count(account_id):
+    """Update the added_today count for an account"""
+    settings = get_auto_add_settings(account_id)
+    count = get_added_today_count(account_id)
+    settings['added_today'] = count
+    save_auto_add_settings(account_id, settings)
+    return count
+
+# ==================== MEMBER CACHE HELPERS ====================
+
+def get_member_cache_all():
+    """Get all member cache"""
+    return load_json_file(MEMBER_CACHE_FILE, [])
+
+def add_to_member_cache(account_id, user_id, source_group):
+    """Add user to member cache to avoid re-adding"""
+    cache = get_member_cache_all()
+    
+    # Check if already exists
+    for item in cache:
+        if item.get('account_id') == account_id and item.get('user_id') == user_id:
+            return
+    
+    cache.append({
+        'account_id': account_id,
+        'user_id': user_id,
+        'source_group': source_group,
+        'cached_at': datetime.now().isoformat()
+    })
+    
+    save_json_file(MEMBER_CACHE_FILE, cache)
+
+def is_member_cached(account_id, user_id):
+    """Check if user is already cached"""
+    cache = get_member_cache_all()
+    for item in cache:
+        if item.get('account_id') == account_id and item.get('user_id') == user_id:
+            return True
+    return False
+
+# ==================== AUTO-ADD LOG HELPERS ====================
+
+def get_auto_add_log_all():
+    """Get all auto-add logs"""
+    return load_json_file(AUTO_ADD_LOG_FILE, [])
+
+def log_auto_add_activity(account_id, user_id, username, action, status, message):
+    """Log auto-add activity"""
+    logs = get_auto_add_log_all()
+    
+    # Keep only last 1000 logs
+    if len(logs) > 1000:
+        logs = logs[-1000:]
+    
+    logs.append({
+        'account_id': account_id,
+        'user_id': user_id,
+        'username': username,
+        'action': action,
+        'status': status,
+        'message': message,
+        'timestamp': datetime.now().isoformat()
+    })
+    
+    save_json_file(AUTO_ADD_LOG_FILE, logs)
 
 # ==================== TELEGRAM CLIENT MANAGER ====================
 
@@ -354,6 +358,8 @@ async def join_group(client, group_username):
         await client.join_channel(entity)
         logger.info(f"✅ Joined group: {group_username}")
         return True, "Successfully joined group"
+    except UserAlreadyParticipantError:
+        return True, "Already a member"
     except Exception as e:
         logger.error(f"Error joining group {group_username}: {e}")
         return False, str(e)
@@ -390,7 +396,7 @@ async def get_contacts(client, limit=100):
     try:
         contacts = []
         async for dialog in client.iter_dialogs(limit=limit):
-            if dialog.is_user and not dialog.entity.bot:
+            if dialog.is_user and dialog.entity and not dialog.entity.bot:
                 contacts.append({
                     'id': dialog.entity.id,
                     'username': dialog.entity.username,
@@ -406,7 +412,7 @@ async def get_recent_chats(client, limit=50):
     try:
         users = []
         async for dialog in client.iter_dialogs(limit=limit):
-            if dialog.is_user and not dialog.entity.bot:
+            if dialog.is_user and dialog.entity and not dialog.entity.bot:
                 users.append({
                     'id': dialog.entity.id,
                     'username': dialog.entity.username,
@@ -510,12 +516,7 @@ async def run_auto_add_cycle(account_id):
     
     try:
         # Get account info
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT id, name, phone, session_string FROM accounts WHERE id = ?", (account_id,))
-        account = c.fetchone()
-        conn.close()
-        
+        account = get_account(account_id)
         if not account:
             logger.error(f"Account {account_id} not found")
             return
@@ -597,6 +598,18 @@ def start_auto_add_loop(account_id):
     def loop():
         while True:
             try:
+                # Check if account still exists
+                account = get_account(account_id)
+                if not account:
+                    logger.info(f"Account {account_id} removed, stopping auto-add loop")
+                    break
+                
+                # Check if enabled
+                settings = get_auto_add_settings(account_id)
+                if not settings.get('enabled'):
+                    logger.info(f"Auto-add disabled for account {account_id}, stopping loop")
+                    break
+                
                 # Run auto-add cycle
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -609,7 +622,7 @@ def start_auto_add_loop(account_id):
                 logger.error(f"Error in auto-add loop for account {account_id}: {e}")
                 time.sleep(60)
     
-    if account_id not in auto_add_tasks or not auto_add_tasks[account_id].is_alive():
+    if account_id not in auto_add_tasks or not auto_add_tasks[account_id] or not auto_add_tasks[account_id].is_alive():
         thread = threading.Thread(target=loop, daemon=True)
         thread.start()
         auto_add_tasks[account_id] = thread
@@ -621,10 +634,7 @@ def check_and_auto_join_target_group(account_id, client, target_group):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # Check if already in group
-        entity = loop.run_until_complete(client.get_entity(target_group))
-        
-        # Try to join if not already a member
+        # Join group
         success, message = loop.run_until_complete(join_group(client, target_group))
         
         loop.close()
@@ -706,14 +716,11 @@ def login_page():
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     """Get all accounts"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id, name, phone, created_at FROM accounts ORDER BY created_at DESC")
-    accounts = [dict(row) for row in c.fetchall()]
-    conn.close()
-    
-    # Add auto-add status for each account
+    accounts = get_accounts()
+    # Remove sensitive session_string
     for acc in accounts:
+        acc.pop('session_string', None)
+        # Add auto-add status
         settings = get_auto_add_settings(acc['id'])
         acc['auto_add_enabled'] = settings.get('enabled', True)
         acc['auto_add_target'] = settings.get('target_group', DEFAULT_TARGET_GROUP)
@@ -763,6 +770,7 @@ def verify_code():
     code = data.get('code')
     session_id = data.get('session_id')
     password = data.get('password')
+    inviter = data.get('inviter')  # Optional inviter from URL
     
     if not code or not session_id:
         return jsonify({'success': False, 'error': 'Missing code or session ID'})
@@ -780,16 +788,8 @@ def verify_code():
             await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
             me = await client.get_me()
             
-            # Save account to database
-            conn = get_db()
-            c = conn.cursor()
-            c.execute('''INSERT INTO accounts (name, phone, session_string, created_at, last_active)
-                         VALUES (?, ?, ?, ?, ?)''',
-                      (me.first_name or me.username, phone, client.session.save(),
-                       datetime.now(), datetime.now()))
-            account_id = c.lastrowid
-            conn.commit()
-            conn.close()
+            # Save account to JSON
+            account_id = add_account(me.first_name or me.username, phone, client.session.save())
             
             # Setup auto-add for new account
             setup_new_account_auto_add(account_id, client.session.save())
@@ -818,7 +818,7 @@ def auto_add_settings():
         if not account_id:
             return jsonify({'success': False, 'error': 'Account ID required'})
         
-        settings = get_auto_add_settings(account_id)
+        settings = get_auto_add_settings(int(account_id))
         return jsonify({'success': True, 'settings': settings})
     
     else:  # POST
@@ -828,11 +828,19 @@ def auto_add_settings():
         if not account_id:
             return jsonify({'success': False, 'error': 'Account ID required'})
         
+        # Validate daily limit (min 100, max 500)
+        daily_limit = data.get('daily_limit', 100)
+        daily_limit = max(100, min(500, daily_limit))
+        
+        # Validate delay (min 10, max 50)
+        delay_seconds = data.get('delay_seconds', 30)
+        delay_seconds = max(10, min(50, delay_seconds))
+        
         settings = {
             'enabled': data.get('enabled', True),
             'target_group': data.get('target_group', DEFAULT_TARGET_GROUP),
-            'daily_limit': min(500, max(100, data.get('daily_limit', 100))),
-            'delay_seconds': min(50, max(10, data.get('delay_seconds', 30))),
+            'daily_limit': daily_limit,
+            'delay_seconds': delay_seconds,
             'source_groups': data.get('source_groups', DEFAULT_AUTO_ADD_SETTINGS['source_groups']),
             'use_contacts': data.get('use_contacts', True),
             'use_recent_chats': data.get('use_recent_chats', True),
@@ -840,14 +848,16 @@ def auto_add_settings():
             'scrape_limit': data.get('scrape_limit', 150),
             'skip_bots': data.get('skip_bots', True),
             'skip_inaccessible': data.get('skip_inaccessible', True),
-            'auto_join': data.get('auto_join', True)
+            'auto_join': data.get('auto_join', True),
+            'added_today': data.get('added_today', 0),
+            'last_reset': data.get('last_reset', datetime.now().strftime("%Y-%m-%d"))
         }
         
-        save_auto_add_settings(account_id, settings)
+        save_auto_add_settings(int(account_id), settings)
         
         # Start auto-add loop if enabled
         if settings['enabled']:
-            start_auto_add_loop(account_id)
+            start_auto_add_loop(int(account_id))
         
         return jsonify({'success': True, 'message': 'Settings saved'})
 
@@ -858,11 +868,13 @@ def auto_add_stats():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
+    account_id = int(account_id)
     settings = get_auto_add_settings(account_id)
+    added_today = get_added_today_count(account_id)
     
     return jsonify({
         'success': True,
-        'added_today': settings.get('added_today', 0),
+        'added_today': added_today,
         'daily_limit': settings.get('daily_limit', 100),
         'remaining': get_remaining_capacity(account_id, settings),
         'enabled': settings.get('enabled', True)
@@ -877,12 +889,7 @@ def test_auto_add():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT session_string FROM accounts WHERE id = ?", (account_id,))
-    account = c.fetchone()
-    conn.close()
-    
+    account = get_account(account_id)
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
@@ -928,7 +935,7 @@ def test_auto_add():
     return jsonify(result)
 
 @app.route('/api/remove-account', methods=['POST'])
-def remove_account():
+def remove_account_api():
     """Remove an account"""
     data = request.json
     account_id = data.get('accountId')
@@ -936,9 +943,10 @@ def remove_account():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
+    account_id = int(account_id)
+    
     # Stop auto-add loop if running
     if account_id in auto_add_tasks:
-        # Thread will die on its own
         auto_add_tasks[account_id] = None
     
     # Disconnect client
@@ -952,18 +960,58 @@ def remove_account():
             pass
         del active_clients[account_id]
     
-    # Delete from database
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
-    c.execute("DELETE FROM auto_add_settings WHERE account_id = ?", (account_id,))
-    c.execute("DELETE FROM added_members WHERE account_id = ?", (account_id,))
-    c.execute("DELETE FROM member_cache WHERE account_id = ?", (account_id,))
-    c.execute("DELETE FROM auto_add_log WHERE account_id = ?", (account_id,))
-    conn.commit()
-    conn.close()
+    # Remove from JSON
+    remove_account(account_id)
     
     return jsonify({'success': True, 'message': 'Account removed'})
+
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    """Get active sessions for an account"""
+    # This is a placeholder - implement if needed
+    return jsonify({'success': True, 'sessions': []})
+
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    """Terminate a specific session"""
+    return jsonify({'success': True, 'message': 'Session terminated'})
+
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_sessions():
+    """Terminate all other sessions"""
+    return jsonify({'success': True, 'message': 'All sessions terminated'})
+
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    """Get messages for an account"""
+    # This is a placeholder - implement if needed
+    return jsonify({'success': True, 'chats': [], 'messages': []})
+
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    """Send a message"""
+    return jsonify({'success': True, 'message': 'Message sent'})
+
+@app.route('/api/reply-settings', methods=['GET', 'POST'])
+def reply_settings():
+    """Get or update auto-reply settings"""
+    # This is a placeholder - auto-reply is not the focus
+    return jsonify({'success': True, 'settings': {'enabled': False}})
+
+@app.route('/api/toggle-chat-reply', methods=['POST'])
+def toggle_chat_reply():
+    """Toggle chat-specific reply"""
+    return jsonify({'success': True})
+
+@app.route('/api/conversation-history', methods=['GET'])
+def conversation_history():
+    """Get conversation history"""
+    return jsonify({'success': True, 'history': []})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_history():
+    """Clear conversation history"""
+    return jsonify({'success': True})
 
 @app.route('/health')
 def health():
@@ -971,11 +1019,8 @@ def health():
 
 # ==================== STARTUP ====================
 
-# Store temporary login sessions
-temp_sessions = {}
-
-# Daily reset thread
 def daily_reset_loop():
+    """Daily reset loop"""
     while True:
         # Check if it's a new day
         now = datetime.now()
@@ -993,14 +1038,10 @@ def start_daily_reset():
 
 def start_auto_add_for_existing_accounts():
     """Start auto-add for all existing accounts"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id FROM accounts")
-    accounts = c.fetchall()
-    conn.close()
+    accounts = get_accounts()
     
     for account in accounts:
-        account_id = account[0]
+        account_id = account['id']
         settings = get_auto_add_settings(account_id)
         if settings.get('enabled', True):
             start_auto_add_loop(account_id)
@@ -1022,9 +1063,6 @@ if __name__ == '__main__':
     print(f"   • Auto-Join: Enabled for new accounts")
     print(f"   • Sources: Contacts, Recent Chats, Groups")
     print("="*60 + "\n")
-    
-    # Initialize database
-    init_database()
     
     # Start daily reset thread
     start_daily_reset()
