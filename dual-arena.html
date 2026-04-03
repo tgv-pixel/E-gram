@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VEVOBet - Duel Arena | Multiplayer Battle</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .game-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .game-logo i {
+            margin-right: 10px;
+            color: #ffd700;
+        }
+
+        .game-balance {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 20px;
+            border-radius: 25px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .game-balance i {
+            color: #ffd700;
+            margin-right: 8px;
+        }
+
+        .game-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .game-title h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .game-title p {
+            color: rgba(255,255,255,0.8);
+            font-size: 18px;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .arena-section {
+            background: linear-gradient(135deg, #2c3e50, #1a1a2e);
+            border-radius: 30px;
+            padding: 25px;
+            border: 2px solid #ffd700;
+        }
+
+        .arena-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,215,0,0.3);
+        }
+
+        .arena-header h2 {
+            color: #ffd700;
+            font-size: 28px;
+        }
+
+        .players-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .player-card {
+            flex: 1;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .player-card.you {
+            border-color: #48bb78;
+            background: rgba(72,187,120,0.1);
+        }
+
+        .player-card.opponent {
+            border-color: #ff4757;
+        }
+
+        .player-card.waiting {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.1);
+        }
+
+        .player-avatar {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        .player-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .player-bet {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 10px 0;
+        }
+
+        .player-status {
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .status-ready { background: #48bb78; color: white; }
+        .status-waiting { background: #ffd700; color: #333; }
+        .status-playing { background: #667eea; color: white; }
+        .status-ready-badge { background: #48bb78; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+
+        .vs-divider {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+
+        .countdown-timer {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 15px;
+        }
+
+        .timer-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            font-family: monospace;
+        }
+
+        .ready-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px auto;
+            display: inline-block;
+        }
+
+        .ready-btn.active {
+            background: #ff4757;
+        }
+
+        .game-area {
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .dice-area {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .dice {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .dice.rolling {
+            animation: shake 0.3s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px) rotate(-10deg); }
+            75% { transform: translateX(10px) rotate(10deg); }
+        }
+
+        .roll-button {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 20px auto;
+        }
+
+        .roll-button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .roll-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .challenge-panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .challenge-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .search-box button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .bet-input {
+            margin: 15px 0;
+        }
+
+        .bet-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .bet-input input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .challenge-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .challenge-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .players-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .player-item:hover {
+            background: #e8e8e8;
+            transform: translateX(5px);
+        }
+
+        .player-item .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-item .player-info i {
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .player-item .player-balance {
+            font-weight: bold;
+            color: #48bb78;
+        }
+
+        .follow-btn {
+            background: #ffd700;
+            color: #333;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .follow-btn.following {
+            background: #48bb78;
+            color: white;
+        }
+
+        .challenge-small-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .game-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .game-item:hover {
+            background: rgba(0,0,0,0.5);
+        }
+
+        .game-players {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .game-bet {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .result-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 30px 50px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 1000;
+            animation: popIn 0.3s ease;
+            border: 3px solid #ffd700;
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .result-win { color: #48bb78; font-size: 32px; font-weight: bold; }
+        .result-loss { color: #ff4757; font-size: 32px; font-weight: bold; }
+        .result-amount { font-size: 24px; margin-top: 10px; color: #ffd700; }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <div class="game-logo">
+                <i class="fas fa-dice-d6"></i> VEVOBet
+            </div>
+            <div class="game-balance">
+                <i class="fas fa-coins"></i> <span id="gameBalance">0</span> VEVO
+            </div>
+        </div>
+
+        <div class="game-title">
+            <h1><i class="fas fa-swords"></i> DUEL ARENA <i class="fas fa-swords"></i></h1>
+            <p>Challenge players, roll the dice, winner takes 80% of the pot!</p>
+        </div>
+
+        <div class="game-layout">
+            <div class="arena-section">
+                <div class="arena-header">
+                    <h2><i class="fas fa-fist-raised"></i> CURRENT DUEL</h2>
+                </div>
+
+                <div class="players-container" id="playersContainer">
+                    <div class="player-card you" id="playerCard">
+                        <div class="player-avatar"><i class="fas fa-user-circle"></i></div>
+                        <div class="player-name" id="playerName">You</div>
+                        <div class="player-bet" id="playerBet">0 VEVO</div>
+                        <div class="player-status status-ready" id="playerStatus">Ready</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="player-card waiting" id="opponentCard">
+                        <div class="player-avatar"><i class="fas fa-user-friends"></i></div>
+                        <div class="player-name" id="opponentName">Waiting...</div>
+                        <div class="player-bet" id="opponentBet">0 VEVO</div>
+                        <div class="player-status status-waiting" id="opponentStatus">Waiting</div>
+                    </div>
+                </div>
+
+                <div id="readySection" style="text-align: center; display: none;">
+                    <button class="ready-btn" id="readyBtn">✓ I'M READY</button>
+                </div>
+
+                <div id="countdownSection" class="countdown-timer" style="display: none;">
+                    <div>Game starting in...</div>
+                    <div class="timer-number" id="countdownNumber">8</div>
+                </div>
+
+                <div class="game-area" id="gameArea" style="display: none;">
+                    <h3><i class="fas fa-dice-d6"></i> ROLL THE DICE!</h3>
+                    <div class="dice-area">
+                        <div>
+                            <div class="dice" id="playerDice">🎲</div>
+                            <div class="dice-label">Your Roll</div>
+                        </div>
+                        <div>
+                            <div class="dice" id="opponentDice">🎲</div>
+                            <div class="dice-label">Opponent Roll</div>
+                        </div>
+                    </div>
+                    <button class="roll-button" id="rollBtn">ROLL DICE!</button>
+                </div>
+            </div>
+
+            <div class="challenge-panel">
+                <h3><i class="fas fa-search"></i> Find Players</h3>
+                <div class="search-box">
+                    <input type="email" id="searchEmail" placeholder="Search by email...">
+                    <button onclick="searchByEmail()"><i class="fas fa-search"></i> Search</button>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('online')">Online</button>
+                    <button class="tab-btn" onclick="switchTab('friends')">Following</button>
+                    <button class="tab-btn" onclick="switchTab('games')">Active Games</button>
+                </div>
+
+                <div id="onlinePlayersList" class="players-list">
+                    <div class="empty-state">Loading players...</div>
+                </div>
+                <div id="friendsList" class="players-list" style="display: none;">
+                    <div class="empty-state">No friends yet. Follow players to see them here!</div>
+                </div>
+                <div id="activeGamesList" class="players-list" style="display: none;">
+                    <div class="empty-state">No active games</div>
+                </div>
+
+                <div class="bet-input">
+                    <label>💰 Bet Amount (VEVO)</label>
+                    <input type="number" id="challengeBet" value="50" min="10" step="10">
+                </div>
+                <button class="challenge-btn" id="createGameBtn">
+                    <i class="fas fa-plus-circle"></i> Create New Game
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultModal" class="result-display" style="display: none;">
+        <div id="resultContent"></div>
+    </div>
+
+    <script src="https://kit.fontawesome.com/a2e0a8c9d2.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        
+        let currentUser = null;
+        let userData = null;
+        let userBalance = 0;
+        let currentGameId = null;
+        let currentOpponent = null;
+        let isReady = false;
+        let countdownInterval = null;
+        let gameListener = null;
+        let onlineListener = null;
+        let currentTab = 'online';
+        
+        // Store online users
+        let onlineUsers = {};
+        let followingList = [];
+        
+        function showNotification(msg, type) {
+            const n = document.createElement('div');
+            n.className = 'notification';
+            n.style.background = type === 'success' ? '#48bb78' : type === 'error' ? '#ff4757' : '#667eea';
+            n.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+        
+        function updateBalanceDisplay() {
+            document.getElementById('gameBalance').textContent = userBalance;
+        }
+        
+        async function loadUserData() {
+            if (!currentUser) return;
+            const snapshot = await db.ref(`users/${currentUser.uid}`).once('value');
+            if (snapshot.exists()) {
+                userData = snapshot.val();
+                userBalance = userData.balance || 100; // FIX: Default to 100 VEVO like other pages
+                updateBalanceDisplay();
+                
+                // Load following list
+                followingList = userData.following || [];
+                updateFriendsList();
+            } else {
+                // Create new user with 100 VEVO
+                const newUserData = {
+                    email: currentUser.email,
+                    name: currentUser.displayName || currentUser.email.split('@')[0],
+                    balance: 100,
+                    withdrawCode: null,
+                    inviteCount: 0,
+                    inviteRewards: 0,
+                    following: [],
+                    followers: [],
+                    createdAt: Date.now()
+                };
+                await db.ref(`users/${currentUser.uid}`).set(newUserData);
+                userData = newUserData;
+                userBalance = 100;
+                updateBalanceDisplay();
+            }
+        }
+        
+        async function updateUserBalance(newBalance) {
+            if (!currentUser) return;
+            await db.ref(`users/${currentUser.uid}`).update({ balance: newBalance });
+            userBalance = newBalance;
+            updateBalanceDisplay();
+        }
+        
+        // Set user as online
+        function setUserOnline() {
+            if (!currentUser) return;
+            const userStatusRef = db.ref(`onlineUsers/${currentUser.uid}`);
+            userStatusRef.set({
+                uid: currentUser.uid,
+                name: userData?.name || currentUser.email.split('@')[0],
+                email: currentUser.email,
+                balance: userBalance,
+                lastSeen: Date.now()
+            });
+            userStatusRef.onDisconnect().remove();
+        }
+        
+        // Load online users
+        function loadOnlineUsers() {
+            if (onlineListener) onlineListener.off();
+            onlineListener = db.ref('onlineUsers').on('value', (snapshot) => {
+                onlineUsers = snapshot.val() || {};
+                updateOnlinePlayersList();
+            });
+        }
+        
+        function updateOnlinePlayersList() {
+            const container = document.getElementById('onlinePlayersList');
+            if (currentTab !== 'online') return;
+            
+            const users = Object.values(onlineUsers).filter(u => u.uid !== currentUser?.uid);
+            
+            if (users.length === 0) {
+                container.innerHTML = '<div class="empty-state">No other players online</div>';
+                return;
+            }
+            
+            container.innerHTML = users.map(user => `
+                <div class="player-item">
+                    <div class="player-info">
+                        <i class="fas fa-user-circle"></i>
+                        <div>
+                            <strong>${user.name}</strong><br>
+                            <small>${user.email}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="player-balance">${user.balance || 100} VEVO</span>
+                        <button class="follow-btn ${followingList.includes(user.uid) ? 'following' : ''}" onclick="toggleFollow('${user.uid}', '${user.name}')">
+                            ${followingList.includes(user.uid) ? 'Following' : 'Follow'}
+                        </button>
+                        <button class="challenge-small-btn" onclick="challengePlayer('${user.uid}', '${user.name}')">Challenge</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function toggleFollow(userId, userName) {
+            if (!currentUser) return;
+            
+            const isFollowing = followingList.includes(userId);
+            let newFollowing;
+            
+            if (isFollowing) {
+                newFollowing = followingList.filter(id => id !== userId);
+                showNotification(`Unfollowed ${userName}`, 'info');
+            } else {
+                newFollowing = [...followingList, userId];
+                showNotification(`Now following ${userName}`, 'success');
+            }
+            
+            await db.ref(`users/${currentUser.uid}`).update({ following: newFollowing });
+            followingList = newFollowing;
+            updateOnlinePlayersList();
+            updateFriendsList();
+        }
+        
+        async function updateFriendsList() {
+            const container = document.getElementById('friendsList');
+            if (currentTab !== 'friends') return;
+            
+            if (followingList.length === 0) {
+                container.innerHTML = '<div class="empty-state">No friends yet. Follow players to see them here!</div>';
+                return;
+            }
+            
+            let friendsHtml = '';
+            for (const friendId of followingList) {
+                const friendSnap = await db.ref(`users/${friendId}`).once('value');
+                const friend = friendSnap.val();
+                if (friend) {
+                    const isOnline = onlineUsers[friendId] ? true : false;
+                    friendsHtml += `
+                        <div class="player-item">
+                            <div class="player-info">
+                                <i class="fas ${isOnline ? 'fa-circle' : 'fa-circle'}"></i>
+                                <div>
+                                    <strong>${friend.name}</strong><br>
+                                    <small>${isOnline ? 'Online' : 'Offline'}</small>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="challenge-small-btn" onclick="challengePlayer('${friendId}', '${friend.name}')">Challenge</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            container.innerHTML = friendsHtml || '<div class="empty-state">No friends online</div>';
+        }
+        
+        async function searchByEmail() {
+            const email = document.getElementById('searchEmail').value.trim().toLowerCase();
+            if (!email) {
+                showNotification('Enter an email to search', 'error');
+                return;
+            }
+            
+            const usersSnap = await db.ref('users').orderByChild('email').equalTo(email).once('value');
+            const user = usersSnap.val();
+            
+            if (!user || Object.keys(user).length === 0) {
+                showNotification('User not found', 'error');
+                return;
+            }
+            
+            const [userId, userInfo] = Object.entries(user)[0];
+            if (userId === currentUser?.uid) {
+                showNotification('That\'s you!', 'error');
+                return;
+            }
+            
+            showNotification(`Found: ${userInfo.name}`, 'success');
+            // Option to challenge directly
+            if (confirm(`Challenge ${userInfo.name}?`)) {
+                challengePlayer(userId, userInfo.name);
+            }
+        }
+        
+        async function challengePlayer(playerId, playerName) {
+            if (!currentUser) return;
+            
+            const betAmount = parseInt(document.getElementById('challengeBet').value);
+            if (isNaN(betAmount) || betAmount < 10) {
+                showNotification('Minimum bet is 10 VEVO', 'error');
+                return;
+            }
+            
+            if (betAmount > userBalance) {
+                showNotification(`Insufficient balance! You have ${userBalance} VEVO`, 'error');
+                return;
+            }
+            
+            // Check if already in a game
+            if (currentGameId) {
+                showNotification('You are already in a game!', 'error');
+                return;
+            }
+            
+            // Create game
+            const gameId = Date.now().toString();
+            const game = {
+                id: gameId,
+                player1Id: currentUser.uid,
+                player1Name: userData.name || currentUser.email.split('@')[0],
+                player2Id: playerId,
+                player2Name: playerName,
+                betAmount: betAmount,
+                totalPot: betAmount * 2,
+                winnerPayout: Math.floor(betAmount * 2 * 0.8),
+                houseFee: Math.floor(betAmount * 2 * 0.2),
+                status: 'waiting',
+                player1Ready: false,
+                player2Ready: false,
+                player1Roll: null,
+                player2Roll: null,
+                createdAt: Date.now()
+            };
+            
+            await db.ref(`games/${gameId}`).set(game);
+            showNotification(`Challenge sent to ${playerName}!`, 'success');
+            loadActiveGames();
+            
+            // Auto join the game
+            joinGame(gameId);
+        }
+        
+        async function createGame() {
+            if (!currentUser) return;
+            
+            const betAmount = parseInt(document.getElementById('challengeBet').value);
+            if (isNaN(betAmount) || betAmount < 10) {
+                showNotification('Minimum bet is 10 VEVO', 'error');
+                return;
+            }
+            
+            if (betAmount > userBalance) {
+                showNotification(`Insufficient balance! You have ${userBalance} VEVO`, 'error');
+                return;
+            }
+            
+            if (currentGameId) {
+                showNotification('You are already in a game!', 'error');
+                return;
+            }
+            
+            const gameId = Date.now().toString();
+            const game = {
+                id: gameId,
+                player1Id: currentUser.uid,
+                player1Name: userData.name || currentUser.email.split('@')[0],
+                player2Id: null,
+                player2Name: 'Waiting for player...',
+                betAmount: betAmount,
+                totalPot: betAmount * 2,
+                winnerPayout: Math.floor(betAmount * 2 * 0.8),
+                houseFee: Math.floor(betAmount * 2 * 0.2),
+                status: 'waiting',
+                player1Ready: false,
+                player2Ready: false,
+                player1Roll: null,
+                player2Roll: null,
+                createdAt: Date.now()
+            };
+            
+            await db.ref(`games/${gameId}`).set(game);
+            showNotification('Game created! Share the game ID or wait for a player to join', 'success');
+            loadActiveGames();
+            
+            // Auto join
+            joinGame(gameId);
+        }
+        
+        async function joinGame(gameId) {
+            const gameSnap = await db.ref(`games/${gameId}`).once('value');
+            const game = gameSnap.val();
+            
+            if (!game) {
+                showNotification('Game not found', 'error');
+                return;
+            }
+            
+            // If current user is player2 and not set yet
+            if (game.player2Id === null && game.player1Id !== currentUser.uid) {
+                const betAmount = game.betAmount;
+                if (betAmount > userBalance) {
+                    showNotification(`Insufficient balance! Need ${betAmount} VEVO`, 'error');
+                    return;
+                }
+                
+                await updateUserBalance(userBalance - betAmount);
+                
+                await db.ref(`games/${gameId}`).update({
+                    player2Id: currentUser.uid,
+                    player2Name: userData.name || currentUser.email.split('@')[0],
+                    status: 'active'
+                });
+                
+                showNotification(`Joined game against ${game.player1Name}!`, 'success');
+            }
+            
+            currentGameId = gameId;
+            
+            // Setup game listener
+            if (gameListener) gameListener.off();
+            gameListener = db.ref(`games/${gameId}`).on('value', (snapshot) => {
+                const updatedGame = snapshot.val();
+                if (updatedGame) {
+                    updateGameUI(updatedGame);
+                }
+            });
+        }
+        
+        function updateGameUI(game) {
+            const isPlayer1 = game.player1Id === currentUser.uid;
+            const opponent = isPlayer1 ? { id: game.player2Id, name: game.player2Name } : { id: game.player1Id, name: game.player1Name };
+            const myReady = isPlayer1 ? game.player1Ready : game.player2Ready;
+            const opponentReady = isPlayer1 ? game.player2Ready : game.player1Ready;
+            
+            document.getElementById('playerName').textContent = userData?.name || currentUser.email.split('@')[0];
+            document.getElementById('playerBet').textContent = `${game.betAmount} VEVO`;
+            
+            if (opponent.id) {
+                document.getElementById('opponentName').textContent = opponent.name;
+                document.getElementById('opponentBet').textContent = `${game.betAmount} VEVO`;
+                document.getElementById('opponentCard').classList.remove('waiting');
+                document.getElementById('opponentCard').classList.add('opponent');
+                document.getElementById('opponentStatus').textContent = opponentReady ? 'Ready' : 'Not Ready';
+                document.getElementById('opponentStatus').className = `player-status ${opponentReady ? 'status-ready' : 'status-waiting'}`;
+            }
+            
+            if (game.status === 'waiting' || game.status === 'active') {
+                document.getElementById('readySection').style.display = 'block';
+                document.getElementById('readyBtn').textContent = myReady ? '✓ READY' : '✓ I\'M READY';
+                document.getElementById('readyBtn').classList.toggle('active', myReady);
+            }
+            
+            if (game.status === 'countdown') {
+                document.getElementById('readySection').style.display = 'none';
+                document.getElementById('countdownSection').style.display = 'block';
+            }
+            
+            if (game.status === 'playing') {
+                document.getElementById('readySection').style.display = 'none';
+                document.getElementById('countdownSection').style.display = 'none';
+                document.getElementById('gameArea').style.display = 'block';
+                
+                // Check if both have rolled
+                if (game.player1Roll !== null && game.player2Roll !== null) {
+                    determineWinner(game);
+                }
+            }
+            
+            if (game.status === 'completed') {
+                resetGameUI();
+            }
+        }
+        
+        async function setReady() {
+            if (!currentGameId) return;
+            
+            const gameSnap = await db.ref(`games/${currentGameId}`).once('value');
+            const game = gameSnap.val();
+            
+            if (!game || game.status !== 'active') return;
+            
+            const isPlayer1 = game.player1Id === currentUser.uid;
+            const readyKey = isPlayer1 ? 'player1Ready' : 'player2Ready';
+            
+            await db.ref(`games/${currentGameId}`).update({ [readyKey]: true });
+            
+            // Check if both ready
+            const updatedGame = (await db.ref(`games/${currentGameId}`).once('value')).val();
+            if (updatedGame.player1Ready && updatedGame.player2Ready) {
+                // Start 8 second countdown
+                await db.ref(`games/${currentGameId}`).update({ status: 'countdown' });
+                startCountdown();
+            }
+        }
+        
+        function startCountdown() {
+            let count = 8;
+            const countdownElement = document.getElementById('countdownNumber');
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(async () => {
+                count--;
+                countdownElement.textContent = count;
+                
+                if (count <= 0) {
+                    clearInterval(countdownInterval);
+                    // Deduct bets from both players
+                    const gameSnap = await db.ref(`games/${currentGameId}`).once('value');
+                    const game = gameSnap.val();
+                    
+                    if (game && game.status === 'countdown') {
+                        // Deduct bets
+                        const player1Snap = await db.ref(`users/${game.player1Id}`).once('value');
+                        const player1Data = player1Snap.val();
+                        await db.ref(`users/${game.player1Id}`).update({ balance: (player1Data.balance || 0) - game.betAmount });
+                        
+                        const player2Snap = await db.ref(`users/${game.player2Id}`).once('value');
+                        const player2Data = player2Snap.val();
+                        await db.ref(`users/${game.player2Id}`).update({ balance: (player2Data.balance || 0) - game.betAmount });
+                        
+                        await db.ref(`games/${currentGameId}`).update({ status: 'playing' });
+                        
+                        if (currentUser.uid === game.player1Id || currentUser.uid === game.player2Id) {
+                            showNotification('Game started! Roll the dice!', 'success');
+                        }
+                    }
+                }
+            }, 1000);
+        }
+        
+        async function rollDice() {
+            if (!currentGameId) return;
+            
+            const gameSnap = await db.ref(`games/${currentGameId}`).once('value');
+            const game = gameSnap.val();
+            
+            if (!game || game.status !== 'playing') return;
+            
+            const isPlayer1 = game.player1Id === currentUser.uid;
+            const rollKey = isPlayer1 ? 'player1Roll' : 'player2Roll';
+            
+            if (game[rollKey] !== null) {
+                showNotification('You already rolled!', 'error');
+                return;
+            }
+            
+            const rollBtn = document.getElementById('rollBtn');
+            rollBtn.disabled = true;
+            rollBtn.innerHTML = '<span class="loading"></span> Rolling...';
+            
+            // Animate
+            const playerDice = document.getElementById('playerDice');
+            playerDice.classList.add('rolling');
+            
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                const randomRoll = Math.floor(Math.random() * 6) + 1;
+                const diceFaces = ['🎲', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+                playerDice.textContent = diceFaces[randomRoll];
+                rollCount++;
+            }, 100);
+            
+            setTimeout(async () => {
+                clearInterval(rollInterval);
+                const finalRoll = Math.floor(Math.random() * 6) + 1;
+                const diceFaces = ['🎲', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+                playerDice.textContent = diceFaces[finalRoll];
+                playerDice.classList.remove('rolling');
+                
+                await db.ref(`games/${currentGameId}`).update({ [rollKey]: finalRoll });
+                
+                rollBtn.disabled = false;
+                rollBtn.innerHTML = 'ROLL DICE!';
+                
+                showNotification(`You rolled a ${finalRoll}!`, 'success');
+            }, 1500);
+        }
+        
+        async function determineWinner(game) {
+            const p1Roll = game.player1Roll;
+            const p2Roll = game.player2Roll;
+            const isPlayer1 = game.player1Id === currentUser.uid;
+            
+            const playerDice = document.getElementById('playerDice');
+            const opponentDice = document.getElementById('opponentDice');
+            const diceFaces = ['🎲', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+            
+            opponentDice.textContent = diceFaces[isPlayer1 ? p2Roll : p1Roll];
+            
+            let winnerId = null;
+            let winnerName = '';
+            
+            if (p1Roll > p2Roll) {
+                winnerId = game.player1Id;
+                winnerName = game.player1Name;
+            } else if (p2Roll > p1Roll) {
+                winnerId = game.player2Id;
+                winnerName = game.player2Name;
+            } else {
+                winnerId = game.player1Id;
+                winnerName = game.player1Name;
+            }
+            
+            const isWinner = winnerId === currentUser.uid;
+            const winnerPayout = game.winnerPayout;
+            
+            if (winnerId) {
+                const winnerSnap = await db.ref(`users/${winnerId}`).once('value');
+                const winnerData = winnerSnap.val();
+                await db.ref(`users/${winnerId}`).update({ balance: (winnerData.balance || 0) + winnerPayout });
+            }
+            
+            await db.ref(`games/${currentGameId}`).update({
+                status: 'completed',
+                winnerId: winnerId,
+                winnerName: winnerName,
+                completedAt: Date.now()
+            });
+            
+            // Save history
+            const historyEntry = {
+                gameId: currentGameId,
+                opponent: isPlayer1 ? game.player2Name : game.player1Name,
+                betAmount: game.betAmount,
+                myRoll: isPlayer1 ? p1Roll : p2Roll,
+                opponentRoll: isPlayer1 ? p2Roll : p1Roll,
+                won: isWinner,
+                winAmount: isWinner ? winnerPayout : 0,
+                timestamp: Date.now()
+            };
+            await db.ref(`users/${currentUser.uid}/duelHistory/${Date.now()}`).set(historyEntry);
+            
+            showResult(isWinner, winnerPayout, isPlayer1 ? p1Roll : p2Roll, isPlayer1 ? p2Roll : p1Roll, winnerName);
+            
+            setTimeout(() => resetGameUI(), 5000);
+        }
+        
+        function showResult(isWinner, amount, myRoll, opponentRoll, winnerName) {
+            const modal = document.getElementById('resultModal');
+            const content = document.getElementById('resultContent');
+            
+            if (isWinner) {
+                content.innerHTML = `
+                    <div class="result-win">🎉 VICTORY! 🎉</div>
+                    <div>You rolled ${myRoll} vs ${opponentRoll}</div>
+                    <div class="result-amount">+${amount} VEVO</div>
+                    <div style="margin-top: 10px; font-size: 14px;">80% of pot goes to winner!</div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="result-loss">💀 DEFEAT! 💀</div>
+                    <div>You rolled ${myRoll} vs ${opponentRoll}</div>
+                    <div>Winner: ${winnerName}</div>
+                `;
+            }
+            
+            modal.style.display = 'block';
+            setTimeout(() => modal.style.display = 'none', 4000);
+        }
+        
+        function resetGameUI() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            currentGameId = null;
+            isReady = false;
+            
+            document.getElementById('opponentName').textContent = 'Waiting...';
+            document.getElementById('opponentBet').textContent = '0 VEVO';
+            document.getElementById('opponentCard').classList.remove('opponent');
+            document.getElementById('opponentCard').classList.add('waiting');
+            document.getElementById('opponentStatus').textContent = 'Waiting';
+            document.getElementById('opponentStatus').className = 'player-status status-waiting';
+            document.getElementById('readySection').style.display = 'none';
+            document.getElementById('countdownSection').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('playerDice').textContent = '🎲';
+            document.getElementById('opponentDice').textContent = '🎲';
+            
+            if (gameListener) {
+                gameListener.off();
+                gameListener = null;
+            }
+            
+            loadUserData();
+            loadActiveGames();
+        }
+        
+        async function loadActiveGames() {
+            const gamesSnap = await db.ref('games').orderByChild('status').equalTo('waiting').once('value');
+            const games = gamesSnap.val();
+            const container = document.getElementById('activeGamesList');
+            
+            if (currentTab !== 'games') return;
+            
+            if (!games || Object.keys(games).length === 0) {
+                container.innerHTML = '<div class="empty-state">No active games. Create one!</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const [id, game] of Object.entries(games)) {
+                if (game.player1Id !== currentUser?.uid && game.player2Id === null) {
+                    html += `
+                        <div class="game-item" onclick="joinGame('${id}')">
+                            <div class="game-players">
+                                <span><i class="fas fa-user"></i> ${game.player1Name}</span>
+                                <span class="game-bet">${game.betAmount} VEVO</span>
+                                <button class="challenge-small-btn">Join</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = html || '<div class="empty-state">No available games</div>';
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('onlinePlayersList').style.display = tab === 'online' ? 'block' : 'none';
+            document.getElementById('friendsList').style.display = tab === 'friends' ? 'block' : 'none';
+            document.getElementById('activeGamesList').style.display = tab === 'games' ? 'block' : 'none';
+            
+            if (tab === 'friends') updateFriendsList();
+            if (tab === 'games') loadActiveGames();
+        }
+        
+        // Event listeners
+        document.getElementById('createGameBtn').addEventListener('click', createGame);
+        document.getElementById('readyBtn').addEventListener('click', setReady);
+        document.getElementById('rollBtn').addEventListener('click', rollDice);
+        
+        // Auth state
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadUserData();
+                setUserOnline();
+                loadOnlineUsers();
+                loadActiveGames();
+                
+                document.getElementById('playerName').textContent = userData?.name || user.email.split('@')[0];
+                
+                // Update online status every 30 seconds
+                setInterval(() => setUserOnline(), 30000);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Make functions global
+        window.searchByEmail = searchByEmail;
+        window.toggleFollow = toggleFollow;
+        window.challengePlayer = challengePlayer;
+        window.joinGame = joinGame;
+        window.switchTab = switchTab;
+        window.createGame = createGame;
+    </script>
+</body>
+</html>
