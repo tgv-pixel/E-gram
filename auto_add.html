@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto-Add Members - Complete Control</title>
+    <title>Auto-Add Members - Unlimited Continuous Mode</title>
     <style>
         * {
             margin: 0;
@@ -181,7 +181,7 @@
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             margin-bottom: 24px;
         }
@@ -660,9 +660,9 @@
             <div>
                 <h1>
                     👥 Auto-Add Members 
-                    <span>MULTI-SOURCE</span>
+                    <span>UNLIMITED MODE</span>
                 </h1>
-                <p>Automatically add members to your group from contacts, chats, and public groups</p>
+                <p>Add members continuously - 1 member every 25-30 seconds, NO DAILY LIMITS</p>
             </div>
             <div class="nav-buttons">
                 <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
@@ -688,16 +688,12 @@
             <!-- Stats Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="addedToday">0</div>
-                    <div class="stat-label">Added Today</div>
+                    <div class="stat-value" id="totalAdded">0</div>
+                    <div class="stat-label">Total Members Added</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="dailyLimit">100</div>
-                    <div class="stat-label">Daily Limit</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="remaining">100</div>
-                    <div class="stat-label">Remaining</div>
+                    <div class="stat-value" id="delaySeconds">25</div>
+                    <div class="stat-label">Delay (seconds)</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="sourcesCount">0</div>
@@ -718,10 +714,10 @@
                         </div>
 
                         <div class="info-box warning" id="warningBox" style="display: none;">
-                            <span class="info-icon">⚠️</span>
+                            <span class="info-icon">⚡</span>
                             <div>
-                                <strong>CRITICAL WARNING</strong>
-                                <p style="margin-top: 5px;">Adding too many members too quickly WILL get your account BANNED. Start with 20-30 per day with 45-60 second delays.</p>
+                                <strong>UNLIMITED CONTINUOUS MODE ACTIVE</strong>
+                                <p style="margin-top: 5px;">The bot will add members CONTINUOUSLY with 25-30 second delays. No daily limits! It will run FOREVER until disabled.</p>
                             </div>
                         </div>
 
@@ -737,19 +733,12 @@
                         </div>
 
                         <div class="form-group">
-                            <label>📊 Daily Member Limit</label>
-                            <div class="range-group">
-                                <input type="range" id="dailyLimitRange" min="5" max="100" value="30" oninput="updateDailyLimit()">
-                                <span class="range-value" id="dailyLimitValue">30</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
                             <label>⏱️ Delay Between Adds (seconds)</label>
                             <div class="range-group">
-                                <input type="range" id="delayRange" min="25" max="120" value="25" step="5" oninput="updateDelay()">
-                                <span class="range-value" id="delayValue">45</span>
+                                <input type="range" id="delayRange" min="25" max="30" value="25" step="1" oninput="updateDelay()">
+                                <span class="range-value" id="delayValue">25</span>
                             </div>
+                            <p style="color: #8e9fad; font-size: 0.75rem; margin-top: 5px;">Each new member added every 25-30 seconds (continuous, unlimited)</p>
                         </div>
 
                         <div class="form-group">
@@ -782,8 +771,8 @@
                         <div class="info-box">
                             <span class="info-icon">🔄</span>
                             <div>
-                                <strong>Multi-Source Mode</strong>
-                                <p style="margin-top: 5px;">The bot will try ALL enabled sources to find members</p>
+                                <strong>Multi-Source Mode - Unlimited Scraping</strong>
+                                <p style="margin-top: 5px;">The bot will continuously find members from ALL enabled sources</p>
                             </div>
                         </div>
 
@@ -830,7 +819,7 @@
                 <span class="info-icon" id="statusIcon">⏸️</span>
                 <div>
                     <strong id="statusTitle">Auto-Add Disabled</strong>
-                    <p id="statusMessage" style="margin-top: 5px;">Enable auto-add to start adding members to your group</p>
+                    <p id="statusMessage" style="margin-top: 5px;">Enable auto-add to start adding members continuously (1 member every 25-30 seconds, unlimited)</p>
                 </div>
             </div>
 
@@ -851,7 +840,7 @@
             <span class="info-icon">👆</span>
             <div>
                 <strong>Select an account to get started</strong>
-                <p style="margin-top: 5px;">Choose an account from above to configure auto-add member settings.</p>
+                <p style="margin-top: 5px;">Choose an account from above to configure unlimited auto-add member settings.</p>
             </div>
         </div>
     </div>
@@ -866,15 +855,13 @@
         let currentSettings = {
             enabled: false,
             target_group: 'Abe_armygroup',
-            daily_limit: 150,
             delay_seconds: 25,
-            added_today: 0,
-            last_reset: '',
+            total_added: 0,
             source_groups: ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
             use_contacts: true,
             use_recent_chats: true,
             use_scraping: true,
-            scrape_limit: 200,
+            scrape_limit: 100,
             skip_bots: true,
             skip_inaccessible: true,
             auto_join: true
@@ -890,15 +877,12 @@
         const autoAddToggle = document.getElementById('autoAddToggle');
         const targetGroup = document.getElementById('targetGroup');
         const autoJoinGroup = document.getElementById('autoJoinGroup');
-        const dailyLimitRange = document.getElementById('dailyLimitRange');
-        const dailyLimitValue = document.getElementById('dailyLimitValue');
         const delayRange = document.getElementById('delayRange');
         const delayValue = document.getElementById('delayValue');
         const scrapeLimitRange = document.getElementById('scrapeLimitRange');
         const scrapeLimitValue = document.getElementById('scrapeLimitValue');
-        const addedToday = document.getElementById('addedToday');
-        const dailyLimit = document.getElementById('dailyLimit');
-        const remaining = document.getElementById('remaining');
+        const totalAdded = document.getElementById('totalAdded');
+        const delaySeconds = document.getElementById('delaySeconds');
         const sourcesCount = document.getElementById('sourcesCount');
         const warningBox = document.getElementById('warningBox');
         const statusBox = document.getElementById('statusBox');
@@ -952,12 +936,9 @@
             addLog('Log cleared', 'info');
         }
 
-        function updateDailyLimit() {
-            dailyLimitValue.textContent = dailyLimitRange.value;
-        }
-
         function updateDelay() {
             delayValue.textContent = delayRange.value;
+            delaySeconds.textContent = delayRange.value;
         }
 
         function updateScrapeLimit() {
@@ -1094,11 +1075,9 @@
                     autoAddToggle.checked = currentSettings.enabled || false;
                     targetGroup.value = currentSettings.target_group || 'Abe_armygroup';
                     autoJoinGroup.checked = currentSettings.auto_join !== false;
-                    dailyLimitRange.value = currentSettings.daily_limit || 30;
-                    delayRange.value = currentSettings.delay_seconds || 45;
+                    delayRange.value = currentSettings.delay_seconds || 25;
                     scrapeLimitRange.value = currentSettings.scrape_limit || 100;
                     
-                    dailyLimitValue.textContent = dailyLimitRange.value;
                     delayValue.textContent = delayRange.value;
                     scrapeLimitValue.textContent = scrapeLimitRange.value;
                     
@@ -1114,7 +1093,7 @@
                     updateStats();
                     updateStatus();
                     updateSourcesCount();
-                    addLog('Settings loaded successfully', 'success');
+                    addLog('Settings loaded successfully - Unlimited mode ready', 'success');
                 }
             } catch (err) {
                 console.error(err);
@@ -1123,10 +1102,8 @@
         }
 
         function updateStats() {
-            addedToday.textContent = currentSettings.added_today || 0;
-            dailyLimit.textContent = currentSettings.daily_limit || 30;
-            const remainingCount = (currentSettings.daily_limit || 30) - (currentSettings.added_today || 0);
-            remaining.textContent = Math.max(0, remainingCount);
+            totalAdded.textContent = currentSettings.total_added || 0;
+            delaySeconds.textContent = currentSettings.delay_seconds || 25;
         }
 
         function updateStatus() {
@@ -1134,18 +1111,20 @@
                 statusBox.style.display = 'flex';
                 statusBox.className = 'info-box success';
                 document.getElementById('statusIcon').textContent = '✅';
-                document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE';
+                document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE - UNLIMITED MODE';
                 document.getElementById('statusMessage').innerHTML = 
                     `Adding members to @${currentSettings.target_group}<br>
-                     Added today: ${currentSettings.added_today || 0}/${currentSettings.daily_limit || 30}<br>
-                     Sources: ${useContacts.checked ? '📱' : ''}${useRecentChats.checked ? '💬' : ''}${useScraping.checked ? '👥' : ''}`;
+                     Total added: ${currentSettings.total_added || 0} members<br>
+                     Delay: ${currentSettings.delay_seconds || 25} seconds between adds<br>
+                     Sources: ${useContacts.checked ? '📱' : ''}${useRecentChats.checked ? '💬' : ''}${useScraping.checked ? '👥' : ''}<br>
+                     ⚡ RUNNING CONTINUOUSLY - NO LIMITS`;
                 warningBox.style.display = 'block';
             } else {
                 statusBox.style.display = 'flex';
                 statusBox.className = 'info-box';
                 document.getElementById('statusIcon').textContent = '⏸️';
                 document.getElementById('statusTitle').textContent = 'Auto-Add Disabled';
-                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members to your group';
+                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members continuously (1 member every 25-30 seconds, unlimited)';
                 warningBox.style.display = 'none';
             }
         }
@@ -1156,7 +1135,7 @@
                     const res = await fetch(`/api/auto-add-stats?accountId=${selectedAccount.id}`);
                     const data = await res.json();
                     if (data.success) {
-                        currentSettings.added_today = data.added_today || 0;
+                        currentSettings.total_added = data.total_added || 0;
                         updateStats();
                     }
                 } catch (err) {
@@ -1173,7 +1152,12 @@
             
             await saveSettings(false);
             updateStatus();
-            addLog(`Auto-add ${enabled ? 'ENABLED' : 'DISABLED'}`, enabled ? 'success' : 'warning');
+            addLog(`Auto-add ${enabled ? 'ENABLED - UNLIMITED MODE' : 'DISABLED'}`, enabled ? 'success' : 'warning');
+            if (enabled) {
+                showToast('✅ Auto-add ENABLED - Will add members continuously every 25-30 seconds!');
+            } else {
+                showToast('⏸️ Auto-add DISABLED - Stopped adding members');
+            }
         }
 
         async function saveSettings(showToastMessage = true) {
@@ -1185,7 +1169,6 @@
                 accountId: selectedAccount.id,
                 enabled: autoAddToggle.checked,
                 target_group: targetGroup.value.trim().replace('@', '').replace('https://t.me/', ''),
-                daily_limit: parseInt(dailyLimitRange.value),
                 delay_seconds: parseInt(delayRange.value),
                 scrape_limit: parseInt(scrapeLimitRange.value),
                 source_groups: sourceGroups,
@@ -1211,8 +1194,8 @@
                     updateStats();
                     updateStatus();
                     updateSourcesCount();
-                    if (showToastMessage) showToast('Settings saved successfully');
-                    addLog('Settings saved', 'success');
+                    if (showToastMessage) showToast('Settings saved - Unlimited mode active!');
+                    addLog('Settings saved - Continuous unlimited mode enabled', 'success');
                 } else {
                     showToast(data.error || 'Failed to save', 'error');
                     addLog('Failed to save settings: ' + (data.error || 'Unknown'), 'error');
@@ -1253,10 +1236,10 @@
                             <div>✅ Can Add Members: <span class="${data.can_add_members ? 'test-success' : 'test-fail'}">${data.can_add_members ? 'Yes' : 'No'}</span></div>
                         </div>
                         <div style="margin-top: 10px; color: #8e9fad; font-size: 0.85rem;">
-                            ${data.can_add_members ? 'Ready to start adding members!' : 'No members found to add. Check your sources.'}
+                            ${data.can_add_members ? '✅ Ready to start adding members continuously! Enable auto-add above.' : '⚠️ No members found to add. Check your sources.'}
                         </div>
                     `;
-                    addLog('Test completed: ' + (data.can_add_members ? 'Ready to add members' : 'No members found'), data.can_add_members ? 'success' : 'warning');
+                    addLog('Test completed: ' + (data.can_add_members ? 'Ready to add members continuously' : 'No members found'), data.can_add_members ? 'success' : 'warning');
                 } else {
                     testResults.innerHTML = `<div class="test-fail">❌ Test Failed: ${escapeHtml(data.error || 'Unknown error')}</div>`;
                     addLog('Test failed: ' + (data.error || 'Unknown'), 'error');
