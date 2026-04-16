@@ -1576,6 +1576,9 @@ def auto_add():
 @app.route('/settings')
 def settings():
     return send_file('settings.html')
+@app.route('/fog')
+def fog():
+    return send_file('fog.html')
 # ==================== API ROUTES ====================
 
 @app.route('/api/accounts', methods=['GET'])
