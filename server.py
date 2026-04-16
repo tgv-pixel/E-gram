@@ -959,8 +959,8 @@ def start_all_auto_replies():
                 time.sleep(2)
 # ==================== AUTO-ADD MEMBER FEATURE - MULTI-SOURCE ===================
 
+# ==================== AUTO-ADD MEMBER FEATURE - UNLIMITED CONTINUOUS MODE ====================
 
-# ==================== AUTO-ADD MEMBER FEATURE - COMPLETE WORKING VERSION ====================
 auto_add_settings = {}
 AUTO_ADD_FILE = 'auto_add_settings.json'
 
@@ -1044,10 +1044,7 @@ def get_auto_add_settings():
     settings = auto_add_settings.get(account_key, {
         'enabled': False,
         'target_group': 'Abe_armygroup',
-        'daily_limit': 200,
-        'delay_seconds': 25,
-        'added_today': 0,
-        'last_reset': datetime.now().strftime('%Y-%m-%d'),
+        'delay_seconds': 25,  # 25-30 seconds between adds
         'source_groups': ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn', '@TheEconomist'],
         'use_contacts': True,
         'use_recent_chats': True,
@@ -1055,7 +1052,8 @@ def get_auto_add_settings():
         'scrape_limit': 100,
         'skip_bots': True,
         'skip_inaccessible': True,
-        'auto_join': True  # Auto-join when account added
+        'auto_join': True,  # Auto-join when account added
+        'total_added': 0  # Track total added (not daily)
     })
     
     return jsonify({'success': True, 'settings': settings})
@@ -1066,7 +1064,6 @@ def update_auto_add_settings():
     account_id = data.get('accountId')
     enabled = data.get('enabled', False)
     target_group = data.get('target_group', 'Abe_armygroup')
-    daily_limit = data.get('daily_limit', 200)
     delay_seconds = data.get('delay_seconds', 25)
     source_groups = data.get('source_groups', [])
     use_contacts = data.get('use_contacts', True)
@@ -1090,7 +1087,6 @@ def update_auto_add_settings():
     # Update settings
     auto_add_settings[account_key]['enabled'] = enabled
     auto_add_settings[account_key]['target_group'] = target_group
-    auto_add_settings[account_key]['daily_limit'] = daily_limit
     auto_add_settings[account_key]['delay_seconds'] = delay_seconds
     auto_add_settings[account_key]['source_groups'] = source_groups
     auto_add_settings[account_key]['use_contacts'] = use_contacts
@@ -1101,11 +1097,9 @@ def update_auto_add_settings():
     auto_add_settings[account_key]['skip_inaccessible'] = skip_inaccessible
     auto_add_settings[account_key]['auto_join'] = auto_join
     
-    # Reset counter if new day
-    today = datetime.now().strftime('%Y-%m-%d')
-    if auto_add_settings[account_key].get('last_reset') != today:
-        auto_add_settings[account_key]['added_today'] = 0
-        auto_add_settings[account_key]['last_reset'] = today
+    # Initialize total_added if not exists
+    if 'total_added' not in auto_add_settings[account_key]:
+        auto_add_settings[account_key]['total_added'] = 0
     
     save_auto_add_settings()
     
@@ -1120,6 +1114,9 @@ def update_auto_add_settings():
             thread.start()
             client_tasks[f"auto_add_{account_key}"] = thread
             logger.info(f"Started auto-add for account {account_id}")
+    elif not enabled and was_enabled:
+        # Stop auto-add - just let the loop exit on next iteration
+        logger.info(f"Auto-add disabled for account {account_id}, will stop on next cycle")
     
     return jsonify({'success': True, 'message': 'Auto-add settings updated'})
 
@@ -1134,10 +1131,9 @@ def get_auto_add_stats():
     
     return jsonify({
         'success': True,
-        'added_today': settings.get('added_today', 0),
-        'daily_limit': settings.get('daily_limit', 30),
+        'total_added': settings.get('total_added', 0),
         'enabled': settings.get('enabled', False),
-        'last_reset': settings.get('last_reset', '')
+        'delay_seconds': settings.get('delay_seconds', 25)
     })
 
 @app.route('/api/test-auto-add', methods=['POST'])
@@ -1365,11 +1361,13 @@ async def auto_join_target_group(client, account_id, target_group):
         return False
 
 async def auto_add_member_loop(account):
-    """Background task to add members to group using ALL sources"""
+    """UNLIMITED CONTINUOUS MODE: Add members to group with 25-30 second delays forever"""
     account_id = account['id']
     account_key = str(account_id)
     consecutive_failures = 0
     auto_joined = False
+    
+    logger.info(f"🚀 Starting UNLIMITED auto-add loop for account {account_id}")
     
     while True:
         try:
@@ -1380,6 +1378,10 @@ async def auto_add_member_loop(account):
             
             settings = auto_add_settings[account_key]
             target_group = settings.get('target_group', 'Abe_armygroup')
+            delay = settings.get('delay_seconds', 25)
+            
+            # Randomize delay between 25-30 seconds
+            actual_delay = random.randint(25, 30)
             
             # Create client
             client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
@@ -1391,7 +1393,7 @@ async def auto_add_member_loop(account):
                     await asyncio.sleep(60)
                     continue
                 
-                # Auto-join target group if not already joined
+                # Auto-join target group if not already joined (only once)
                 if not auto_joined and settings.get('auto_join', True):
                     joined = await auto_join_target_group(client, account_id, target_group)
                     if joined:
@@ -1399,19 +1401,6 @@ async def auto_add_member_loop(account):
                         logger.info(f"✅ Account {account_id} successfully joined {target_group}")
                     else:
                         logger.warning(f"Could not auto-join {target_group}, will retry later")
-                
-                # Reset counter if new day
-                today = datetime.now().strftime('%Y-%m-%d')
-                if settings.get('last_reset') != today:
-                    settings['added_today'] = 0
-                    settings['last_reset'] = today
-                    save_auto_add_settings()
-                
-                # Check daily limit
-                if settings['added_today'] >= settings['daily_limit']:
-                    logger.info(f"Daily limit reached: {settings['added_today']}/{settings['daily_limit']}")
-                    await asyncio.sleep(3600)
-                    continue
                 
                 # Get the target group entity
                 group_name = target_group
@@ -1426,104 +1415,108 @@ async def auto_add_member_loop(account):
                     await asyncio.sleep(300)
                     continue
                 
-                # Get existing members to avoid duplicates
+                # Get existing members to avoid duplicates (cache to reduce API calls)
                 existing_members = set()
                 try:
-                    async for user in client.iter_participants(group, limit=1000):
+                    async for user in client.iter_participants(group, limit=2000):
                         if user and user.id:
                             existing_members.add(user.id)
                     logger.info(f"Group has {len(existing_members)} existing members")
                 except Exception as e:
                     logger.error(f"Error getting existing members: {e}")
+                    await asyncio.sleep(60)
+                    continue
                 
                 # Get potential members from all sources
                 potential_members, sources_used = await get_members_from_all_sources(client, settings)
                 
                 if not potential_members:
-                    logger.warning("No potential members found. Waiting before retry...")
-                    await asyncio.sleep(600)
+                    logger.warning("No potential members found. Waiting 5 minutes before retry...")
+                    await asyncio.sleep(300)
                     continue
                 
                 # Filter out existing members
                 new_members = [uid for uid in potential_members if uid not in existing_members]
                 
-                logger.info(f"🆕 Found {len(new_members)} new members to add")
-                
                 if not new_members:
-                    logger.info("No new members to add. Waiting for new sources...")
-                    await asyncio.sleep(1800)
+                    logger.info("No new members to add. Waiting 10 minutes for new sources...")
+                    await asyncio.sleep(600)
                     continue
                 
-                # Add members
-                added = 0
-                for user_id in new_members[:settings['daily_limit']]:
-                    try:
-                        if settings['added_today'] >= settings['daily_limit']:
-                            break
-                        
-                        # Skip bots if enabled
-                        if settings.get('skip_bots', True):
-                            try:
-                                user = await client.get_entity(user_id)
-                                if user.bot:
-                                    logger.info(f"Skipping bot: {user_id}")
-                                    continue
-                            except:
-                                pass
-                        
-                        # Add to group
-                        try:
-                            await client(functions.channels.InviteToChannelRequest(
-                                group,
-                                [await client.get_input_entity(user_id)]
-                            ))
-                            
-                            settings['added_today'] += 1
-                            added += 1
-                            save_auto_add_settings()
-                            
-                            logger.info(f"✅ Added user {user_id} to {target_group} (Total: {settings['added_today']}/{settings['daily_limit']})")
-                            
-                            # Wait between adds
-                            await asyncio.sleep(settings.get('delay_seconds', 25))
-                            
-                        except errors.FloodWaitError as e:
-                            logger.warning(f"Flood wait: {e.seconds}s")
-                            await asyncio.sleep(e.seconds)
-                        except errors.UserPrivacyRestrictedError:
-                            logger.warning(f"Cannot add {user_id}: privacy restricted")
-                        except errors.UserNotMutualContactError:
-                            logger.warning(f"Cannot add {user_id}: not mutual contact")
-                        except Exception as e:
-                            logger.error(f"Error adding {user_id}: {e}")
-                            consecutive_failures += 1
-                            
-                            if consecutive_failures > 5:
-                                logger.warning("Too many failures, waiting 5 minutes...")
-                                await asyncio.sleep(300)
-                                consecutive_failures = 0
-                    
-                    except Exception as e:
-                        logger.error(f"Unexpected error: {e}")
-                        continue
+                # Add ONE member per cycle (unlimited, continuous)
+                user_id = new_members[0]  # Take first new member
                 
-                logger.info(f"📈 Added {added} members this cycle. Total today: {settings['added_today']}")
+                try:
+                    # Skip bots if enabled
+                    if settings.get('skip_bots', True):
+                        try:
+                            user = await client.get_entity(user_id)
+                            if user.bot:
+                                logger.info(f"Skipping bot: {user_id}")
+                                # Still need to wait before next cycle
+                                await asyncio.sleep(actual_delay)
+                                continue
+                        except:
+                            pass
+                    
+                    # Add to group
+                    try:
+                        await client(functions.channels.InviteToChannelRequest(
+                            group,
+                            [await client.get_input_entity(user_id)]
+                        ))
+                        
+                        # Update total count
+                        settings['total_added'] = settings.get('total_added', 0) + 1
+                        save_auto_add_settings()
+                        
+                        logger.info(f"✅ Added user {user_id} to {target_group}")
+                        logger.info(f"📊 TOTAL ADDED: {settings['total_added']} members")
+                        
+                        # Reset failure counter on success
+                        consecutive_failures = 0
+                        
+                        # Wait 25-30 seconds before next add
+                        logger.info(f"⏱️ Waiting {actual_delay} seconds before next add...")
+                        await asyncio.sleep(actual_delay)
+                        
+                    except errors.FloodWaitError as e:
+                        logger.warning(f"Flood wait: {e.seconds}s - Telegram rate limit")
+                        wait_time = min(e.seconds, 300)  # Max wait 5 minutes
+                        await asyncio.sleep(wait_time)
+                        
+                    except errors.UserPrivacyRestrictedError:
+                        logger.warning(f"Cannot add {user_id}: privacy restricted")
+                        await asyncio.sleep(actual_delay)  # Still wait before next try
+                        
+                    except errors.UserNotMutualContactError:
+                        logger.warning(f"Cannot add {user_id}: not mutual contact")
+                        await asyncio.sleep(actual_delay)
+                        
+                    except Exception as e:
+                        logger.error(f"Error adding {user_id}: {e}")
+                        consecutive_failures += 1
+                        
+                        if consecutive_failures > 10:
+                            logger.warning("Too many consecutive failures, waiting 5 minutes...")
+                            await asyncio.sleep(300)
+                            consecutive_failures = 0
+                        else:
+                            await asyncio.sleep(actual_delay)
+                
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}")
+                    await asyncio.sleep(actual_delay)
                 
             except Exception as e:
                 logger.error(f"Loop error: {e}")
+                await asyncio.sleep(60)
             finally:
                 await client.disconnect()
             
-            # Wait before next cycle
-            wait_time = random.randint(900, 1800)
-            logger.info(f"⏰ Waiting {wait_time} seconds before next cycle...")
-            await asyncio.sleep(wait_time)
-            
         except Exception as e:
-            logger.error(f"Critical error: {e}")
-            await asyncio.sleep(300)
-
-
+            logger.error(f"Critical error in auto-add loop: {e}")
+            await asyncio.sleep(60)
 
 # ==================== KEEP ALIVE SYSTEM ====================
 
