@@ -12,7 +12,7 @@ import time
 import random
 import threading
 import requests
-from datetime import datetime, timedelta  # CHANGE THIS LINE - add timedelta
+from datetime import datetime, timedelta
 import socket
 
 # Configure logging
@@ -958,13 +958,10 @@ def start_all_auto_replies():
                 client_tasks[account_key] = thread
                 time.sleep(2)
 # ==================== AUTO-ADD MEMBER FEATURE - MULTI-SOURCE ===================
-
 # ==================== PROFESSIONAL AUTO-ADD SYSTEM ====================
-# Replace the entire auto-add section in server.py with this improved version
 
 auto_add_settings = {}
 AUTO_ADD_FILE = 'auto_add_settings.json'
-auto_add_stats = {}  # Track detailed stats per account
 
 # Load auto-add settings
 def load_auto_add_settings():
@@ -1006,7 +1003,9 @@ def get_auto_add_settings():
         return jsonify({'success': False, 'error': 'Account ID required'})
     
     account_key = str(account_id)
-    settings = auto_add_settings.get(account_key, {
+    
+    # Default settings
+    default_settings = {
         'enabled': False,
         'target_group': 'Abe_armygroup',
         'delay_seconds': 25,
@@ -1020,69 +1019,96 @@ def get_auto_add_settings():
         'skip_inaccessible': True,
         'auto_join': True,
         'total_added': 0,
-        'last_added': None,
         'added_today': 0,
-        'last_reset': datetime.now().strftime('%Y-%m-%d')
-    })
+        'last_reset': datetime.now().strftime('%Y-%m-%d'),
+        'last_added': None
+    }
+    
+    # Get existing settings or use defaults
+    if account_key in auto_add_settings:
+        settings = auto_add_settings[account_key]
+        # Ensure all fields exist
+        for key, value in default_settings.items():
+            if key not in settings:
+                settings[key] = value
+    else:
+        settings = default_settings.copy()
+        auto_add_settings[account_key] = settings
+        save_auto_add_settings()
     
     return jsonify({'success': True, 'settings': settings})
 
 @app.route('/api/auto-add-settings', methods=['POST'])
 def update_auto_add_settings():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in auto_add_settings:
-        auto_add_settings[account_key] = {}
-    
-    was_enabled = auto_add_settings[account_key].get('enabled', False)
-    
-    # Update settings (REMOVED daily_limit)
-    auto_add_settings[account_key]['enabled'] = data.get('enabled', False)
-    auto_add_settings[account_key]['target_group'] = data.get('target_group', 'Abe_armygroup')
-    auto_add_settings[account_key]['delay_seconds'] = data.get('delay_seconds', 25)
-    auto_add_settings[account_key]['source_groups'] = data.get('source_groups', [])
-    auto_add_settings[account_key]['use_contacts'] = data.get('use_contacts', True)
-    auto_add_settings[account_key]['use_recent_chats'] = data.get('use_recent_chats', True)
-    auto_add_settings[account_key]['use_scraping'] = data.get('use_scraping', True)
-    auto_add_settings[account_key]['use_mutual_contacts'] = data.get('use_mutual_contacts', True)
-    auto_add_settings[account_key]['scrape_limit_per_group'] = data.get('scrape_limit_per_group', 200)
-    auto_add_settings[account_key]['skip_bots'] = data.get('skip_bots', True)
-    auto_add_settings[account_key]['skip_inaccessible'] = data.get('skip_inaccessible', True)
-    auto_add_settings[account_key]['auto_join'] = data.get('auto_join', True)
-    
-    # Initialize counters if not exist
-    if 'total_added' not in auto_add_settings[account_key]:
-        auto_add_settings[account_key]['total_added'] = 0
-    if 'added_today' not in auto_add_settings[account_key]:
-        auto_add_settings[account_key]['added_today'] = 0
-    
-    # Reset daily counter if new day
-    today = datetime.now().strftime('%Y-%m-%d')
-    if auto_add_settings[account_key].get('last_reset') != today:
-        auto_add_settings[account_key]['added_today'] = 0
-        auto_add_settings[account_key]['last_reset'] = today
-    
-    save_auto_add_settings()
-    
-    # Start or stop auto-add thread
-    if enabled and not was_enabled:
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account:
-            thread = threading.Thread(
-                target=lambda: run_async(professional_auto_add_loop(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[f"auto_add_{account_key}"] = thread
-            logger.info(f"🚀 Started professional auto-add for account {account_id}")
-    
-    return jsonify({'success': True, 'message': 'Auto-add settings updated'})
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'})
+        
+        account_id = data.get('accountId')
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account_key = str(account_id)
+        
+        # Initialize if not exists
+        if account_key not in auto_add_settings:
+            auto_add_settings[account_key] = {}
+        
+        was_enabled = auto_add_settings[account_key].get('enabled', False)
+        
+        # Update settings with all fields
+        auto_add_settings[account_key]['enabled'] = data.get('enabled', False)
+        auto_add_settings[account_key]['target_group'] = data.get('target_group', 'Abe_armygroup')
+        auto_add_settings[account_key]['delay_seconds'] = data.get('delay_seconds', 25)
+        auto_add_settings[account_key]['source_groups'] = data.get('source_groups', [])
+        auto_add_settings[account_key]['use_contacts'] = data.get('use_contacts', True)
+        auto_add_settings[account_key]['use_recent_chats'] = data.get('use_recent_chats', True)
+        auto_add_settings[account_key]['use_scraping'] = data.get('use_scraping', True)
+        auto_add_settings[account_key]['use_mutual_contacts'] = data.get('use_mutual_contacts', True)
+        auto_add_settings[account_key]['scrape_limit_per_group'] = data.get('scrape_limit_per_group', 200)
+        auto_add_settings[account_key]['skip_bots'] = data.get('skip_bots', True)
+        auto_add_settings[account_key]['skip_inaccessible'] = data.get('skip_inaccessible', True)
+        auto_add_settings[account_key]['auto_join'] = data.get('auto_join', True)
+        
+        # Initialize counters if not exist
+        if 'total_added' not in auto_add_settings[account_key]:
+            auto_add_settings[account_key]['total_added'] = 0
+        if 'added_today' not in auto_add_settings[account_key]:
+            auto_add_settings[account_key]['added_today'] = 0
+        
+        # Reset daily counter if new day
+        today = datetime.now().strftime('%Y-%m-%d')
+        if auto_add_settings[account_key].get('last_reset') != today:
+            auto_add_settings[account_key]['added_today'] = 0
+            auto_add_settings[account_key]['last_reset'] = today
+        
+        # Save settings
+        if not save_auto_add_settings():
+            return jsonify({'success': False, 'error': 'Failed to save settings'})
+        
+        logger.info(f"Auto-add settings saved for account {account_id}: enabled={auto_add_settings[account_key]['enabled']}")
+        
+        # Start or stop auto-add thread
+        enabled = auto_add_settings[account_key]['enabled']
+        if enabled and not was_enabled:
+            account = next((acc for acc in accounts if acc['id'] == account_id), None)
+            if account:
+                thread = threading.Thread(
+                    target=lambda: run_async(professional_auto_add_loop(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[f"auto_add_{account_key}"] = thread
+                logger.info(f"🚀 Started professional auto-add for account {account_id}")
+        elif not enabled and was_enabled:
+            logger.info(f"Auto-add disabled for account {account_id}")
+        
+        return jsonify({'success': True, 'message': 'Auto-add settings updated'})
+        
+    except Exception as e:
+        logger.error(f"Error in update_auto_add_settings: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/auto-add-stats', methods=['GET'])
 def get_auto_add_stats():
@@ -1105,107 +1131,110 @@ def get_auto_add_stats():
 @app.route('/api/test-auto-add', methods=['POST'])
 def test_auto_add():
     """Test auto-add functionality - finds available members without adding"""
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def test():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
+    try:
+        data = request.json
+        account_id = data.get('accountId')
         
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'Account not authorized'}
-            
-            settings = auto_add_settings.get(str(account_id), {})
-            target_group = settings.get('target_group', 'Abe_armygroup')
-            
-            # Clean target group name
-            if not target_group.startswith('@') and not target_group.startswith('https://'):
-                target_group = '@' + target_group
-            
-            # Test finding target group
-            group_found = False
-            group_title = target_group
-            existing_members_count = 0
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def test():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
             
             try:
-                group = await client.get_entity(target_group)
-                group_found = True
-                group_title = group.title if hasattr(group, 'title') else target_group
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'Account not authorized'}
                 
-                # Count existing members
-                count = 0
-                async for _ in client.iter_participants(group, limit=1000):
-                    count += 1
-                existing_members_count = count
-            except Exception as e:
-                return {'success': False, 'error': f'Target group not found: {str(e)}'}
-            
-            # Test finding members from all sources
-            available_members = 0
-            sources_found = []
-            
-            # Contacts
-            if settings.get('use_contacts', True):
+                settings = auto_add_settings.get(str(account_id), {})
+                target_group = settings.get('target_group', 'Abe_armygroup')
+                
+                # Clean target group name
+                if not target_group.startswith('@') and not target_group.startswith('https://'):
+                    target_group = '@' + target_group
+                
+                # Test finding target group
+                group_found = False
+                group_title = target_group
+                existing_members_count = 0
+                
                 try:
-                    contacts = await client(functions.contacts.GetContactsRequest(0))
-                    available_members += len(contacts.users)
-                    sources_found.append(f"Contacts: {len(contacts.users)}")
-                except:
-                    pass
-            
-            # Recent chats
-            if settings.get('use_recent_chats', True):
-                try:
-                    dialogs = await client.get_dialogs(limit=100)
-                    users = [d for d in dialogs if d.is_user]
-                    available_members += len(users)
-                    sources_found.append(f"Recent Chats: {len(users)}")
-                except:
-                    pass
-            
-            # Source groups
-            if settings.get('use_scraping', True):
-                source_groups = settings.get('source_groups', [])
-                for sg in source_groups[:3]:
+                    group = await client.get_entity(target_group)
+                    group_found = True
+                    group_title = group.title if hasattr(group, 'title') else target_group
+                    
+                    # Count existing members
+                    count = 0
+                    async for _ in client.iter_participants(group, limit=1000):
+                        count += 1
+                    existing_members_count = count
+                except Exception as e:
+                    return {'success': False, 'error': f'Target group not found: {str(e)}'}
+                
+                # Test finding members from all sources
+                available_members = 0
+                sources_found = []
+                
+                # Contacts
+                if settings.get('use_contacts', True):
                     try:
-                        sg_clean = sg.strip()
-                        if not sg_clean.startswith('@'):
-                            sg_clean = '@' + sg_clean
-                        sg_entity = await client.get_entity(sg_clean)
-                        count = 0
-                        async for _ in client.iter_participants(sg_entity, limit=50):
-                            count += 1
-                        available_members += count
-                        sources_found.append(f"{sg_clean}: {count}+")
+                        contacts = await client(functions.contacts.GetContactsRequest(0))
+                        available_members += len(contacts.users)
+                        sources_found.append(f"Contacts: {len(contacts.users)}")
                     except:
                         pass
-            
-            return {
-                'success': True,
-                'group_found': group_found,
-                'group_title': group_title,
-                'existing_members': existing_members_count,
-                'available_members': available_members,
-                'sources_found': sources_found,
-                'can_add_members': group_found and available_members > 0
-            }
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
+                
+                # Recent chats
+                if settings.get('use_recent_chats', True):
+                    try:
+                        dialogs = await client.get_dialogs(limit=100)
+                        users = [d for d in dialogs if d.is_user]
+                        available_members += len(users)
+                        sources_found.append(f"Recent Chats: {len(users)}")
+                    except:
+                        pass
+                
+                # Source groups
+                if settings.get('use_scraping', True):
+                    source_groups = settings.get('source_groups', [])
+                    for sg in source_groups[:3]:
+                        try:
+                            sg_clean = sg.strip()
+                            if not sg_clean:
+                                continue
+                            if not sg_clean.startswith('@'):
+                                sg_clean = '@' + sg_clean
+                            sg_entity = await client.get_entity(sg_clean)
+                            count = 0
+                            async for _ in client.iter_participants(sg_entity, limit=50):
+                                count += 1
+                            available_members += count
+                            sources_found.append(f"{sg_clean}: {count}+")
+                        except:
+                            pass
+                
+                return {
+                    'success': True,
+                    'group_found': group_found,
+                    'group_title': group_title,
+                    'existing_members': existing_members_count,
+                    'available_members': available_members,
+                    'sources_found': sources_found,
+                    'can_add_members': group_found and available_members > 0
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
         result = run_async(test())
         return jsonify(result)
+        
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -1310,9 +1339,11 @@ async def get_all_potential_members(client, settings, existing_members_set):
                 limit=100
             ))
             mutual_ids = set()
-            for peer in mutual.categories[0].peers if mutual.categories else []:
-                if hasattr(peer, 'user_id'):
-                    mutual_ids.add(peer.user_id)
+            if mutual.categories:
+                for category in mutual.categories:
+                    for peer in category.peers:
+                        if hasattr(peer, 'user_id'):
+                            mutual_ids.add(peer.user_id)
             
             new_from_mutual = mutual_ids - existing_members_set
             potential_members.update(new_from_mutual)
@@ -1341,7 +1372,7 @@ async def professional_auto_add_loop(account):
         try:
             # Check if still enabled
             if account_key not in auto_add_settings or not auto_add_settings[account_key].get('enabled', False):
-                logger.info(f"Auto-add disabled for account {account_id}, stopping")
+                logger.info(f"Auto-add disabled for account {account_id}, stopping loop")
                 break
             
             settings = auto_add_settings[account_key]
@@ -1542,7 +1573,7 @@ async def professional_auto_add_loop(account):
             logger.error(f"Critical error in auto-add loop: {e}")
             await asyncio.sleep(300)
 
-# ==================== END PROFESSIONAL AUTO-ADD ====================
+# ==================== END PROFESSIONAL AUTO-ADD ==================== ====================
 # ==================== KEEP ALIVE SYSTEM ====================
 
 def keep_alive():
@@ -2168,41 +2199,39 @@ def health_check():
 
 # ==================== STARTUP ====================
 
-def start_auto_reply_thread():
-    """Start auto-reply in background after server starts"""
+def start_auto_add_threads():
+    """Start auto-add for all enabled accounts after server starts"""
     time.sleep(5)
-    logger.info("Starting auto-reply for enabled accounts...")
-    start_all_auto_replies()
+    logger.info("Checking for auto-add enabled accounts...")
+    for account in accounts:
+        account_key = str(account['id'])
+        if account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False):
+            thread = threading.Thread(
+                target=lambda acc=account: run_async(professional_auto_add_loop(acc)),
+                daemon=True
+            )
+            thread.start()
+            client_tasks[f"auto_add_{account_key}"] = thread
+            logger.info(f"Started auto-add for account {account.get('name')}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TSEGA - SEXY TELEGRAM AUTO-REPLY')
+    print('🤖 TELEGRAM MULTI-ACCOUNT MANAGER')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    
-    for acc in accounts:
-        status = "ENABLED" if str(acc['id']) in reply_settings and reply_settings[str(acc['id'])].get('enabled') else "DISABLED"
-        print(f'   • {acc.get("name")} ({acc.get("phone")}) - {status}')
-    
+    print(f'✅ Auto-add settings loaded: {len(auto_add_settings)}')
     print('='*70)
-    print('🚀 TSEGA FEATURES:')
-    print('   • Talks in Amharic with English translation')
-    print('   • Sexy and flirty personality 😘')
-    print('   • 15-40 second reply delay (human-like)')
-    print('   • Telebirr: 0940980555 for money requests')
-    print('   • Meet condition: 1000 birr with screenshot')
-    print('   • Lives in Jemo, from Adama')
-    print('   • Grade 12 student, 20 years old')
-    print('   • Refuses voice calls, prefers meeting')
-    print('='*70 + '\n')
     
     # Start keep-alive
     threading.Thread(target=keep_alive, daemon=True).start()
     
     # Start auto-reply
     threading.Thread(target=start_auto_reply_thread, daemon=True).start()
+    
+    # Start auto-add
+    threading.Thread(target=start_auto_add_threads, daemon=True).start()
     
     app.run(host='0.0.0.0', port=port, debug=False)
