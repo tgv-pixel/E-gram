@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto-Add Members - Unlimited Continuous Mode</title>
+    <title>Professional Auto-Add - Unlimited Member Adder</title>
     <style>
         * {
             margin: 0;
@@ -20,13 +20,13 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         /* Header */
         .header {
-            background: #17212b;
+            background: linear-gradient(135deg, #17212b 0%, #1a2430 100%);
             border-radius: 16px;
             padding: 24px 30px;
             margin-bottom: 24px;
@@ -36,6 +36,7 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         .header h1 {
@@ -47,11 +48,12 @@
         }
 
         .header h1 span {
-            background: #4c9ce0;
+            background: linear-gradient(135deg, #4c9ce0, #6ab2f2);
             font-size: 0.8rem;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 30px;
             color: white;
+            font-weight: 600;
         }
 
         .header p {
@@ -86,7 +88,7 @@
         }
 
         .nav-btn.active {
-            background: #4c9ce0;
+            background: linear-gradient(135deg, #4c9ce0, #6ab2f2);
             color: white;
         }
 
@@ -135,7 +137,7 @@
 
         .account-card.selected {
             border-color: #4c9ce0;
-            background: #2b5278;
+            background: linear-gradient(135deg, #2b5278, #1e4a6e);
         }
 
         .account-avatar {
@@ -169,41 +171,76 @@
             color: #8e9fad;
         }
 
-        .badge {
-            background: #4c9ce0;
-            color: white;
+        .auto-add-badge {
+            display: inline-block;
+            background: #1e4a2b;
+            color: #4c9ce0;
+            font-size: 0.7rem;
             padding: 3px 8px;
             border-radius: 30px;
-            font-size: 0.7rem;
-            margin-left: 5px;
+            margin-top: 5px;
+        }
+
+        .auto-add-badge.active {
+            background: #1e6e2b;
+            color: #6ab2f2;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 24px;
         }
 
         .stat-card {
-            background: #17212b;
-            border-radius: 12px;
+            background: linear-gradient(135deg, #17212b 0%, #1a2430 100%);
+            border-radius: 16px;
             padding: 20px;
             text-align: center;
             border: 1px solid #2b3945;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4c9ce0, #6ab2f2);
         }
 
         .stat-value {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #4c9ce0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4c9ce0, #6ab2f2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .stat-label {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: #8e9fad;
             margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-sub {
+            font-size: 0.75rem;
+            color: #5d6f7e;
+            margin-top: 3px;
         }
 
         /* Settings Sections */
@@ -231,7 +268,7 @@
         }
 
         .section-header h2 {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: #fff;
             display: flex;
             align-items: center;
@@ -277,7 +314,7 @@
         }
 
         input:checked + .toggle-slider {
-            background-color: #4c9ce0;
+            background: linear-gradient(135deg, #4c9ce0, #6ab2f2);
         }
 
         input:checked + .toggle-slider:before {
@@ -314,6 +351,15 @@
             box-shadow: 0 0 0 2px rgba(76, 156, 224, 0.2);
         }
 
+        .input-with-button {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-with-button .form-input {
+            flex: 1;
+        }
+
         .range-group {
             display: flex;
             align-items: center;
@@ -344,7 +390,7 @@
             border-radius: 30px;
             font-size: 0.9rem;
             color: #4c9ce0;
-            min-width: 50px;
+            min-width: 70px;
             text-align: center;
         }
 
@@ -362,12 +408,14 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
+            accent-color: #4c9ce0;
         }
 
         .checkbox-group label {
             color: #fff;
             cursor: pointer;
             flex: 1;
+            margin: 0;
         }
 
         /* Source Groups */
@@ -442,12 +490,17 @@
         }
 
         .button.primary {
-            background: #4c9ce0;
+            background: linear-gradient(135deg, #4c9ce0, #6ab2f2);
             color: white;
         }
 
         .button.primary:hover {
-            background: #6ab2f2;
+            background: linear-gradient(135deg, #5dace8, #7ac2f8);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #1e6e2b, #2a8e3a);
+            color: white;
         }
 
         .button.danger {
@@ -458,6 +511,91 @@
         .button.small {
             padding: 8px 16px;
             font-size: 0.85rem;
+        }
+
+        /* Group Member Card */
+        .group-info-card {
+            background: linear-gradient(135deg, #1e3a4a 0%, #1a2e3a 100%);
+            border: 1px solid #4c9ce0;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .group-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #2b5278, #4c9ce0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .group-details {
+            flex: 1;
+        }
+
+        .group-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .group-link {
+            color: #6ab2f2;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+
+        .group-link:hover {
+            text-decoration: underline;
+        }
+
+        .member-count {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .member-count .count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4c9ce0;
+        }
+
+        .member-count .label {
+            color: #8e9fad;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            margin-top: 15px;
+            height: 8px;
+            background: #2b3945;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4c9ce0, #6ab2f2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
         }
 
         /* Info Boxes */
@@ -479,7 +617,7 @@
         }
 
         .info-box.success {
-            background: #1e4a2b;
+            background: linear-gradient(135deg, #1e4a2b, #1a3a22);
             border-color: #4c9e4c;
         }
 
@@ -524,15 +662,19 @@
         }
 
         .log-entry {
-            padding: 8px;
+            padding: 8px 12px;
             border-bottom: 1px solid #2b3945;
             color: #8e9fad;
             font-family: monospace;
         }
 
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
         .log-entry.success {
-            color: #4c9ce0;
-            border-left: 3px solid #4c9ce0;
+            color: #4c9e4c;
+            border-left: 3px solid #4c9e4c;
             padding-left: 12px;
         }
 
@@ -545,6 +687,12 @@
         .log-entry.error {
             color: #ff6b6b;
             border-left: 3px solid #ff6b6b;
+            padding-left: 12px;
+        }
+
+        .log-entry.info {
+            color: #6ab2f2;
+            border-left: 3px solid #6ab2f2;
             padding-left: 12px;
         }
 
@@ -562,7 +710,7 @@
         }
 
         .test-success {
-            color: #4c9ce0;
+            color: #4c9e4c;
         }
 
         .test-fail {
@@ -625,6 +773,44 @@
             border-left: 4px solid #e04c4c;
         }
 
+        /* Source Stats */
+        .source-stats {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .source-stat-item {
+            background: #242f3d;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .source-name {
+            color: #8e9fad;
+            font-size: 0.85rem;
+        }
+
+        .source-value {
+            color: #4c9ce0;
+            font-weight: 600;
+        }
+
+        /* Refresh indicator */
+        .refresh-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4c9ce0;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .settings-grid {
@@ -650,6 +836,11 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .group-header {
+                flex-direction: column;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -659,10 +850,10 @@
         <div class="header">
             <div>
                 <h1>
-                    👥 Auto-Add Members 
-                    <span>UNLIMITED MODE</span>
+                    🚀 Professional Auto-Add 
+                    <span>UNLIMITED</span>
                 </h1>
-                <p>Add members continuously - 1 member every 25-30 seconds, NO DAILY LIMITS</p>
+                <p>Add unlimited members from multiple sources • 25s delay • Smart duplicate prevention</p>
             </div>
             <div class="nav-buttons">
                 <a href="/dashboard" class="nav-btn">📱 Dashboard</a>
@@ -688,16 +879,55 @@
             <!-- Stats Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalAdded">0</div>
-                    <div class="stat-label">Total Members Added</div>
+                    <div class="stat-value" id="addedToday">0</div>
+                    <div class="stat-label">Added Today</div>
+                    <div class="stat-sub" id="todayReset">Resets at midnight</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="delaySeconds">25</div>
-                    <div class="stat-label">Delay (seconds)</div>
+                    <div class="stat-value" id="totalAdded">0</div>
+                    <div class="stat-label">Total Added (All-Time)</div>
+                    <div class="stat-sub">Lifetime members added</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="sourcesCount">0</div>
                     <div class="stat-label">Active Sources</div>
+                    <div class="stat-sub">Sources being used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="membersAvailable">--</div>
+                    <div class="stat-label">Available to Add</div>
+                    <div class="stat-sub">Potential members found</div>
+                </div>
+            </div>
+
+            <!-- Group Info Card -->
+            <div class="group-info-card" id="groupInfoCard">
+                <div class="group-header">
+                    <div class="group-icon">👥</div>
+                    <div class="group-details">
+                        <div class="group-name">
+                            <span id="groupTitle">Loading...</span>
+                            <a href="#" id="groupLink" target="_blank" class="group-link">@Abe_armygroup</a>
+                        </div>
+                        <div class="member-count">
+                            <span class="count" id="currentMemberCount">--</span>
+                            <span class="label">current members</span>
+                            <span style="margin-left: 15px; color: #8e9fad;">
+                                <span id="addedProgress">0</span> added today
+                            </span>
+                        </div>
+                    </div>
+                    <button class="button small" onclick="refreshGroupInfo()" title="Refresh group info">
+                        <span class="refresh-indicator"></span> ↻ Refresh
+                    </button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; color: #8e9fad; font-size: 0.8rem;">
+                    <span>0</span>
+                    <span>Daily Progress</span>
+                    <span>Unlimited</span>
                 </div>
             </div>
 
@@ -714,17 +944,22 @@
                         </div>
 
                         <div class="info-box warning" id="warningBox" style="display: none;">
-                            <span class="info-icon">⚡</span>
+                            <span class="info-icon">⚠️</span>
                             <div>
-                                <strong>UNLIMITED CONTINUOUS MODE ACTIVE</strong>
-                                <p style="margin-top: 5px;">The bot will add members CONTINUOUSLY with 25-30 second delays. No daily limits! It will run FOREVER until disabled.</p>
+                                <strong>ANTI-BAN PROTECTION ACTIVE</strong>
+                                <p style="margin-top: 5px;">25 second delay between adds. The system will run continuously with smart source rotation to avoid detection.</p>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>🎯 Target Group to Add Members To</label>
-                            <input type="text" id="targetGroup" class="form-input" value="Abe_armygroup" placeholder="@username">
-                            <p style="color: #8e9fad; font-size: 0.8rem; margin-top: 5px;">Your group: t.me/Abe_armygroup</p>
+                            <div class="input-with-button">
+                                <input type="text" id="targetGroup" class="form-input" value="Abe_armygroup" placeholder="@username">
+                                <button class="button" onclick="checkGroup()" title="Check group info">🔍 Check</button>
+                            </div>
+                            <p style="color: #8e9fad; font-size: 0.8rem; margin-top: 5px;">
+                                Your group: <a href="#" id="groupLinkInput" target="_blank" style="color: #6ab2f2;">t.me/Abe_armygroup</a>
+                            </p>
                         </div>
 
                         <div class="checkbox-group">
@@ -735,17 +970,19 @@
                         <div class="form-group">
                             <label>⏱️ Delay Between Adds (seconds)</label>
                             <div class="range-group">
-                                <input type="range" id="delayRange" min="25" max="30" value="25" step="1" oninput="updateDelay()">
-                                <span class="range-value" id="delayValue">25</span>
+                                <input type="range" id="delayRange" min="15" max="60" value="25" step="1" oninput="updateDelay()">
+                                <span class="range-value" id="delayValue">25s</span>
                             </div>
-                            <p style="color: #8e9fad; font-size: 0.75rem; margin-top: 5px;">Each new member added every 25-30 seconds (continuous, unlimited)</p>
+                            <p style="color: #8e9fad; font-size: 0.8rem; margin-top: 5px;">
+                                Recommended: 25-35 seconds to avoid bans
+                            </p>
                         </div>
 
                         <div class="form-group">
-                            <label>📋 Max Members per Source</label>
+                            <label>📋 Max Members to Scrape per Source Group</label>
                             <div class="range-group">
-                                <input type="range" id="scrapeLimitRange" min="20" max="500" value="100" step="10" oninput="updateScrapeLimit()">
-                                <span class="range-value" id="scrapeLimitValue">100</span>
+                                <input type="range" id="scrapeLimitRange" min="50" max="500" value="200" step="10" oninput="updateScrapeLimit()">
+                                <span class="range-value" id="scrapeLimitValue">200</span>
                             </div>
                         </div>
 
@@ -753,8 +990,8 @@
                             💾 Save All Settings
                         </button>
 
-                        <button class="button" onclick="testConnection()" style="width: 100%; margin-top: 10px;">
-                            🔍 Test Connection & Sources
+                        <button class="button success" onclick="testConnection()" style="width: 100%; margin-top: 10px;">
+                            🔍 Test Connection & Find Members
                         </button>
 
                         <div id="testResults" class="test-results"></div>
@@ -768,11 +1005,11 @@
                             <h2>📡 Member Sources</h2>
                         </div>
 
-                        <div class="info-box">
+                        <div class="info-box success">
                             <span class="info-icon">🔄</span>
                             <div>
-                                <strong>Multi-Source Mode - Unlimited Scraping</strong>
-                                <p style="margin-top: 5px;">The bot will continuously find members from ALL enabled sources</p>
+                                <strong>Multi-Source Intelligence</strong>
+                                <p style="margin-top: 5px;">The bot tries ALL enabled sources to find new members</p>
                             </div>
                         </div>
 
@@ -792,23 +1029,51 @@
                         </div>
 
                         <div class="checkbox-group">
+                            <input type="checkbox" id="useMutualContacts" checked>
+                            <label>🤝 Mutual Contacts - Get from top peers and interactions</label>
+                        </div>
+
+                        <div class="checkbox-group">
                             <input type="checkbox" id="skipBots" checked>
                             <label>🤖 Skip Bot Accounts</label>
                         </div>
 
                         <div class="checkbox-group">
                             <input type="checkbox" id="skipInaccessible" checked>
-                            <label>🚫 Skip Inaccessible Users</label>
+                            <label>🚫 Skip Inaccessible Users (privacy restricted)</label>
                         </div>
 
                         <div id="sourceGroupsSection" style="margin-top: 20px;">
-                            <label style="color: #8e9fad; margin-bottom: 10px; display: block;">🌍 Source Groups to Scrape From:</label>
+                            <label style="color: #8e9fad; margin-bottom: 10px; display: block;">
+                                🌍 Source Groups to Scrape From:
+                                <span style="color: #6ab2f2; margin-left: 10px;" id="sourceGroupCount">0 groups</span>
+                            </label>
                             <div id="sourceGroupsList"></div>
                             <button class="add-btn" onclick="addSourceGroup()">➕ Add Source Group</button>
                             <p style="color: #8e9fad; font-size: 0.75rem; margin-top: 10px;">
                                 Enter group usernames (e.g., @telegram or https://t.me/telegram)<br>
                                 These groups will be scraped for member IDs
                             </p>
+                        </div>
+
+                        <!-- Source Stats -->
+                        <div id="sourceStats" class="source-stats" style="display: none;">
+                            <div class="source-stat-item">
+                                <span class="source-name">📱 Contacts</span>
+                                <span class="source-value" id="contactsCount">--</span>
+                            </div>
+                            <div class="source-stat-item">
+                                <span class="source-name">💬 Recent Chats</span>
+                                <span class="source-value" id="recentChatsCount">--</span>
+                            </div>
+                            <div class="source-stat-item">
+                                <span class="source-name">👥 Groups Scraped</span>
+                                <span class="source-value" id="groupsScrapedCount">--</span>
+                            </div>
+                            <div class="source-stat-item">
+                                <span class="source-name">🤝 Mutual Contacts</span>
+                                <span class="source-value" id="mutualContactsCount">--</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -819,15 +1084,21 @@
                 <span class="info-icon" id="statusIcon">⏸️</span>
                 <div>
                     <strong id="statusTitle">Auto-Add Disabled</strong>
-                    <p id="statusMessage" style="margin-top: 5px;">Enable auto-add to start adding members continuously (1 member every 25-30 seconds, unlimited)</p>
+                    <p id="statusMessage" style="margin-top: 5px;">Enable auto-add to start adding members (UNLIMITED mode)</p>
                 </div>
             </div>
 
             <!-- Activity Log -->
             <div class="log-section" id="logSection">
                 <div class="log-header">
-                    <h3>📋 Activity Log</h3>
-                    <button class="button small" onclick="clearLog()">Clear</button>
+                    <h3>
+                        <span class="refresh-indicator" id="logIndicator"></span>
+                        📋 Activity Log
+                    </h3>
+                    <div>
+                        <button class="button small" onclick="clearLog()">Clear</button>
+                        <button class="button small" onclick="exportLog()">📥 Export</button>
+                    </div>
                 </div>
                 <div class="log-container" id="logContainer">
                     <div class="log-entry">Select an account and enable auto-add to see activity</div>
@@ -840,7 +1111,7 @@
             <span class="info-icon">👆</span>
             <div>
                 <strong>Select an account to get started</strong>
-                <p style="margin-top: 5px;">Choose an account from above to configure unlimited auto-add member settings.</p>
+                <p style="margin-top: 5px;">Choose an account from above to configure professional auto-add member settings.</p>
             </div>
         </div>
     </div>
@@ -856,18 +1127,27 @@
             enabled: false,
             target_group: 'Abe_armygroup',
             delay_seconds: 25,
+            added_today: 0,
             total_added: 0,
+            last_reset: '',
             source_groups: ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
             use_contacts: true,
             use_recent_chats: true,
             use_scraping: true,
-            scrape_limit: 100,
+            use_mutual_contacts: true,
+            scrape_limit_per_group: 200,
             skip_bots: true,
             skip_inaccessible: true,
             auto_join: true
         };
         let activityLog = [];
         let refreshInterval = null;
+        let statsInterval = null;
+        let groupInfo = {
+            title: '',
+            memberCount: 0,
+            canAdd: false
+        };
 
         // DOM Elements
         const toast = document.getElementById('toast');
@@ -881,18 +1161,27 @@
         const delayValue = document.getElementById('delayValue');
         const scrapeLimitRange = document.getElementById('scrapeLimitRange');
         const scrapeLimitValue = document.getElementById('scrapeLimitValue');
+        const addedToday = document.getElementById('addedToday');
         const totalAdded = document.getElementById('totalAdded');
-        const delaySeconds = document.getElementById('delaySeconds');
         const sourcesCount = document.getElementById('sourcesCount');
+        const membersAvailable = document.getElementById('membersAvailable');
         const warningBox = document.getElementById('warningBox');
         const statusBox = document.getElementById('statusBox');
         const logContainer = document.getElementById('logContainer');
         const testResults = document.getElementById('testResults');
+        const groupTitle = document.getElementById('groupTitle');
+        const groupLink = document.getElementById('groupLink');
+        const groupLinkInput = document.getElementById('groupLinkInput');
+        const currentMemberCount = document.getElementById('currentMemberCount');
+        const addedProgress = document.getElementById('addedProgress');
+        const progressFill = document.getElementById('progressFill');
+        const sourceGroupCount = document.getElementById('sourceGroupCount');
         
         // Checkboxes
         const useContacts = document.getElementById('useContacts');
         const useRecentChats = document.getElementById('useRecentChats');
         const useScraping = document.getElementById('useScraping');
+        const useMutualContacts = document.getElementById('useMutualContacts');
         const skipBots = document.getElementById('skipBots');
         const skipInaccessible = document.getElementById('skipInaccessible');
         const sourceGroupsList = document.getElementById('sourceGroupsList');
@@ -912,6 +1201,13 @@
             activityLog.unshift(entry);
             if (activityLog.length > 100) activityLog.pop();
             updateLogDisplay();
+            
+            // Blink indicator
+            const indicator = document.getElementById('logIndicator');
+            if (indicator) {
+                indicator.style.background = type === 'success' ? '#4c9e4c' : '#6ab2f2';
+                setTimeout(() => indicator.style.background = '#4c9ce0', 500);
+            }
         }
 
         function updateLogDisplay() {
@@ -936,9 +1232,20 @@
             addLog('Log cleared', 'info');
         }
 
+        function exportLog() {
+            const logText = activityLog.map(l => `[${l.time}] [${l.type}] ${l.message}`).join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `auto-add-log-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('Log exported', 'success');
+        }
+
         function updateDelay() {
-            delayValue.textContent = delayRange.value;
-            delaySeconds.textContent = delayRange.value;
+            delayValue.textContent = delayRange.value + 's';
         }
 
         function updateScrapeLimit() {
@@ -950,7 +1257,17 @@
             if (useContacts.checked) count++;
             if (useRecentChats.checked) count++;
             if (useScraping.checked && currentSettings.source_groups && currentSettings.source_groups.length > 0) count++;
+            if (useMutualContacts.checked) count++;
             sourcesCount.textContent = count;
+        }
+
+        function updateGroupLink() {
+            const groupName = targetGroup.value.trim().replace('@', '').replace('https://t.me/', '');
+            const link = `https://t.me/${groupName}`;
+            groupLink.href = link;
+            groupLink.textContent = `@${groupName}`;
+            groupLinkInput.href = link;
+            groupLinkInput.textContent = `t.me/${groupName}`;
         }
 
         // Source Groups Management
@@ -966,6 +1283,7 @@
                 if (!currentSettings.source_groups) currentSettings.source_groups = [];
                 currentSettings.source_groups.push('');
             }
+            updateSourceGroupCount();
             updateSourcesCount();
         }
 
@@ -983,7 +1301,13 @@
                 currentSettings.source_groups.splice(index, 1);
             }
             div.remove();
+            updateSourceGroupCount();
             updateSourcesCount();
+        }
+
+        function updateSourceGroupCount() {
+            const count = document.querySelectorAll('#sourceGroupsList .source-group-item').length;
+            sourceGroupCount.textContent = count + ' group' + (count !== 1 ? 's' : '');
         }
 
         function renderSourceGroups() {
@@ -995,6 +1319,7 @@
             } else {
                 addSourceGroup('');
             }
+            updateSourceGroupCount();
         }
 
         function collectSourceGroups() {
@@ -1033,12 +1358,15 @@
             accounts.forEach(acc => {
                 const initial = (acc.name || '?').charAt(0).toUpperCase();
                 const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                const hasAutoReply = acc.auto_reply_enabled;
+                
                 html += `
                     <div class="account-card ${isSelected ? 'selected' : ''}" onclick="selectAccount(${acc.id})">
                         <div class="account-avatar">${escapeHtml(initial)}</div>
                         <div class="account-info">
                             <h4>${escapeHtml(acc.name || 'Unknown')}</h4>
                             <p>${escapeHtml(acc.phone || '')}</p>
+                            ${hasAutoReply ? '<span class="auto-add-badge active">🤖 Auto-Reply ON</span>' : ''}
                         </div>
                     </div>
                 `;
@@ -1056,11 +1384,16 @@
             noAccountMessage.style.display = 'none';
             
             await loadSettings(accountId);
+            await refreshGroupInfo();
+            
             addLog(`Selected account: ${account.name}`, 'success');
             
             // Start auto-refresh
             if (refreshInterval) clearInterval(refreshInterval);
+            if (statsInterval) clearInterval(statsInterval);
+            
             refreshInterval = setInterval(() => refreshStats(), 30000);
+            statsInterval = setInterval(() => refreshGroupInfo(), 60000); // Refresh group info every minute
         }
 
         async function loadSettings(accountId) {
@@ -1076,24 +1409,29 @@
                     targetGroup.value = currentSettings.target_group || 'Abe_armygroup';
                     autoJoinGroup.checked = currentSettings.auto_join !== false;
                     delayRange.value = currentSettings.delay_seconds || 25;
-                    scrapeLimitRange.value = currentSettings.scrape_limit || 100;
+                    scrapeLimitRange.value = currentSettings.scrape_limit_per_group || 200;
                     
-                    delayValue.textContent = delayRange.value;
+                    delayValue.textContent = delayRange.value + 's';
                     scrapeLimitValue.textContent = scrapeLimitRange.value;
                     
                     useContacts.checked = currentSettings.use_contacts !== false;
                     useRecentChats.checked = currentSettings.use_recent_chats !== false;
                     useScraping.checked = currentSettings.use_scraping !== false;
+                    useMutualContacts.checked = currentSettings.use_mutual_contacts !== false;
                     skipBots.checked = currentSettings.skip_bots !== false;
                     skipInaccessible.checked = currentSettings.skip_inaccessible !== false;
                     
-                    if (!currentSettings.source_groups) currentSettings.source_groups = ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'];
+                    if (!currentSettings.source_groups) {
+                        currentSettings.source_groups = ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'];
+                    }
                     renderSourceGroups();
                     
                     updateStats();
                     updateStatus();
                     updateSourcesCount();
-                    addLog('Settings loaded successfully - Unlimited mode ready', 'success');
+                    updateGroupLink();
+                    
+                    addLog('Settings loaded successfully', 'success');
                 }
             } catch (err) {
                 console.error(err);
@@ -1102,46 +1440,113 @@
         }
 
         function updateStats() {
+            addedToday.textContent = currentSettings.added_today || 0;
             totalAdded.textContent = currentSettings.total_added || 0;
-            delaySeconds.textContent = currentSettings.delay_seconds || 25;
+            addedProgress.textContent = currentSettings.added_today || 0;
+            
+            // Update progress bar (just for visual, no limit)
+            const today = currentSettings.added_today || 0;
+            const progressPercent = Math.min((today / 100) * 100, 100);
+            progressFill.style.width = progressPercent + '%';
         }
 
         function updateStatus() {
             if (currentSettings.enabled) {
                 statusBox.style.display = 'flex';
                 statusBox.className = 'info-box success';
-                document.getElementById('statusIcon').textContent = '✅';
-                document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE - UNLIMITED MODE';
+                document.getElementById('statusIcon').textContent = '🚀';
+                document.getElementById('statusTitle').textContent = 'Auto-Add ACTIVE (UNLIMITED MODE)';
                 document.getElementById('statusMessage').innerHTML = 
                     `Adding members to @${currentSettings.target_group}<br>
-                     Total added: ${currentSettings.total_added || 0} members<br>
-                     Delay: ${currentSettings.delay_seconds || 25} seconds between adds<br>
-                     Sources: ${useContacts.checked ? '📱' : ''}${useRecentChats.checked ? '💬' : ''}${useScraping.checked ? '👥' : ''}<br>
-                     ⚡ RUNNING CONTINUOUSLY - NO LIMITS`;
+                     Added today: ${currentSettings.added_today || 0} | Total: ${currentSettings.total_added || 0}<br>
+                     Sources: ${useContacts.checked ? '📱' : ''}${useRecentChats.checked ? '💬' : ''}${useScraping.checked ? '👥' : ''}${useMutualContacts.checked ? '🤝' : ''}<br>
+                     <span style="color: #4c9ce0;">⏱️ ${currentSettings.delay_seconds || 25}s delay • No daily limit</span>`;
                 warningBox.style.display = 'block';
             } else {
                 statusBox.style.display = 'flex';
                 statusBox.className = 'info-box';
                 document.getElementById('statusIcon').textContent = '⏸️';
                 document.getElementById('statusTitle').textContent = 'Auto-Add Disabled';
-                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members continuously (1 member every 25-30 seconds, unlimited)';
+                document.getElementById('statusMessage').textContent = 'Enable auto-add to start adding members (UNLIMITED daily adds with 25s delay)';
                 warningBox.style.display = 'none';
             }
         }
 
         async function refreshStats() {
-            if (selectedAccount && currentSettings.enabled) {
+            if (selectedAccount) {
                 try {
                     const res = await fetch(`/api/auto-add-stats?accountId=${selectedAccount.id}`);
                     const data = await res.json();
                     if (data.success) {
+                        currentSettings.added_today = data.added_today || 0;
                         currentSettings.total_added = data.total_added || 0;
+                        currentSettings.last_added = data.last_added;
                         updateStats();
+                        
+                        if (currentSettings.enabled) {
+                            updateStatus();
+                        }
                     }
                 } catch (err) {
                     console.error('Error refreshing stats:', err);
                 }
             }
+        }
+
+        async function refreshGroupInfo() {
+            if (!selectedAccount) return;
+            
+            try {
+                const groupName = targetGroup.value.trim().replace('@', '').replace('https://t.me/', '');
+                
+                const res = await fetch('/api/test-auto-add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: selectedAccount.id })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    groupInfo = {
+                        title: data.group_title || groupName,
+                        memberCount: data.existing_members || 0,
+                        canAdd: data.can_add_members || false
+                    };
+                    
+                    groupTitle.textContent = groupInfo.title;
+                    currentMemberCount.textContent = groupInfo.memberCount.toLocaleString();
+                    membersAvailable.textContent = (data.available_members || 0).toLocaleString();
+                    
+                    // Update source stats if available
+                    if (data.sources_found) {
+                        document.getElementById('sourceStats').style.display = 'grid';
+                        // Parse source stats
+                        data.sources_found.forEach(src => {
+                            if (src.includes('Contacts')) {
+                                document.getElementById('contactsCount').textContent = src.split(':')[1]?.trim() || '--';
+                            } else if (src.includes('Recent')) {
+                                document.getElementById('recentChatsCount').textContent = src.split(':')[1]?.trim() || '--';
+                            } else if (src.includes('@')) {
+                                const count = parseInt(src.split(':')[1]) || 0;
+                                const current = parseInt(document.getElementById('groupsScrapedCount').textContent) || 0;
+                                document.getElementById('groupsScrapedCount').textContent = (current + count).toLocaleString();
+                            }
+                        });
+                    }
+                } else {
+                    groupTitle.textContent = 'Group not found';
+                    currentMemberCount.textContent = '--';
+                }
+            } catch (err) {
+                console.error('Error refreshing group info:', err);
+            }
+        }
+
+        async function checkGroup() {
+            updateGroupLink();
+            await refreshGroupInfo();
+            showToast('Group info refreshed', 'success');
         }
 
         async function toggleAutoAdd() {
@@ -1152,12 +1557,7 @@
             
             await saveSettings(false);
             updateStatus();
-            addLog(`Auto-add ${enabled ? 'ENABLED - UNLIMITED MODE' : 'DISABLED'}`, enabled ? 'success' : 'warning');
-            if (enabled) {
-                showToast('✅ Auto-add ENABLED - Will add members continuously every 25-30 seconds!');
-            } else {
-                showToast('⏸️ Auto-add DISABLED - Stopped adding members');
-            }
+            addLog(`Auto-add ${enabled ? 'ENABLED (UNLIMITED MODE)' : 'DISABLED'}`, enabled ? 'success' : 'warning');
         }
 
         async function saveSettings(showToastMessage = true) {
@@ -1170,11 +1570,12 @@
                 enabled: autoAddToggle.checked,
                 target_group: targetGroup.value.trim().replace('@', '').replace('https://t.me/', ''),
                 delay_seconds: parseInt(delayRange.value),
-                scrape_limit: parseInt(scrapeLimitRange.value),
+                scrape_limit_per_group: parseInt(scrapeLimitRange.value),
                 source_groups: sourceGroups,
                 use_contacts: useContacts.checked,
                 use_recent_chats: useRecentChats.checked,
                 use_scraping: useScraping.checked,
+                use_mutual_contacts: useMutualContacts.checked,
                 skip_bots: skipBots.checked,
                 skip_inaccessible: skipInaccessible.checked,
                 auto_join: autoJoinGroup.checked
@@ -1194,8 +1595,9 @@
                     updateStats();
                     updateStatus();
                     updateSourcesCount();
-                    if (showToastMessage) showToast('Settings saved - Unlimited mode active!');
-                    addLog('Settings saved - Continuous unlimited mode enabled', 'success');
+                    updateGroupLink();
+                    if (showToastMessage) showToast('Settings saved successfully');
+                    addLog('Settings saved - ' + (settings.enabled ? 'Auto-add ACTIVE' : 'Auto-add disabled'), 'success');
                 } else {
                     showToast(data.error || 'Failed to save', 'error');
                     addLog('Failed to save settings: ' + (data.error || 'Unknown'), 'error');
@@ -1213,7 +1615,7 @@
                 return;
             }
 
-            testResults.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Testing connection...</div>';
+            testResults.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Testing connection and finding members...</div>';
             testResults.classList.add('show');
 
             try {
@@ -1226,20 +1628,35 @@
                 const data = await res.json();
                 
                 if (data.success) {
+                    let sourcesHtml = '';
+                    if (data.sources_found && data.sources_found.length) {
+                        sourcesHtml = '<div style="margin-top: 10px;"><strong>Sources Found:</strong><br>';
+                        data.sources_found.forEach(src => {
+                            sourcesHtml += `• ${escapeHtml(src)}<br>`;
+                        });
+                        sourcesHtml += '</div>';
+                    }
+                    
                     testResults.innerHTML = `
                         <div style="color: #4c9ce0;">✅ Test Results:</div>
                         <div style="margin-top: 10px;">
-                            <div>📡 Group Found: <span class="${data.group_found ? 'test-success' : 'test-fail'}">${data.group_found ? 'Yes' : 'No'}</span></div>
+                            <div>📡 Target Group: <span class="${data.group_found ? 'test-success' : 'test-fail'}">${data.group_found ? 'Found' : 'Not Found'}</span></div>
                             <div>👥 Group Name: ${escapeHtml(data.group_title || 'N/A')}</div>
-                            <div>📱 Contacts Available: ${data.contacts_count || 0}</div>
-                            <div>💬 Recent Chats: ${data.recent_chats_count || 0}</div>
-                            <div>✅ Can Add Members: <span class="${data.can_add_members ? 'test-success' : 'test-fail'}">${data.can_add_members ? 'Yes' : 'No'}</span></div>
-                        </div>
-                        <div style="margin-top: 10px; color: #8e9fad; font-size: 0.85rem;">
-                            ${data.can_add_members ? '✅ Ready to start adding members continuously! Enable auto-add above.' : '⚠️ No members found to add. Check your sources.'}
+                            <div>📊 Current Members: ${(data.existing_members || 0).toLocaleString()}</div>
+                            <div>🎯 Available to Add: <span class="test-success">${(data.available_members || 0).toLocaleString()}</span></div>
+                            ${sourcesHtml}
+                            <div style="margin-top: 10px;">✅ Status: <span class="${data.can_add_members ? 'test-success' : 'test-fail'}">${data.can_add_members ? 'Ready to add members!' : 'No members found. Check sources.'}</span></div>
                         </div>
                     `;
-                    addLog('Test completed: ' + (data.can_add_members ? 'Ready to add members continuously' : 'No members found'), data.can_add_members ? 'success' : 'warning');
+                    
+                    // Update group info
+                    groupInfo.memberCount = data.existing_members || 0;
+                    groupInfo.title = data.group_title || targetGroup.value;
+                    groupTitle.textContent = groupInfo.title;
+                    currentMemberCount.textContent = groupInfo.memberCount.toLocaleString();
+                    membersAvailable.textContent = (data.available_members || 0).toLocaleString();
+                    
+                    addLog(`Test completed: ${data.available_members || 0} members available to add`, data.can_add_members ? 'success' : 'warning');
                 } else {
                     testResults.innerHTML = `<div class="test-fail">❌ Test Failed: ${escapeHtml(data.error || 'Unknown error')}</div>`;
                     addLog('Test failed: ' + (data.error || 'Unknown'), 'error');
@@ -1260,11 +1677,28 @@
         // Initialize
         window.addEventListener('load', () => {
             loadAccounts();
+            updateGroupLink();
         });
 
         window.addEventListener('beforeunload', () => {
             if (refreshInterval) clearInterval(refreshInterval);
+            if (statsInterval) clearInterval(statsInterval);
         });
+
+        // Make functions available globally
+        window.selectAccount = selectAccount;
+        window.toggleAutoAdd = toggleAutoAdd;
+        window.saveSettings = saveSettings;
+        window.testConnection = testConnection;
+        window.refreshGroupInfo = refreshGroupInfo;
+        window.checkGroup = checkGroup;
+        window.addSourceGroup = addSourceGroup;
+        window.updateSourceGroup = updateSourceGroup;
+        window.removeSourceGroup = removeSourceGroup;
+        window.clearLog = clearLog;
+        window.exportLog = exportLog;
+        window.updateDelay = updateDelay;
+        window.updateScrapeLimit = updateScrapeLimit;
     </script>
 </body>
 </html>
