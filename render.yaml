@@ -1,12 +1,12 @@
 services:
-  # Service 1: Main Telegram Account Manager
+  # Service 1: Main Telegram Account Manager (server.py)
   - type: web
     name: tsega-main
     runtime: python
     region: oregon
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --workers=1 --threads=2 --timeout=60 server:app
+    startCommand: gunicorn --workers=1 --threads=2 --timeout=120 server:app
     envVars:
       - key: API_ID
         value: 33465589
@@ -16,24 +16,45 @@ services:
         value: 3.11.0
       - key: PORT
         value: 5000
-    healthCheckPath: /ping  # Changed from /api/health to /ping (faster)
+    healthCheckPath: /ping
     autoDeploy: true
     disk:
       name: telegram-data
       mountPath: /opt/render/project/src
       sizeGB: 1
 
-  # Service 2: Tsega Star Earning System
+  # Service 2: Join-Required Bot (bot.py)
+  - type: web
+    name: abe-army-bot
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: BOT_TOKEN
+        value: 7294379764:AAHAOQ1OVT2TJ0cRAlWhyyxXQdVB3oS9K_A
+      - key: ADMIN_ID
+        value: 894002841
+      - key: CHANNEL_USERNAME
+        value: "@abe_army"
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: bot-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
 
-
-# Backup cron job for database
+  # Backup cron job
   - type: cron
     name: db-backup
     runtime: python
     region: oregon
-    schedule: "0 0 * * *"  # Daily at midnight UTC
+    schedule: "0 0 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py  # Changed from bot.py to backup_db.py
+    startCommand: python backup_db.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
