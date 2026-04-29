@@ -7,6 +7,7 @@ Admin can broadcast messages to all users
 import os
 import json
 import logging
+import threading
 from datetime import datetime
 from flask import Flask, jsonify
 
@@ -41,11 +42,11 @@ def load_user_data():
                     user_data = json.loads(content)
                 else:
                     user_data = {}
-            logger.info(f"✅ Loaded {len(user_data)} users from {USER_DATA_FILE}")
+            logger.info(f"✅ Loaded {len(user_data)} users")
         else:
             user_data = {}
             save_user_data()
-            logger.info(f"✅ Created new {USER_DATA_FILE} file")
+            logger.info(f"✅ Created new {USER_DATA_FILE}")
     except Exception as e:
         logger.error(f"Error loading user data: {e}")
         user_data = {}
@@ -74,7 +75,7 @@ async def check_membership(user_id, context):
         )
         return member.status in ["member", "administrator", "creator"]
     except Exception as e:
-        logger.error(f"Membership check error for {user_id}: {e}")
+        logger.error(f"Membership check error: {e}")
         return False
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,16 +102,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "last_active": datetime.now().isoformat()
             }
             save_user_data()
-            logger.info(f"✅ New user registered: {user_name} ({user_id})")
+            logger.info(f"✅ New user: {user_name} ({user_id})")
 
         await update.message.reply_text(
             f"✅ **Welcome {user_name}!**\n\n"
             f"Thank you for joining @abe_army!\n"
             f"You now have full access to this bot.\n\n"
             f"📌 **Commands:**\n"
-            f"/start - Show this menu\n"
-            f"/benefits - View your benefits\n\n"
-            f"🎉 Enjoy exclusive content!",
+            f"/start - Show menu\n"
+            f"/benefits - View benefits\n\n"
+            f"🎉 Enjoy!",
             parse_mode="Markdown"
         )
     else:
@@ -124,8 +125,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"⚠️ **Access Denied!**\n\n"
             f"Dear {user_name},\n\n"
-            f"You must join our channel to use this bot.\n\n"
-            f"👉 **Channel:** @abe_army\n\n"
+            f"You must join @abe_army to use this bot.\n\n"
             f"After joining, click the button below to verify.",
             reply_markup=reply_markup,
             parse_mode="Markdown"
@@ -134,16 +134,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show admin control panel"""
     keyboard = [
-        [InlineKeyboardButton("📢 Broadcast Message", callback_data="admin_broadcast")],
+        [InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")],
         [InlineKeyboardButton("📊 Statistics", callback_data="admin_stats")],
-        [InlineKeyboardButton("👥 User List", callback_data="admin_users")],
-        [InlineKeyboardButton("💾 Export Data", callback_data="admin_export")]
+        [InlineKeyboardButton("👥 User List", callback_data="admin_users")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"👑 **Admin Control Panel**\n\n"
-        f"✅ Bot is running\n"
+        f"👑 **Admin Panel**\n\n"
         f"👥 Total Users: {len(user_data)}\n"
         f"📢 Channel: {CHANNEL_USERNAME}\n\n"
         f"Select an option:",
@@ -155,25 +153,15 @@ async def benefits_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show user benefits"""
     user = update.effective_user
     user_id = user.id
-    user_name = user.first_name
 
     if user_id == ADMIN_ID:
-        await update.message.reply_text(
-            "👑 **Admin Benefits**\n\n"
-            "• Full control panel\n"
-            "• Broadcast messages\n"
-            "• View all users\n"
-            "• Export user data"
-        )
+        await update.message.reply_text("👑 Admin benefits: Full control, broadcast, user management")
         return
 
     is_member = await check_membership(user_id, context)
 
     if not is_member:
-        await update.message.reply_text(
-            "⚠️ Please join @abe_army first to receive benefits!\n"
-            "Use /start to join."
-        )
+        await update.message.reply_text("⚠️ Please join @abe_army first! Use /start")
         return
 
     user_info = user_data.get(str(user_id), {})
@@ -182,28 +170,11 @@ async def benefits_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎁 **Your Benefits**\n\n"
         f"✅ Verified Member of @abe_army\n"
         f"📅 Joined: {user_info.get('joined_date', 'Today')[:10]}\n\n"
-        f"**Active Benefits:**\n"
+        f"**Benefits:**\n"
         f"• Full bot access\n"
         f"• Receive announcements\n"
-        f"• Priority updates\n"
-        f"• Exclusive content\n\n"
-        f"Thank you for being part of our community! 🎉",
-        parse_mode="Markdown"
-    )
-
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin stats command"""
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ Admin only command.")
-        return
-
-    await update.message.reply_text(
-        f"📊 **Bot Statistics**\n\n"
-        f"👥 Total Users: {len(user_data)}\n"
-        f"👑 Admin ID: {ADMIN_ID}\n"
-        f"📢 Channel: {CHANNEL_USERNAME}\n"
-        f"🤖 Status: Online\n"
-        f"📁 Data File: {USER_DATA_FILE}",
+        f"• Priority updates\n\n"
+        f"Thank you! 🎉",
         parse_mode="Markdown"
     )
 
@@ -217,8 +188,8 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not context.args:
         await update.message.reply_text(
-            "📢 **Usage:** `/broadcast <message>`\n\n"
-            "Example: `/broadcast Hello everyone!`\n\n"
+            f"📢 **Usage:** `/broadcast <message>`\n\n"
+            f"Example: `/broadcast Hello everyone!`\n\n"
             f"Will send to {len(user_data)} users.",
             parse_mode="Markdown"
         )
@@ -234,7 +205,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
                 chat_id=int(uid),
-                text=f"📢 **Announcement from Admin**\n\n{message}\n\n---\n🇪🇹 @abe_army",
+                text=f"📢 **Announcement**\n\n{message}\n\n---\n🇪🇹 @abe_army",
                 parse_mode="Markdown"
             )
             success += 1
@@ -242,13 +213,27 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await asyncio.sleep(0.05)
         except Exception as e:
             failed += 1
-            logger.error(f"Failed to send to {uid}: {e}")
 
     await update.message.reply_text(
         f"✅ **Broadcast Complete**\n\n"
         f"✅ Sent: {success}\n"
         f"❌ Failed: {failed}\n"
         f"👥 Total: {len(user_data)}"
+    )
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show bot statistics (admin only)"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Admin only.")
+        return
+
+    await update.message.reply_text(
+        f"📊 **Bot Stats**\n\n"
+        f"👥 Users: {len(user_data)}\n"
+        f"👑 Admin: {ADMIN_ID}\n"
+        f"📢 Channel: {CHANNEL_USERNAME}\n"
+        f"🤖 Status: Online",
+        parse_mode="Markdown"
     )
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -260,7 +245,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     user_name = user.first_name
 
-    # ========== ADMIN BUTTONS ==========
+    # Admin buttons
     if query.data.startswith("admin_"):
         if user_id != ADMIN_ID:
             await query.edit_message_text("⛔ Unauthorized!")
@@ -271,17 +256,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📊 **Statistics**\n\n"
                 f"👥 Total Users: {len(user_data)}\n"
                 f"📢 Channel: {CHANNEL_USERNAME}\n"
-                f"👑 Admin ID: {ADMIN_ID}\n"
-                f"📁 Data: {USER_DATA_FILE}",
+                f"👑 Admin ID: {ADMIN_ID}",
                 parse_mode="Markdown"
             )
 
         elif query.data == "admin_users":
             if not user_data:
-                await query.edit_message_text("No users registered yet.")
+                await query.edit_message_text("No users yet.")
                 return
 
-            user_list = "👥 **User List**\n\n"
+            user_list = "👥 **Users**\n\n"
             for i, (uid, data) in enumerate(list(user_data.items())[:20], 1):
                 user_list += f"{i}. {data.get('username', 'Unknown')} (ID: {uid})\n"
 
@@ -290,36 +274,19 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await query.edit_message_text(user_list, parse_mode="Markdown")
 
-        elif query.data == "admin_export":
-            export_data = {
-                "export_date": datetime.now().isoformat(),
-                "total_users": len(user_data),
-                "admin_id": ADMIN_ID,
-                "users": user_data
-            }
-            with open("export.json", "w") as f:
-                json.dump(export_data, f, indent=2)
-            await query.edit_message_text(
-                f"✅ Data exported!\n"
-                f"File: export.json\n"
-                f"Total users: {len(user_data)}"
-            )
-
         elif query.data == "admin_broadcast":
             await query.edit_message_text(
-                "📢 **Broadcast Mode**\n\n"
-                "Use: `/broadcast <message>`\n\n"
+                f"📢 **Broadcast**\n\n"
+                f"Use: `/broadcast <message>`\n\n"
                 f"Example: `/broadcast Hello to {len(user_data)} users!`"
             )
-
         return
 
-    # ========== VERIFY JOIN BUTTON ==========
+    # Verify join button
     if query.data == "verify_join":
         is_member = await check_membership(user_id, context)
 
         if is_member:
-            # Save user
             if str(user_id) not in user_data:
                 user_data[str(user_id)] = {
                     "username": user.username or user_name,
@@ -328,13 +295,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "last_active": datetime.now().isoformat()
                 }
                 save_user_data()
-                logger.info(f"✅ Verified new user: {user_name} ({user_id})")
+                logger.info(f"✅ New verified user: {user_name}")
 
             await query.edit_message_text(
-                f"✅ **Verification Successful!**\n\n"
+                f"✅ **Verified!**\n\n"
                 f"Welcome {user_name}!\n\n"
                 f"Thank you for joining @abe_army!\n\n"
-                f"🎉 You now have full access.\n\n"
                 f"Use /start to continue.",
                 parse_mode="Markdown"
             )
@@ -345,7 +311,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             await query.edit_message_text(
                 f"❌ **Not Joined Yet!**\n\n"
-                f"Please join @abe_army first, then click Verify.",
+                f"Please join @abe_army first.",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="Markdown"
             )
@@ -356,22 +322,19 @@ health_app = Flask(__name__)
 @health_app.route("/")
 @health_app.route("/health")
 def health_check():
-    """Health check endpoint for Render"""
     return jsonify({
         "status": "healthy",
         "service": "abe-army-bot",
         "users": len(user_data),
-        "admin_id": ADMIN_ID,
-        "channel": CHANNEL_USERNAME
+        "admin_id": ADMIN_ID
     })
 
 @health_app.route("/ping")
 def ping():
-    """Simple ping endpoint"""
     return "pong"
 
 def run_health_server():
-    """Run Flask health check server on separate port"""
+    """Run health check server"""
     port = int(os.environ.get("PORT", 5001))
     health_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
@@ -379,30 +342,27 @@ def run_health_server():
 def main():
     """Start the bot"""
     # Start health server in background
-    import threading
     health_thread = threading.Thread(target=run_health_server, daemon=True)
     health_thread.start()
-    logger.info("✅ Health check server started")
+    logger.info("✅ Health server started on port 5001")
 
     # Create bot application
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Add command handlers
+    # Add handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("benefits", benefits_command))
     application.add_handler(CommandHandler("stats", stats_command))
     application.add_handler(CommandHandler("broadcast", broadcast_command))
-
-    # Add callback handler for buttons
     application.add_handler(CallbackQueryHandler(button_callback))
 
     # Start bot
     logger.info("🚀 Bot is starting...")
-    logger.info(f"👑 Admin ID: {ADMIN_ID}")
+    logger.info(f"👑 Admin: {ADMIN_ID}")
     logger.info(f"📢 Channel: {CHANNEL_USERNAME}")
     logger.info(f"👥 Users loaded: {len(user_data)}")
 
-    # Run bot (this blocks)
+    # Run bot
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
