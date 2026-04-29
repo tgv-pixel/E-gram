@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 from datetime import datetime
 import json
 
-# Bot configuration
+# Bot configurations
 BOT_TOKEN = "7294379764:AAHAOQ1OVT2TJ0cRAlWhyyxXQdVB3oS9K_A"
 ADMIN_ID = 894002841
 CHANNEL_USERNAME = "@abe_army"
