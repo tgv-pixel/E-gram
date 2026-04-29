@@ -34,31 +34,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: BOT_TOKEN
-        value: 7294379764:AAHAOQ1OVT2TJ0cRAlWhyyxXQdVB3oS9K_A
-      - key: ADMIN_ID
-        value: 894002841
-      - key: CHANNEL_USERNAME
-        value: "@abe_army"
+      - key: PORT
+        value: 5001
     healthCheckPath: /health
     autoDeploy: true
     disk:
       name: bot-data
-      mountPath: /opt/render/project/src
-      sizeGB: 1
-
-  # Backup cron job
-  - type: cron
-    name: db-backup
-    runtime: python
-    region: oregon
-    schedule: "0 0 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python backup_db.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-    disk:
-      name: backup-data
       mountPath: /opt/render/project/src
       sizeGB: 1
