@@ -35,7 +35,7 @@ CORS(app)
 # ============================================
 # CHANGE THIS NUMBER ONLY - 1 TO 5
 # ============================================
-SERVER_NUMBER = 4  # 1=Dil, 2=sofu, 3=bebby, 4=kaleb, 5=fitsum
+SERVER_NUMBER = 1  # 1=Dil, 2=sofu, 3=bebby, 4=kaleb, 5=fitsum
 
 SERVERS = {
     1: {'name': 'Abe', 'api_id': 33465589, 'api_hash': '08bdab35790bf1fdf20c16a50bd323b8', 'url': 'https://dilbedl.onrender.com'},
