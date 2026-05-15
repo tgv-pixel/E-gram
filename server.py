@@ -27,7 +27,7 @@ app = Flask(__name__)
 CORS(app)
 
 # API credentials - FIXED: Using proper API ID
-API_ID = int(os.environ.get('API_ID', '3346558'))  # Reduced to valid number
+API_ID = int(os.environ.get('API_ID', '33465589'))  # Reduced to valid number
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
 # Storage
