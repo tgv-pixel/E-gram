@@ -1,17 +1,24 @@
 services:
+  # Service 1: Main Telegram Account Manager (server.py)
   - type: web
-    name: auto-add-server
+    name: tsega-main
     runtime: python
     region: oregon
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn server:app --workers=1 --threads=2 --timeout=120 --bind=0.0.0.0:$PORT
+    startCommand: gunicorn --workers=1 --threads=2 --timeout=120 server:app
     envVars:
+      - key: API_ID
+        value: 33465589
+      - key: API_HASH
+        value: 08bdab35790bf1fdf20c16a50bd323b8
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PORT
-        value: 10000
-      - key: GITHUB_TOKEN
-        sync: false
+        value: 5000
     healthCheckPath: /ping
     autoDeploy: true
+    disk:
+      name: telegram-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
