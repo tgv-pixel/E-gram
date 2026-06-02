@@ -439,12 +439,26 @@
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            sendEmailVerification 
+        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+        import { getDatabase, ref, set, push, update } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            addDoc, 
+            collection, 
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-    <script>
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAfB7LvCXf_QrmlYn9OIfQnQHaORwsLzfM",
@@ -457,362 +471,393 @@
         };
 
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const rdb = firebase.database();
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const rtdb = getDatabase(app);
+        const firestore = getFirestore(app);
 
-        // CAPTCHA variables
-        let captchaAnswer;
-        let referredBy = null;
-        let referrerInfo = null;
+        // Make Firebase services globally available
+        window.firebaseServices = {
+            app,
+            auth,
+            rtdb,
+            firestore,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            sendEmailVerification,
+            ref,
+            set,
+            push,
+            update,
+            doc,
+            setDoc,
+            getDoc,
+            addDoc,
+            collection,
+            serverTimestamp
+        };
 
-        // ============================================
-        // REFERRAL LINK DETECTION
-        // ============================================
-        function getReferralFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('ref');
-        }
+        console.log('Firebase initialized successfully');
+        
+        // Dispatch event when Firebase is ready
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
 
-        async function checkReferralCode() {
-            const refCode = getReferralFromURL();
-            const referralBox = document.getElementById('referralBox');
-            const referralCodeGroup = document.getElementById('referral-code-group');
-            const referralCodeDisplay = document.getElementById('referral-code-display');
-            const referralCodeHidden = document.getElementById('referral-code-hidden');
+    <script>
+        // Wait for Firebase to be ready before executing main code
+        window.addEventListener('firebase-ready', function() {
+            const services = window.firebaseServices;
             
-            if (!refCode) {
-                // No referral code in URL
-                referralBox.innerHTML = `
-                    <div class="no-referral-box">
-                        <div class="icon">🔗</div>
-                        <div class="text">No referral code detected.<br>Ask a friend for their referral link to earn bonus points!</div>
-                    </div>`;
-                referralCodeGroup.style.display = 'none';
-                referredBy = null;
-                return;
+            // Make Firebase functions globally available for onclick handlers
+            window.auth = services.auth;
+            
+            // CAPTCHA variables
+            let captchaAnswer;
+            let referredBy = null;
+            let referrerInfo = null;
+
+            // ============================================
+            // REFERRAL LINK DETECTION
+            // ============================================
+            function getReferralFromURL() {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('ref');
             }
 
-            // Check if referral code is valid (check if user exists)
-            try {
-                const userDoc = await db.collection('users').doc(refCode).get();
+            async function checkReferralCode() {
+                const refCode = getReferralFromURL();
+                const referralBox = document.getElementById('referralBox');
+                const referralCodeGroup = document.getElementById('referral-code-group');
+                const referralCodeDisplay = document.getElementById('referral-code-display');
+                const referralCodeHidden = document.getElementById('referral-code-hidden');
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    referrerInfo = userData;
-                    referredBy = refCode;
-                    
-                    // Show referral info
+                if (!refCode) {
                     referralBox.innerHTML = `
-                        <div class="referral-info-box">
-                            <div class="icon">🎉</div>
-                            <div class="title">You were invited by ${userData.firstName || 'a friend'}!</div>
-                            <div class="detail">
-                                You both will earn <span class="bonus">10% Points</span> on your first deposit!
-                            </div>
-                        </div>
-                        <div class="referral-steps">
-                            <i class="fas fa-check-circle"></i> Referral code detected: <strong>${refCode.substring(0, 10)}...</strong><br>
-                            <i class="fas fa-info-circle"></i> After signup, make your first deposit to earn points for your referrer!
-                        </div>`;
-                    
-                    // Show and set referral code
-                    referralCodeGroup.style.display = 'block';
-                    referralCodeDisplay.value = refCode.substring(0, 10) + '...';
-                    referralCodeHidden.value = refCode;
-                    
-                } else {
-                    // Invalid referral code
-                    referralBox.innerHTML = `
-                        <div class="no-referral-box" style="border-color: #ffc107; background: #fff8e1;">
-                            <div class="icon">⚠️</div>
-                            <div class="text" style="color: #856404;">Referral code not found.<br>Continue signing up without referral.</div>
+                        <div class="no-referral-box">
+                            <div class="icon">🔗</div>
+                            <div class="text">No referral code detected.<br>Ask a friend for their referral link to earn bonus points!</div>
                         </div>`;
                     referralCodeGroup.style.display = 'none';
                     referredBy = null;
+                    return;
                 }
-            } catch (error) {
-                console.error('Error checking referral:', error);
-                referralBox.innerHTML = `
-                    <div class="no-referral-box">
-                        <div class="icon">🔗</div>
-                        <div class="text">Continue signing up.</div>
-                    </div>`;
-                referredBy = null;
-            }
-        }
 
-        // ============================================
-        // CAPTCHA
-        // ============================================
-        function generateCaptcha() {
-            const num1 = Math.floor(Math.random() * 10) + 1;
-            const num2 = Math.floor(Math.random() * 10) + 1;
-            const operators = ['+', '-', '*'];
-            const operator = operators[Math.floor(Math.random() * operators.length)];
-            
-            let challenge, answer;
-            switch(operator) {
-                case '+': answer = num1 + num2; challenge = `${num1} + ${num2} = ?`; break;
-                case '-': answer = num1 - num2; challenge = `${num1} - ${num2} = ?`; break;
-                case '*': answer = num1 * num2; challenge = `${num1} × ${num2} = ?`; break;
-            }
-            
-            document.getElementById('captcha-challenge').textContent = challenge;
-            captchaAnswer = answer;
-        }
-
-        // ============================================
-        // INITIALIZATION
-        // ============================================
-        generateCaptcha();
-        checkReferralCode();
-
-        // Check if URL has tab parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('tab') === 'login') {
-            switchTab('login');
-        }
-
-        // ============================================
-        // TAB SWITCHING
-        // ============================================
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
-            
-            if (tabName === 'signup') {
-                document.getElementById('signupTab').classList.add('active');
-                document.getElementById('signup-form').classList.add('active');
-            } else {
-                document.getElementById('loginTab').classList.add('active');
-                document.getElementById('login-form').classList.add('active');
-            }
-        }
-
-        // ============================================
-        // GENERATE REFERRAL CODE
-        // ============================================
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // ============================================
-        // SHOW MESSAGE
-        // ============================================
-        function showMessage(message, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = message;
-            msgDiv.className = type + ' show';
-            setTimeout(() => {
-                msgDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        function showLoginMessage(message, type) {
-            const msgDiv = document.getElementById('login-message');
-            msgDiv.textContent = message;
-            msgDiv.className = type + ' show';
-            setTimeout(() => {
-                msgDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        // ============================================
-        // SIGN UP
-        // ============================================
-        async function signUp() {
-            const firstName = document.getElementById('first-name').value.trim();
-            const lastName = document.getElementById('last-name').value.trim();
-            const email = document.getElementById('signup-email').value.trim();
-            const password = document.getElementById('signup-password').value;
-            const phone = document.getElementById('phone').value.trim();
-            const userCaptchaInput = document.getElementById('captcha-input').value;
-            
-            // Basic validation
-            if (!firstName || !lastName) {
-                showMessage('Please enter your first and last name.', 'error');
-                return;
-            }
-            
-            if (!email) {
-                showMessage('Please enter your email address.', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage('Password must be at least 6 characters.', 'error');
-                return;
-            }
-            
-            // Validate CAPTCHA
-            if (parseInt(userCaptchaInput) !== captchaAnswer) {
-                showMessage('CAPTCHA verification failed. Please try again.', 'error');
-                generateCaptcha();
-                document.getElementById('captcha-input').value = '';
-                return;
+                try {
+                    const userDocRef = services.doc(services.firestore, 'users', refCode);
+                    const userDoc = await services.getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        referrerInfo = userData;
+                        referredBy = refCode;
+                        
+                        referralBox.innerHTML = `
+                            <div class="referral-info-box">
+                                <div class="icon">🎉</div>
+                                <div class="title">You were invited by ${userData.firstName || 'a friend'}!</div>
+                                <div class="detail">
+                                    You both will earn <span class="bonus">10% Points</span> on your first deposit!
+                                </div>
+                            </div>
+                            <div class="referral-steps">
+                                <i class="fas fa-check-circle"></i> Referral code detected: <strong>${refCode.substring(0, 10)}...</strong><br>
+                                <i class="fas fa-info-circle"></i> After signup, make your first deposit to earn points for your referrer!
+                            </div>`;
+                        
+                        referralCodeGroup.style.display = 'block';
+                        referralCodeDisplay.value = refCode.substring(0, 10) + '...';
+                        referralCodeHidden.value = refCode;
+                        
+                    } else {
+                        referralBox.innerHTML = `
+                            <div class="no-referral-box" style="border-color: #ffc107; background: #fff8e1;">
+                                <div class="icon">⚠️</div>
+                                <div class="text" style="color: #856404;">Referral code not found.<br>Continue signing up without referral.</div>
+                            </div>`;
+                        referralCodeGroup.style.display = 'none';
+                        referredBy = null;
+                    }
+                } catch (error) {
+                    console.error('Error checking referral:', error);
+                    referralBox.innerHTML = `
+                        <div class="no-referral-box">
+                            <div class="icon">🔗</div>
+                            <div class="text">Continue signing up.</div>
+                        </div>`;
+                    referredBy = null;
+                }
             }
 
-            // Disable button and show loading state
-            const signupBtn = document.getElementById('signupBtn');
-            signupBtn.disabled = true;
-            signupBtn.textContent = 'Creating Account...';
-
-            try {
-                // Create user in Firebase Auth
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                const now = new Date();
-                const referralCode = generateReferralCode();
+            // ============================================
+            // CAPTCHA
+            // ============================================
+            function generateCaptcha() {
+                const num1 = Math.floor(Math.random() * 10) + 1;
+                const num2 = Math.floor(Math.random() * 10) + 1;
+                const operators = ['+', '-', '*'];
+                const operator = operators[Math.floor(Math.random() * operators.length)];
                 
-                // Create user data object
-                const userData = {
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    phone: phone || '',
-                    createdAt: firebase.firestore.Timestamp.fromDate(now),
-                    status: 'active',
-                    referralCode: referralCode,
-                    referredBy: referredBy || null,
-                    referralCount: 0,
-                    referralBonus: 0,
-                    totalReferralPoints: 0,
-                    depositBalance: 0,
-                    taskEarnings: 0,
-                    points: 0,
-                    lastLogin: null
-                };
-
-                // Save user data to Firestore
-                await db.collection('users').doc(user.uid).set(userData);
+                let challenge, answer;
+                switch(operator) {
+                    case '+': answer = num1 + num2; challenge = `${num1} + ${num2} = ?`; break;
+                    case '-': answer = num1 - num2; challenge = `${num1} - ${num2} = ?`; break;
+                    case '*': answer = num1 * num2; challenge = `${num1} × ${num2} = ?`; break;
+                }
                 
-                // Save basic user data to RTDB
-                await rdb.ref('users/' + user.uid).set({
-                    email: email,
-                    firstName: firstName,
-                    lastName: lastName,
-                    referralCode: referralCode,
-                    referredBy: referredBy || null,
-                    status: 'active',
-                    lastLogin: null
-                });
+                document.getElementById('captcha-challenge').textContent = challenge;
+                captchaAnswer = answer;
+            }
 
-                // If referred by someone, save referral record
-                if (referredBy) {
-                    // Add to referral_notifications for referrer
-                    await rdb.ref('referral_notifications/' + referredBy).push({
-                        type: 'new_signup',
+            // Make functions globally available
+            window.generateCaptcha = generateCaptcha;
+            window.checkReferralCode = checkReferralCode;
+
+            // ============================================
+            // INITIALIZATION
+            // ============================================
+            generateCaptcha();
+            checkReferralCode();
+
+            // Check if URL has tab parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'login') {
+                switchTab('login');
+            }
+
+            // ============================================
+            // TAB SWITCHING
+            // ============================================
+            function switchTab(tabName) {
+                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
+                
+                if (tabName === 'signup') {
+                    document.getElementById('signupTab').classList.add('active');
+                    document.getElementById('signup-form').classList.add('active');
+                } else {
+                    document.getElementById('loginTab').classList.add('active');
+                    document.getElementById('login-form').classList.add('active');
+                }
+            }
+
+            window.switchTab = switchTab;
+
+            // ============================================
+            // GENERATE REFERRAL CODE
+            // ============================================
+            function generateReferralCode() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < 8; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            // ============================================
+            // SHOW MESSAGE
+            // ============================================
+            function showMessage(message, type) {
+                const msgDiv = document.getElementById('message');
+                msgDiv.textContent = message;
+                msgDiv.className = type + ' show';
+                setTimeout(() => {
+                    msgDiv.classList.remove('show');
+                }, 5000);
+            }
+
+            function showLoginMessage(message, type) {
+                const msgDiv = document.getElementById('login-message');
+                msgDiv.textContent = message;
+                msgDiv.className = type + ' show';
+                setTimeout(() => {
+                    msgDiv.classList.remove('show');
+                }, 5000);
+            }
+
+            // ============================================
+            // SIGN UP
+            // ============================================
+            async function signUp() {
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+                const email = document.getElementById('signup-email').value.trim();
+                const password = document.getElementById('signup-password').value;
+                const phone = document.getElementById('phone').value.trim();
+                const userCaptchaInput = document.getElementById('captcha-input').value;
+                
+                if (!firstName || !lastName) {
+                    showMessage('Please enter your first and last name.', 'error');
+                    return;
+                }
+                
+                if (!email) {
+                    showMessage('Please enter your email address.', 'error');
+                    return;
+                }
+                
+                if (password.length < 6) {
+                    showMessage('Password must be at least 6 characters.', 'error');
+                    return;
+                }
+                
+                if (parseInt(userCaptchaInput) !== captchaAnswer) {
+                    showMessage('CAPTCHA verification failed. Please try again.', 'error');
+                    generateCaptcha();
+                    document.getElementById('captcha-input').value = '';
+                    return;
+                }
+
+                const signupBtn = document.getElementById('signupBtn');
+                signupBtn.disabled = true;
+                signupBtn.textContent = 'Creating Account...';
+
+                try {
+                    const userCredential = await services.createUserWithEmailAndPassword(services.auth, email, password);
+                    const user = userCredential.user;
+                    const now = new Date();
+                    const referralCode = generateReferralCode();
+                    
+                    const userData = {
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        phone: phone || '',
+                        createdAt: services.serverTimestamp(),
+                        status: 'active',
+                        referralCode: referralCode,
+                        referredBy: referredBy || null,
+                        referralCount: 0,
+                        referralBonus: 0,
+                        totalReferralPoints: 0,
+                        depositBalance: 0,
+                        taskEarnings: 0,
+                        points: 0,
+                        lastLogin: null
+                    };
+
+                    // Save to Firestore
+                    await services.setDoc(services.doc(services.firestore, 'users', user.uid), userData);
+                    
+                    // Save to Realtime Database
+                    await services.set(services.ref(services.rtdb, 'users/' + user.uid), {
                         email: email,
                         firstName: firstName,
                         lastName: lastName,
-                        userId: user.uid,
-                        timestamp: Date.now(),
-                        read: false,
-                        claimed: false,
-                        message: `${firstName} ${lastName} signed up using your referral link! Points will be awarded on their first deposit.`
+                        referralCode: referralCode,
+                        referredBy: referredBy || null,
+                        status: 'active',
+                        lastLogin: null
                     });
 
-                    // Also add to admin_notifications
-                    await rdb.ref('admin_notifications/' + referredBy).push({
-                        type: 'new_signup',
-                        email: email,
-                        firstName: firstName,
-                        lastName: lastName,
-                        userId: user.uid,
-                        timestamp: Date.now(),
-                        read: false,
-                        claimed: false
-                    });
+                    // Handle referrals
+                    if (referredBy) {
+                        await services.push(services.ref(services.rtdb, 'referral_notifications/' + referredBy), {
+                            type: 'new_signup',
+                            email: email,
+                            firstName: firstName,
+                            lastName: lastName,
+                            userId: user.uid,
+                            timestamp: Date.now(),
+                            read: false,
+                            claimed: false,
+                            message: `${firstName} ${lastName} signed up using your referral link! Points will be awarded on their first deposit.`
+                        });
 
-                    // Save referral record in Firestore
-                    await db.collection('referrals').add({
-                        referrerId: referredBy,
-                        referredUserId: user.uid,
-                        referredEmail: email,
-                        referredName: `${firstName} ${lastName}`,
-                        timestamp: firebase.firestore.Timestamp.fromDate(now),
-                        status: 'pending_first_deposit',
-                        pointsAwarded: 0,
-                        bonusEarned: 0
-                    });
+                        await services.push(services.ref(services.rtdb, 'admin_notifications/' + referredBy), {
+                            type: 'new_signup',
+                            email: email,
+                            firstName: firstName,
+                            lastName: lastName,
+                            userId: user.uid,
+                            timestamp: Date.now(),
+                            read: false,
+                            claimed: false
+                        });
+
+                        await services.addDoc(services.collection(services.firestore, 'referrals'), {
+                            referrerId: referredBy,
+                            referredUserId: user.uid,
+                            referredEmail: email,
+                            referredName: `${firstName} ${lastName}`,
+                            timestamp: services.serverTimestamp(),
+                            status: 'pending_first_deposit',
+                            pointsAwarded: 0,
+                            bonusEarned: 0
+                        });
+                    }
+
+                    await services.sendEmailVerification(user);
+                    
+                    showMessage('Account created! Check your email for verification. Redirecting to login...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    showMessage(error.message, 'error');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Create Account';
+                } finally {
+                    generateCaptcha();
+                    document.getElementById('captcha-input').value = '';
+                }
+            }
+
+            window.signUp = signUp;
+
+            // ============================================
+            // LOGIN
+            // ============================================
+            async function login() {
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+
+                if (!email) {
+                    showLoginMessage('Please enter your email address.', 'error');
+                    return;
+                }
+                
+                if (!password) {
+                    showLoginMessage('Please enter your password.', 'error');
+                    return;
                 }
 
-                // Send verification email
-                await user.sendEmailVerification();
-                
-                showMessage('Account created! Check your email for verification. Redirecting to login...', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Signup error:', error);
-                showMessage(error.message, 'error');
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Create Account';
-            } finally {
-                generateCaptcha();
-                document.getElementById('captcha-input').value = '';
-            }
-        }
+                const loginBtn = document.getElementById('loginBtn');
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Signing In...';
 
-        // ============================================
-        // LOGIN
-        // ============================================
-        async function login() {
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            if (!email) {
-                showLoginMessage('Please enter your email address.', 'error');
-                return;
-            }
-            
-            if (!password) {
-                showLoginMessage('Please enter your password.', 'error');
-                return;
+                try {
+                    const userCredential = await services.signInWithEmailAndPassword(services.auth, email, password);
+                    const user = userCredential.user;
+                    
+                    await Promise.all([
+                        services.setDoc(services.doc(services.firestore, 'users', user.uid), {
+                            lastLogin: services.serverTimestamp()
+                        }, { merge: true }),
+                        services.update(services.ref(services.rtdb, 'users/' + user.uid), {
+                            lastLogin: Date.now()
+                        })
+                    ]);
+                    
+                    showLoginMessage('Login successful! Redirecting...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showLoginMessage(error.message, 'error');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign In';
+                }
             }
 
-            const loginBtn = document.getElementById('loginBtn');
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Signing In...';
-
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                const now = new Date();
-                
-                // Update last login time
-                await Promise.all([
-                    db.collection('users').doc(user.uid).update({
-                        lastLogin: firebase.firestore.Timestamp.fromDate(now)
-                    }),
-                    rdb.ref('users/' + user.uid).update({
-                        lastLogin: Date.now()
-                    })
-                ]);
-                
-                showLoginMessage('Login successful! Redirecting...', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = 'home.html';
-                }, 1500);
-                
-            } catch (error) {
-                console.error('Login error:', error);
-                showLoginMessage(error.message, 'error');
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-            }
-        }
+            window.login = login;
+        });
     </script>
 </body>
 </html>
