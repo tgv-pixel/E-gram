@@ -3,45 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Home</title>
+    <title>Dashboard - SAFE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0e1621;
-            color: white;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
+
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-icon:hover {
+            transform: scale(1.05);
+        }
+
+        /* User Welcome */
+        .welcome {
             text-align: center;
+            margin-bottom: 20px;
         }
-        h1 { color: #4c9ce0; }
-        .links {
-            margin-top: 30px;
+
+        .welcome h2 {
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 5px;
         }
-        a {
+
+        .welcome .uid {
+            color: #666;
+            font-size: 12px;
+            background: #f5f5f5;
+            padding: 5px 15px;
+            border-radius: 20px;
             display: inline-block;
-            margin: 10px;
-            padding: 12px 24px;
-            background: #2b3945;
-            color: #6ab2f2;
-            text-decoration: none;
-            border-radius: 8px;
         }
-        a:hover {
-            background: #3a4a5a;
+
+        /* Balance Cards */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .balance-card {
+            padding: 15px 10px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .balance-card.deposit {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .balance-card.earning {
+            background: linear-gradient(135deg, #17a2b8, #0dcaf0);
+        }
+
+        .balance-card.points {
+            background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+        }
+
+        .balance-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .balance-amount {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        .balance-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+        }
+
+        /* Navigation Grid */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .nav-item {
+            padding: 18px 10px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-item:hover {
+            transform: translateY(-3px);
+            border-color: #667eea;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .nav-item i {
+            font-size: 28px;
+            color: #667eea;
+        }
+
+        .nav-item span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Referral Banner */
+        .referral-banner {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .referral-banner:hover {
+            transform: translateY(-3px);
+        }
+
+        .referral-banner i {
+            font-size: 24px;
+            margin-right: 8px;
+        }
+
+        .referral-banner .bonus {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading i {
+            font-size: 40px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .balance-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .nav-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .balance-card {
+                padding: 12px 8px;
+            }
+
+            .balance-amount {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📱 Telegram Manager</h1>
-        <p>Your accounts are loaded successfully!</p>
-        <div class="links"
-            <a href="/login">Add Another Account</a>
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">SAFE</div>
+            <div class="profile-icon" id="profileIcon" title="Click for options">U</div>
         </div>
+
+        <!-- Welcome -->
+        <div class="welcome">
+            <h2 id="welcomeName">Welcome!</h2>
+            <div class="uid">ID: <span id="userIdDisplay">---</span></div>
+        </div>
+
+        <!-- Balance Cards -->
+        <div class="balance-grid">
+            <div class="balance-card deposit">
+                <div class="balance-icon"><i class="fas fa-wallet"></i></div>
+                <div class="balance-amount" id="depositBalance">0.00</div>
+                <div class="balance-label">Deposit</div>
+            </div>
+            <div class="balance-card earning">
+                <div class="balance-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="balance-amount" id="earningBalance">0.00</div>
+                <div class="balance-label">Earnings</div>
+            </div>
+            <div class="balance-card points">
+                <div class="balance-icon"><i class="fas fa-star"></i></div>
+                <div class="balance-amount" id="pointsBalance">0</div>
+                <div class="balance-label">Points</div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-grid">
+            <div class="nav-item" onclick="navigateTo('deposit.html')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Deposit</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('withdraw.html')">
+                <i class="fas fa-minus-circle"></i>
+                <span>Withdraw</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('product.html')">
+                <i class="fas fa-gem"></i>
+                <span>Products</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('daily.html')">
+                <i class="fas fa-tasks"></i>
+                <span>Daily Tasks</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('referral.html')">
+                <i class="fas fa-users"></i>
+                <span>Referral</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('notifications.html')">
+                <i class="fas fa-bell"></i>
+                <span>Alerts</span>
+            </div>
+        </div>
+
+        <!-- Referral Banner -->
+        <div class="referral-banner" onclick="navigateTo('referral.html')">
+            <i class="fas fa-gift"></i>
+            Earn <span class="bonus">$10</span> per referral! Invite friends now →
+        </div>
+
+        <!-- Logout -->
+        <button class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
     </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+
+        // Check Authentication
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            loadUserData(user.uid);
+        });
+
+        // Load User Data
+        async function loadUserData(userId) {
+            try {
+                const doc = await db.collection('users').doc(userId).get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    // Update Profile
+                    const firstName = data.firstName || '';
+                    const lastName = data.lastName || '';
+                    const fullName = `${firstName} ${lastName}`.trim() || 'User';
+                    
+                    document.getElementById('welcomeName').textContent = `Welcome, ${fullName}!`;
+                    document.getElementById('userIdDisplay').textContent = userId.substring(0, 12) + '...';
+                    
+                    // Profile Icon
+                    const initial = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+                    document.getElementById('profileIcon').textContent = initial;
+                    
+                    // Update Balances
+                    document.getElementById('depositBalance').textContent = 
+                        (data.depositBalance || 0).toFixed(2);
+                    document.getElementById('earningBalance').textContent = 
+                        (data.taskEarnings || 0).toFixed(2);
+                    document.getElementById('pointsBalance').textContent = 
+                        data.points || 0;
+                    
+                    // Profile Icon Click
+                    document.getElementById('profileIcon').onclick = () => {
+                        alert(`User: ${fullName}\nEmail: ${data.email}\nID: ${userId}\nReferral Code: ${data.referralCode || 'N/A'}`);
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        // Navigation
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await auth.signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+    </script>
 </body>
 </html>
