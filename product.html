@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Products - SAFE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .back-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+            color: white;
+            padding: 18px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(111, 66, 193, 0.3);
+        }
+
+        .balance-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        .balance-sub {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .category-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        /* Products Container */
+        .products-container {
+            display: none;
+        }
+
+        .products-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Product Card */
+        .product-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #e1e5e9;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .product-card.basic {
+            border-top: 4px solid #28a745;
+        }
+
+        .product-card.vip {
+            border-top: 4px solid #ffc107;
+            background: linear-gradient(135deg, #fffdf5, #fff8e1);
+        }
+
+        .vip-badge {
+            position: absolute;
+            top: 15px;
+            right: -30px;
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+            padding: 5px 35px;
+            transform: rotate(45deg);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 3px 10px rgba(255, 193, 7, 0.4);
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .product-price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        /* Features */
+        .features-list {
+            margin-bottom: 18px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .feature-item i {
+            color: #28a745;
+            font-size: 14px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .feature-item.highlight {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .feature-item.highlight i {
+            color: #ffc107;
+        }
+
+        /* ROI Badge */
+        .roi-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* Buy Buttons */
+        .buy-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .buy-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .buy-btn.balance {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .buy-btn.balance:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .buy-btn.deposit {
+            background: #28a745;
+            color: white;
+        }
+
+        .buy-btn.deposit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .buy-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Active Products Section */
+        .active-section {
+            margin-top: 25px;
+        }
+
+        .active-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .active-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .active-item .name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .active-item .details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .active-item .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .active-item .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .no-active {
+            text-align: center;
+            padding: 25px;
+            color: #999;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+        }
+
+        .alert.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-box h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-box .amount-needed {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .modal-close {
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .modal-go {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .product-price {
+                font-size: 18px;
+            }
+
+            .buy-options {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1>Products</h1>
+        </div>
+
+        <!-- Balance -->
+        <div class="balance-card">
+            <div class="balance-label">Your Balance</div>
+            <div class="balance-amount" id="depositBalance">0.00</div>
+            <div class="balance-sub">USDT</div>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+            <button class="category-tab active" onclick="switchCategory('basic')">
+                <i class="fas fa-star"></i> Basic
+            </button>
+            <button class="category-tab" onclick="switchCategory('vip')">
+                <i class="fas fa-crown"></i> VIP
+            </button>
+        </div>
+
+        <!-- Alert -->
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Basic Products -->
+        <div id="basic-products" class="products-container active">
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-name">Level 1</div>
+                    <div class="product-price">30 USDT</div>
+                </div>
+                <span class="roi-badge">480% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 144 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('Level 1', 30, 4, 120, false, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-name">Level 2</div>
+                    <div class="product-price">50 USDT</div>
+                </div>
+                <span class="roi-badge">480% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 240 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('Level 2', 50, 4, 120, false, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+
+            <div class="product-card basic">
+                <div class="product-header">
+                    <div class="product-name">Level 3</div>
+                    <div class="product-price">100 USDT</div>
+                </div>
+                <span class="roi-badge">480% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 480 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('Level 3', 100, 4, 120, false, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIP Products -->
+        <div id="vip-products" class="products-container">
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-name">VIP 1</div>
+                    <div class="product-price">300 USDT</div>
+                </div>
+                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 15 USDT daily</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 1,950 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('VIP 1', 300, 15, 130, true, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-name">VIP 2</div>
+                    <div class="product-price">500 USDT</div>
+                </div>
+                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 25 USDT daily</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 3,250 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('VIP 2', 500, 25, 130, true, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+
+            <div class="product-card vip">
+                <div class="vip-badge">VIP</div>
+                <div class="product-header">
+                    <div class="product-name">VIP 3</div>
+                    <div class="product-price">1000 USDT</div>
+                </div>
+                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
+                <div class="features-list">
+                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 50 USDT daily</div>
+                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
+                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 6,500 USDT</div>
+                </div>
+                <div class="buy-options">
+                    <button class="buy-btn balance" onclick="buyProduct('VIP 3', 1000, 50, 130, true, 'balance')">
+                        <i class="fas fa-wallet"></i> Buy Now
+                    </button>
+                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Products -->
+        <div class="active-section">
+            <h3><i class="fas fa-chart-line"></i> Your Active Investments</h3>
+            <div id="activeProducts">
+                <div class="no-active">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insufficient Balance Modal -->
+    <div class="modal-overlay" id="insufficientModal">
+        <div class="modal-box">
+            <h3><i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Insufficient Balance</h3>
+            <p>You need</p>
+            <div class="amount-needed" id="neededAmount">0 USDT</div>
+            <p>Please deposit funds to continue.</p>
+            <a href="deposit.html" class="modal-go">
+                <i class="fas fa-plus-circle"></i> Go to Deposit
+            </a>
+            <br>
+            <button class="modal-close" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let userDepositBalance = 0;
+
+        // Auth Check
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            loadUserData();
+            loadActiveProducts();
+        });
+
+        // Load User Balance
+        async function loadUserData() {
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) {
+                    userDepositBalance = doc.data().depositBalance || 0;
+                    document.getElementById('depositBalance').textContent = userDepositBalance.toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading balance:', error);
+            }
+        }
+
+        // Switch Category
+        function switchCategory(category) {
+            document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.products-container').forEach(cont => cont.classList.remove('active'));
+
+            if (category === 'basic') {
+                document.querySelector('.category-tab:nth-child(1)').classList.add('active');
+                document.getElementById('basic-products').classList.add('active');
+            } else {
+                document.querySelector('.category-tab:nth-child(2)').classList.add('active');
+                document.getElementById('vip-products').classList.add('active');
+            }
+        }
+
+        // Buy Product
+        async function buyProduct(name, price, dailyEarnings, duration, isFixed, method) {
+            if (!currentUser) return;
+
+            // Check balance
+            if (userDepositBalance < price) {
+                document.getElementById('neededAmount').textContent = `${price} USDT`;
+                document.getElementById('insufficientModal').classList.add('show');
+                return;
+            }
+
+            // Confirm purchase
+            if (!confirm(`Purchase ${name} for ${price} USDT?\n\nEarn ${isFixed ? dailyEarnings + ' USDT' : dailyEarnings + '%'} daily for ${duration} days.`)) {
+                return;
+            }
+
+            try {
+                // Deduct from balance
+                await db.collection('users').doc(currentUser.uid).update({
+                    depositBalance: firebase.firestore.FieldValue.increment(-price)
+                });
+
+                // Create investment
+                await db.collection('investments').add({
+                    userId: currentUser.uid,
+                    productName: name,
+                    amount: price,
+                    dailyEarnings: dailyEarnings,
+                    duration: duration,
+                    isFixed: isFixed,
+                    totalEarned: 0,
+                    status: 'active',
+                    purchaseDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastClaimDate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showAlert(`Successfully purchased ${name}! Start claiming daily earnings.`, 'success');
+
+                // Refresh
+                await loadUserData();
+                await loadActiveProducts();
+
+            } catch (error) {
+                console.error('Purchase error:', error);
+                showAlert('Error processing purchase. Please try again.', 'danger');
+            }
+        }
+
+        // Load Active Products
+        async function loadActiveProducts() {
+            const container = document.getElementById('activeProducts');
+
+            try {
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', currentUser.uid)
+                    .where('status', '==', 'active')
+                    .orderBy('purchaseDate', 'desc')
+                    .get();
+
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="no-active">
+                            <i class="fas fa-box-open" style="font-size: 40px; color: #dee2e6; margin-bottom: 10px;"></i>
+                            <p>No active investments yet</p>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const inv = doc.data();
+                    const purchaseDate = inv.purchaseDate.toDate();
+                    const daysElapsed = Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const daysLeft = Math.max(0, inv.duration - daysElapsed);
+                    const progress = Math.min(100, (daysElapsed / inv.duration) * 100);
+                    const dailyAmount = inv.isFixed ? `${inv.dailyEarnings} USDT` : `${inv.dailyEarnings}%`;
+
+                    const item = document.createElement('div');
+                    item.className = 'active-item';
+                    item.innerHTML = `
+                        <div class="name">${inv.productName} - ${inv.amount} USDT</div>
+                        <div class="details">
+                            <span>Daily: ${dailyAmount}</span>
+                            <span>Days left: ${daysLeft}</span>
+                        </div>
+                        <div class="details">
+                            <span>Earned: ${(inv.totalEarned || 0).toFixed(2)} USDT</span>
+                            <span>Progress: ${progress.toFixed(0)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Error loading active products:', error);
+                container.innerHTML = '<div class="no-active">Error loading investments</div>';
+            }
+        }
+
+        // Show Alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alertMessage');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 4000);
+        }
+
+        // Close Modal
+        function closeModal() {
+            document.getElementById('insufficientModal').classList.remove('show');
+        }
+
+        // Close modal on outside click
+        document.getElementById('insufficientModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>

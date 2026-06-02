@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit - SAFE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .back-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        /* Payment Method Tabs */
+        .payment-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .payment-tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .payment-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .payment-tab i {
+            font-size: 18px;
+        }
+
+        /* Payment Forms */
+        .payment-form {
+            display: none;
+        }
+
+        .payment-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Telebirr Section */
+        .telebirr-info {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #4caf50;
+        }
+
+        .telebirr-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2e7d32;
+            text-align: center;
+            margin: 10px 0;
+            letter-spacing: 2px;
+        }
+
+        .telebirr-name {
+            text-align: center;
+            color: #1b5e20;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .copy-btn:hover {
+            background: #388e3c;
+            transform: translateY(-2px);
+        }
+
+        /* Crypto Section */
+        .wallet-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #e1e5e9;
+        }
+
+        .wallet-address {
+            font-size: 13px;
+            color: #333;
+            word-break: break-all;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            font-family: monospace;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload {
+            border: 2px dashed #667eea;
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .file-upload:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
+
+        .file-upload i {
+            font-size: 30px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            margin-top: 10px;
+            display: none;
+            border-radius: 8px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* History Section */
+        .history-section {
+            margin-top: 25px;
+        }
+
+        .history-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-amount {
+            font-weight: 700;
+            color: #28a745;
+            font-size: 16px;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .history-method {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .badge-approved {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-rejected {
+            background: #dc3545;
+            color: white;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .balance-amount {
+                font-size: 28px;
+            }
+
+            .telebirr-number {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1>Deposit Funds</h1>
+        </div>
+
+        <!-- Balance -->
+        <div class="balance-card">
+            <div class="balance-label">Your Balance</div>
+            <div class="balance-amount" id="depositBalance">0.00</div>
+            <div>USDT</div>
+        </div>
+
+        <!-- Payment Method Tabs -->
+        <div class="payment-tabs">
+            <button class="payment-tab active" onclick="switchPayment('telebirr')">
+                <i class="fas fa-mobile-alt"></i> Telebirr
+            </button>
+            <button class="payment-tab" onclick="switchPayment('crypto')">
+                <i class="fab fa-bitcoin"></i> Crypto
+            </button>
+        </div>
+
+        <!-- Telebirr Payment Form -->
+        <div id="telebirr-form" class="payment-form active">
+            <div class="telebirr-info">
+                <div style="text-align: center; color: #2e7d32; font-weight: 600;">
+                    <i class="fas fa-mobile-alt"></i> Pay via Telebirr
+                </div>
+                <div class="telebirr-number">0949399753</div>
+                <div class="telebirr-name">Account Name: Abinet</div>
+                <button class="copy-btn" onclick="copyTelebirrNumber()">
+                    <i class="fas fa-copy"></i> Copy Number
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (USDT)</label>
+                <input type="number" id="telebirr-amount" placeholder="Minimum 10 USDT" min="10" step="1">
+            </div>
+
+            <div class="form-group">
+                <label>Transaction Reference</label>
+                <input type="text" id="telebirr-ref" placeholder="Enter Telebirr transaction ID">
+            </div>
+
+            <div class="form-group">
+                <label>Screenshot Proof</label>
+                <div class="file-upload" onclick="document.getElementById('telebirr-screenshot').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload payment screenshot</p>
+                    <input type="file" id="telebirr-screenshot" accept="image/*" onchange="previewImage(this, 'telebirr-preview')">
+                </div>
+                <img id="telebirr-preview" class="preview-image" alt="Preview">
+            </div>
+
+            <button class="submit-btn" id="telebirr-submit" onclick="submitDeposit('telebirr')">
+                <i class="fas fa-paper-plane"></i> Submit Deposit
+            </button>
+        </div>
+
+        <!-- Crypto Payment Form -->
+        <div id="crypto-form" class="payment-form">
+            <div class="wallet-info">
+                <div style="font-weight: 600; color: #333; margin-bottom: 8px;">
+                    <i class="fab fa-bitcoin"></i> TRC20 Wallet Address
+                </div>
+                <div class="wallet-address" id="walletAddress">TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu</div>
+                <button class="copy-btn" onclick="copyWalletAddress()" style="background: #667eea;">
+                    <i class="fas fa-copy"></i> Copy Address
+                </button>
+                <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
+                    Minimum 10 USDT • TRC20 Network Only
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (USDT)</label>
+                <input type="number" id="crypto-amount" placeholder="Minimum 10 USDT" min="10" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Transaction Hash</label>
+                <input type="text" id="crypto-hash" placeholder="Enter transaction hash/TXID">
+            </div>
+
+            <div class="form-group">
+                <label>Screenshot Proof</label>
+                <div class="file-upload" onclick="document.getElementById('crypto-screenshot').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload payment screenshot</p>
+                    <input type="file" id="crypto-screenshot" accept="image/*" onchange="previewImage(this, 'crypto-preview')">
+                </div>
+                <img id="crypto-preview" class="preview-image" alt="Preview">
+            </div>
+
+            <button class="submit-btn" id="crypto-submit" onclick="submitDeposit('crypto')">
+                <i class="fas fa-paper-plane"></i> Submit Deposit
+            </button>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Deposit History -->
+        <div class="history-section">
+            <h3><i class="fas fa-history"></i> Recent Deposits</h3>
+            <div id="depositHistory">
+                <div class="no-data">Loading history...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const rdb = firebase.database();
+        const storage = firebase.storage();
+
+        let currentUser = null;
+
+        // Auth Check
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            loadUserData();
+            loadDepositHistory();
+        });
+
+        // Load Balance
+        async function loadUserData() {
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) {
+                    document.getElementById('depositBalance').textContent = 
+                        (doc.data().depositBalance || 0).toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading balance:', error);
+            }
+        }
+
+        // Load Deposit History
+        function loadDepositHistory() {
+            const historyDiv = document.getElementById('depositHistory');
+            
+            rdb.ref('deposits')
+                .orderByChild('userId')
+                .equalTo(currentUser.uid)
+                .limitToLast(10)
+                .on('value', (snapshot) => {
+                    if (!snapshot.exists()) {
+                        historyDiv.innerHTML = '<div class="no-data">No deposits yet</div>';
+                        return;
+                    }
+
+                    let deposits = [];
+                    snapshot.forEach(child => {
+                        deposits.push({ id: child.key, ...child.val() });
+                    });
+
+                    deposits.sort((a, b) => b.timestamp - a.timestamp);
+
+                    historyDiv.innerHTML = deposits.map(dep => {
+                        const date = new Date(dep.timestamp);
+                        const method = dep.paymentMethod === 'telebirr' ? '📱 Telebirr' : '₿ Crypto';
+                        const statusBadge = `badge-${dep.status || 'pending'}`;
+                        
+                        return `
+                            <div class="history-item">
+                                <div class="history-info">
+                                    <div class="history-amount">+${parseFloat(dep.amount).toFixed(2)} USDT</div>
+                                    <div class="history-date">${date.toLocaleString()}</div>
+                                    <div class="history-method">${method}</div>
+                                </div>
+                                <span class="badge ${statusBadge}">${dep.status || 'Pending'}</span>
+                            </div>
+                        `;
+                    }).join('');
+                });
+        }
+
+        // Switch Payment Method
+        function switchPayment(method) {
+            document.querySelectorAll('.payment-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.payment-form').forEach(form => form.classList.remove('active'));
+
+            if (method === 'telebirr') {
+                document.querySelector('.payment-tab:nth-child(1)').classList.add('active');
+                document.getElementById('telebirr-form').classList.add('active');
+            } else {
+                document.querySelector('.payment-tab:nth-child(2)').classList.add('active');
+                document.getElementById('crypto-form').classList.add('active');
+            }
+        }
+
+        // Copy Functions
+        function copyTelebirrNumber() {
+            navigator.clipboard.writeText('0949399753');
+            showAlert('Number copied! Pay to 0949399753 (Abinet)', 'success');
+        }
+
+        function copyWalletAddress() {
+            navigator.clipboard.writeText('TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu');
+            showAlert('Wallet address copied!', 'success');
+        }
+
+        // Preview Image
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Show Alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alertMessage');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 4000);
+        }
+
+        // Submit Deposit
+        async function submitDeposit(method) {
+            if (!currentUser) return;
+
+            const amount = parseFloat(document.getElementById(`${method}-amount`).value);
+            const ref = document.getElementById(method === 'telebirr' ? 'telebirr-ref' : 'crypto-hash').value.trim();
+            const screenshotFile = document.getElementById(`${method}-screenshot`).files[0];
+            const submitBtn = document.getElementById(`${method}-submit`);
+
+            // Validation
+            if (!amount || amount < 10) {
+                showAlert('Minimum deposit is 10 USDT', 'danger');
+                return;
+            }
+            if (!ref) {
+                showAlert(`Please enter ${method === 'telebirr' ? 'transaction reference' : 'transaction hash'}`, 'danger');
+                return;
+            }
+            if (!screenshotFile) {
+                showAlert('Please upload payment screenshot', 'danger');
+                return;
+            }
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            try {
+                // Upload screenshot
+                const storageRef = storage.ref(`deposits/${currentUser.uid}/${Date.now()}_${screenshotFile.name}`);
+                await storageRef.put(screenshotFile);
+                const screenshotUrl = await storageRef.getDownloadURL();
+
+                // Save to Firebase
+                const depositData = {
+                    userId: currentUser.uid,
+                    email: currentUser.email,
+                    amount: amount,
+                    paymentMethod: method,
+                    reference: ref,
+                    screenshot: screenshotUrl,
+                    status: 'pending',
+                    timestamp: Date.now()
+                };
+
+                await rdb.ref('deposits').push(depositData);
+
+                showAlert('Deposit submitted! Will be processed within 24 hours.', 'success');
+
+                // Clear form
+                document.getElementById(`${method}-amount`).value = '';
+                document.getElementById(method === 'telebirr' ? 'telebirr-ref' : 'crypto-hash').value = '';
+                document.getElementById(`${method}-screenshot`).value = '';
+                document.getElementById(`${method}-preview`).style.display = 'none';
+
+            } catch (error) {
+                console.error('Deposit error:', error);
+                showAlert('Error submitting deposit. Please try again.', 'danger');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit';
+            }
+        }
+    </script>
+</body>
+</html>

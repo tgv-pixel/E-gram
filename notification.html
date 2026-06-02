@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - SAFE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .back-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .unread-count {
+            background: #dc3545;
+            color: white;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .filter-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        /* User Info */
+        .user-info {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info .uid {
+            font-weight: 600;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        /* Notification List */
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 16px;
+            transition: all 0.3s;
+            border-left: 5px solid #e1e5e9;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            transform: translateX(3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .notification-item.unread {
+            border-left-color: #667eea;
+            background: #eef0ff;
+        }
+
+        .notification-item.referral {
+            border-left-color: #28a745;
+        }
+
+        .notification-item.deposit {
+            border-left-color: #17a2b8;
+        }
+
+        .notification-item.withdraw {
+            border-left-color: #ffc107;
+        }
+
+        .notification-item.system {
+            border-left-color: #6f42c1;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .notification-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .notification-type i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .type-referral i { color: #28a745; }
+        .type-deposit i { color: #17a2b8; }
+        .type-withdraw i { color: #ffc107; }
+        .type-system i { color: #6f42c1; }
+
+        .notification-time {
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+        }
+
+        .notification-body {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .notification-body .highlight {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .notification-body .amount {
+            font-weight: 700;
+            color: #28a745;
+        }
+
+        .notification-body .email-highlight {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn.claim {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .action-btn.claim:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .action-btn.view {
+            background: #667eea;
+            color: white;
+        }
+
+        .action-btn.view:hover {
+            background: #5a6fd6;
+        }
+
+        .action-btn.dismiss {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .action-btn.dismiss:hover {
+            background: #dee2e6;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-claimed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-unclaimed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            color: #dee2e6;
+            margin-bottom: 15px;
+        }
+
+        .empty-state h3 {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+        }
+
+        .alert.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .notification-item {
+                padding: 12px;
+            }
+
+            .notification-actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1>
+                Notifications
+                <span class="unread-count" id="unreadCount" style="display:none;">0</span>
+            </h1>
+        </div>
+
+        <!-- User Info -->
+        <div class="user-info">
+            <i class="fas fa-user-circle"></i>
+            <span>Your ID: <span class="uid" id="userUid">---</span></span>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterNotifications('all')">All</button>
+            <button class="filter-tab" onclick="filterNotifications('referral')">Referrals</button>
+            <button class="filter-tab" onclick="filterNotifications('deposit')">Deposits</button>
+            <button class="filter-tab" onclick="filterNotifications('system')">System</button>
+        </div>
+
+        <!-- Alert -->
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Notifications List -->
+        <div class="notification-list" id="notificationList">
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <h3>No Notifications</h3>
+                <p>Loading your notifications...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const rdb = firebase.database();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let allNotifications = [];
+        let currentFilter = 'all';
+
+        // Auth Check
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            document.getElementById('userUid').textContent = user.uid.substring(0, 12) + '...';
+            loadNotifications();
+        });
+
+        // Load Notifications from multiple paths
+        function loadNotifications() {
+            const listDiv = document.getElementById('notificationList');
+            listDiv.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>Loading...</h3></div>';
+
+            allNotifications = [];
+
+            // Listen to admin_notifications path
+            rdb.ref('admin_notifications/' + currentUser.uid).on('value', (snapshot) => {
+                processSnapshot(snapshot, 'admin');
+            });
+
+            // Listen to notifications path
+            rdb.ref('notifications/' + currentUser.uid).on('value', (snapshot) => {
+                processSnapshot(snapshot, 'user');
+            });
+
+            // Listen to referral_notifications path
+            rdb.ref('referral_notifications/' + currentUser.uid).on('value', (snapshot) => {
+                processSnapshot(snapshot, 'referral');
+            });
+        }
+
+        function processSnapshot(snapshot, source) {
+            if (!snapshot.exists()) return;
+
+            snapshot.forEach(child => {
+                const data = child.val();
+                const exists = allNotifications.findIndex(n => n.id === child.key && n.source === source);
+                
+                if (exists === -1) {
+                    allNotifications.push({
+                        id: child.key,
+                        source: source,
+                        ...data,
+                        timestamp: data.timestamp || Date.now()
+                    });
+                } else {
+                    allNotifications[exists] = {
+                        ...allNotifications[exists],
+                        ...data
+                    };
+                }
+            });
+
+            // Sort by timestamp (newest first)
+            allNotifications.sort((a, b) => b.timestamp - a.timestamp);
+
+            renderNotifications();
+        }
+
+        // Render Notifications
+        function renderNotifications() {
+            const listDiv = document.getElementById('notificationList');
+
+            // Filter
+            let filtered = allNotifications;
+            if (currentFilter !== 'all') {
+                filtered = allNotifications.filter(n => getNotificationType(n) === currentFilter);
+            }
+
+            // Update unread count
+            const unreadCount = allNotifications.filter(n => !n.read).length;
+            const countBadge = document.getElementById('unreadCount');
+            if (unreadCount > 0) {
+                countBadge.textContent = unreadCount;
+                countBadge.style.display = 'inline';
+            } else {
+                countBadge.style.display = 'none';
+            }
+
+            if (filtered.length === 0) {
+                listDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <h3>No Notifications</h3>
+                        <p>${currentFilter === 'all' ? 'You have no notifications yet.' : 'No ' + currentFilter + ' notifications.'}</p>
+                    </div>`;
+                return;
+            }
+
+            listDiv.innerHTML = filtered.map(notif => {
+                const date = new Date(notif.timestamp);
+                const timeStr = formatTime(date);
+                const type = getNotificationType(notif);
+                const { icon, title, body, actionBtn } = getNotificationContent(notif, type);
+
+                return `
+                    <div class="notification-item ${notif.read ? '' : 'unread'} ${type}">
+                        <div class="notification-header">
+                            <div class="notification-type type-${type}">
+                                <i class="${icon}"></i>
+                                ${title}
+                            </div>
+                            <div class="notification-time">${timeStr}</div>
+                        </div>
+                        <div class="notification-body">${body}</div>
+                        ${actionBtn ? `
+                            <div class="notification-actions">
+                                ${actionBtn}
+                                ${!notif.read ? `
+                                    <button class="action-btn dismiss" onclick="markAsRead('${notif.source}', '${notif.id}')">
+                                        <i class="fas fa-check"></i> Mark Read
+                                    </button>
+                                ` : ''}
+                            </div>
+                        ` : (!notif.read ? `
+                            <div class="notification-actions">
+                                <button class="action-btn dismiss" onclick="markAsRead('${notif.source}', '${notif.id}')">
+                                    <i class="fas fa-check"></i> Mark Read
+                                </button>
+                            </div>
+                        ` : '')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Get Notification Type
+        function getNotificationType(notif) {
+            if (notif.type === 'referral' || notif.source === 'referral') return 'referral';
+            if (notif.type === 'deposit' || notif.type === 'deposit_approved') return 'deposit';
+            if (notif.type === 'withdraw' || notif.type === 'withdrawal') return 'withdraw';
+            return 'system';
+        }
+
+        // Get Notification Content
+        function getNotificationContent(notif, type) {
+            const data = {
+                icon: 'fas fa-bell',
+                title: 'Notification',
+                body: notif.message || 'You have a new notification.',
+                actionBtn: null
+            };
+
+            if (type === 'referral') {
+                data.icon = 'fas fa-users';
+                data.title = 'New Referral! 🎉';
+                data.body = `
+                    <span class="email-highlight">${notif.email || 'Someone'}</span> joined using your referral code!
+                    ${notif.referredName ? `<br>Name: <span class="highlight">${notif.referredName}</span>` : ''}
+                `;
+
+                // Check if claimable
+                if (!notif.claimed && notif.userId) {
+                    checkIfClaimable(notif.userId).then(claimable => {
+                        if (claimable && !notif.claimed) {
+                            // Re-render with claim button
+                            renderNotifications();
+                        }
+                    });
+                }
+
+                if (!notif.claimed) {
+                    data.actionBtn = `
+                        <button class="action-btn claim" onclick="claimReferralReward('${notif.source}', '${notif.id}', '${notif.userId || ''}')" id="claim-${notif.id}">
+                            <i class="fas fa-gift"></i> Claim Bonus
+                        </button>
+                    `;
+                } else {
+                    data.body += `<br><span class="status-badge status-claimed">Claimed ✓</span>`;
+                }
+            } else if (type === 'deposit') {
+                data.icon = 'fas fa-arrow-down';
+                data.title = 'Deposit Update';
+                data.body = `
+                    Your deposit of <span class="amount">${notif.amount || 0} USDT</span> has been 
+                    ${notif.status === 'approved' ? '<span style="color:#28a745;">approved</span>' : 
+                      notif.status === 'rejected' ? '<span style="color:#dc3545;">rejected</span>' : 
+                      '<span style="color:#ffc107;">submitted</span>'}.
+                `;
+            } else if (type === 'withdraw') {
+                data.icon = 'fas fa-arrow-up';
+                data.title = 'Withdrawal Update';
+                data.body = `
+                    Your withdrawal of <span class="amount">${notif.amount || 0} USDT</span> has been 
+                    ${notif.status === 'completed' ? '<span style="color:#28a745;">completed</span>' : 
+                      notif.status === 'rejected' ? '<span style="color:#dc3545;">rejected</span>' : 
+                      '<span style="color:#ffc107;">submitted</span>'}.
+                `;
+            } else {
+                data.icon = 'fas fa-info-circle';
+                data.title = 'System Notification';
+                data.body = notif.message || 'System notification.';
+            }
+
+            return data;
+        }
+
+        // Check if referral is claimable (user made purchase)
+        async function checkIfClaimable(userId) {
+            if (!userId) return false;
+            try {
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', userId)
+                    .limit(1)
+                    .get();
+                return !snapshot.empty;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // Claim Referral Reward
+        async function claimReferralReward(source, notificationId, referredUserId) {
+            try {
+                // Check purchase
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', referredUserId)
+                    .orderBy('purchaseDate', 'asc')
+                    .limit(1)
+                    .get();
+
+                if (snapshot.empty) {
+                    showAlert('User has not made any purchase yet.', 'danger');
+                    return;
+                }
+
+                const purchaseAmount = snapshot.docs[0].data().amount || 0;
+                const pointsToAward = Math.floor(purchaseAmount * 0.1);
+
+                if (!confirm(`Claim ${pointsToAward} points bonus for this referral?`)) return;
+
+                // Mark as claimed
+                await rdb.ref(`${source}/${currentUser.uid}/${notificationId}`).update({
+                    claimed: true,
+                    claimedAt: Date.now(),
+                    pointsAwarded: pointsToAward,
+                    purchaseAmount: purchaseAmount,
+                    read: true
+                });
+
+                // Award points
+                await db.collection('users').doc(currentUser.uid).update({
+                    points: firebase.firestore.FieldValue.increment(pointsToAward)
+                });
+
+                showAlert(`Successfully claimed ${pointsToAward} points!`, 'success');
+
+            } catch (error) {
+                console.error('Claim error:', error);
+                showAlert('Error claiming reward. Try again.', 'danger');
+            }
+        }
+
+        // Mark as Read
+        async function markAsRead(source, notificationId) {
+            try {
+                await rdb.ref(`${source}/${currentUser.uid}/${notificationId}`).update({
+                    read: true
+                });
+            } catch (error) {
+                console.error('Error marking read:', error);
+            }
+        }
+
+        // Filter Notifications
+        function filterNotifications(filter) {
+            currentFilter = filter;
+            
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+            const tabIndex = { all: 0, referral: 1, deposit: 2, system: 3 };
+            document.querySelectorAll('.filter-tab')[tabIndex[filter]].classList.add('active');
+
+            renderNotifications();
+        }
+
+        // Format Time
+        function formatTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+            
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Show Alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alertMessage');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 4000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,607 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Tasks - SAFE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .back-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        /* Earnings Card */
+        .earnings-card {
+            background: linear-gradient(135deg, #17a2b8, #0dcaf0);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(23, 162, 184, 0.3);
+        }
+
+        .earnings-label {
+            font-size: 13px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .earnings-amount {
+            font-size: 38px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .earnings-sub {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Weekend Notice */
+        .weekend-notice {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            border: 2px solid #ffc107;
+            display: none;
+        }
+
+        .weekend-notice.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .weekend-notice i {
+            margin-right: 8px;
+        }
+
+        /* Task Section */
+        .task-section {
+            margin-bottom: 20px;
+        }
+
+        .task-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 18px;
+            margin-bottom: 12px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-item.claimed {
+            border-left-color: #28a745;
+            opacity: 0.7;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .task-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .task-reward {
+            font-weight: 700;
+            color: #28a745;
+            font-size: 16px;
+            background: #d4edda;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .task-info {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .claim-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .claim-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .claim-btn:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .claimed-badge {
+            width: 100%;
+            padding: 12px;
+            background: #d4edda;
+            color: #155724;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .claimed-badge i {
+            margin-right: 5px;
+        }
+
+        /* No Tasks */
+        .no-tasks {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            color: #999;
+        }
+
+        .no-tasks i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #dee2e6;
+        }
+
+        .no-tasks p {
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .buy-product-btn {
+            display: inline-block;
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .buy-product-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+        }
+
+        .alert.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            color: white;
+            font-size: 13px;
+        }
+
+        .stat-card.total {
+            background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+        }
+
+        .stat-card.today {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 3px 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .earnings-amount {
+                font-size: 30px;
+            }
+
+            .task-item {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1>Daily Tasks</h1>
+        </div>
+
+        <!-- Earnings Card -->
+        <div class="earnings-card">
+            <div class="earnings-label">Total Earnings</div>
+            <div class="earnings-amount" id="totalEarnings">0.00</div>
+            <div class="earnings-sub">USDT</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card total">
+                <div>Active Products</div>
+                <div class="stat-value" id="activeProducts">0</div>
+            </div>
+            <div class="stat-card today">
+                <div>Claimed Today</div>
+                <div class="stat-value" id="claimedToday">0</div>
+            </div>
+        </div>
+
+        <!-- Weekend Notice -->
+        <div class="weekend-notice" id="weekendNotice">
+            <i class="fas fa-calendar-alt"></i> 
+            <strong>Weekend Break:</strong> Earnings can only be claimed on weekdays (Monday-Friday). Please return on Monday.
+        </div>
+
+        <!-- Alert -->
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Tasks List -->
+        <div class="task-section">
+            <h3><i class="fas fa-list-check"></i> Your Daily Earnings</h3>
+            <div id="tasksContainer">
+                <div class="no-tasks">
+                    <i class="fas fa-box-open"></i>
+                    <p>No active investments yet</p>
+                    <a href="product.html" class="buy-product-btn">
+                        <i class="fas fa-gem"></i> Buy Products
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let allInvestments = [];
+
+        // Auth Check
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            loadUserData();
+            loadInvestments();
+        });
+
+        // Check Weekend
+        function isWeekend() {
+            const day = new Date().getDay();
+            return day === 0 || day === 6; // 0=Sunday, 6=Saturday
+        }
+
+        // Load User Data
+        async function loadUserData() {
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('totalEarnings').textContent = 
+                        (data.taskEarnings || 0).toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        // Load Investments
+        async function loadInvestments() {
+            try {
+                // Show/hide weekend notice
+                if (isWeekend()) {
+                    document.getElementById('weekendNotice').classList.add('show');
+                } else {
+                    document.getElementById('weekendNotice').classList.remove('show');
+                }
+
+                const snapshot = await db.collection('investments')
+                    .where('userId', '==', currentUser.uid)
+                    .where('status', '==', 'active')
+                    .get();
+
+                allInvestments = [];
+                snapshot.forEach(doc => {
+                    allInvestments.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Update stats
+                document.getElementById('activeProducts').textContent = allInvestments.length;
+
+                // Count claimed today
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let claimedCount = 0;
+                allInvestments.forEach(inv => {
+                    if (inv.lastClaimDate) {
+                        const claimDate = inv.lastClaimDate.toDate();
+                        claimDate.setHours(0, 0, 0, 0);
+                        if (claimDate.getTime() === today.getTime()) {
+                            claimedCount++;
+                        }
+                    }
+                });
+                document.getElementById('claimedToday').textContent = claimedCount;
+
+                // Render tasks
+                renderTasks();
+
+            } catch (error) {
+                console.error('Error loading investments:', error);
+            }
+        }
+
+        // Render Tasks
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+
+            if (allInvestments.length === 0) {
+                container.innerHTML = `
+                    <div class="no-tasks">
+                        <i class="fas fa-box-open"></i>
+                        <p>No active investments yet</p>
+                        <a href="product.html" class="buy-product-btn">
+                            <i class="fas fa-gem"></i> Buy Products
+                        </a>
+                    </div>`;
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            container.innerHTML = allInvestments.map(inv => {
+                // Calculate daily earnings
+                let dailyEarnings = inv.isFixed ? 
+                    inv.dailyEarnings : 
+                    (inv.amount * inv.dailyEarnings) / 100;
+
+                // Check if claimed today
+                let alreadyClaimed = false;
+                if (inv.lastClaimDate) {
+                    const claimDate = inv.lastClaimDate.toDate();
+                    claimDate.setHours(0, 0, 0, 0);
+                    if (claimDate.getTime() === today.getTime()) {
+                        alreadyClaimed = true;
+                    }
+                }
+
+                // Calculate days remaining
+                const purchaseDate = inv.purchaseDate.toDate();
+                const daysElapsed = Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+                const daysLeft = Math.max(0, inv.duration - daysElapsed);
+
+                const isWeekendDay = isWeekend();
+                const canClaim = !alreadyClaimed && !isWeekendDay;
+
+                return `
+                    <div class="task-item ${alreadyClaimed ? 'claimed' : ''}">
+                        <div class="task-header">
+                            <span class="task-name">
+                                <i class="fas fa-gem"></i> ${inv.productName}
+                            </span>
+                            <span class="task-reward">+${dailyEarnings.toFixed(2)} USDT</span>
+                        </div>
+                        <div class="task-info">
+                            <span><i class="fas fa-calendar"></i> Days left: ${daysLeft}</span>
+                            <span><i class="fas fa-coins"></i> Total earned: ${(inv.totalEarned || 0).toFixed(2)} USDT</span>
+                        </div>
+                        ${canClaim ? `
+                            <button class="claim-btn" onclick="claimEarnings('${inv.id}', ${dailyEarnings})">
+                                <i class="fas fa-hand-holding-usd"></i> Claim Earnings
+                            </button>
+                        ` : `
+                            <div class="claimed-badge">
+                                <i class="fas fa-check-circle"></i> 
+                                ${alreadyClaimed ? 'Claimed Today' : 'Weekend - Return Monday'}
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Claim Daily Earnings
+        async function claimEarnings(investmentId, amount) {
+            if (!currentUser) return;
+
+            if (isWeekend()) {
+                showAlert('Cannot claim on weekends. Please return on Monday.', 'danger');
+                return;
+            }
+
+            try {
+                // Update investment
+                await db.collection('investments').doc(investmentId).update({
+                    lastClaimDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalEarned: firebase.firestore.FieldValue.increment(amount)
+                });
+
+                // Update user balance
+                await db.collection('users').doc(currentUser.uid).update({
+                    taskEarnings: firebase.firestore.FieldValue.increment(amount)
+                });
+
+                showAlert(`Successfully claimed ${amount.toFixed(2)} USDT!`, 'success');
+
+                // Refresh data
+                await loadUserData();
+                await loadInvestments();
+
+            } catch (error) {
+                console.error('Error claiming:', error);
+                showAlert('Error claiming earnings. Try again.', 'danger');
+            }
+        }
+
+        // Show Alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alertMessage');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 4000);
+        }
+    </script>
+</body>
+</html>
