@@ -3,502 +3,816 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Login</title>
+    <title>Signup - SAFE</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        
+
         body {
-            background: linear-gradient(145deg, #0088cc, #006699);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
         }
-        
+
         .container {
             background: white;
-            max-width: 400px;
-            width: 100%;
-            padding: 30px;
+            padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+            transition: transform 0.3s ease;
         }
-        
-        h1 {
-            color: #0088cc;
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        .logo {
             text-align: center;
-            margin-bottom: 20px;
-            font-size: 24px;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        .info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #01579b;
-            border-left: 4px solid #0088cc;
+
+        .tab-container {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 30px;
+            gap: 4px;
         }
-        
-        input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+
+        .tab {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: #666;
             font-size: 16px;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
         }
-        
-        input:focus {
-            outline: none;
-            border-color: #0088cc;
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
         }
-        
-        button {
+
+        .tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .form-container {
+            display: none;
+        }
+
+        .form-container.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-group input {
             width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-group input.readonly-input {
+            background-color: #f0f4ff;
+            color: #495057;
+            font-weight: 600;
+            cursor: default;
+            border-color: #667eea;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .name-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Referral Info Box */
+        .referral-info-box {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
             padding: 15px;
-            background: #0088cc;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            border: 2px solid #4caf50;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .referral-info-box .icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .referral-info-box .title {
+            font-weight: 700;
+            color: #2e7d32;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .referral-info-box .detail {
+            font-size: 13px;
+            color: #1b5e20;
+        }
+
+        .referral-info-box .bonus {
+            font-weight: 700;
+            color: #ff6f00;
+        }
+
+        .no-referral-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            border: 2px dashed #dee2e6;
+        }
+
+        .no-referral-box .icon {
+            font-size: 24px;
+            color: #adb5bd;
+            margin-bottom: 5px;
+        }
+
+        .no-referral-box .text {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .captcha-challenge {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px dashed #667eea;
+            min-width: 100px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .refresh-captcha {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .refresh-captcha:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: rotate(180deg);
+        }
+
+        #captcha-input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        button[type="button"],
+        button:not(.tab) {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
-            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
         }
-        
-        button:hover {
-            background: #006699;
+
+        button[type="button"]:hover,
+        button:not(.tab):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
-        
+
+        button[type="button"]:active,
+        button:not(.tab):active {
+            transform: translateY(0);
+        }
+
         button:disabled {
-            background: #ccc;
+            opacity: 0.7;
             cursor: not-allowed;
+            transform: none !important;
         }
-        
-        .code-inputs {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        
-        .code-input {
-            width: 50px;
-            height: 60px;
-            text-align: center;
-            font-size: 24px;
-            border: 2px solid #e0e0e0;
+
+        #message, #login-message {
+            margin: 15px 0;
+            padding: 12px;
             border-radius: 10px;
-        }
-        
-        .code-input:focus {
-            border-color: #0088cc;
-            outline: none;
-        }
-        
-        #message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
             text-align: center;
+            font-weight: 500;
+            display: none;
         }
-        
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 4px solid #c62828;
+
+        #message.show, #login-message.show {
+            display: block;
         }
-        
+
         .success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 4px solid #2e7d32;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
-        
-        .info-message {
-            background: #e3f2fd;
-            color: #01579b;
-            border-left: 4px solid #0088cc;
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
-        
-        .link {
+
+        .link-text {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
         }
-        
-        .link a {
-            color: #0088cc;
+
+        .link-text a {
+            color: #667eea;
             text-decoration: none;
             font-weight: 500;
         }
-        
-        .link a:hover {
+
+        .link-text a:hover {
             text-decoration: underline;
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
+        /* Referral Steps */
+        .referral-steps {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #495057;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .referral-steps i {
+            color: #28a745;
+            margin-right: 5px;
         }
 
-        .btn-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+            
+            .name-fields {
+                grid-template-columns: 1fr;
+            }
+            
+            .captcha-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .captcha-challenge {
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📱 Telegram Manager</h1>
+        <div class="logo">SAFE</div>
         
-        <div class="info">
-            <strong>🔐 Atadd Telegram Account</strong><br>
-            Enter your phone number to get started
+        <div class="tab-container">
+            <button class="tab active" id="signupTab" onclick="switchTab('signup')">Sign Up</button>
+            <button class="tab" id="loginTab" onclick="switchTab('login')">Login</button>
         </div>
-        
-        <div id="step1">
-            <input type="text" id="phone" placeholder="Phone number (+1234567890)" value="+">
-            <button onclick="sendCode()" id="sendBtn">
-                <span class="btn-content">
-                    <span>Send Code</span>
-                </span>
-            </button>
-        </div>
-        
-        <div id="step2" style="display: none;">
-            <div class="code-inputs">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 0)" onkeydown="handleKeyDown(event, this, 0)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 1)" onkeydown="handleKeyDown(event, this, 1)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 2)" onkeydown="handleKeyDown(event, this, 2)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 3)" onkeydown="handleKeyDown(event, this, 3)">
-                <input type="text" class="code-input" maxlength="1" onkeyup="moveToNext(this, 4)" onkeydown="handleKeyDown(event, this, 4)">
+
+        <!-- Signup Form -->
+        <div id="signup-form" class="form-container active">
+            <h2>Create Account</h2>
+            <div id="message"></div>
+            
+            <!-- Referral Detection Box -->
+            <div id="referralBox"></div>
+            
+            <div class="name-fields">
+                <div class="input-group">
+                    <label for="first-name">First Name</label>
+                    <input type="text" id="first-name" placeholder="John" required>
+                </div>
+                <div class="input-group">
+                    <label for="last-name">Last Name</label>
+                    <input type="text" id="last-name" placeholder="Doe" required>
+                </div>
             </div>
-            <button onclick="verifyCode()" id="verifyBtn">Verify Code</button>
-            <button onclick="backToPhone()" style="background: #666;">Back</button>
-            <div id="resendTimer" style="text-align: center; margin-top: 10px; font-size: 14px; color: #666;"></div>
+            
+            <div class="input-group">
+                <label for="signup-email">Email Address</label>
+                <input type="email" id="signup-email" placeholder="john@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="Minimum 6 characters" required minlength="6">
+            </div>
+            
+            <div class="input-group">
+                <label for="phone">Phone Number (Optional)</label>
+                <input type="text" id="phone" placeholder="+1234567890">
+            </div>
+            
+            <!-- Hidden referral code field -->
+            <input type="hidden" id="referral-code-hidden" value="">
+            
+            <!-- Visible referral code (readonly, shows detected code) -->
+            <div class="input-group" id="referral-code-group" style="display:none;">
+                <label for="referral-code-display">Your Referral Code</label>
+                <input type="text" id="referral-code-display" class="readonly-input" readonly 
+                       placeholder="Detected from link">
+            </div>
+            
+            <div class="captcha-container">
+                <div class="captcha-challenge" id="captcha-challenge"></div>
+                <button type="button" class="refresh-captcha" onclick="generateCaptcha()" title="Refresh CAPTCHA">↻</button>
+                <input type="text" id="captcha-input" placeholder="Enter answer" required>
+            </div>
+            
+            <button id="signupBtn" onclick="signUp()">Create Account</button>
+            
+            <div class="link-text">
+                Already have an account? <a href="#" onclick="switchTab('login')">Login here</a>
+            </div>
         </div>
-        
-        <div id="step3" style="display: none;">
-            <input type="password" id="password" placeholder="2FA Password" onkeypress="if(event.key==='Enter') verifyPassword()">
-            <button onclick="verifyPassword()" id="passwordBtn">Submit</button>
-            <button onclick="backToPhone()" style="background: #666;">Cancel</button>
-        </div>
-        
-        <div id="message"></div>
-        
-        <div class="link">
-            <a href="/dashboard">Go to Dashboard →</a>
+
+        <!-- Login Form -->
+        <div id="login-form" class="form-container">
+            <h2>Welcome Back</h2>
+            <div id="login-message"></div>
+            
+            <div class="input-group">
+                <label for="login-email">Email Address</label>
+                <input type="email" id="login-email" placeholder="john@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="Enter your password" required>
+            </div>
+            
+            <button id="loginBtn" onclick="login()">Sign In</button>
+            
+            <div class="link-text">
+                Don't have an account? <a href="#" onclick="switchTab('signup')">Sign up here</a>
+            </div>
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <script>
-        let sessionId = null;
-        let phoneNumber = null;
-        let resendTimer = null;
-        let resendSeconds = 30;
-        
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = text;
-            msgDiv.className = type;
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAfsKcVP7OUo870TKkBnk4BfDEq9LnAK8",
+            authDomain: "newporoject-c6f66.firebaseapp.com",
+            databaseURL: "https://newporoject-c6f66-default-rtdb.firebaseio.com",
+            projectId: "newporoject-c6f66",
+            storageBucket: "newporoject-c6f66.appspot.com",
+            messagingSenderId: "733557611631",
+            appId: "1:733557611631:web:02c9377f56d614ff3b019a"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const rdb = firebase.database();
+        const db = firebase.firestore();
+
+        // CAPTCHA variables
+        let captchaAnswer;
+        let referredBy = null;
+        let referrerInfo = null;
+
+        // ============================================
+        // REFERRAL LINK DETECTION
+        // ============================================
+        function getReferralFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('ref');
         }
-        
-        function setButtonLoading(buttonId, isLoading, text) {
-            const btn = document.getElementById(buttonId);
-            if (isLoading) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="btn-content"><span class="loading-spinner"></span><span>' + text + '</span></span>';
+
+        async function checkReferralCode() {
+            const refCode = getReferralFromURL();
+            const referralBox = document.getElementById('referralBox');
+            const referralCodeGroup = document.getElementById('referral-code-group');
+            const referralCodeDisplay = document.getElementById('referral-code-display');
+            const referralCodeHidden = document.getElementById('referral-code-hidden');
+            
+            if (!refCode) {
+                // No referral code in URL
+                referralBox.innerHTML = `
+                    <div class="no-referral-box">
+                        <div class="icon">🔗</div>
+                        <div class="text">No referral code detected.<br>Ask a friend for their referral link to earn bonus points!</div>
+                    </div>`;
+                referralCodeGroup.style.display = 'none';
+                referredBy = null;
+                return;
+            }
+
+            // Check if referral code is valid (check if user exists)
+            try {
+                const userDoc = await db.collection('users').doc(refCode).get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    referrerInfo = userData;
+                    referredBy = refCode;
+                    
+                    // Show referral info
+                    referralBox.innerHTML = `
+                        <div class="referral-info-box">
+                            <div class="icon">🎉</div>
+                            <div class="title">You were invited by ${userData.firstName || 'a friend'}!</div>
+                            <div class="detail">
+                                You both will earn <span class="bonus">10% Points</span> on your first deposit!
+                            </div>
+                        </div>
+                        <div class="referral-steps">
+                            <i class="fas fa-check-circle"></i> Referral code detected: <strong>${refCode.substring(0, 10)}...</strong><br>
+                            <i class="fas fa-info-circle"></i> After signup, make your first deposit to earn points for your referrer!
+                        </div>`;
+                    
+                    // Show and set referral code
+                    referralCodeGroup.style.display = 'block';
+                    referralCodeDisplay.value = refCode.substring(0, 10) + '...';
+                    referralCodeHidden.value = refCode;
+                    
+                } else {
+                    // Invalid referral code
+                    referralBox.innerHTML = `
+                        <div class="no-referral-box" style="border-color: #ffc107; background: #fff8e1;">
+                            <div class="icon">⚠️</div>
+                            <div class="text" style="color: #856404;">Referral code not found.<br>Continue signing up without referral.</div>
+                        </div>`;
+                    referralCodeGroup.style.display = 'none';
+                    referredBy = null;
+                }
+            } catch (error) {
+                console.error('Error checking referral:', error);
+                referralBox.innerHTML = `
+                    <div class="no-referral-box">
+                        <div class="icon">🔗</div>
+                        <div class="text">Continue signing up.</div>
+                    </div>`;
+                referredBy = null;
+            }
+        }
+
+        // ============================================
+        // CAPTCHA
+        // ============================================
+        function generateCaptcha() {
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            const operators = ['+', '-', '*'];
+            const operator = operators[Math.floor(Math.random() * operators.length)];
+            
+            let challenge, answer;
+            switch(operator) {
+                case '+': answer = num1 + num2; challenge = `${num1} + ${num2} = ?`; break;
+                case '-': answer = num1 - num2; challenge = `${num1} - ${num2} = ?`; break;
+                case '*': answer = num1 * num2; challenge = `${num1} × ${num2} = ?`; break;
+            }
+            
+            document.getElementById('captcha-challenge').textContent = challenge;
+            captchaAnswer = answer;
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        generateCaptcha();
+        checkReferralCode();
+
+        // Check if URL has tab parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'login') {
+            switchTab('login');
+        }
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
+            
+            if (tabName === 'signup') {
+                document.getElementById('signupTab').classList.add('active');
+                document.getElementById('signup-form').classList.add('active');
             } else {
-                btn.disabled = false;
-                btn.innerHTML = '<span class="btn-content"><span>' + text + '</span></span>';
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('login-form').classList.add('active');
             }
         }
-        
-        function sendCode() {
+
+        // ============================================
+        // GENERATE REFERRAL CODE
+        // ============================================
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // ============================================
+        // SHOW MESSAGE
+        // ============================================
+        function showMessage(message, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = message;
+            msgDiv.className = type + ' show';
+            setTimeout(() => {
+                msgDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        function showLoginMessage(message, type) {
+            const msgDiv = document.getElementById('login-message');
+            msgDiv.textContent = message;
+            msgDiv.className = type + ' show';
+            setTimeout(() => {
+                msgDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // ============================================
+        // SIGN UP
+        // ============================================
+        async function signUp() {
+            const firstName = document.getElementById('first-name').value.trim();
+            const lastName = document.getElementById('last-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
             const phone = document.getElementById('phone').value.trim();
-            if (!phone) {
-                showMessage('Please enter phone number', 'error');
+            const userCaptchaInput = document.getElementById('captcha-input').value;
+            
+            // Basic validation
+            if (!firstName || !lastName) {
+                showMessage('Please enter your first and last name.', 'error');
                 return;
             }
             
-            // Basic phone validation
-            if (!phone.match(/^\+[\d]{10,15}$/)) {
-                showMessage('Please enter phone number with country code (e.g., +1234567890)', 'error');
+            if (!email) {
+                showMessage('Please enter your email address.', 'error');
                 return;
             }
             
-            phoneNumber = phone;
-            setButtonLoading('sendBtn', true, 'Sending...');
-            showMessage('Sending code...', 'info-message');
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters.', 'error');
+                return;
+            }
             
-            fetch('/api/add-account', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phone})
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('sendBtn', false, 'Send Code');
+            // Validate CAPTCHA
+            if (parseInt(userCaptchaInput) !== captchaAnswer) {
+                showMessage('CAPTCHA verification failed. Please try again.', 'error');
+                generateCaptcha();
+                document.getElementById('captcha-input').value = '';
+                return;
+            }
+
+            // Disable button and show loading state
+            const signupBtn = document.getElementById('signupBtn');
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Creating Account...';
+
+            try {
+                // Create user in Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                const now = new Date();
+                const referralCode = generateReferralCode();
                 
-                if (data.success) {
-                    sessionId = data.session_id;
-                    document.getElementById('step1').style.display = 'none';
-                    document.getElementById('step2').style.display = 'block';
-                    document.getElementById('message').textContent = '';
-                    
-                    // Focus first input
-                    document.querySelector('.code-input').focus();
-                    
-                    // Start resend timer
-                    startResendTimer();
-                } else {
-                    showMessage(data.error || 'Failed to send code', 'error');
-                }
-            })
-            .catch(err => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
-        function startResendTimer() {
-            resendSeconds = 30;
-            const timerDiv = document.getElementById('resendTimer');
-            
-            if (resendTimer) clearInterval(resendTimer);
-            
-            resendTimer = setInterval(() => {
-                resendSeconds--;
-                if (resendSeconds <= 0) {
-                    clearInterval(resendTimer);
-                    timerDiv.innerHTML = '<a href="#" onclick="resendCode(); return false;" style="color: #0088cc;">Resend code</a>';
-                } else {
-                    timerDiv.textContent = `Resend code in ${resendSeconds}s`;
-                }
-            }, 1000);
-        }
-        
-        function resendCode() {
-            if (!phoneNumber) {
-                backToPhone();
-                return;
-            }
-            
-            setButtonLoading('sendBtn', true, 'Resending...');
-            
-            fetch('/api/add-account', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phoneNumber})
-            })
-            .then(res => res.json())
-            .then(data => {
-                setButtonLoading('sendBtn', false, 'Send Code');
+                // Create user data object
+                const userData = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phone: phone || '',
+                    createdAt: firebase.firestore.Timestamp.fromDate(now),
+                    status: 'active',
+                    referralCode: referralCode,
+                    referredBy: referredBy || null,
+                    referralCount: 0,
+                    referralBonus: 0,
+                    totalReferralPoints: 0,
+                    depositBalance: 0,
+                    taskEarnings: 0,
+                    points: 0,
+                    lastLogin: null
+                };
+
+                // Save user data to Firestore
+                await db.collection('users').doc(user.uid).set(userData);
                 
-                if (data.success) {
-                    sessionId = data.session_id;
-                    showMessage('Code resent successfully', 'success');
-                    startResendTimer();
-                    
-                    // Clear code inputs
-                    document.querySelectorAll('.code-input').forEach(input => {
-                        input.value = '';
+                // Save basic user data to RTDB
+                await rdb.ref('users/' + user.uid).set({
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    referralCode: referralCode,
+                    referredBy: referredBy || null,
+                    status: 'active',
+                    lastLogin: null
+                });
+
+                // If referred by someone, save referral record
+                if (referredBy) {
+                    // Add to referral_notifications for referrer
+                    await rdb.ref('referral_notifications/' + referredBy).push({
+                        type: 'new_signup',
+                        email: email,
+                        firstName: firstName,
+                        lastName: lastName,
+                        userId: user.uid,
+                        timestamp: Date.now(),
+                        read: false,
+                        claimed: false,
+                        message: `${firstName} ${lastName} signed up using your referral link! Points will be awarded on their first deposit.`
                     });
-                    document.querySelector('.code-input').focus();
-                } else {
-                    showMessage(data.error || 'Failed to resend code', 'error');
+
+                    // Also add to admin_notifications
+                    await rdb.ref('admin_notifications/' + referredBy).push({
+                        type: 'new_signup',
+                        email: email,
+                        firstName: firstName,
+                        lastName: lastName,
+                        userId: user.uid,
+                        timestamp: Date.now(),
+                        read: false,
+                        claimed: false
+                    });
+
+                    // Save referral record in Firestore
+                    await db.collection('referrals').add({
+                        referrerId: referredBy,
+                        referredUserId: user.uid,
+                        referredEmail: email,
+                        referredName: `${firstName} ${lastName}`,
+                        timestamp: firebase.firestore.Timestamp.fromDate(now),
+                        status: 'pending_first_deposit',
+                        pointsAwarded: 0,
+                        bonusEarned: 0
+                    });
                 }
-            })
-            .catch(err => {
-                setButtonLoading('sendBtn', false, 'Send Code');
-                showMessage('Network error: ' + err.message, 'error');
-            });
-        }
-        
-        function moveToNext(input, index) {
-            // Allow only numbers
-            input.value = input.value.replace(/[^0-9]/g, '');
-            
-            if (input.value.length === 1) {
-                const next = document.querySelectorAll('.code-input')[index + 1];
-                if (next) next.focus();
-            }
-            
-            // Auto submit when all fields are filled
-            const inputs = document.querySelectorAll('.code-input');
-            const allFilled = Array.from(inputs).every(i => i.value.length === 1);
-            if (allFilled) {
-                verifyCode();
+
+                // Send verification email
+                await user.sendEmailVerification();
+                
+                showMessage('Account created! Check your email for verification. Redirecting to login...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Signup error:', error);
+                showMessage(error.message, 'error');
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            } finally {
+                generateCaptcha();
+                document.getElementById('captcha-input').value = '';
             }
         }
-        
-        function handleKeyDown(event, input, index) {
-            // Handle backspace
-            if (event.key === 'Backspace' && !input.value) {
-                const prev = document.querySelectorAll('.code-input')[index - 1];
-                if (prev) {
-                    prev.focus();
-                    prev.value = '';
-                }
-            }
-        }
-        
-        function verifyCode() {
-            const inputs = document.querySelectorAll('.code-input');
-            const code = Array.from(inputs).map(i => i.value).join('');
-            
-            if (code.length !== 5) {
-                showMessage('Please enter 5-digit code', 'error');
+
+        // ============================================
+        // LOGIN
+        // ============================================
+        async function login() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email) {
+                showLoginMessage('Please enter your email address.', 'error');
                 return;
             }
-            
-            setButtonLoading('verifyBtn', true, 'Verifying...');
-            showMessage('Verifying code...', 'info-message');
-            
-            fetch('/api/verify-code', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    code: code
-                })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('verifyBtn', false, 'Verify Code');
-                
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1500);
-                } else if (data.need_password) {
-                    document.getElementById('step2').style.display = 'none';
-                    document.getElementById('step3').style.display = 'block';
-                    document.getElementById('message').textContent = '';
-                    document.getElementById('password').focus();
-                } else {
-                    showMessage(data.error || 'Verification failed', 'error');
-                    // Clear code inputs on error
-                    inputs.forEach(input => input.value = '');
-                    inputs[0].focus();
-                }
-            })
-            .catch(err => {
-                setButtonLoading('verifyBtn', false, 'Verify Code');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
-        function verifyPassword() {
-            const password = document.getElementById('password').value;
             
             if (!password) {
-                showMessage('Please enter password', 'error');
+                showLoginMessage('Please enter your password.', 'error');
                 return;
             }
-            
-            setButtonLoading('passwordBtn', true, 'Verifying...');
-            
-            fetch('/api/verify-code', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    password: password
-                })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setButtonLoading('passwordBtn', false, 'Submit');
+
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing In...';
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                const now = new Date();
                 
-                if (data.success) {
-                    showMessage('✅ Account added successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1500);
-                } else {
-                    showMessage(data.error || 'Verification failed', 'error');
-                }
-            })
-            .catch(err => {
-                setButtonLoading('passwordBtn', false, 'Submit');
-                showMessage('Network error: ' + err.message, 'error');
-                console.error('Error details:', err);
-            });
-        }
-        
-        function backToPhone() {
-            document.getElementById('step1').style.display = 'block';
-            document.getElementById('step2').style.display = 'none';
-            document.getElementById('step3').style.display = 'none';
-            document.getElementById('message').textContent = '';
-            sessionId = null;
-            
-            // Clear code inputs
-            document.querySelectorAll('.code-input').forEach(input => {
-                input.value = '';
-            });
-            
-            // Clear password
-            document.getElementById('password').value = '';
-            
-            // Clear timer
-            if (resendTimer) {
-                clearInterval(resendTimer);
-                document.getElementById('resendTimer').textContent = '';
+                // Update last login time
+                await Promise.all([
+                    db.collection('users').doc(user.uid).update({
+                        lastLogin: firebase.firestore.Timestamp.fromDate(now)
+                    }),
+                    rdb.ref('users/' + user.uid).update({
+                        lastLogin: Date.now()
+                    })
+                ]);
+                
+                showLoginMessage('Login successful! Redirecting...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showLoginMessage(error.message, 'error');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
             }
         }
-
-        // Auto-focus first input when step2 shows
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.target.style.display === 'block' && mutation.target.id === 'step2') {
-                    document.querySelector('.code-input').focus();
-                }
-            });
-        });
-
-        observer.observe(document.getElementById('step2'), { attributes: true, attributeFilter: ['style'] });
     </script>
 </body>
 </html>
