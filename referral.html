@@ -16,6 +16,7 @@
             --light: #f8f9fa;
             --gray: #6c757d;
             --info: #17a2b8;
+            --gold: #ffd700;
         }
 
         * {
@@ -27,7 +28,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            background: #f5f7fa;
+            background: #f0f2f5;
             color: #333;
         }
 
@@ -61,7 +62,7 @@
         }
 
         .nav-brand {
-            font-size: 1.5em;
+            font-size: 1.3em;
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             -webkit-background-clip: text;
@@ -71,7 +72,7 @@
 
         .nav-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-btn {
@@ -93,7 +94,7 @@
 
         .badge {
             position: absolute;
-            top: 2px;
+            top: 0px;
             right: 2px;
             background: var(--danger);
             color: white;
@@ -109,58 +110,65 @@
         .container {
             max-width: 650px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
         }
 
-        /* Hero Section */
-        .hero-card {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        /* Hero Banner */
+        .hero-banner {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px 20px;
             text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 15px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .hero-card h2 {
-            font-size: 1.8em;
-            margin-bottom: 8px;
+        .hero-banner h2 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
         }
 
-        .hero-card .subtitle {
+        .hero-banner .subtitle {
+            font-size: 0.85em;
             opacity: 0.9;
-            font-size: 0.95em;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
-        .bonus-display {
+        .reward-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .reward-item {
             background: rgba(255,255,255,0.15);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 15px 0;
+            border-radius: 12px;
+            padding: 12px 18px;
+            text-align: center;
             backdrop-filter: blur(10px);
+            min-width: 100px;
         }
 
-        .bonus-amount {
-            font-size: 2.5em;
+        .reward-item .reward-amount {
+            font-size: 1.8em;
             font-weight: 700;
             display: block;
-            color: #ffd700;
+            color: var(--gold);
         }
 
-        .bonus-label {
-            font-size: 0.9em;
+        .reward-item .reward-label {
+            font-size: 0.75em;
             opacity: 0.9;
-            margin-top: 5px;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        /* Stats Cards */
+        .stats-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .stat-card {
@@ -168,27 +176,32 @@
             border-radius: 15px;
             padding: 15px 10px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: transform 0.2s;
         }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
+        .stat-card:active {
+            transform: scale(0.95);
         }
+
+        .stat-card.total { border-top: 3px solid var(--primary); }
+        .stat-card.pending { border-top: 3px solid var(--warning); }
+        .stat-card.completed { border-top: 3px solid var(--success); }
+        .stat-card.earned { border-top: 3px solid var(--gold); }
 
         .stat-card i {
             font-size: 1.3em;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
             display: block;
         }
 
         .stat-card.total i { color: var(--primary); }
-        .stat-card.active i { color: var(--success); }
         .stat-card.pending i { color: var(--warning); }
-        .stat-card.bonus i { color: #ffd700; }
+        .stat-card.completed i { color: var(--success); }
+        .stat-card.earned i { color: #e67e22; }
 
         .stat-value {
-            font-size: 1.4em;
+            font-size: 1.5em;
             font-weight: 700;
             color: var(--dark);
             display: block;
@@ -200,127 +213,158 @@
             margin-top: 2px;
         }
 
-        /* Referral Link Section */
-        .referral-section {
+        /* Referral Link Card */
+        .card {
             background: white;
             border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        .section-title {
-            font-size: 1.1em;
+        .card-title {
+            font-size: 1.05em;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
             color: var(--dark);
         }
 
-        .section-title i {
+        .card-title i {
             color: var(--primary);
         }
 
-        .referral-link-box {
+        .link-box {
             display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .referral-link-input {
+        .link-input {
             flex: 1;
-            padding: 12px 15px;
+            padding: 11px 14px;
             border: 2px solid #e1e5e9;
             border-radius: 10px;
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: var(--dark);
             background: var(--light);
-            cursor: pointer;
             word-break: break-all;
-            transition: border-color 0.3s;
         }
 
-        .referral-link-input:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
-
-        .copy-btn {
-            background: var(--primary);
-            color: white;
+        .btn {
+            padding: 10px 18px;
             border: none;
-            padding: 12px 20px;
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.85em;
             transition: all 0.3s;
-            white-space: nowrap;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 5px;
+            white-space: nowrap;
         }
 
-        .copy-btn:hover {
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-1px);
         }
 
-        .copy-btn.copied {
-            background: var(--success);
+        .btn-copied {
+            background: var(--success) !important;
         }
 
-        .referral-code-display {
+        .code-display {
             text-align: center;
-            padding: 12px;
-            background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
-            border-radius: 10px;
-            font-size: 0.9em;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            font-size: 0.85em;
             color: var(--gray);
         }
 
-        .referral-code-display strong {
+        .code-display strong {
             color: var(--primary);
-            font-size: 1.2em;
+            font-size: 1.1em;
             letter-spacing: 1px;
         }
 
         /* Share Buttons */
-        .share-buttons {
+        .share-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 12px;
         }
 
         .share-btn {
-            padding: 12px 8px;
+            padding: 10px 6px;
             border: none;
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.8em;
+            font-size: 0.75em;
             transition: all 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             color: white;
         }
 
-        .share-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        .share-btn:active {
+            transform: scale(0.95);
         }
 
-        .share-btn.telegram { background: #0088cc; }
-        .share-btn.whatsapp { background: #25D366; }
-        .share-btn.facebook { background: #1877F2; }
-        .share-btn.more { background: var(--primary); }
+        .share-btn.tg { background: #0088cc; }
+        .share-btn.wa { background: #25D366; }
+        .share-btn.fb { background: #1877F2; }
+        .share-btn.cp { background: var(--primary); }
 
-        .share-btn i {
-            font-size: 1.3em;
+        /* Pending Alert */
+        .pending-alert {
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+            border: 1px solid #ffc107;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: #ffc107; }
+            50% { border-color: #ff9800; }
+        }
+
+        .pending-alert .alert-icon {
+            font-size: 1.5em;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .pending-alert .alert-text {
+            flex: 1;
+            font-size: 0.85em;
+            color: #856404;
+            line-height: 1.4;
+        }
+
+        .pending-alert .alert-text strong {
+            color: #e67e22;
         }
 
         /* Tab Navigation */
@@ -329,8 +373,8 @@
             background: white;
             border-radius: 12px;
             padding: 4px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .tab-btn {
@@ -340,10 +384,14 @@
             background: transparent;
             color: var(--gray);
             font-weight: 600;
-            font-size: 0.85em;
+            font-size: 0.8em;
             cursor: pointer;
             border-radius: 10px;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
         .tab-btn.active {
@@ -351,246 +399,252 @@
             color: white;
         }
 
-        .tab-btn .tab-count {
-            background: rgba(255,255,255,0.3);
-            padding: 2px 8px;
+        .tab-count {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 7px;
             border-radius: 10px;
             font-size: 0.85em;
-            margin-left: 5px;
         }
 
-        /* Referral Lists */
-        .referral-list-section {
+        .tab-btn.active .tab-count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Referral List */
+        .referral-list {
             background: white;
             border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+            padding: 8px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
         }
 
         .referral-item {
             display: flex;
             align-items: center;
-            padding: 15px 12px;
+            padding: 14px 16px;
             border-bottom: 1px solid #f0f0f0;
             gap: 12px;
             transition: background 0.2s;
-        }
-
-        .referral-item:hover {
-            background: #fafbfc;
         }
 
         .referral-item:last-child {
             border-bottom: none;
         }
 
-        .referral-avatar {
-            width: 45px;
-            height: 45px;
+        .referral-item:active {
+            background: #f8f9fa;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 1.1em;
+            font-size: 1em;
             flex-shrink: 0;
             color: white;
         }
 
-        .referral-avatar.active {
-            background: linear-gradient(135deg, var(--success), #27ae60);
+        .avatar.pending-avatar {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
         }
 
-        .referral-avatar.pending {
-            background: linear-gradient(135deg, var(--warning), #e67e22);
+        .avatar.done-avatar {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
         }
 
-        .referral-avatar.completed {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        }
-
-        .referral-info {
+        .ref-info {
             flex: 1;
             min-width: 0;
         }
 
-        .referral-name {
+        .ref-name {
             font-weight: 600;
             color: var(--dark);
-            font-size: 0.95em;
+            font-size: 0.9em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .referral-email {
-            font-size: 0.8em;
+        .ref-email {
+            font-size: 0.75em;
             color: var(--gray);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .referral-date {
-            font-size: 0.75em;
+        .ref-date {
+            font-size: 0.7em;
             color: #aaa;
             margin-top: 2px;
         }
 
-        .referral-status {
-            text-align: right;
+        .ref-status-badge {
             flex-shrink: 0;
+            text-align: right;
         }
 
-        .status-badge {
+        .badge-pending {
             display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: 600;
-            text-transform: capitalize;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: 700;
+            background: #fff3cd;
+            color: #856404;
+            animation: pulse-opacity 1.5s infinite;
         }
 
-        .status-badge.active {
+        .badge-done {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: 700;
             background: #d4edda;
             color: #155724;
         }
 
-        .status-badge.pending {
-            background: #fff3cd;
-            color: #856404;
-            animation: pulse-badge 2s infinite;
-        }
-
-        .status-badge.completed {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        @keyframes pulse-badge {
+        @keyframes pulse-opacity {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            50% { opacity: 0.6; }
         }
 
-        .bonus-amount-display {
-            font-weight: 700;
-            color: var(--success);
-            font-size: 0.9em;
-            margin-top: 3px;
-        }
-
-        .bonus-pending {
-            color: var(--warning);
+        .reward-display {
+            margin-top: 4px;
             font-size: 0.75em;
-            font-style: italic;
         }
 
-        /* Empty States */
+        .reward-points {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .reward-balance {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: var(--gray);
         }
 
-        .empty-state i {
+        .empty-state .empty-icon {
             font-size: 3.5em;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             opacity: 0.4;
         }
 
         .empty-state h3 {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--dark);
+            font-size: 1.1em;
         }
 
         .empty-state p {
-            font-size: 0.9em;
-            margin-bottom: 15px;
-        }
-
-        .empty-state .action-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: var(--primary);
-            color: white;
-            border-radius: 20px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-
-        .empty-state .action-btn:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        /* Info Banner */
-        .info-banner {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            border: 1px solid #fdcb6e;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .info-banner i {
-            color: #e67e22;
-            font-size: 1.2em;
-            margin-top: 2px;
-        }
-
-        .info-banner .info-text {
             font-size: 0.85em;
-            color: #856404;
+            margin-bottom: 15px;
             line-height: 1.4;
         }
 
-        .info-banner .info-text strong {
-            color: #e67e22;
+        /* How It Works */
+        .how-card {
+            background: white;
+            border-radius: 15px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8em;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 0.85em;
+            color: var(--dark);
+            line-height: 1.4;
+        }
+
+        .step-text .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #856404;
+        }
+
+        .step-text .green {
+            background: #d4edda;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #155724;
         }
 
         /* Toast */
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--dark);
+            background: #2c3e50;
             color: white;
             padding: 14px 28px;
             border-radius: 25px;
             font-weight: 500;
+            font-size: 0.9em;
             z-index: 1000;
             animation: slideUp 0.3s ease;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             white-space: nowrap;
         }
 
         @keyframes slideUp {
-            from {
-                transform: translateX(-50%) translateY(100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
         /* Loading */
-        .loading-container {
+        .loading-box {
             text-align: center;
-            padding: 40px 20px;
+            padding: 50px 20px;
         }
 
         .spinner {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border: 3px solid #e1e5e9;
             border-top-color: var(--primary);
             border-radius: 50%;
@@ -602,89 +656,36 @@
             to { transform: rotate(360deg); }
         }
 
-        /* How It Works Section */
-        .how-it-works {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .steps {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .step {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-
-        .step-number {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.85em;
-            flex-shrink: 0;
-        }
-
-        .step-text {
-            font-size: 0.9em;
-            color: var(--dark);
-            line-height: 1.4;
-        }
-
-        .step-text strong {
-            color: var(--primary);
-        }
-
-        .step-text .highlight {
-            background: #fff3cd;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            color: #856404;
-        }
-
         /* Responsive */
         @media (max-width: 480px) {
             .container {
-                padding: 12px;
+                padding: 10px;
             }
             
-            .hero-card {
+            .hero-banner {
                 padding: 20px 15px;
             }
             
-            .stats-grid {
+            .stats-row {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 8px;
             }
             
-            .stat-card {
-                padding: 12px 8px;
-            }
-            
-            .share-buttons {
+            .share-row {
                 grid-template-columns: repeat(2, 1fr);
             }
             
-            .referral-link-box {
+            .link-box {
                 flex-direction: column;
             }
             
-            .tab-btn {
-                font-size: 0.75em;
-                padding: 8px 6px;
+            .reward-info {
+                gap: 10px;
+            }
+            
+            .reward-item {
+                padding: 10px 14px;
+                min-width: 80px;
             }
         }
     </style>
@@ -708,156 +709,139 @@
     </nav>
 
     <div class="container">
-        <!-- Loading State -->
-        <div id="loadingState" class="loading-container">
+        <!-- Loading -->
+        <div id="loadingBox" class="loading-box">
             <div class="spinner"></div>
-            <p style="color: var(--gray);">Loading referral data...</p>
+            <p style="color: #888;">Loading referral data...</p>
         </div>
 
         <!-- Main Content -->
-        <div id="mainContent" style="display: none;">
-            <!-- Hero Card -->
-            <div class="hero-card">
-                <h2>🎉 Invite & Earn</h2>
-                <p class="subtitle">Share your link and earn <strong>10% points</strong> when friends make their first deposit!</p>
-                <div class="bonus-display">
-                    <span class="bonus-amount" id="totalEarnedDisplay">0 pts</span>
-                    <span class="bonus-label">Total Points Earned from Referrals</span>
+        <div id="mainContent" style="display:none;">
+            
+            <!-- Hero Banner -->
+            <div class="hero-banner">
+                <h2>🎉 Invite Friends & Earn</h2>
+                <p class="subtitle">Earn rewards when friends join and make their first deposit!</p>
+                <div class="reward-info">
+                    <div class="reward-item">
+                        <span class="reward-amount">10%</span>
+                        <span class="reward-label">POINTS<br><small>(for fees)</small></span>
+                    </div>
+                    <div class="reward-item">
+                        <span class="reward-amount">3%</span>
+                        <span class="reward-label">BALANCE<br><small>(for investment)</small></span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="stats-grid">
+            <!-- Stats -->
+            <div class="stats-row">
                 <div class="stat-card total">
                     <i class="fas fa-users"></i>
-                    <span class="stat-value" id="totalReferrals">0</span>
+                    <span class="stat-value" id="statTotal">0</span>
                     <span class="stat-label">Total</span>
-                </div>
-                <div class="stat-card active">
-                    <i class="fas fa-check-circle"></i>
-                    <span class="stat-value" id="activeReferrals">0</span>
-                    <span class="stat-label">Active</span>
                 </div>
                 <div class="stat-card pending">
                     <i class="fas fa-clock"></i>
-                    <span class="stat-value" id="pendingReferrals">0</span>
+                    <span class="stat-value" id="statPending">0</span>
                     <span class="stat-label">Pending</span>
                 </div>
-                <div class="stat-card bonus">
-                    <i class="fas fa-star"></i>
-                    <span class="stat-value" id="totalPoints">0</span>
-                    <span class="stat-label">Points</span>
+                <div class="stat-card completed">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="stat-value" id="statCompleted">0</span>
+                    <span class="stat-label">Done</span>
+                </div>
+                <div class="stat-card earned">
+                    <i class="fas fa-gift"></i>
+                    <span class="stat-value" id="statEarned">0</span>
+                    <span class="stat-label">Earned</span>
                 </div>
             </div>
 
-            <!-- Info Banner for Pending Referrals -->
-            <div class="info-banner" id="pendingBanner" style="display: none;">
-                <i class="fas fa-info-circle"></i>
-                <div class="info-text">
-                    <strong id="pendingCount">0 referral(s)</strong> waiting to make their first deposit. 
-                    You'll earn <strong>10% points</strong> of their first deposit amount once they deposit!
+            <!-- Pending Alert -->
+            <div class="pending-alert" id="pendingAlert" style="display:none;">
+                <span class="alert-icon">⏳</span>
+                <div class="alert-text">
+                    <strong id="pendingAlertCount">0 friend(s)</strong> signed up but haven't deposited yet. 
+                    They must make their <strong>first deposit</strong> for you to earn <strong>10% points + 3% balance</strong>!
                 </div>
             </div>
 
-            <!-- Referral Link Section -->
-            <div class="referral-section">
-                <div class="section-title">
+            <!-- Referral Link -->
+            <div class="card">
+                <div class="card-title">
                     <i class="fas fa-link"></i> Your Referral Link
                 </div>
-                <div class="referral-link-box">
-                    <input type="text" class="referral-link-input" id="referralLink" readonly onclick="this.select()">
-                    <button class="copy-btn" id="copyBtn" onclick="copyReferralLink()">
+                <div class="link-box">
+                    <input type="text" class="link-input" id="referralLink" readonly onclick="this.select()">
+                    <button class="btn btn-primary" id="copyBtn" onclick="copyLink()">
                         <i class="fas fa-copy"></i> Copy
                     </button>
                 </div>
-                <div class="referral-code-display">
-                    Your Referral Code: <strong id="referralCode">------</strong>
+                <div class="code-display">
+                    Code: <strong id="referralCode">------</strong>
                 </div>
-                
-                <!-- Share Buttons -->
-                <div class="share-buttons">
-                    <button class="share-btn telegram" onclick="shareOn('telegram')">
-                        <i class="fab fa-telegram-plane"></i>
-                        Telegram
+                <div class="share-row">
+                    <button class="share-btn tg" onclick="share('telegram')">
+                        <i class="fab fa-telegram-plane"></i> Telegram
                     </button>
-                    <button class="share-btn whatsapp" onclick="shareOn('whatsapp')">
-                        <i class="fab fa-whatsapp"></i>
-                        WhatsApp
+                    <button class="share-btn wa" onclick="share('whatsapp')">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
                     </button>
-                    <button class="share-btn facebook" onclick="shareOn('facebook')">
-                        <i class="fab fa-facebook-f"></i>
-                        Facebook
+                    <button class="share-btn fb" onclick="share('facebook')">
+                        <i class="fab fa-facebook-f"></i> Facebook
                     </button>
-                    <button class="share-btn more" onclick="shareOn('copy')">
-                        <i class="fas fa-share-alt"></i>
-                        Share
+                    <button class="share-btn cp" onclick="copyLink()">
+                        <i class="fas fa-share-alt"></i> Share
                     </button>
                 </div>
             </div>
 
             <!-- How It Works -->
-            <div class="how-it-works">
-                <div class="section-title">
-                    <i class="fas fa-question-circle"></i> How It Works
+            <div class="how-card">
+                <div class="card-title">
+                    <i class="fas fa-info-circle"></i> How Rewards Work
                 </div>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-text">
-                            <strong>Share</strong> your referral link with friends
-                        </div>
+                <div class="steps-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-text">Share your link → Friend signs up → Appears as <span class="highlight">⏳ Pending</span></div>
                     </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-text">
-                            <strong>Friend signs up</strong> using your link → Status: <span class="highlight">Pending Deposit</span>
-                        </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-text">Friend makes <strong>first deposit</strong> → You earn rewards automatically</div>
                     </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-text">
-                            <strong>Friend makes first deposit</strong> → You earn <span class="highlight">10% points</span> of their deposit amount!
-                        </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-text"><span class="highlight">10% as POINTS</span> (for transaction fees) + <span class="green">3% as BALANCE</span> (for investment)</div>
                     </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-text">
-                            <strong>Points credited</strong> to your account automatically when deposit is approved
-                        </div>
+                    <div class="step-item">
+                        <div class="step-num">4</div>
+                        <div class="step-text">Points = fees only | Deposit Balance = investment | Earnings = withdrawable</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab Navigation for Referral Lists -->
+            <!-- Tab Navigation -->
             <div class="tab-nav">
-                <button class="tab-btn active" id="tabAll" onclick="switchReferralTab('all')">
+                <button class="tab-btn active" id="tabAllBtn" onclick="switchTab('all')">
                     All <span class="tab-count" id="countAll">0</span>
                 </button>
-                <button class="tab-btn" id="tabPending" onclick="switchReferralTab('pending')">
-                    Pending <span class="tab-count" id="countPending">0</span>
+                <button class="tab-btn" id="tabPendingBtn" onclick="switchTab('pending')">
+                    ⏳ Pending <span class="tab-count" id="countPending">0</span>
                 </button>
-                <button class="tab-btn" id="tabCompleted" onclick="switchReferralTab('completed')">
-                    Completed <span class="tab-count" id="countCompleted">0</span>
+                <button class="tab-btn" id="tabDoneBtn" onclick="switchTab('done')">
+                    ✅ Done <span class="tab-count" id="countDone">0</span>
                 </button>
             </div>
 
-            <!-- Referral Lists -->
-            <div class="referral-list-section">
-                <div class="section-title">
-                    <i class="fas fa-list"></i> 
-                    <span id="listTitle">All Referrals</span>
-                </div>
-                <div id="referralList">
-                    <div class="empty-state">
-                        <i class="fas fa-user-plus"></i>
-                        <h3>No referrals yet</h3>
-                        <p>Share your referral link to start earning!</p>
-                        <button class="action-btn" onclick="copyReferralLink()">
-                            <i class="fas fa-copy"></i> Copy Referral Link
-                        </button>
-                    </div>
+            <!-- Referral List -->
+            <div class="referral-list" id="referralListContainer">
+                <div id="referralListContent">
+                    <!-- Dynamic content -->
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -876,7 +860,9 @@
             orderBy 
         } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-        // Firebase Config - Same as index.html
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
             authDomain: "webapp-fc856.firebaseapp.com",
@@ -886,15 +872,12 @@
             appId: "1:892830607693:web:a3a886c142586665fc2f04"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const firestore = getFirestore(app);
-
-        console.log('✅ Referral page ready');
+        const db = getFirestore(app);
 
         // ============================================
-        // GLOBAL VARIABLES
+        // GLOBAL STATE
         // ============================================
         let currentUser = null;
         let userData = null;
@@ -902,19 +885,18 @@
         let currentTab = 'all';
 
         // ============================================
-        // AUTH STATE LISTENER
+        // AUTH CHECK
         // ============================================
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
-
             currentUser = user;
-            console.log('👤 User:', currentUser.uid);
+            console.log('👤 Logged in:', currentUser.uid);
             
             await loadUserData();
-            await loadReferrals();
+            await loadAllReferrals();
             await loadNotificationCount();
         });
 
@@ -923,420 +905,337 @@
         // ============================================
         async function loadUserData() {
             try {
-                const userDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
-                
-                if (userDoc.exists()) {
-                    userData = userDoc.data();
-                    userData.id = userDoc.id;
+                const snap = await getDoc(doc(db, 'users', currentUser.uid));
+                if (snap.exists()) {
+                    userData = snap.data();
+                    userData.id = snap.id;
                     
-                    // Generate referral link - matches index.html format
-                    const referralCode = userData.referralCode || currentUser.uid.substring(0, 8);
-                    const baseUrl = window.location.origin;
-                    const referralLink = `${baseUrl}/index.html?ref=${referralCode}`;
+                    // Build referral link: matches index.html format
+                    const code = userData.referralCode || currentUser.uid.substring(0, 8);
+                    const link = `${window.location.origin}/index.html?ref=${code}`;
                     
-                    // Update UI
-                    document.getElementById('referralCode').textContent = referralCode;
-                    document.getElementById('referralLink').value = referralLink;
+                    document.getElementById('referralCode').textContent = code;
+                    document.getElementById('referralLink').value = link;
                     
-                    // Store for sharing
-                    window.referralData = {
-                        link: referralLink,
-                        code: referralCode,
-                        name: userData.firstName || userData.fullName || 'User'
-                    };
+                    // Store globally
+                    window._refData = { link, code, name: userData.firstName || 'User' };
                     
-                    console.log('🔗 Referral link generated:', referralLink);
-                    console.log('📋 Referral code:', referralCode);
-                    
-                    // Show main content
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('mainContent').style.display = 'block';
-                    
+                    console.log('🔗 Referral link:', link);
                 } else {
-                    console.log('⚠️ User document not found in Firestore');
-                    
-                    // Generate link with user ID as fallback
-                    const referralCode = currentUser.uid.substring(0, 8);
-                    const baseUrl = window.location.origin;
-                    const referralLink = `${baseUrl}/index.html?ref=${currentUser.uid}`;
-                    
-                    document.getElementById('referralCode').textContent = referralCode;
-                    document.getElementById('referralLink').value = referralLink;
-                    window.referralData = { 
-                        link: referralLink, 
-                        code: currentUser.uid,
-                        name: 'User'
-                    };
-                    
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('mainContent').style.display = 'block';
+                    // Fallback
+                    const code = currentUser.uid.substring(0, 8);
+                    const link = `${window.location.origin}/index.html?ref=${currentUser.uid}`;
+                    document.getElementById('referralCode').textContent = code;
+                    document.getElementById('referralLink').value = link;
+                    window._refData = { link, code, name: 'User' };
                 }
-            } catch (error) {
-                console.error('❌ Error loading user data:', error);
-                showToast('Error loading data. Please refresh.');
+                
+                document.getElementById('loadingBox').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+            } catch (err) {
+                console.error('❌ loadUserData:', err);
+                document.getElementById('loadingBox').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                showToast('Error loading data');
             }
         }
 
         // ============================================
-        // LOAD REFERRALS
+        // LOAD ALL REFERRALS
         // ============================================
-        async function loadReferrals() {
+        async function loadAllReferrals() {
             try {
-                console.log('🔍 Loading referrals for:', currentUser.uid);
+                console.log('🔍 Fetching referrals for:', currentUser.uid);
                 
-                // Query referrals where current user is the referrer
-                const referralsQuery = query(
-                    collection(firestore, 'referrals'),
+                const q = query(
+                    collection(db, 'referrals'),
                     where('referrerId', '==', currentUser.uid),
                     orderBy('timestamp', 'desc')
                 );
                 
-                const referralSnapshot = await getDocs(referralsQuery);
+                const snap = await getDocs(q);
                 
                 allReferrals = [];
-                let totalActive = 0;
-                let totalPending = 0;
-                let totalCompleted = 0;
-                let totalPointsEarned = 0;
                 
-                referralSnapshot.forEach(doc => {
-                    const referral = doc.data();
-                    referral.id = doc.id;
-                    
-                    // Determine status
-                    let status = referral.status || 'pending_first_deposit';
-                    
-                    // Categorize
-                    if (status === 'active' || status === 'completed') {
-                        totalCompleted++;
-                        totalPointsEarned += (referral.pointsAwarded || 0);
-                    } else if (status === 'pending_first_deposit') {
-                        totalPending++;
-                    }
+                snap.forEach(doc => {
+                    const r = doc.data();
+                    const status = r.status || 'pending_first_deposit';
                     
                     allReferrals.push({
-                        id: referral.id,
-                        name: referral.referredName || 'User',
-                        email: referral.referredEmail || '',
+                        id: doc.id,
+                        name: r.referredName || 'User',
+                        email: r.referredEmail || '',
                         status: status,
-                        bonusEarned: referral.bonusEarned || 0,
-                        pointsAwarded: referral.pointsAwarded || 0,
-                        depositAmount: referral.depositAmount || 0,
-                        bonusPercentage: referral.bonusPercentage || 10,
-                        timestamp: referral.timestamp,
-                        firstDepositDate: referral.firstDepositDate || null
+                        // Pending = waiting for first deposit
+                        isPending: status === 'pending_first_deposit',
+                        // Done = deposited & bonus paid
+                        isDone: status === 'active' || status === 'completed',
+                        pointsEarned: r.pointsAwarded || 0,
+                        balanceEarned: r.bonusEarned || 0,
+                        depositAmount: r.depositAmount || 0,
+                        timestamp: r.timestamp,
+                        firstDepositDate: r.firstDepositDate || null
                     });
                 });
                 
-                totalActive = totalCompleted; // Active means completed referral
+                console.log(`📊 ${allReferrals.length} referrals loaded`);
                 
-                console.log(`📊 Referrals loaded: ${allReferrals.length} total, ${totalPending} pending, ${totalCompleted} completed`);
+                updateStats();
+                displayList(currentTab);
                 
-                // Update stats
-                document.getElementById('totalReferrals').textContent = allReferrals.length;
-                document.getElementById('activeReferrals').textContent = totalActive;
-                document.getElementById('pendingReferrals').textContent = totalPending;
-                document.getElementById('totalPoints').textContent = totalPointsEarned;
-                document.getElementById('totalEarnedDisplay').textContent = `${totalPointsEarned} pts`;
+            } catch (err) {
+                console.error('❌ loadAllReferrals:', err);
                 
-                // Update tab counts
-                document.getElementById('countAll').textContent = allReferrals.length;
-                document.getElementById('countPending').textContent = totalPending;
-                document.getElementById('countCompleted').textContent = totalCompleted;
-                
-                // Show pending banner if there are pending referrals
-                if (totalPending > 0) {
-                    document.getElementById('pendingBanner').style.display = 'flex';
-                    document.getElementById('pendingCount').textContent = `${totalPending} referral(s)`;
-                } else {
-                    document.getElementById('pendingBanner').style.display = 'none';
-                }
-                
-                // Display referrals based on current tab
-                displayReferrals(currentTab);
-                
-            } catch (error) {
-                console.error('❌ Error loading referrals:', error);
-                
-                // Try from user document as fallback
+                // Fallback from user doc
                 if (userData) {
-                    const refCount = userData.referralCount || 0;
-                    const refBonus = userData.referralBonus || 0;
-                    const refPoints = userData.totalReferralPoints || 0;
-                    
-                    document.getElementById('totalReferrals').textContent = refCount;
-                    document.getElementById('totalPoints').textContent = refPoints;
-                    document.getElementById('totalEarnedDisplay').textContent = `${refPoints} pts`;
-                    
-                    document.getElementById('countAll').textContent = refCount;
-                    document.getElementById('countPending').textContent = '0';
-                    document.getElementById('countCompleted').textContent = refCount;
+                    document.getElementById('statTotal').textContent = userData.referralCount || 0;
+                    document.getElementById('statEarned').textContent = (userData.totalReferralPoints || 0);
                 }
                 
-                // Show empty state
-                document.getElementById('referralList').innerHTML = `
+                document.getElementById('referralListContent').innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-user-plus"></i>
-                        <h3>No referrals found</h3>
-                        <p>Share your referral link to start earning!</p>
-                        <button class="action-btn" onclick="copyReferralLink()">
-                            <i class="fas fa-copy"></i> Copy Referral Link
-                        </button>
+                        <div class="empty-icon">📋</div>
+                        <h3>No referrals loaded</h3>
+                        <p>Could not load referral data. Pull down to refresh.</p>
                     </div>`;
             }
         }
 
         // ============================================
-        // DISPLAY REFERRALS
+        // UPDATE STATS
         // ============================================
-        function displayReferrals(tab = 'all') {
-            currentTab = tab;
-            const referralList = document.getElementById('referralList');
-            const listTitle = document.getElementById('listTitle');
+        function updateStats() {
+            const total = allReferrals.length;
+            const pending = allReferrals.filter(r => r.isPending).length;
+            const done = allReferrals.filter(r => r.isDone).length;
             
-            // Filter referrals based on tab
-            let filteredReferrals = allReferrals;
+            // Total earned: points + balance value
+            const totalPoints = allReferrals.reduce((sum, r) => sum + (r.pointsEarned || 0), 0);
+            const totalBalance = allReferrals.reduce((sum, r) => sum + (r.balanceEarned || 0), 0);
             
-            if (tab === 'pending') {
-                filteredReferrals = allReferrals.filter(r => r.status === 'pending_first_deposit');
-                listTitle.textContent = 'Pending Referrals (Waiting for Deposit)';
-            } else if (tab === 'completed') {
-                filteredReferrals = allReferrals.filter(r => r.status === 'active' || r.status === 'completed');
-                listTitle.textContent = 'Completed Referrals (Deposited)';
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statCompleted').textContent = done;
+            document.getElementById('statEarned').textContent = `${totalPoints} pts + $${totalBalance.toFixed(2)}`;
+            
+            // Tab counts
+            document.getElementById('countAll').textContent = total;
+            document.getElementById('countPending').textContent = pending;
+            document.getElementById('countDone').textContent = done;
+            
+            // Pending alert
+            const alert = document.getElementById('pendingAlert');
+            if (pending > 0) {
+                alert.style.display = 'flex';
+                document.getElementById('pendingAlertCount').textContent = `${pending} friend(s)`;
             } else {
-                listTitle.textContent = 'All Referrals';
+                alert.style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // DISPLAY LIST
+        // ============================================
+        function displayList(tab) {
+            currentTab = tab;
+            
+            // Highlight active tab
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (tab === 'all') document.getElementById('tabAllBtn').classList.add('active');
+            if (tab === 'pending') document.getElementById('tabPendingBtn').classList.add('active');
+            if (tab === 'done') document.getElementById('tabDoneBtn').classList.add('active');
+            
+            // Filter
+            let list;
+            if (tab === 'pending') {
+                list = allReferrals.filter(r => r.isPending);
+            } else if (tab === 'done') {
+                list = allReferrals.filter(r => r.isDone);
+            } else {
+                list = allReferrals;
             }
             
-            // Update tab buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+            const container = document.getElementById('referralListContent');
             
-            // Display empty state if no referrals
-            if (filteredReferrals.length === 0) {
+            // Empty state
+            if (list.length === 0) {
+                let icon, title, msg;
                 if (tab === 'pending') {
-                    referralList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-clock"></i>
-                            <h3>No pending referrals</h3>
-                            <p>When someone signs up with your link, they'll appear here until they make their first deposit.</p>
-                            <button class="action-btn" onclick="copyReferralLink()">
-                                <i class="fas fa-copy"></i> Share Your Link
-                            </button>
-                        </div>`;
-                } else if (tab === 'completed') {
-                    referralList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-check-circle"></i>
-                            <h3>No completed referrals yet</h3>
-                            <p>Completed referrals appear here after your friends make their first deposit.</p>
-                            <button class="action-btn" onclick="copyReferralLink()">
-                                <i class="fas fa-copy"></i> Share Your Link
-                            </button>
-                        </div>`;
+                    icon = '⏳'; title = 'No Pending Referrals'; 
+                    msg = 'When friends sign up with your link, they appear here until their first deposit.';
+                } else if (tab === 'done') {
+                    icon = '✅'; title = 'No Completed Referrals';
+                    msg = 'Completed referrals appear after friends make their first deposit.';
                 } else {
-                    referralList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-user-plus"></i>
-                            <h3>No referrals yet</h3>
-                            <p>Share your referral link to start earning 10% points from your friends' first deposits!</p>
-                            <button class="action-btn" onclick="copyReferralLink()">
-                                <i class="fas fa-copy"></i> Copy Referral Link
-                            </button>
-                        </div>`;
+                    icon = '👥'; title = 'No Referrals Yet';
+                    msg = 'Share your link to start earning 10% points + 3% balance!';
                 }
+                
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">${icon}</div>
+                        <h3>${title}</h3>
+                        <p>${msg}</p>
+                        <button class="btn btn-primary" onclick="copyLink()">
+                            <i class="fas fa-copy"></i> Copy Referral Link
+                        </button>
+                    </div>`;
                 return;
             }
             
-            // Build referral list HTML
-            referralList.innerHTML = filteredReferrals.map(ref => {
-                const initials = (ref.name || 'U').charAt(0).toUpperCase();
-                const isPending = ref.status === 'pending_first_deposit';
-                const isCompleted = ref.status === 'active' || ref.status === 'completed';
+            // Build list
+            container.innerHTML = list.map(r => {
+                const initial = (r.name || 'U').charAt(0).toUpperCase();
+                const avatarClass = r.isPending ? 'pending-avatar' : 'done-avatar';
+                const badgeHTML = r.isPending 
+                    ? '<span class="badge-pending">⏳ Waiting Deposit</span>'
+                    : '<span class="badge-done">✅ Deposited</span>';
                 
-                // Format date
-                let dateDisplay = '';
-                if (ref.timestamp) {
-                    const date = ref.timestamp.toDate ? ref.timestamp.toDate() : new Date(ref.timestamp);
-                    dateDisplay = date.toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                    });
+                // Date formatting
+                let joinDate = '';
+                if (r.timestamp) {
+                    const d = r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp);
+                    joinDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
                 }
                 
-                let firstDepositDate = '';
-                if (ref.firstDepositDate) {
-                    const date = ref.firstDepositDate.toDate ? ref.firstDepositDate.toDate() : new Date(ref.firstDepositDate);
-                    firstDepositDate = date.toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                    });
+                let depositDate = '';
+                if (r.firstDepositDate) {
+                    const d = r.firstDepositDate.toDate ? r.firstDepositDate.toDate() : new Date(r.firstDepositDate);
+                    depositDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
                 }
                 
-                // Status display
-                let statusDisplay = '';
-                let avatarClass = '';
-                
-                if (isPending) {
-                    statusDisplay = `
-                        <span class="status-badge pending">⏳ Pending Deposit</span>
-                        <div class="bonus-pending">Waiting for first deposit</div>`;
-                    avatarClass = 'pending';
-                } else if (isCompleted) {
-                    statusDisplay = `
-                        <span class="status-badge completed">✅ Completed</span>
-                        ${ref.pointsAwarded > 0 ? `<div class="bonus-amount-display">+${ref.pointsAwarded} pts earned</div>` : ''}
-                        ${firstDepositDate ? `<div style="font-size:0.7em;color:#aaa;">Deposited: ${firstDepositDate}</div>` : ''}`;
-                    avatarClass = 'completed';
+                // Reward display for completed
+                let rewardHTML = '';
+                if (r.isDone && (r.pointsEarned > 0 || r.balanceEarned > 0)) {
+                    rewardHTML = `
+                        <div class="reward-display">
+                            <span class="reward-points">+${r.pointsEarned} pts</span> · 
+                            <span class="reward-balance">+$${r.balanceEarned.toFixed(2)}</span>
+                        </div>`;
+                } else if (r.isPending) {
+                    rewardHTML = `<div class="reward-display" style="color:#e67e22;font-style:italic;">
+                        Waiting for deposit...
+                    </div>`;
                 }
                 
                 return `
                     <div class="referral-item">
-                        <div class="referral-avatar ${avatarClass}">
-                            ${initials}
+                        <div class="avatar ${avatarClass}">${initial}</div>
+                        <div class="ref-info">
+                            <div class="ref-name">${esc(r.name)}</div>
+                            <div class="ref-email">${esc(r.email || 'No email')}</div>
+                            <div class="ref-date">Joined: ${joinDate}${depositDate ? ' · Deposited: '+depositDate : ''}</div>
+                            ${rewardHTML}
                         </div>
-                        <div class="referral-info">
-                            <div class="referral-name">${escapeHTML(ref.name)}</div>
-                            <div class="referral-email">${escapeHTML(ref.email || 'Email not available')}</div>
-                            ${dateDisplay ? `<div class="referral-date">Joined: ${dateDisplay}</div>` : ''}
-                        </div>
-                        <div class="referral-status">
-                            ${statusDisplay}
+                        <div class="ref-status-badge">
+                            ${badgeHTML}
                         </div>
                     </div>`;
             }).join('');
         }
 
         // ============================================
-        // SWITCH REFERRAL TAB
+        // SWITCH TAB
         // ============================================
-        function switchReferralTab(tab) {
-            displayReferrals(tab);
+        function switchTab(tab) {
+            displayList(tab);
         }
 
         // ============================================
-        // COPY REFERRAL LINK
+        // COPY LINK
         // ============================================
-        function copyReferralLink() {
-            const linkInput = document.getElementById('referralLink');
-            const copyBtn = document.getElementById('copyBtn');
+        function copyLink() {
+            const input = document.getElementById('referralLink');
+            const btn = document.getElementById('copyBtn');
             
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999);
+            input.select();
+            input.setSelectionRange(0, 99999);
             
-            try {
-                navigator.clipboard.writeText(linkInput.value).then(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    copyBtn.classList.add('copied');
-                    
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                        copyBtn.classList.remove('copied');
-                    }, 2000);
-                    
-                    showToast('✅ Referral link copied! Share it with friends.');
-                });
-            } catch (err) {
+            navigator.clipboard.writeText(input.value).then(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.classList.add('btn-copied');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                    btn.classList.remove('btn-copied');
+                }, 2000);
+                showToast('✅ Link copied! Share with friends.');
+            }).catch(() => {
                 document.execCommand('copy');
-                showToast('✅ Referral link copied!');
-            }
+                showToast('✅ Link copied!');
+            });
         }
 
         // ============================================
-        // SHARE FUNCTIONS
+        // SHARE
         // ============================================
-        function shareOn(platform) {
-            const data = window.referralData;
-            if (!data) {
-                showToast('Loading referral link...');
-                return;
-            }
+        function share(platform) {
+            const d = window._refData;
+            if (!d) { showToast('Loading...'); return; }
             
-            const { link, code, name } = data;
-            const message = `🎉 Join SAFE and earn money!\n\nUse my referral link to get started:\n${link}\n\nMy code: ${code}\n\nWe both earn bonuses! 💰`;
-            const shortMessage = `Join SAFE with my referral link and earn bonuses! 💰 ${link}`;
+            const msg = `🎉 Join SAFE and earn money!\n\nUse my link: ${d.link}\nCode: ${d.code}\n\nWe both earn rewards! 💰`;
             
             switch(platform) {
                 case 'telegram':
-                    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`, '_blank');
+                    window.open(`https://t.me/share/url?url=${encodeURIComponent(d.link)}&text=${encodeURIComponent(msg)}`);
                     break;
                 case 'whatsapp':
-                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
                     break;
                 case 'facebook':
-                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(shortMessage)}`, '_blank');
-                    break;
-                case 'copy':
-                    copyReferralLink();
+                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(d.link)}`);
                     break;
             }
         }
 
         // ============================================
-        // LOAD NOTIFICATION COUNT
+        // NOTIFICATION COUNT
         // ============================================
         async function loadNotificationCount() {
             try {
-                const notifQuery = query(
-                    collection(firestore, 'notifications'),
-                    where('userId', '==', currentUser.uid),
-                    where('read', '==', false)
-                );
-                
-                const notifSnapshot = await getDocs(notifQuery);
-                const count = notifSnapshot.size;
-                
+                const q = query(collection(db, 'notifications'), where('userId','==',currentUser.uid), where('read','==',false));
+                const snap = await getDocs(q);
+                const count = snap.size;
                 const badge = document.getElementById('notificationBadge');
                 if (count > 0) {
                     badge.textContent = count > 99 ? '99+' : count;
                     badge.style.display = 'block';
-                } else {
-                    badge.style.display = 'none';
                 }
-            } catch (error) {
-                console.log('Notification count check skipped');
-            }
+            } catch(e) {}
         }
 
         // ============================================
-        // TOAST NOTIFICATION
+        // TOAST
         // ============================================
-        function showToast(message) {
-            const existingToast = document.querySelector('.toast');
-            if (existingToast) existingToast.remove();
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.3s';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        function showToast(msg) {
+            const old = document.querySelector('.toast');
+            if (old) old.remove();
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 3000);
         }
 
         // ============================================
-        // ESCAPE HTML
+        // HELPERS
         // ============================================
-        function escapeHTML(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
         }
 
         // ============================================
-        // MAKE FUNCTIONS GLOBAL
+        // GLOBAL EXPORTS
         // ============================================
-        window.copyReferralLink = copyReferralLink;
-        window.shareOn = shareOn;
-        window.switchReferralTab = switchReferralTab;
+        window.copyLink = copyLink;
+        window.share = share;
+        window.switchTab = switchTab;
 
-        console.log('✅ Referral page fully loaded');
-        console.log('🔗 Referral link format: /index.html?ref=CODE');
-        console.log('💰 Bonus: 10% points of first deposit');
+        console.log('✅ Referral page ready');
+        console.log('💰 Rewards: 10% POINTS + 3% BALANCE');
+        console.log('📋 Points = fees | Balance = investment | Earnings = withdrawal');
     </script>
 </body>
 </html>
