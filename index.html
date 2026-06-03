@@ -15,6 +15,7 @@
             --dark: #2c3e50;
             --light: #f8f9fa;
             --gray: #6c757d;
+            --gold: #ffd700;
         }
 
         * {
@@ -35,29 +36,23 @@
 
         .container {
             background: white;
-            padding: 35px;
+            padding: 30px 25px;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 420px;
+            max-width: 430px;
             animation: fadeInUp 0.5s ease;
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .logo {
             text-align: center;
-            margin-bottom: 25px;
-            font-size: 2.2em;
+            margin-bottom: 20px;
+            font-size: 2em;
             font-weight: 700;
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
@@ -70,17 +65,17 @@
             background: #f5f5f5;
             border-radius: 12px;
             padding: 4px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             gap: 4px;
         }
 
         .tab {
             flex: 1;
-            padding: 12px;
+            padding: 11px;
             border: none;
             background: transparent;
             color: #666;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             border-radius: 10px;
@@ -108,29 +103,29 @@
 
         h2 {
             color: #333;
-            margin-bottom: 20px;
-            font-size: 22px;
+            margin-bottom: 18px;
+            font-size: 20px;
             text-align: center;
         }
 
         .input-group {
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .input-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             color: #555;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
         }
 
         .input-group input {
             width: 100%;
-            padding: 13px 15px;
+            padding: 12px 14px;
             border: 2px solid #e1e5e9;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 10px;
+            font-size: 14px;
             transition: all 0.3s ease;
             outline: none;
             background: #fafafa;
@@ -144,31 +139,13 @@
 
         /* Referral Box */
         .referral-box {
-            padding: 15px;
+            padding: 14px;
             border-radius: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
             animation: fadeIn 0.3s ease;
             transition: all 0.3s ease;
-        }
-
-        .referral-box.has-ref {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border: 2px solid #4caf50;
-            color: #1b5e20;
-        }
-
-        .referral-box.no-ref {
-            background: #f8f9fa;
-            border: 2px dashed #dee2e6;
-            color: #6c757d;
-        }
-
-        .referral-box.invalid-ref {
-            background: #fff3e0;
-            border: 2px solid #ff9800;
-            color: #e65100;
         }
 
         .referral-box.verifying {
@@ -177,52 +154,85 @@
             color: #0d47a1;
         }
 
+        .referral-box.valid {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border: 2px solid #4caf50;
+            color: #1b5e20;
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+        }
+
+        .referral-box.invalid {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            color: #e65100;
+        }
+
+        .referral-box.no-ref {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            color: #6c757d;
+        }
+
         .referral-box .ref-icon {
-            font-size: 1.5em;
+            font-size: 1.4em;
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .referral-box .ref-name {
             font-weight: 700;
-            font-size: 1.1em;
+            font-size: 1.05em;
         }
 
-        .referral-box .ref-bonus-info {
-            font-size: 0.85em;
-            margin-top: 5px;
+        .referral-box .ref-details {
+            font-size: 0.8em;
+            margin-top: 6px;
             opacity: 0.9;
+            line-height: 1.5;
         }
 
-        .referral-box .ref-bonus-highlight {
+        .ref-highlight {
             font-weight: 700;
-            color: #1b5e20;
-            background: rgba(76, 175, 80, 0.15);
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 4px;
             display: inline-block;
-            margin: 0 3px;
+            margin: 0 2px;
+        }
+
+        .ref-highlight.points {
+            background: rgba(255, 152, 0, 0.2);
+            color: #e65100;
+        }
+
+        .ref-highlight.balance {
+            background: rgba(46, 204, 113, 0.2);
+            color: #155724;
         }
 
         .captcha-container {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 18px 0;
-            padding: 12px;
+            margin: 16px 0;
+            padding: 10px;
             background: #f8f9fa;
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
         .captcha-challenge {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: #333;
             background: white;
-            padding: 10px 18px;
+            padding: 9px 16px;
             border-radius: 8px;
             border: 2px dashed #667eea;
-            min-width: 90px;
+            min-width: 85px;
             text-align: center;
             user-select: none;
             letter-spacing: 1px;
@@ -233,7 +243,7 @@
             border: none;
             color: #667eea;
             cursor: pointer;
-            font-size: 22px;
+            font-size: 20px;
             padding: 8px;
             border-radius: 50%;
             transition: all 0.3s;
@@ -251,12 +261,12 @@
 
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -279,8 +289,8 @@
 
         .btn .spinner {
             display: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border: 2px solid white;
             border-top-color: transparent;
             border-radius: 50%;
@@ -300,8 +310,8 @@
         }
 
         .message {
-            margin: 12px 0;
-            padding: 12px;
+            margin: 10px 0;
+            padding: 10px 12px;
             border-radius: 10px;
             text-align: center;
             font-weight: 500;
@@ -334,9 +344,9 @@
 
         .link-text {
             text-align: center;
-            margin-top: 18px;
+            margin-top: 16px;
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .link-text a {
@@ -365,12 +375,12 @@
             justify-content: center;
             align-items: center;
             z-index: 9999;
-            gap: 15px;
+            gap: 12px;
         }
 
         .loading-overlay .spinner-big {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border: 4px solid #667eea;
             border-top-color: transparent;
             border-radius: 50%;
@@ -379,22 +389,12 @@
 
         .loading-overlay .loading-text {
             color: #666;
-            font-size: 14px;
-        }
-
-        /* Pulse animation for referral box */
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-
-        .referral-box.has-ref {
-            animation: pulse 2s infinite;
+            font-size: 13px;
         }
 
         @media (max-width: 480px) {
             .container {
-                padding: 25px 20px;
+                padding: 22px 16px;
             }
             
             .captcha-container {
@@ -403,13 +403,13 @@
             
             .referral-box {
                 padding: 12px;
-                font-size: 13px;
+                font-size: 12px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Loading overlay (shown while checking auth) -->
+    <!-- Loading overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner-big"></div>
         <div class="loading-text">Loading...</div>
@@ -480,7 +480,7 @@
             <h2>Welcome Back</h2>
             <div class="message" id="loginMessage"></div>
             
-            <!-- Referral Box for Login (if came from referral link) -->
+            <!-- Login Referral Box -->
             <div class="referral-box verifying" id="loginReferralBox" style="display: none;">
                 <span class="ref-icon"><i class="fas fa-spinner fa-spin"></i></span>
                 <span>Checking referral link...</span>
@@ -530,11 +530,14 @@
             getDocs,
             query,
             where,
+            addDoc,
             collection, 
             serverTimestamp 
         } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-        // Firebase Config - Using the same as your project
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
             authDomain: "webapp-fc856.firebaseapp.com",
@@ -548,7 +551,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const rtdb = getDatabase(app);
-        const firestore = getFirestore(app);
+        const db = getFirestore(app);
 
         console.log('✅ Firebase ready');
 
@@ -556,38 +559,33 @@
         // GLOBAL VARIABLES
         // ============================================
         let captchaAnswer = 0;
-        let referredBy = null;        // The referrer's user ID
-        let referrerName = null;      // The referrer's name
-        let referralValid = false;    // Is the referral code valid?
-        let referralChecked = false;  // Has the referral been checked?
+        let referredBy = null;        // Referrer's user ID
+        let referrerName = null;      // Referrer's display name
+        let referralValid = false;    // Is referral code valid?
+        let referralChecked = false;  // Has referral been verified?
 
         // ============================================
-        // CHECK AUTH STATE - Redirect if logged in
+        // AUTH STATE - Redirect if logged in
         // ============================================
         onAuthStateChanged(auth, (user) => {
             const loadingOverlay = document.getElementById('loadingOverlay');
             const mainContainer = document.getElementById('mainContainer');
             
             if (user) {
-                // User is already signed in, redirect to /home
-                console.log('✅ User already authenticated, redirecting to /home');
+                console.log('✅ User authenticated, redirecting to home');
                 window.location.href = 'home.html';
             } else {
-                // No user signed in, show the auth page
-                console.log('👤 No authenticated user, showing auth page');
+                console.log('👤 No user, showing auth page');
                 loadingOverlay.style.display = 'none';
                 mainContainer.style.display = 'block';
                 
-                // Initialize page components
                 generateCaptcha();
-                
-                // Check referral code from URL
                 checkReferralCode();
             }
         });
 
         // ============================================
-        // REFERRAL DETECTION - Get referral code from URL
+        // GET REFERRAL CODE FROM URL
         // ============================================
         function getReferralFromURL() {
             const params = new URLSearchParams(window.location.search);
@@ -604,14 +602,16 @@
             const referrerNameHidden = document.getElementById('referrerNameHidden');
             const loginReferralBox = document.getElementById('loginReferralBox');
             
-            // If no referral code in URL
+            // No referral code in URL
             if (!refCode) {
                 referralBox.className = 'referral-box no-ref';
                 referralBox.innerHTML = `
                     <span class="ref-icon">🔗</span>
                     <span>No referral code detected</span>
-                    <div class="ref-bonus-info">Sign up to get your own referral link and earn <span class="ref-bonus-highlight">10% points</span> from referrals!</div>
-                `;
+                    <div class="ref-details">
+                        Sign up to get your own referral link!<br>
+                        Earn <span class="ref-highlight points">10% points</span> + <span class="ref-highlight balance">3% balance</span> per referral
+                    </div>`;
                 referredBy = null;
                 referrerName = null;
                 referralValid = false;
@@ -623,124 +623,107 @@
             referralBox.className = 'referral-box verifying';
             referralBox.innerHTML = `
                 <span class="ref-icon"><i class="fas fa-spinner fa-spin"></i></span>
-                <span>Verifying referral code...</span>
-            `;
-
-            // Also show verifying on login tab if it was hidden
+                <span>Verifying referral code...</span>`;
+            
             loginReferralBox.style.display = 'block';
             loginReferralBox.className = 'referral-box verifying';
             loginReferralBox.innerHTML = `
                 <span class="ref-icon"><i class="fas fa-spinner fa-spin"></i></span>
-                <span>Verifying referral code...</span>
-            `;
+                <span>Verifying referral code...</span>`;
 
             try {
                 console.log('🔍 Checking referral code:', refCode);
                 
-                // ============================================
-                // METHOD 1: Query by referralCode field
-                // ============================================
-                const usersRef = collection(firestore, 'users');
-                const q = query(usersRef, where('referralCode', '==', refCode));
-                const querySnapshot = await getDocs(q);
-                
                 let foundReferrer = null;
                 let foundReferrerId = null;
                 
+                // METHOD 1: Query by referralCode field
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('referralCode', '==', refCode));
+                const querySnapshot = await getDocs(q);
+                
                 if (!querySnapshot.empty) {
-                    // Found user by referral code
                     const userDoc = querySnapshot.docs[0];
                     foundReferrer = userDoc.data();
                     foundReferrerId = userDoc.id;
-                    console.log('✅ Found referrer by referralCode:', foundReferrerId, foundReferrer.firstName || foundReferrer.fullName);
+                    console.log('✅ Found referrer by referralCode:', foundReferrerId);
                 } else {
-                    // ============================================
-                    // METHOD 2: Check if refCode is a user ID directly
-                    // ============================================
-                    console.log('🔍 Trying direct user ID lookup...');
-                    const userDocRef = doc(firestore, 'users', refCode);
-                    const userDocSnap = await getDoc(userDocRef);
+                    // METHOD 2: Direct user ID lookup
+                    console.log('🔍 Trying user ID lookup...');
+                    const userDocSnap = await getDoc(doc(db, 'users', refCode));
                     
                     if (userDocSnap.exists()) {
                         foundReferrer = userDocSnap.data();
                         foundReferrerId = userDocSnap.id;
-                        console.log('✅ Found referrer by user ID:', foundReferrerId, foundReferrer.firstName || foundReferrer.fullName);
+                        console.log('✅ Found referrer by user ID:', foundReferrerId);
                     }
                 }
                 
-                // ============================================
-                // UPDATE UI BASED ON RESULT
-                // ============================================
+                // UPDATE UI
                 if (foundReferrer && foundReferrerId) {
-                    // Valid referral found!
+                    // Valid referral!
                     referredBy = foundReferrerId;
                     referrerName = foundReferrer.firstName || foundReferrer.fullName || 'Friend';
                     referralValid = true;
                     referralCodeHidden.value = foundReferrerId;
                     referrerNameHidden.value = referrerName;
                     
-                    const referrerDisplayName = referrerName.length > 20 ? referrerName.substring(0, 20) + '...' : referrerName;
+                    const displayName = referrerName.length > 20 ? referrerName.substring(0, 20) + '...' : referrerName;
                     
-                    // Update signup referral box
-                    referralBox.className = 'referral-box has-ref';
+                    // Signup referral box
+                    referralBox.className = 'referral-box valid';
                     referralBox.innerHTML = `
                         <span class="ref-icon">🎉</span>
-                        <span>Invited by <span class="ref-name">${referrerDisplayName}</span>!</span>
-                        <div class="ref-bonus-info">
-                            You'll earn <span class="ref-bonus-highlight">50 welcome points</span> for joining with a referral!
-                            <br>Your inviter earns <span class="ref-bonus-highlight">10% points</span> of your first deposit!
-                        </div>
-                    `;
+                        <span>Invited by <span class="ref-name">${escapeHTML(displayName)}</span>!</span>
+                        <div class="ref-details">
+                            When you make your <strong>first deposit</strong>, your inviter earns:<br>
+                            <span class="ref-highlight points">10% as POINTS</span> + 
+                            <span class="ref-highlight balance">3% as BALANCE</span>
+                        </div>`;
                     
-                    // Update login referral box
+                    // Login referral box
                     loginReferralBox.style.display = 'block';
-                    loginReferralBox.className = 'referral-box has-ref';
+                    loginReferralBox.className = 'referral-box valid';
                     loginReferralBox.innerHTML = `
                         <span class="ref-icon">🎉</span>
-                        <span>Referred by <span class="ref-name">${referrerDisplayName}</span></span>
-                        <div class="ref-bonus-info">Login to continue with this referral!</div>
-                    `;
+                        <span>Referred by <span class="ref-name">${escapeHTML(displayName)}</span></span>
+                        <div class="ref-details">Login to continue with this referral!</div>`;
                     
                 } else {
-                    // Invalid referral code
+                    // Invalid referral
                     referredBy = null;
                     referrerName = null;
                     referralValid = false;
                     
-                    referralBox.className = 'referral-box invalid-ref';
+                    referralBox.className = 'referral-box invalid';
                     referralBox.innerHTML = `
                         <span class="ref-icon">⚠️</span>
                         <span>Invalid referral link</span>
-                        <div class="ref-bonus-info">This referral code doesn't match any user. Continuing without referral.</div>
-                    `;
+                        <div class="ref-details">This referral code doesn't match any user.<br>Continuing without referral.</div>`;
                     
                     loginReferralBox.style.display = 'block';
-                    loginReferralBox.className = 'referral-box invalid-ref';
+                    loginReferralBox.className = 'referral-box invalid';
                     loginReferralBox.innerHTML = `
                         <span class="ref-icon">⚠️</span>
                         <span>Invalid referral link</span>
-                        <div class="ref-bonus-info">Continuing without referral.</div>
-                    `;
+                        <div class="ref-details">Continuing without referral.</div>`;
                 }
                 
             } catch (error) {
-                console.error('❌ Error checking referral code:', error);
+                console.error('❌ Error checking referral:', error);
                 
-                // Show error state
                 referralBox.className = 'referral-box no-ref';
                 referralBox.innerHTML = `
                     <span class="ref-icon">⚠️</span>
                     <span>Could not verify referral</span>
-                    <div class="ref-bonus-info">Continuing without referral. You can still earn by referring others!</div>
-                `;
+                    <div class="ref-details">Continuing without referral.</div>`;
                 
                 loginReferralBox.style.display = 'block';
                 loginReferralBox.className = 'referral-box no-ref';
                 loginReferralBox.innerHTML = `
                     <span class="ref-icon">⚠️</span>
                     <span>Could not verify referral</span>
-                    <div class="ref-bonus-info">Continuing without referral.</div>
-                `;
+                    <div class="ref-details">Continuing without referral.</div>`;
                 
                 referredBy = null;
                 referrerName = null;
@@ -773,8 +756,6 @@
                     document.getElementById('captchaChallenge').textContent = `${num1} × ${num2} = ?`; 
                     break;
             }
-            
-            console.log('🔢 Captcha answer:', captchaAnswer);
         }
 
         // ============================================
@@ -794,27 +775,20 @@
         }
 
         // ============================================
-        // MESSAGES
+        // MESSAGE HELPERS
         // ============================================
         function showSignupMessage(msg, type) {
             const el = document.getElementById('signupMessage');
             el.textContent = msg;
             el.className = `message ${type} show`;
-            
-            // Auto hide after 5 seconds
-            setTimeout(() => {
-                el.classList.remove('show');
-            }, 5000);
+            setTimeout(() => el.classList.remove('show'), 5000);
         }
 
         function showLoginMessage(msg, type) {
             const el = document.getElementById('loginMessage');
             el.textContent = msg;
             el.className = `message ${type} show`;
-            
-            setTimeout(() => {
-                el.classList.remove('show');
-            }, 5000);
+            setTimeout(() => el.classList.remove('show'), 5000);
         }
 
         // ============================================
@@ -830,7 +804,7 @@
         }
 
         // ============================================
-        // SIGN UP - With Referral Handling
+        // SIGN UP
         // ============================================
         async function signUp() {
             const fullName = document.getElementById('fullName').value.trim();
@@ -840,7 +814,7 @@
             const captchaInput = document.getElementById('captchaInput').value;
             const btn = document.getElementById('signupBtn');
             
-            // Clear previous messages
+            // Clear messages
             showSignupMessage('', '');
             
             // Validation
@@ -848,30 +822,30 @@
                 return showSignupMessage('Please enter your full name', 'error');
             }
             if (!email || !email.includes('@') || !email.includes('.')) {
-                return showSignupMessage('Please enter a valid email address', 'error');
+                return showSignupMessage('Please enter a valid email', 'error');
             }
             if (password.length < 6) {
                 return showSignupMessage('Password must be at least 6 characters', 'error');
             }
             if (!captchaInput || parseInt(captchaInput) !== captchaAnswer) {
-                showSignupMessage('Wrong captcha answer. Please try again.', 'error');
+                showSignupMessage('Wrong captcha. Try again.', 'error');
                 generateCaptcha();
                 document.getElementById('captchaInput').value = '';
                 return;
             }
 
-            // Show loading state
+            // Loading state
             btn.disabled = true;
             btn.classList.add('loading');
 
             try {
-                // Create auth user (no email verification)
+                // Create auth user
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 const referralCode = generateReferralCode();
                 
                 console.log('👤 User created:', user.uid);
-                console.log('🔗 Referral info - referredBy:', referredBy, 'referrerName:', referrerName);
+                console.log('🔗 Referrer:', referredBy, referrerName);
                 
                 // ============================================
                 // BUILD USER DATA
@@ -885,27 +859,23 @@
                     createdAt: serverTimestamp(),
                     status: 'active',
                     referralCode: referralCode,
-                    referredBy: referredBy || null,           // Referrer's user ID
-                    referredByName: referrerName || null,     // Referrer's name
+                    referredBy: referredBy || null,
+                    referredByName: referrerName || null,
                     referralCount: 0,
                     referralBonus: 0,
                     totalReferralPoints: 0,
                     depositBalance: 0,
                     taskEarnings: 0,
                     points: 0,
-                    firstDepositCompleted: false,             // Track first deposit for referral bonus
+                    firstDepositCompleted: false,
                     lastLogin: null
                 };
 
-                // ============================================
-                // SAVE TO FIRESTORE
-                // ============================================
-                await setDoc(doc(firestore, 'users', user.uid), userData);
-                console.log('✅ User data saved to Firestore');
+                // Save to Firestore
+                await setDoc(doc(db, 'users', user.uid), userData);
+                console.log('✅ User saved to Firestore');
                 
-                // ============================================
-                // SAVE TO REALTIME DATABASE
-                // ============================================
+                // Save to RTDB
                 await set(ref(rtdb, 'users/' + user.uid), {
                     email: email,
                     fullName: fullName,
@@ -914,32 +884,31 @@
                     status: 'active',
                     lastLogin: null
                 });
-                console.log('✅ User data saved to RTDB');
+                console.log('✅ User saved to RTDB');
 
                 // ============================================
-                // HANDLE REFERRAL - Create referral record
+                // CREATE REFERRAL RECORD (if referred)
                 // ============================================
                 if (referredBy && referralValid) {
                     try {
-                        // Create referral record in Firestore
                         const referralData = {
                             referrerId: referredBy,
                             referredUserId: user.uid,
                             referredEmail: email,
                             referredName: fullName,
                             timestamp: serverTimestamp(),
-                            status: 'pending_first_deposit',  // Waiting for first deposit
+                            status: 'pending_first_deposit',
                             pointsAwarded: 0,
-                            bonusEarned: 0
+                            bonusEarned: 0,
+                            depositAmount: 0,
+                            bonusPercentage: 10,
+                            balancePercentage: 3
                         };
                         
-                        // Add to referrals collection
-                        const referralsRef = collection(firestore, 'referrals');
-                        const { addDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                        await addDoc(referralsRef, referralData);
-                        console.log('✅ Referral record created in Firestore');
+                        await addDoc(collection(db, 'referrals'), referralData);
+                        console.log('✅ Referral record created');
                         
-                        // Also add to RTDB for notifications
+                        // RTDB notification
                         await push(ref(rtdb, 'referral_notifications/' + referredBy), {
                             type: 'new_signup',
                             email: email,
@@ -949,58 +918,50 @@
                             read: false,
                             claimed: false
                         });
-                        console.log('✅ Referral notification sent to RTDB');
+                        console.log('✅ Referral notification sent');
                         
                     } catch (refError) {
-                        console.error('⚠️ Error creating referral record:', refError);
-                        // Continue even if referral record fails - user is still created
+                        console.error('⚠️ Referral record error:', refError);
                     }
                 }
 
-                // ============================================
-                // SUCCESS - Redirect
-                // ============================================
-                const bonusMessage = (referredBy && referralValid) 
-                    ? '🎉 Account created with referral bonus eligibility!' 
+                // Success
+                const bonusMsg = (referredBy && referralValid) 
+                    ? '🎉 Account created! Your inviter will earn rewards after your first deposit.' 
                     : '✅ Account created successfully!';
                 
-                showSignupMessage(bonusMessage + ' Redirecting...', 'success');
+                showSignupMessage(bonusMsg + ' Redirecting...', 'success');
                 
-                // Fast redirect to home
                 setTimeout(() => {
                     window.location.href = 'home.html';
                 }, 1500);
                 
             } catch (error) {
-                console.error('❌ Signup error:', error.code, error.message);
+                console.error('❌ Signup error:', error.code);
                 
-                let msg = 'An error occurred. Please try again.';
-                
+                let msg = 'Registration failed.';
                 switch (error.code) {
                     case 'auth/email-already-in-use':
-                        msg = 'This email is already registered. Please login instead.';
+                        msg = 'Email already registered. Please login.';
                         break;
                     case 'auth/weak-password':
-                        msg = 'Password is too weak. Please use at least 6 characters.';
+                        msg = 'Password too weak. Use 6+ characters.';
                         break;
                     case 'auth/invalid-email':
-                        msg = 'Invalid email address. Please check and try again.';
+                        msg = 'Invalid email address.';
                         break;
                     case 'auth/network-request-failed':
-                        msg = 'Network error. Please check your internet connection.';
+                        msg = 'Network error. Check your connection.';
                         break;
                     default:
-                        msg = error.message || 'Registration failed. Please try again.';
+                        msg = error.message || 'Registration failed.';
                 }
                 
                 showSignupMessage(msg, 'error');
-                
-                // Reset button
                 btn.disabled = false;
                 btn.classList.remove('loading');
                 
             } finally {
-                // Refresh captcha
                 generateCaptcha();
                 document.getElementById('captchaInput').value = '';
             }
@@ -1014,38 +975,21 @@
             const password = document.getElementById('loginPassword').value;
             const btn = document.getElementById('loginBtn');
 
-            // Clear previous messages
             showLoginMessage('', '');
 
-            if (!email) {
-                return showLoginMessage('Please enter your email address', 'error');
-            }
-            if (!password) {
-                return showLoginMessage('Please enter your password', 'error');
-            }
+            if (!email) return showLoginMessage('Please enter your email', 'error');
+            if (!password) return showLoginMessage('Please enter your password', 'error');
 
-            // Show loading
             btn.disabled = true;
             btn.classList.add('loading');
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('✅ Login successful:', userCredential.user.uid);
+                console.log('✅ Login:', userCredential.user.uid);
                 
                 // Update last login (non-blocking)
                 const uid = userCredential.user.uid;
-                try {
-                    await setDoc(doc(firestore, 'users', uid), { 
-                        lastLogin: serverTimestamp() 
-                    }, { merge: true });
-                    
-                    await set(ref(rtdb, 'users/' + uid), {
-                        lastLogin: Date.now()
-                    }, { merge: true });  // Using set with merge-like behavior
-                    
-                } catch (updateError) {
-                    console.log('⚠️ Last login update skipped:', updateError.message);
-                }
+                setDoc(doc(db, 'users', uid), { lastLogin: serverTimestamp() }, { merge: true }).catch(() => {});
                 
                 showLoginMessage('✅ Login successful! Redirecting...', 'success');
                 
@@ -1056,37 +1000,41 @@
             } catch (error) {
                 console.error('❌ Login error:', error.code);
                 
-                let msg = 'Login failed. Please try again.';
-                
+                let msg = 'Login failed.';
                 switch (error.code) {
                     case 'auth/user-not-found':
-                        msg = 'No account found with this email. Please sign up.';
+                        msg = 'No account found. Please sign up.';
                         break;
                     case 'auth/wrong-password':
-                        msg = 'Incorrect password. Please try again.';
+                        msg = 'Incorrect password.';
                         break;
                     case 'auth/invalid-email':
-                        msg = 'Invalid email address.';
+                        msg = 'Invalid email.';
                         break;
                     case 'auth/too-many-requests':
-                        msg = 'Too many failed attempts. Please try again later.';
-                        break;
-                    case 'auth/network-request-failed':
-                        msg = 'Network error. Please check your internet connection.';
+                        msg = 'Too many attempts. Try later.';
                         break;
                     default:
                         msg = error.message || 'Login failed.';
                 }
                 
                 showLoginMessage(msg, 'error');
-                
                 btn.disabled = false;
                 btn.classList.remove('loading');
             }
         }
 
         // ============================================
-        // MAKE FUNCTIONS GLOBAL
+        // HELPERS
+        // ============================================
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // GLOBAL EXPORTS
         // ============================================
         window.switchTab = switchTab;
         window.signUp = signUp;
@@ -1094,9 +1042,8 @@
         window.generateCaptcha = generateCaptcha;
         window.checkReferralCode = checkReferralCode;
 
-        console.log('✅ Page ready - Referral system active');
-        console.log('📋 Referral bonus: 10% points of first deposit for inviter');
-        console.log('🎁 Welcome bonus: 50 points for joining with referral');
+        console.log('✅ Auth page ready');
+        console.log('💰 Rewards: 10% POINTS + 3% BALANCE on first deposit');
     </script>
 </body>
 </html>
