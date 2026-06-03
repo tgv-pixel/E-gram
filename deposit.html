@@ -6,6 +6,17 @@
     <title>Deposit - SAFE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,721 +25,1213 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            background: #f0f2f5;
+            color: #333;
         }
 
-        .container {
-            max-width: 550px;
-            margin: 0 auto;
+        /* Top Navigation */
+        .top-nav {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 25px;
-        }
-
-        .header {
+            padding: 15px 20px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .back-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #f5f5f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
+            background: none;
             border: none;
-            color: #333;
-            font-size: 18px;
+            font-size: 1.2em;
+            color: var(--gray);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
         }
 
         .back-btn:hover {
-            background: #e0e0e0;
-            transform: scale(1.05);
+            background: var(--light);
+            color: var(--primary);
         }
 
-        h1 {
-            color: #333;
-            font-size: 24px;
-        }
-
-        /* Balance Card */
-        .balance-card {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
-        }
-
-        .balance-label {
-            font-size: 14px;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .balance-amount {
-            font-size: 36px;
+        .nav-brand {
+            font-size: 1.3em;
             font-weight: 700;
-            margin: 8px 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Payment Method Tabs */
-        .payment-tabs {
+        .nav-actions {
             display: flex;
-            background: #f5f5f5;
-            border-radius: 12px;
-            padding: 4px;
-            margin-bottom: 20px;
-            gap: 4px;
-        }
-
-        .payment-tab {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 10px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 8px;
         }
 
-        .payment-tab.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-
-        .payment-tab i {
-            font-size: 18px;
-        }
-
-        /* Payment Forms */
-        .payment-form {
-            display: none;
-        }
-
-        .payment-form.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Telebirr Section */
-        .telebirr-info {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 2px solid #4caf50;
-        }
-
-        .telebirr-number {
-            font-size: 28px;
-            font-weight: 700;
-            color: #2e7d32;
-            text-align: center;
-            margin: 10px 0;
-            letter-spacing: 2px;
-        }
-
-        .telebirr-name {
-            text-align: center;
-            color: #1b5e20;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .copy-btn {
-            width: 100%;
-            padding: 12px;
-            background: #4caf50;
-            color: white;
+        .nav-btn {
+            background: none;
             border: none;
-            border-radius: 10px;
+            font-size: 1.2em;
+            color: var(--gray);
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .copy-btn:hover {
-            background: #388e3c;
-            transform: translateY(-2px);
-        }
-
-        /* Crypto Section */
-        .wallet-info {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 2px solid #e1e5e9;
-        }
-
-        .wallet-address {
-            font-size: 13px;
-            color: #333;
-            word-break: break-all;
-            background: white;
-            padding: 12px;
+            padding: 8px 12px;
             border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            font-family: monospace;
+            position: relative;
         }
 
-        /* Form Styles */
-        .form-group {
+        .nav-btn:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        .badge {
+            position: absolute;
+            top: 0;
+            right: 2px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        /* Container */
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        /* Info Card */
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .info-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .info-card p {
+            font-size: 0.85em;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .rate-info {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border: 1px solid #4caf50;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #155724;
+            text-align: center;
+        }
+
+        .rate-info strong {
+            font-size: 1.1em;
+            color: #1b5e20;
+        }
+
+        /* Deposit Form */
+        .deposit-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1.1em;
+            font-weight: 600;
             margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--dark);
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        /* Method Selection */
+        .method-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .method-option {
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .method-option:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
+        }
+
+        .method-option.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #e8eaff, #f0f0ff);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .method-option i {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .method-option.telebirr i { color: #2ecc71; }
+        .method-option.crypto i { color: #f7931a; }
+
+        .method-option .method-name {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--dark);
+        }
+
+        .method-option .method-desc {
+            font-size: 0.75em;
+            color: var(--gray);
+            margin-top: 3px;
+        }
+
+        .method-option .method-rate {
+            font-size: 0.7em;
+            color: var(--success);
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 16px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 6px;
-            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.85em;
             font-weight: 600;
-            font-size: 14px;
+            color: var(--dark);
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 14px;
+            padding: 12px 14px;
             border: 2px solid #e1e5e9;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 14px;
             transition: all 0.3s;
             outline: none;
+            background: #fafafa;
         }
 
         .form-group input:focus,
         .form-group select:focus {
-            border-color: #667eea;
+            border-color: var(--primary);
+            background: white;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .file-upload {
-            border: 2px dashed #667eea;
-            padding: 20px;
+        .input-with-symbol {
+            position: relative;
+        }
+
+        .input-with-symbol .symbol {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            color: var(--gray);
+            font-size: 0.9em;
+        }
+
+        .input-with-symbol input {
+            padding-left: 35px;
+        }
+
+        /* Conversion Display */
+        .conversion-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: var(--gray);
             text-align: center;
+            display: none;
+        }
+
+        .conversion-display.show {
+            display: block;
+        }
+
+        .conversion-display .converted-amount {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 1.1em;
+        }
+
+        /* Image Upload */
+        .image-upload-area {
+            border: 2px dashed #e1e5e9;
             border-radius: 12px;
+            padding: 25px;
+            text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            background: #f8f9fa;
-        }
-
-        .file-upload:hover {
-            background: #e9ecef;
-            border-color: #764ba2;
-        }
-
-        .file-upload i {
-            font-size: 30px;
-            color: #667eea;
+            background: #fafafa;
             margin-bottom: 10px;
         }
 
-        .file-upload input {
-            display: none;
+        .image-upload-area:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
         }
 
-        .preview-image {
+        .image-upload-area.has-image {
+            border-color: var(--success);
+            background: #f0fff4;
+        }
+
+        .image-upload-area i {
+            font-size: 2.5em;
+            color: #ccc;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .image-upload-area.has-image i {
+            color: var(--success);
+        }
+
+        .image-upload-area .upload-text {
+            font-size: 0.85em;
+            color: var(--gray);
+        }
+
+        .image-upload-area .file-name {
+            font-weight: 600;
+            color: var(--success);
+            font-size: 0.8em;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .image-preview {
             max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
             margin-top: 10px;
             display: none;
-            border-radius: 8px;
         }
 
+        .image-preview.show {
+            display: block;
+        }
+
+        /* Payment Info */
+        .payment-info {
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .payment-info.show {
+            display: block;
+        }
+
+        .payment-info .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.85em;
+        }
+
+        .payment-info .info-label {
+            color: #856404;
+            font-weight: 600;
+        }
+
+        .payment-info .info-value {
+            color: #333;
+            font-weight: 700;
+            font-size: 0.9em;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .copy-btn-small {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.7em;
+            margin-left: 8px;
+        }
+
+        /* Submit Button */
         .submit-btn {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
             border-radius: 12px;
-            cursor: pointer;
             font-size: 16px;
             font-weight: 600;
+            cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            margin-top: 10px;
         }
 
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
         .submit-btn:disabled {
-            opacity: 0.7;
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        /* Alert Messages */
-        .alert {
-            padding: 12px 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 14px;
+        .submit-btn .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        .submit-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .submit-btn.loading .btn-text {
             display: none;
         }
 
-        .alert.show {
-            display: block;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* History Section */
-        .history-section {
-            margin-top: 25px;
-        }
-
-        .history-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 18px;
+        /* Recent Deposits */
+        .history-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .history-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 10px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-left: 4px solid #667eea;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 12px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-status {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .history-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .history-status.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history-status.rejected {
+            background: #f8d7da;
+            color: #721c24;
         }
 
         .history-info {
             flex: 1;
+            min-width: 0;
         }
 
         .history-amount {
-            font-weight: 700;
-            color: #28a745;
-            font-size: 16px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9em;
+        }
+
+        .history-detail {
+            font-size: 0.75em;
+            color: var(--gray);
         }
 
         .history-date {
-            font-size: 12px;
-            color: #666;
-            margin-top: 3px;
+            font-size: 0.7em;
+            color: #aaa;
         }
 
-        .history-method {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-        }
-
-        .badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .badge-pending {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .badge-approved {
-            background: #28a745;
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
             color: white;
+            padding: 14px 28px;
+            border-radius: 25px;
+            font-weight: 500;
+            font-size: 0.9em;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            white-space: nowrap;
         }
 
-        .badge-rejected {
-            background: #dc3545;
-            color: white;
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
-        .no-data {
+        /* Loading */
+        .loading-box {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner-big {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e1e5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .empty-state {
             text-align: center;
             padding: 30px;
-            color: #999;
+            color: var(--gray);
         }
 
-        /* Responsive */
+        .empty-state i {
+            font-size: 2.5em;
+            opacity: 0.4;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 480px) {
             .container {
-                padding: 15px;
+                padding: 10px;
             }
-
-            .balance-amount {
-                font-size: 28px;
+            
+            .method-selector {
+                grid-template-columns: 1fr;
             }
-
-            .telebirr-number {
-                font-size: 22px;
+            
+            .payment-info .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .payment-info .info-value {
+                max-width: 100%;
+                text-align: left;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <button class="back-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <span class="nav-brand">Deposit</span>
+        <div class="nav-actions">
+            <button class="nav-btn" onclick="window.location.href='notification.html'">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notificationBadge" style="display:none;">0</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='home.html'">
+                <i class="fas fa-home"></i>
+            </button>
+        </div>
+    </nav>
+
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <button class="back-btn" onclick="window.location.href='home.html'">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h1>Deposit Funds</h1>
+        <!-- Info Card -->
+        <div class="info-card">
+            <h3>💰 Make a Deposit</h3>
+            <p>Choose your preferred payment method and submit proof of payment. Admin will verify and approve your deposit.</p>
+            <div class="rate-info">
+                <i class="fas fa-exchange-alt"></i> 
+                <strong>1 USDT = 150 Birr</strong> (Telebirr only)
+            </div>
         </div>
 
-        <!-- Balance -->
-        <div class="balance-card">
-            <div class="balance-label">Your Balance</div>
-            <div class="balance-amount" id="depositBalance">0.00</div>
-            <div>USDT</div>
-        </div>
+        <!-- Deposit Form -->
+        <div class="deposit-card">
+            <div class="card-title">
+                <i class="fas fa-wallet"></i> New Deposit
+            </div>
 
-        <!-- Payment Method Tabs -->
-        <div class="payment-tabs">
-            <button class="payment-tab active" onclick="switchPayment('telebirr')">
-                <i class="fas fa-mobile-alt"></i> Telebirr
-            </button>
-            <button class="payment-tab" onclick="switchPayment('crypto')">
-                <i class="fab fa-bitcoin"></i> Crypto
-            </button>
-        </div>
-
-        <!-- Telebirr Payment Form -->
-        <div id="telebirr-form" class="payment-form active">
-            <div class="telebirr-info">
-                <div style="text-align: center; color: #2e7d32; font-weight: 600;">
-                    <i class="fas fa-mobile-alt"></i> Pay via Telebirr
+            <!-- Method Selection -->
+            <div class="method-selector">
+                <div class="method-option telebirr selected" id="methodTelebirr" onclick="selectMethod('telebirr')">
+                    <i class="fas fa-mobile-alt"></i>
+                    <div class="method-name">Telebirr</div>
+                    <div class="method-desc">Ethiopian Mobile Money</div>
+                    <div class="method-rate">1 USDT = 150 Birr</div>
                 </div>
-                <div class="telebirr-number">0949399753</div>
-                <div class="telebirr-name">Account Name: Abinet</div>
-                <button class="copy-btn" onclick="copyTelebirrNumber()">
-                    <i class="fas fa-copy"></i> Copy Number
-                </button>
-            </div>
-
-            <div class="form-group">
-                <label>Amount (USDT)</label>
-                <input type="number" id="telebirr-amount" placeholder="Minimum 10 USDT" min="10" step="1">
-            </div>
-
-            <div class="form-group">
-                <label>Transaction Reference</label>
-                <input type="text" id="telebirr-ref" placeholder="Enter Telebirr transaction ID">
-            </div>
-
-            <div class="form-group">
-                <label>Screenshot Proof</label>
-                <div class="file-upload" onclick="document.getElementById('telebirr-screenshot').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Click to upload payment screenshot</p>
-                    <input type="file" id="telebirr-screenshot" accept="image/*" onchange="previewImage(this, 'telebirr-preview')">
-                </div>
-                <img id="telebirr-preview" class="preview-image" alt="Preview">
-            </div>
-
-            <button class="submit-btn" id="telebirr-submit" onclick="submitDeposit('telebirr')">
-                <i class="fas fa-paper-plane"></i> Submit Deposit
-            </button>
-        </div>
-
-        <!-- Crypto Payment Form -->
-        <div id="crypto-form" class="payment-form">
-            <div class="wallet-info">
-                <div style="font-weight: 600; color: #333; margin-bottom: 8px;">
-                    <i class="fab fa-bitcoin"></i> TRC20 Wallet Address
-                </div>
-                <div class="wallet-address" id="walletAddress">TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu</div>
-                <button class="copy-btn" onclick="copyWalletAddress()" style="background: #667eea;">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-                <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
-                    Minimum 10 USDT • TRC20 Network Only
+                <div class="method-option crypto" id="methodCrypto" onclick="selectMethod('crypto')">
+                    <i class="fab fa-bitcoin"></i>
+                    <div class="method-name">Crypto (USDT)</div>
+                    <div class="method-desc">TRC20 Network</div>
+                    <div class="method-rate">Direct USDT</div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Amount (USDT)</label>
-                <input type="number" id="crypto-amount" placeholder="Minimum 10 USDT" min="10" step="0.01">
-            </div>
-
-            <div class="form-group">
-                <label>Transaction Hash</label>
-                <input type="text" id="crypto-hash" placeholder="Enter transaction hash/TXID">
-            </div>
-
-            <div class="form-group">
-                <label>Screenshot Proof</label>
-                <div class="file-upload" onclick="document.getElementById('crypto-screenshot').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Click to upload payment screenshot</p>
-                    <input type="file" id="crypto-screenshot" accept="image/*" onchange="previewImage(this, 'crypto-preview')">
+            <!-- Amount Input -->
+            <div class="form-group" id="amountGroup">
+                <label id="amountLabel">Amount (USDT)</label>
+                <div class="input-with-symbol">
+                    <span class="symbol">$</span>
+                    <input type="number" id="depositAmount" placeholder="Enter amount" min="10" step="0.01" oninput="updateConversion()">
                 </div>
-                <img id="crypto-preview" class="preview-image" alt="Preview">
             </div>
 
-            <button class="submit-btn" id="crypto-submit" onclick="submitDeposit('crypto')">
-                <i class="fas fa-paper-plane"></i> Submit Deposit
+            <!-- Conversion Display -->
+            <div class="conversion-display" id="conversionDisplay">
+                <span>You will pay: <span class="converted-amount" id="convertedAmount">0 Birr</span></span>
+            </div>
+
+            <!-- Payment Info (Telebirr) -->
+            <div class="payment-info show" id="telebirrInfo">
+                <div class="info-row">
+                    <span class="info-label">Pay to:</span>
+                    <span class="info-value" id="telebirrNumber">0949399753</span>
+                    <button class="copy-btn-small" onclick="copyText('telebirrNumber')">Copy</button>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Name:</span>
+                    <span class="info-value" id="telebirrName">Abinet</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Amount:</span>
+                    <span class="info-value" id="telebirrAmount">0 Birr</span>
+                </div>
+            </div>
+
+            <!-- Payment Info (Crypto) -->
+            <div class="payment-info" id="cryptoInfo">
+                <div class="info-row">
+                    <span class="info-label">Network:</span>
+                    <span class="info-value">TRC20</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Wallet:</span>
+                    <span class="info-value" id="cryptoWallet">TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu</span>
+                    <button class="copy-btn-small" onclick="copyText('cryptoWallet')">Copy</button>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Amount:</span>
+                    <span class="info-value" id="cryptoAmount">0 USDT</span>
+                </div>
+            </div>
+
+            <!-- Transaction Reference -->
+            <div class="form-group">
+                <label id="referenceLabel">Transaction Reference / Hash</label>
+                <input type="text" id="transactionRef" placeholder="Enter transaction reference or hash">
+            </div>
+
+            <!-- Image Upload -->
+            <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('proofImage').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span class="upload-text">Click to upload payment screenshot</span>
+                <span class="file-name" id="fileNameDisplay"></span>
+                <img class="image-preview" id="imagePreview">
+            </div>
+            <input type="file" id="proofImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+
+            <!-- Submit -->
+            <button class="submit-btn" id="submitBtn" onclick="submitDeposit()">
+                <span class="spinner"></span>
+                <span class="btn-text"><i class="fas fa-paper-plane"></i> Submit Deposit</span>
             </button>
         </div>
 
-        <!-- Alert Messages -->
-        <div id="alertMessage" class="alert"></div>
-
-        <!-- Deposit History -->
-        <div class="history-section">
-            <h3><i class="fas fa-history"></i> Recent Deposits</h3>
+        <!-- Recent Deposits -->
+        <div class="history-card">
+            <div class="card-title">
+                <i class="fas fa-history"></i> Recent Deposits
+            </div>
             <div id="depositHistory">
-                <div class="no-data">Loading history...</div>
+                <div class="loading-box">
+                    <div class="spinner-big"></div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Toast -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+        import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+        import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
 
-    <script>
-        // Firebase Configuration
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
         const firebaseConfig = {
-  apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
-  authDomain: "webapp-fc856.firebaseapp.com",
-  projectId: "webapp-fc856",
-  storageBucket: "webapp-fc856.firebasestorage.app",
-  messagingSenderId: "892830607693",
-  appId: "1:892830607693:web:a3a886c142586665fc2f04",
-  measurementId: "G-BR4FLD1N6F"
-};
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const rdb = firebase.database();
-        const storage = firebase.storage();
+            apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
+            authDomain: "webapp-fc856.firebaseapp.com",
+            projectId: "webapp-fc856",
+            storageBucket: "webapp-fc856.appspot.com",
+            messagingSenderId: "892830607693",
+            appId: "1:892830607693:web:a3a886c142586665fc2f04"
+        };
 
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+        const storage = getStorage(app);
+
+        // ============================================
+        // TELEGRAM BOT CONFIG
+        // ============================================
+        const TELEGRAM_BOT_TOKEN = '7826950594:AAFBygBD_E2PmAITI6zsaPilys7l6i0gWBU';
+        const TELEGRAM_CHAT_ID = '7826950594'; // Bot will forward to admin
+        const ADMIN_CHAT_IDS = ['7826950594']; // Add admin chat IDs here
+
+        // ============================================
+        // PAYMENT CONFIG
+        // ============================================
+        const TELEBIRR_NUMBER = '0949399753';
+        const TELEBIRR_NAME = 'Abinet';
+        const CRYPTO_WALLET = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu';
+        const USDT_TO_BIRR_RATE = 150;
+        const MIN_DEPOSIT_USDT = 10;
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
         let currentUser = null;
+        let userData = null;
+        let selectedMethod = 'telebirr';
+        let proofImageFile = null;
+        let proofImageDataUrl = null;
 
-        // Auth Check
-        auth.onAuthStateChanged((user) => {
+        // ============================================
+        // AUTH CHECK
+        // ============================================
+        onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
             currentUser = user;
-            loadUserData();
-            loadDepositHistory();
+            await loadUserData();
+            await loadDepositHistory();
+            updatePaymentDisplay();
         });
 
-        // Load Balance
+        // ============================================
+        // LOAD USER DATA
+        // ============================================
         async function loadUserData() {
             try {
-                const doc = await db.collection('users').doc(currentUser.uid).get();
-                if (doc.exists) {
-                    document.getElementById('depositBalance').textContent = 
-                        (doc.data().depositBalance || 0).toFixed(2);
+                const snap = await getDoc(doc(db, 'users', currentUser.uid));
+                if (snap.exists()) {
+                    userData = snap.data();
+                    userData.id = snap.id;
                 }
-            } catch (error) {
-                console.error('Error loading balance:', error);
+            } catch (err) {
+                console.error('Error loading user:', err);
             }
         }
 
-        // Load Deposit History
-        function loadDepositHistory() {
-            const historyDiv = document.getElementById('depositHistory');
+        // ============================================
+        // SELECT METHOD
+        // ============================================
+        function selectMethod(method) {
+            selectedMethod = method;
             
-            rdb.ref('deposits')
-                .orderByChild('userId')
-                .equalTo(currentUser.uid)
-                .limitToLast(10)
-                .on('value', (snapshot) => {
-                    if (!snapshot.exists()) {
-                        historyDiv.innerHTML = '<div class="no-data">No deposits yet</div>';
-                        return;
-                    }
-
-                    let deposits = [];
-                    snapshot.forEach(child => {
-                        deposits.push({ id: child.key, ...child.val() });
-                    });
-
-                    deposits.sort((a, b) => b.timestamp - a.timestamp);
-
-                    historyDiv.innerHTML = deposits.map(dep => {
-                        const date = new Date(dep.timestamp);
-                        const method = dep.paymentMethod === 'telebirr' ? '📱 Telebirr' : '₿ Crypto';
-                        const statusBadge = `badge-${dep.status || 'pending'}`;
-                        
-                        return `
-                            <div class="history-item">
-                                <div class="history-info">
-                                    <div class="history-amount">+${parseFloat(dep.amount).toFixed(2)} USDT</div>
-                                    <div class="history-date">${date.toLocaleString()}</div>
-                                    <div class="history-method">${method}</div>
-                                </div>
-                                <span class="badge ${statusBadge}">${dep.status || 'Pending'}</span>
-                            </div>
-                        `;
-                    }).join('');
-                });
-        }
-
-        // Switch Payment Method
-        function switchPayment(method) {
-            document.querySelectorAll('.payment-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.payment-form').forEach(form => form.classList.remove('active'));
-
+            document.querySelectorAll('.method-option').forEach(el => el.classList.remove('selected'));
+            
             if (method === 'telebirr') {
-                document.querySelector('.payment-tab:nth-child(1)').classList.add('active');
-                document.getElementById('telebirr-form').classList.add('active');
+                document.getElementById('methodTelebirr').classList.add('selected');
+                document.getElementById('telebirrInfo').classList.add('show');
+                document.getElementById('cryptoInfo').classList.remove('show');
+                document.getElementById('amountLabel').textContent = 'Amount (USDT)';
+                document.getElementById('referenceLabel').textContent = 'Telebirr Transaction Reference';
+                document.getElementById('conversionDisplay').classList.add('show');
             } else {
-                document.querySelector('.payment-tab:nth-child(2)').classList.add('active');
-                document.getElementById('crypto-form').classList.add('active');
+                document.getElementById('methodCrypto').classList.add('selected');
+                document.getElementById('cryptoInfo').classList.add('show');
+                document.getElementById('telebirrInfo').classList.remove('show');
+                document.getElementById('amountLabel').textContent = 'Amount (USDT)';
+                document.getElementById('referenceLabel').textContent = 'Transaction Hash (TXID)';
+                document.getElementById('conversionDisplay').classList.remove('show');
             }
+            
+            updateConversion();
+            updatePaymentDisplay();
         }
 
-        // Copy Functions
-        function copyTelebirrNumber() {
-            navigator.clipboard.writeText('0949399753');
-            showAlert('Number copied! Pay to 0949399753 (Abinet)', 'success');
-        }
-
-        function copyWalletAddress() {
-            navigator.clipboard.writeText('TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu');
-            showAlert('Wallet address copied!', 'success');
-        }
-
-        // Preview Image
-        function previewImage(input, previewId) {
-            const preview = document.getElementById(previewId);
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
+        // ============================================
+        // UPDATE CONVERSION
+        // ============================================
+        function updateConversion() {
+            const amount = parseFloat(document.getElementById('depositAmount').value) || 0;
+            
+            if (selectedMethod === 'telebirr') {
+                const birrAmount = amount * USDT_TO_BIRR_RATE;
+                document.getElementById('convertedAmount').textContent = birrAmount.toLocaleString() + ' Birr';
+                document.getElementById('telebirrAmount').textContent = birrAmount.toLocaleString() + ' Birr';
+            } else {
+                document.getElementById('cryptoAmount').textContent = amount + ' USDT';
             }
+            
+            updatePaymentDisplay();
         }
 
-        // Show Alert
-        function showAlert(message, type) {
-            const alert = document.getElementById('alertMessage');
-            alert.textContent = message;
-            alert.className = `alert alert-${type} show`;
-            setTimeout(() => alert.classList.remove('show'), 4000);
+        // ============================================
+        // UPDATE PAYMENT DISPLAY
+        // ============================================
+        function updatePaymentDisplay() {
+            document.getElementById('telebirrNumber').textContent = TELEBIRR_NUMBER;
+            document.getElementById('telebirrName').textContent = TELEBIRR_NAME;
+            document.getElementById('cryptoWallet').textContent = CRYPTO_WALLET;
         }
 
-        // Submit Deposit
-        async function submitDeposit(method) {
-            if (!currentUser) return;
+        // ============================================
+        // HANDLE IMAGE UPLOAD
+        // ============================================
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            const amount = parseFloat(document.getElementById(`${method}-amount`).value);
-            const ref = document.getElementById(method === 'telebirr' ? 'telebirr-ref' : 'crypto-hash').value.trim();
-            const screenshotFile = document.getElementById(`${method}-screenshot`).files[0];
-            const submitBtn = document.getElementById(`${method}-submit`);
-
-            // Validation
-            if (!amount || amount < 10) {
-                showAlert('Minimum deposit is 10 USDT', 'danger');
-                return;
-            }
-            if (!ref) {
-                showAlert(`Please enter ${method === 'telebirr' ? 'transaction reference' : 'transaction hash'}`, 'danger');
-                return;
-            }
-            if (!screenshotFile) {
-                showAlert('Please upload payment screenshot', 'danger');
+            // Validate file
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Image too large. Max 5MB.');
                 return;
             }
 
-            // Disable button
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file.');
+                return;
+            }
+
+            proofImageFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                proofImageDataUrl = e.target.result;
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreview').classList.add('show');
+                document.getElementById('fileNameDisplay').textContent = file.name;
+                document.getElementById('imageUploadArea').classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ============================================
+        // SUBMIT DEPOSIT
+        // ============================================
+        async function submitDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            const transactionRef = document.getElementById('transactionRef').value.trim();
+            const btn = document.getElementById('submitBtn');
+
+            // Validate
+            if (!amount || amount < MIN_DEPOSIT_USDT) {
+                showToast(`Minimum deposit is $${MIN_DEPOSIT_USDT} USDT`);
+                return;
+            }
+
+            if (!transactionRef) {
+                showToast('Please enter transaction reference/hash');
+                return;
+            }
+
+            if (!proofImageFile) {
+                showToast('Please upload payment screenshot');
+                return;
+            }
+
+            // Show loading
+            btn.disabled = true;
+            btn.classList.add('loading');
 
             try {
-                // Upload screenshot
-                const storageRef = storage.ref(`deposits/${currentUser.uid}/${Date.now()}_${screenshotFile.name}`);
-                await storageRef.put(screenshotFile);
-                const screenshotUrl = await storageRef.getDownloadURL();
+                const userEmail = userData?.email || currentUser.email || 'N/A';
+                const userName = userData?.firstName || userData?.fullName || 'User';
+                const birrAmount = selectedMethod === 'telebirr' ? amount * USDT_TO_BIRR_RATE : 0;
+                
+                console.log('📤 Submitting deposit:', {
+                    amount, method: selectedMethod, ref: transactionRef
+                });
 
-                // Save to Firebase
+                // ============================================
+                // 1. UPLOAD IMAGE TO FIREBASE STORAGE
+                // ============================================
+                const imageFileName = `deposits/${currentUser.uid}_${Date.now()}_${proofImageFile.name}`;
+                const imageRef = storageRef(storage, imageFileName);
+                const uploadResult = await uploadBytes(imageRef, proofImageFile);
+                const imageUrl = await getDownloadURL(uploadResult.ref);
+                console.log('✅ Image uploaded:', imageUrl);
+
+                // ============================================
+                // 2. SAVE TO FIRESTORE (without image - for admin panel)
+                // ============================================
                 const depositData = {
                     userId: currentUser.uid,
-                    email: currentUser.email,
+                    userEmail: userEmail,
+                    userName: userName,
                     amount: amount,
-                    paymentMethod: method,
-                    reference: ref,
-                    screenshot: screenshotUrl,
+                    method: selectedMethod,
+                    birrAmount: birrAmount,
+                    transactionRef: transactionRef,
                     status: 'pending',
+                    imageUrl: imageUrl,
+                    isFirstDeposit: !(userData?.firstDepositCompleted),
+                    createdAt: serverTimestamp(),
+                    processedAt: null,
+                    processedBy: null,
+                    telegramSent: true
+                };
+
+                const docRef = await addDoc(collection(db, 'deposits'), depositData);
+                console.log('✅ Deposit saved to Firestore:', docRef.id);
+
+                // ============================================
+                // 3. SAVE TO RTDB (for real-time updates)
+                // ============================================
+                const rtdbDeposit = {
+                    id: docRef.id,
+                    userId: currentUser.uid,
+                    userEmail: userEmail,
+                    userName: userName,
+                    amount: amount,
+                    method: selectedMethod,
+                    birrAmount: birrAmount,
+                    transactionRef: transactionRef,
+                    status: 'pending',
+                    imageUrl: imageUrl,
                     timestamp: Date.now()
                 };
 
-                await rdb.ref('deposits').push(depositData);
+                await push(ref(rtdb, 'deposits'), rtdbDeposit);
+                console.log('✅ Deposit saved to RTDB');
 
-                showAlert('Deposit submitted! Will be processed within 24 hours.', 'success');
+                // ============================================
+                // 4. SEND TO TELEGRAM BOT (with image)
+                // ============================================
+                await sendToTelegram(depositData, imageUrl);
+                
+                // Also send image directly to Telegram
+                await sendImageToTelegram(proofImageFile, depositData);
 
-                // Clear form
-                document.getElementById(`${method}-amount`).value = '';
-                document.getElementById(method === 'telebirr' ? 'telebirr-ref' : 'crypto-hash').value = '';
-                document.getElementById(`${method}-screenshot`).value = '';
-                document.getElementById(`${method}-preview`).style.display = 'none';
+                // ============================================
+                // SUCCESS
+                // ============================================
+                showToast('✅ Deposit submitted! Waiting for admin approval.');
+                
+                // Reset form
+                document.getElementById('depositAmount').value = '';
+                document.getElementById('transactionRef').value = '';
+                document.getElementById('proofImage').value = '';
+                document.getElementById('imagePreview').classList.remove('show');
+                document.getElementById('fileNameDisplay').textContent = '';
+                document.getElementById('imageUploadArea').classList.remove('has-image');
+                proofImageFile = null;
+                proofImageDataUrl = null;
+                document.getElementById('convertedAmount').textContent = '0 Birr';
+                document.getElementById('telebirrAmount').textContent = '0 Birr';
+                document.getElementById('cryptoAmount').textContent = '0 USDT';
+
+                // Reload history
+                await loadDepositHistory();
 
             } catch (error) {
-                console.error('Deposit error:', error);
-                showAlert('Error submitting deposit. Please try again.', 'danger');
+                console.error('❌ Deposit error:', error);
+                showToast('Error submitting deposit. Please try again.');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit';
+                btn.disabled = false;
+                btn.classList.remove('loading');
             }
         }
+
+        // ============================================
+        // SEND TO TELEGRAM (Text Message)
+        // ============================================
+        async function sendToTelegram(depositData, imageUrl) {
+            const amount = depositData.amount;
+            const method = depositData.method;
+            const birrAmount = depositData.birrAmount;
+            const userEmail = depositData.userEmail;
+            const userName = depositData.userName;
+            const userId = depositData.userId;
+            const transactionRef = depositData.transactionRef;
+            const isFirst = depositData.isFirstDeposit;
+
+            const methodEmoji = method === 'telebirr' ? '📱' : '💎';
+            const methodName = method === 'telebirr' ? 'Telebirr' : 'Crypto (USDT)';
+            
+            let message = `
+🔔 <b>NEW DEPOSIT REQUEST</b>
+
+${methodEmoji} <b>Method:</b> ${methodName}
+💰 <b>Amount:</b> $${amount} USDT
+${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString()} Birr` : ''}
+👤 <b>User:</b> ${userName}
+📧 <b>Email:</b> ${userEmail}
+🆔 <b>User ID:</b> <code>${userId}</code>
+📝 <b>Reference:</b> <code>${transactionRef}</code>
+🆕 <b>First Deposit:</b> ${isFirst ? 'Yes ⭐' : 'No'}
+📅 <b>Status:</b> ⏳ Pending Approval
+
+<i>Please review and approve/reject this deposit.</i>
+            `.trim();
+
+            // Send to all admin chat IDs
+            for (const chatId of ADMIN_CHAT_IDS) {
+                try {
+                    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: message,
+                            parse_mode: 'HTML',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: '✅ Approve', callback_data: `approve_${depositData.userId}_${amount}` },
+                                        { text: '❌ Reject', callback_data: `reject_${depositData.userId}` }
+                                    ],
+                                    [
+                                        { text: '🖼 View Image', url: imageUrl }
+                                    ]
+                                ]
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.ok) {
+                        console.log('✅ Telegram message sent to:', chatId);
+                    } else {
+                        console.error('❌ Telegram send failed:', result.description);
+                    }
+                } catch (err) {
+                    console.error('❌ Telegram error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // SEND IMAGE TO TELEGRAM (Direct Image)
+        // ============================================
+        async function sendImageToTelegram(imageFile, depositData) {
+            const userName = depositData.userName;
+            const amount = depositData.amount;
+            const method = depositData.method;
+            const methodName = method === 'telebirr' ? 'Telebirr' : 'Crypto';
+
+            const caption = `📸 <b>Payment Proof</b>\n👤 ${userName}\n💰 $${amount} USDT via ${methodName}`;
+
+            for (const chatId of ADMIN_CHAT_IDS) {
+                try {
+                    const formData = new FormData();
+                    formData.append('chat_id', chatId);
+                    formData.append('photo', imageFile);
+                    formData.append('caption', caption);
+                    formData.append('parse_mode', 'HTML');
+
+                    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    if (result.ok) {
+                        console.log('✅ Image sent to Telegram:', chatId);
+                    } else {
+                        console.error('❌ Image send failed:', result.description);
+                    }
+                } catch (err) {
+                    console.error('❌ Telegram image error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // LOAD DEPOSIT HISTORY
+        // ============================================
+        async function loadDepositHistory() {
+            const container = document.getElementById('depositHistory');
+            
+            try {
+                const q = query(
+                    collection(db, 'deposits'),
+                    where('userId', '==', currentUser.uid),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                const snap = await getDocs(q);
+                
+                if (snap.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-receipt"></i>
+                            <p>No deposits yet</p>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const date = d.createdAt?.toDate() || new Date();
+                    const statusClass = d.status === 'approved' ? 'approved' : 
+                                       d.status === 'rejected' ? 'rejected' : 'pending';
+                    const statusIcon = d.status === 'approved' ? '✓' : 
+                                      d.status === 'rejected' ? '✗' : '⏳';
+                    const methodIcon = d.method === 'telebirr' ? '📱' : '💎';
+                    const birrInfo = d.method === 'telebirr' && d.birrAmount ? ` (${d.birrAmount.toLocaleString()} Birr)` : '';
+
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <div class="history-status ${statusClass}">${statusIcon}</div>
+                        <div class="history-info">
+                            <div class="history-amount">${methodIcon} $${d.amount} USDT${birrInfo}</div>
+                            <div class="history-detail">${d.method === 'telebirr' ? 'Telebirr' : 'Crypto'} · Ref: ${d.transactionRef || 'N/A'}</div>
+                            <div class="history-date">${date.toLocaleString()}</div>
+                        </div>`;
+                    container.appendChild(item);
+                });
+
+            } catch (err) {
+                console.error('Error loading history:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error loading history</p>
+                    </div>`;
+            }
+        }
+
+        // ============================================
+        // COPY TEXT
+        // ============================================
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('✅ Copied!');
+            }).catch(() => {
+                // Fallback
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('✅ Copied!');
+            });
+        }
+
+        // ============================================
+        // TOAST
+        // ============================================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.opacity = '1';
+            
+            clearTimeout(window._toastTimeout);
+            window._toastTimeout = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => { toast.style.display = 'none'; }, 300);
+            }, 3000);
+        }
+
+        // ============================================
+        // GLOBAL EXPORTS
+        // ============================================
+        window.selectMethod = selectMethod;
+        window.updateConversion = updateConversion;
+        window.handleImageUpload = handleImageUpload;
+        window.submitDeposit = submitDeposit;
+        window.copyText = copyText;
+
+        console.log('✅ Deposit page ready');
+        console.log('💱 Rate: 1 USDT = 150 Birr (Telebirr)');
+        console.log('🤖 Telegram bot connected');
     </script>
 </body>
 </html>
