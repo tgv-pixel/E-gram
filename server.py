@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
@@ -76,16 +76,60 @@ def format_date(dt_string):
         return dt_string
 
 # ============================================
-# STATIC FILE SERVING
+# STATIC FILE SERVING - MAIN ROUTES
 # ============================================
+
 @app.route('/')
 def index():
+    """Main index page"""
     return send_from_directory('.', 'index.html')
 
+@app.route('/home')
+def home():
+    """Home page"""
+    return send_from_directory('.', 'home.html')
+
+@app.route('/referral')
+def referral():
+    """Referral page"""
+    return send_from_directory('.', 'referral.html')
+
+@app.route('/notification')
+def notification():
+    """Notification page"""
+    return send_from_directory('.', 'notification.html')
+
+@app.route('/product')
+def product():
+    """Product/Investment page"""
+    return send_from_directory('.', 'product.html')
+
+@app.route('/daily')
+def daily():
+    """Daily earnings page"""
+    return send_from_directory('.', 'daily.html')
+
+@app.route('/withdraw')
+def withdraw():
+    """Withdrawal page"""
+    return send_from_directory('.', 'withdraw.html')
+
+@app.route('/deposite')
+def deposite():
+    """Deposit page"""
+    return send_from_directory('.', 'deposite.html')
+
+# Fallback for any other paths
 @app.route('/<path:path>')
 def serve_static(path):
+    """Serve static files or fallback to index"""
     if os.path.exists(path):
         return send_from_directory('.', path)
+    # Check if it's an HTML file without extension
+    if not '.' in path:
+        html_path = f"{path}.html"
+        if os.path.exists(html_path):
+            return send_from_directory('.', html_path)
     return send_from_directory('.', 'index.html')
 
 # ============================================
@@ -113,7 +157,16 @@ def server_info():
         'wallet_address': WALLET_ADDRESS,
         'referral_bonus': REFERRAL_BONUS,
         'min_deposit': MIN_DEPOSIT,
-        'min_withdraw': MIN_WITHDRAW
+        'min_withdraw': MIN_WITHDRAW,
+        'routes': {
+            'home': '/home',
+            'referral': '/referral',
+            'notification': '/notification',
+            'product': '/product',
+            'daily': '/daily',
+            'withdraw': '/withdraw',
+            'deposite': '/deposite'
+        }
     })
 
 # ============================================
@@ -594,7 +647,8 @@ def get_referral_stats(user_id):
         user = data_store['users'][user_id]
         user_referrals = [r for r in data_store['referrals'] if r['referrerId'] == user_id]
         
-        referral_link = f"{request.host_url}index.html?ref={user_id}"
+        # Updated referral link to use /referral route
+        referral_link = f"{request.host_url}referral?ref={user_id}"
         
         return jsonify({
             'success': True,
@@ -738,7 +792,11 @@ def get_pending_withdrawals():
 # ============================================
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({'error': 'Endpoint not found'}), 404
+    # Check if it's an API request
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Endpoint not found'}), 404
+    # For web requests, return index.html (SPA fallback)
+    return send_from_directory('.', 'index.html')
 
 @app.errorhandler(500)
 def server_error(e):
@@ -756,6 +814,16 @@ if __name__ == '__main__':
     print(f"Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
     print(f"Wallet: {WALLET_ADDRESS}")
     print(f"Referral Bonus: ${REFERRAL_BONUS}")
+    print("")
+    print("Available Routes:")
+    print("  /              - Home/Index")
+    print("  /home          - Home Dashboard")
+    print("  /referral      - Referral Page")
+    print("  /notification  - Notifications")
+    print("  /product       - Products/Investments")
+    print("  /daily         - Daily Earnings")
+    print("  /withdraw      - Withdrawals")
+    print("  /deposite      - Deposits")
     print("=" * 50)
     
     app.run(host='0.0.0.0', port=port, debug=False)
