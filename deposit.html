@@ -50,6 +50,7 @@
             cursor: pointer;
             padding: 8px;
             border-radius: 8px;
+            text-decoration: none;
         }
 
         .back-btn:hover {
@@ -79,6 +80,7 @@
             padding: 8px 12px;
             border-radius: 8px;
             position: relative;
+            text-decoration: none;
         }
 
         .nav-btn:hover {
@@ -392,6 +394,10 @@
             margin-left: 8px;
         }
 
+        .copy-btn-small:hover {
+            background: var(--primary-dark);
+        }
+
         .submit-btn {
             width: 100%;
             padding: 14px;
@@ -509,6 +515,32 @@
             color: #aaa;
         }
 
+        .login-prompt {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .login-prompt i {
+            font-size: 3em;
+            color: var(--warning);
+            margin-bottom: 15px;
+        }
+
+        .login-prompt p {
+            color: var(--gray);
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
         .toast {
             position: fixed;
             bottom: 25px;
@@ -583,18 +615,18 @@
 <body>
     <!-- Top Navigation -->
     <nav class="top-nav">
-        <button class="back-btn" onclick="window.location.href='home.html'">
+        <a href="/home" class="back-btn">
             <i class="fas fa-arrow-left"></i>
-        </button>
+        </a>
         <span class="nav-brand">Deposit</span>
         <div class="nav-actions">
-            <button class="nav-btn" onclick="window.location.href='notification.html'">
+            <a href="/notification" class="nav-btn">
                 <i class="fas fa-bell"></i>
                 <span class="badge" id="notificationBadge" style="display:none;">0</span>
-            </button>
-            <button class="nav-btn" onclick="window.location.href='home.html'">
+            </a>
+            <a href="/home" class="nav-btn">
                 <i class="fas fa-home"></i>
-            </button>
+            </a>
         </div>
     </nav>
 
@@ -609,96 +641,110 @@
             </div>
         </div>
 
-        <!-- Deposit Form -->
-        <div class="deposit-card">
-            <div class="card-title">
-                <i class="fas fa-wallet"></i> New Deposit
-            </div>
+        <!-- Deposit Form (Hidden if not logged in) -->
+        <div id="depositFormContainer">
+            <div class="deposit-card">
+                <div class="card-title">
+                    <i class="fas fa-wallet"></i> New Deposit
+                </div>
 
-            <!-- Method Selection -->
-            <div class="method-selector">
-                <div class="method-option telebirr selected" id="methodTelebirr" onclick="selectMethod('telebirr')">
-                    <i class="fas fa-mobile-alt"></i>
-                    <div class="method-name">Telebirr</div>
-                    <div class="method-desc">Ethiopian Mobile Money</div>
-                    <div class="method-rate">1 USDT = 150 Birr</div>
+                <!-- Method Selection -->
+                <div class="method-selector">
+                    <div class="method-option telebirr selected" id="methodTelebirr" onclick="selectMethod('telebirr')">
+                        <i class="fas fa-mobile-alt"></i>
+                        <div class="method-name">Telebirr</div>
+                        <div class="method-desc">Ethiopian Mobile Money</div>
+                        <div class="method-rate">1 USDT = 150 Birr</div>
+                    </div>
+                    <div class="method-option crypto" id="methodCrypto" onclick="selectMethod('crypto')">
+                        <i class="fab fa-bitcoin"></i>
+                        <div class="method-name">Crypto (USDT)</div>
+                        <div class="method-desc">TRC20 Network</div>
+                        <div class="method-rate">Direct USDT</div>
+                    </div>
                 </div>
-                <div class="method-option crypto" id="methodCrypto" onclick="selectMethod('crypto')">
-                    <i class="fab fa-bitcoin"></i>
-                    <div class="method-name">Crypto (USDT)</div>
-                    <div class="method-desc">TRC20 Network</div>
-                    <div class="method-rate">Direct USDT</div>
+
+                <!-- Amount Input -->
+                <div class="form-group" id="amountGroup">
+                    <label id="amountLabel">Amount (USDT)</label>
+                    <div class="input-with-symbol">
+                        <span class="symbol">$</span>
+                        <input type="number" id="depositAmount" placeholder="Enter amount" min="10" step="0.01" oninput="updateConversion()">
+                    </div>
+                </div>
+
+                <!-- Conversion Display -->
+                <div class="conversion-display" id="conversionDisplay">
+                    <span>You will pay: <span class="converted-amount" id="convertedAmount">0 Birr</span></span>
+                </div>
+
+                <!-- Payment Info (Telebirr) -->
+                <div class="payment-info show" id="telebirrInfo">
+                    <div class="info-row">
+                        <span class="info-label">Pay to:</span>
+                        <span class="info-value" id="telebirrNumber">0949399753</span>
+                        <button class="copy-btn-small" onclick="copyText('telebirrNumber')">Copy</button>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Name:</span>
+                        <span class="info-value" id="telebirrName">Abinet</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Amount:</span>
+                        <span class="info-value" id="telebirrAmount">0 Birr</span>
+                    </div>
+                </div>
+
+                <!-- Payment Info (Crypto) -->
+                <div class="payment-info" id="cryptoInfo">
+                    <div class="info-row">
+                        <span class="info-label">Network:</span>
+                        <span class="info-value">TRC20</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Wallet:</span>
+                        <span class="info-value" id="cryptoWallet">TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu</span>
+                        <button class="copy-btn-small" onclick="copyText('cryptoWallet')">Copy</button>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Amount:</span>
+                        <span class="info-value" id="cryptoAmount">0 USDT</span>
+                    </div>
+                </div>
+
+                <!-- Transaction Reference -->
+                <div class="form-group">
+                    <label id="referenceLabel">Transaction Reference / Hash</label>
+                    <input type="text" id="transactionRef" placeholder="Enter transaction reference or hash">
+                </div>
+
+                <!-- Image Upload -->
+                <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('proofImage').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span class="upload-text">Click to upload payment screenshot</span>
+                    <span class="file-name" id="fileNameDisplay"></span>
+                    <img class="image-preview" id="imagePreview">
+                </div>
+                <input type="file" id="proofImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+
+                <!-- Submit -->
+                <button class="submit-btn" id="submitBtn" onclick="submitDeposit()">
+                    <span class="spinner"></span>
+                    <span class="btn-text"><i class="fas fa-paper-plane"></i> Submit Deposit</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Prompt (Shown if not logged in) -->
+        <div id="loginPromptContainer" style="display:none;">
+            <div class="deposit-card">
+                <div class="login-prompt">
+                    <i class="fas fa-user-lock"></i>
+                    <h3>Login Required</h3>
+                    <p>You need to be logged in to make a deposit.</p>
+                    <a href="/" class="login-btn">Go to Login</a>
                 </div>
             </div>
-
-            <!-- Amount Input -->
-            <div class="form-group" id="amountGroup">
-                <label id="amountLabel">Amount (USDT)</label>
-                <div class="input-with-symbol">
-                    <span class="symbol">$</span>
-                    <input type="number" id="depositAmount" placeholder="Enter amount" min="10" step="0.01" oninput="updateConversion()">
-                </div>
-            </div>
-
-            <!-- Conversion Display -->
-            <div class="conversion-display" id="conversionDisplay">
-                <span>You will pay: <span class="converted-amount" id="convertedAmount">0 Birr</span></span>
-            </div>
-
-            <!-- Payment Info (Telebirr) -->
-            <div class="payment-info show" id="telebirrInfo">
-                <div class="info-row">
-                    <span class="info-label">Pay to:</span>
-                    <span class="info-value" id="telebirrNumber">0949399753</span>
-                    <button class="copy-btn-small" onclick="copyText('telebirrNumber')">Copy</button>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span class="info-value" id="telebirrName">Abinet</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Amount:</span>
-                    <span class="info-value" id="telebirrAmount">0 Birr</span>
-                </div>
-            </div>
-
-            <!-- Payment Info (Crypto) -->
-            <div class="payment-info" id="cryptoInfo">
-                <div class="info-row">
-                    <span class="info-label">Network:</span>
-                    <span class="info-value">TRC20</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Wallet:</span>
-                    <span class="info-value" id="cryptoWallet">TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu</span>
-                    <button class="copy-btn-small" onclick="copyText('cryptoWallet')">Copy</button>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Amount:</span>
-                    <span class="info-value" id="cryptoAmount">0 USDT</span>
-                </div>
-            </div>
-
-            <!-- Transaction Reference -->
-            <div class="form-group">
-                <label id="referenceLabel">Transaction Reference / Hash</label>
-                <input type="text" id="transactionRef" placeholder="Enter transaction reference or hash">
-            </div>
-
-            <!-- Image Upload -->
-            <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('proofImage').click()">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <span class="upload-text">Click to upload payment screenshot</span>
-                <span class="file-name" id="fileNameDisplay"></span>
-                <img class="image-preview" id="imagePreview">
-            </div>
-            <input type="file" id="proofImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
-
-            <!-- Submit -->
-            <button class="submit-btn" id="submitBtn" onclick="submitDeposit()">
-                <span class="spinner"></span>
-                <span class="btn-text"><i class="fas fa-paper-plane"></i> Submit Deposit</span>
-            </button>
         </div>
 
         <!-- Recent Deposits -->
@@ -717,13 +763,31 @@
     <!-- Toast -->
     <div class="toast" id="toast" style="display:none;"></div>
 
-    <script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
+            authDomain: "webapp-fc856.firebaseapp.com",
+            projectId: "webapp-fc856",
+            storageBucket: "webapp-fc856.appspot.com",
+            messagingSenderId: "892830607693",
+            appId: "1:892830607693:web:a3a886c142586665fc2f04"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
         // ============================================
         // CONFIGURATION
         // ============================================
         const API_BASE = window.location.origin;
-        const TELEGRAM_BOT_TOKEN = '7826950594:AAFBygBD_E2PmAITI6zsaPilys7l6i0gWBU';
-        const TELEGRAM_CHAT_ID = '-1002452548749';
         const TELEBIRR_NUMBER = '0949399753';
         const TELEBIRR_NAME = 'Abinet';
         const CRYPTO_WALLET = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu';
@@ -737,51 +801,121 @@
         let selectedMethod = 'telebirr';
         let proofImageFile = null;
         let proofImageDataUrl = null;
+        let isLoggedIn = false;
 
         // ============================================
         // INITIALIZATION
         // ============================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
-            await loadDepositHistory();
-            await loadNotifications();
-            updatePaymentDisplay();
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Deposit page initializing...');
+            
+            // Listen for Firebase auth state changes
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // User is signed in with Firebase
+                    console.log('✅ Firebase user authenticated:', user.email);
+                    currentUser = {
+                        userId: user.uid,
+                        email: user.email,
+                        firstName: user.displayName || user.email?.split('@')[0] || 'User'
+                    };
+                    isLoggedIn = true;
+                    
+                    // Save to localStorage for backup
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // Ensure user exists in backend
+                    await ensureUserInBackend(currentUser);
+                    
+                    showDepositForm();
+                    await loadDepositHistory();
+                    await loadNotifications();
+                    
+                } else {
+                    // No Firebase user - check localStorage backup
+                    console.log('⚠️ No Firebase user, checking localStorage...');
+                    await checkLocalStorageFallback();
+                }
+                
+                updatePaymentDisplay();
+            });
         });
 
         // ============================================
-        // AUTH CHECK
+        // ENSURE USER EXISTS IN BACKEND
         // ============================================
-        async function checkAuth() {
-            // Try to get user from localStorage or session
+        async function ensureUserInBackend(user) {
+            try {
+                // Check if user exists in backend
+                const checkResponse = await fetch(`${API_BASE}/api/user/${user.userId}`);
+                
+                if (!checkResponse.ok) {
+                    // User doesn't exist, create them
+                    console.log('📝 Creating user in backend...');
+                    await fetch(`${API_BASE}/api/user/create`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: user.userId,
+                            email: user.email,
+                            firstName: user.firstName
+                        })
+                    });
+                    console.log('✅ User created in backend');
+                }
+            } catch (err) {
+                console.error('Error ensuring user in backend:', err);
+            }
+        }
+
+        // ============================================
+        // FALLBACK: Check localStorage if Firebase fails
+        // ============================================
+        async function checkLocalStorageFallback() {
             const storedUser = localStorage.getItem('currentUser');
             
-            if (!storedUser) {
-                window.location.href = 'index.html';
-                return;
+            if (storedUser) {
+                try {
+                    const userData = JSON.parse(storedUser);
+                    if (userData && userData.userId) {
+                        currentUser = userData;
+                        isLoggedIn = true;
+                        console.log('✅ User found in localStorage:', userData.email);
+                        
+                        showDepositForm();
+                        await loadDepositHistory();
+                        await loadNotifications();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse stored user');
+                }
             }
+            
+            // No user found anywhere
+            isLoggedIn = false;
+            currentUser = null;
+            showLoginPrompt();
+            console.log('❌ User not authenticated');
+        }
 
-            try {
-                currentUser = JSON.parse(storedUser);
-                
-                // Verify user exists on server
-                const response = await fetch(`${API_BASE}/api/user/${currentUser.userId}`);
-                const data = await response.json();
-                
-                if (!data.success) {
-                    localStorage.removeItem('currentUser');
-                    window.location.href = 'index.html';
-                    return;
-                }
-                
-                currentUser = data.user;
-                
-            } catch (error) {
-                console.error('Auth check error:', error);
-                // Try to continue with stored user data
-                if (!currentUser || !currentUser.userId) {
-                    window.location.href = 'index.html';
-                }
-            }
+        // ============================================
+        // SHOW/HIDE SECTIONS
+        // ============================================
+        function showDepositForm() {
+            document.getElementById('depositFormContainer').style.display = 'block';
+            document.getElementById('loginPromptContainer').style.display = 'none';
+        }
+
+        function showLoginPrompt() {
+            document.getElementById('depositFormContainer').style.display = 'none';
+            document.getElementById('loginPromptContainer').style.display = 'block';
+            
+            document.getElementById('depositHistory').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-user-lock"></i>
+                    <p>Please login to view deposit history</p>
+                </div>`;
         }
 
         // ============================================
@@ -845,7 +979,6 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Validate file
             if (file.size > 5 * 1024 * 1024) {
                 showToast('Image too large. Max 5MB.');
                 return;
@@ -858,7 +991,6 @@
 
             proofImageFile = file;
             
-            // Show preview
             const reader = new FileReader();
             reader.onload = function(e) {
                 proofImageDataUrl = e.target.result;
@@ -874,41 +1006,41 @@
         // SUBMIT DEPOSIT
         // ============================================
         async function submitDeposit() {
+            if (!isLoggedIn || !currentUser) {
+                showToast('Please login first');
+                return;
+            }
+
             const amount = parseFloat(document.getElementById('depositAmount').value);
             const transactionRef = document.getElementById('transactionRef').value.trim();
             const btn = document.getElementById('submitBtn');
 
-            // Validate
+            // Validate amount
             if (!amount || amount < MIN_DEPOSIT_USDT) {
                 showToast(`Minimum deposit is $${MIN_DEPOSIT_USDT} USDT`);
                 return;
             }
 
+            // Validate reference
             if (!transactionRef) {
                 showToast('Please enter transaction reference/hash');
                 return;
             }
 
-            if (!proofImageFile) {
-                showToast('Please upload payment screenshot');
-                return;
+            // Validate crypto hash format
+            if (selectedMethod === 'crypto') {
+                if (!/^[a-fA-F0-9]{64}$/.test(transactionRef)) {
+                    showToast('Invalid TRC20 transaction hash (should be 64 characters)');
+                    return;
+                }
             }
 
-            if (!currentUser || !currentUser.userId) {
-                showToast('Please login first');
-                return;
-            }
-
-            // Show loading
             btn.disabled = true;
             btn.classList.add('loading');
 
             try {
                 console.log('📤 Submitting deposit to server...');
                 
-                // ============================================
-                // 1. SUBMIT DEPOSIT TO FLASK BACKEND
-                // ============================================
                 const depositPayload = {
                     userId: currentUser.userId,
                     amount: amount,
@@ -918,11 +1050,10 @@
                     userName: currentUser.firstName || currentUser.email || 'User'
                 };
 
+                // Submit to Flask backend
                 const apiResponse = await fetch(`${API_BASE}/api/deposit`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(depositPayload)
                 });
 
@@ -934,38 +1065,22 @@
 
                 console.log('✅ Deposit saved to server:', apiData);
 
-                // ============================================
-                // 2. SEND TO TELEGRAM BOT
-                // ============================================
-                await sendToTelegram(depositPayload);
-                
-                // Also send image to Telegram if possible
-                if (proofImageDataUrl) {
-                    await sendImageToTelegram(proofImageFile, depositPayload);
-                }
-
-                // ============================================
-                // 3. SUCCESS
-                // ============================================
                 showToast('✅ Deposit submitted! Waiting for admin approval.');
                 
-                // Check if it's first deposit
+                // Show first deposit bonus message
                 if (apiData.isFirstDeposit) {
                     setTimeout(() => {
                         showToast('🎉 First deposit! Referral bonus will be processed upon approval.');
                     }, 3000);
                 }
                 
-                // Reset form
                 resetForm();
-                
-                // Reload history
                 await loadDepositHistory();
                 await loadNotifications();
 
             } catch (error) {
                 console.error('❌ Deposit error:', error);
-                showToast('Error: ' + (error.message || 'Failed to submit deposit. Please try again.'));
+                showToast('Error: ' + (error.message || 'Failed to submit deposit'));
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('loading');
@@ -980,6 +1095,7 @@
             document.getElementById('transactionRef').value = '';
             document.getElementById('proofImage').value = '';
             document.getElementById('imagePreview').classList.remove('show');
+            document.getElementById('imagePreview').src = '';
             document.getElementById('fileNameDisplay').textContent = '';
             document.getElementById('imageUploadArea').classList.remove('has-image');
             proofImageFile = null;
@@ -990,101 +1106,15 @@
         }
 
         // ============================================
-        // SEND TO TELEGRAM (Text Message)
-        // ============================================
-        async function sendToTelegram(depositData) {
-            const amount = depositData.amount;
-            const method = depositData.method;
-            const birrAmount = method === 'telebirr' ? amount * USDT_TO_BIRR_RATE : 0;
-            const userEmail = depositData.userEmail || currentUser.email || 'N/A';
-            const userName = depositData.userName || currentUser.firstName || 'User';
-            const userId = depositData.userId || currentUser.userId;
-            const transactionRef = depositData.reference;
-
-            const methodEmoji = method === 'telebirr' ? '📱' : '💎';
-            const methodName = method === 'telebirr' ? 'Telebirr' : 'Crypto (USDT)';
-            
-            let message = `
-🔔 <b>NEW DEPOSIT REQUEST</b>
-
-${methodEmoji} <b>Method:</b> ${methodName}
-💰 <b>Amount:</b> $${amount} USDT
-${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString()} Birr` : ''}
-👤 <b>User:</b> ${userName}
-📧 <b>Email:</b> ${userEmail}
-🆔 <b>User ID:</b> <code>${userId}</code>
-📝 <b>Reference:</b> <code>${transactionRef}</code>
-📅 <b>Status:</b> ⏳ Pending Approval
-
-<i>Please review and approve/reject this deposit.</i>
-            `.trim();
-
-            try {
-                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: message,
-                        parse_mode: 'HTML'
-                    })
-                });
-
-                const result = await response.json();
-                if (result.ok) {
-                    console.log('✅ Telegram message sent to admin group');
-                } else {
-                    console.error('❌ Telegram send failed:', result.description);
-                }
-            } catch (err) {
-                console.error('❌ Telegram error:', err);
-            }
-        }
-
-        // ============================================
-        // SEND IMAGE TO TELEGRAM
-        // ============================================
-        async function sendImageToTelegram(imageFile, depositData) {
-            const userName = depositData.userName || currentUser.firstName || 'User';
-            const amount = depositData.amount;
-            const method = depositData.method;
-            const methodName = method === 'telebirr' ? 'Telebirr' : 'Crypto';
-
-            const caption = `📸 <b>Payment Proof</b>\n👤 ${userName}\n💰 $${amount} USDT via ${methodName}`;
-
-            try {
-                const formData = new FormData();
-                formData.append('chat_id', TELEGRAM_CHAT_ID);
-                formData.append('photo', imageFile);
-                formData.append('caption', caption);
-                formData.append('parse_mode', 'HTML');
-
-                const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                if (result.ok) {
-                    console.log('✅ Image sent to Telegram');
-                } else {
-                    console.error('❌ Image send failed:', result.description);
-                }
-            } catch (err) {
-                console.error('❌ Telegram image error:', err);
-            }
-        }
-
-        // ============================================
         // LOAD DEPOSIT HISTORY
         // ============================================
         async function loadDepositHistory() {
             const container = document.getElementById('depositHistory');
             
-            if (!currentUser || !currentUser.userId) {
+            if (!isLoggedIn || !currentUser || !currentUser.userId) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-exclamation-circle"></i>
+                        <i class="fas fa-user-lock"></i>
                         <p>Please login to view history</p>
                     </div>`;
                 return;
@@ -1128,6 +1158,7 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
                             <div class="history-detail">${d.method === 'telebirr' ? 'Telebirr' : 'Crypto'} · Ref: ${d.reference || 'N/A'}</div>
                             <div class="history-date">${date.toLocaleString()}</div>
                             ${d.referralBonusPaid ? '<div class="history-detail" style="color: var(--success);">🎉 Referral bonus paid!</div>' : ''}
+                            ${d.isFirstDeposit && d.status === 'approved' ? '<div class="history-detail" style="color: var(--primary);">⭐ First Deposit Bonus</div>' : ''}
                         </div>`;
                     container.appendChild(item);
                 });
@@ -1137,7 +1168,7 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-exclamation-circle"></i>
-                        <p>Error loading history</p>
+                        <p>Error loading history. Please try again.</p>
                     </div>`;
             }
         }
@@ -1146,7 +1177,7 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
         // LOAD NOTIFICATIONS
         // ============================================
         async function loadNotifications() {
-            if (!currentUser || !currentUser.userId) return;
+            if (!isLoggedIn || !currentUser || !currentUser.userId) return;
             
             try {
                 const response = await fetch(`${API_BASE}/api/notifications/${currentUser.userId}`);
@@ -1170,6 +1201,7 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
             navigator.clipboard.writeText(text).then(() => {
                 showToast('✅ Copied!');
             }).catch(() => {
+                // Fallback for older browsers
                 const input = document.createElement('input');
                 input.value = text;
                 document.body.appendChild(input);
@@ -1193,7 +1225,10 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
             window._toastTimeout = setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transition = 'opacity 0.3s';
-                setTimeout(() => { toast.style.display = 'none'; }, 300);
+                setTimeout(() => { 
+                    toast.style.display = 'none'; 
+                    toast.style.transition = '';
+                }, 300);
             }, 3000);
         }
 
@@ -1208,8 +1243,7 @@ ${method === 'telebirr' ? `💵 <b>Birr Amount:</b> ${birrAmount.toLocaleString(
 
         console.log('✅ Deposit page ready');
         console.log('💱 Rate: 1 USDT = 150 Birr (Telebirr)');
-        console.log('🤖 Telegram notifications enabled');
-        console.log('📡 API Base:', API_BASE);
+        console.log('👤 Admin approval required for deposits');
     </script>
 </body>
 </html>
