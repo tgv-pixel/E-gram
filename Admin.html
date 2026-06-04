@@ -209,6 +209,7 @@
             padding: 12px 15px;
             font-size: 0.85em;
             border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: middle;
         }
 
         tr:hover td {
@@ -292,6 +293,25 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
+        }
+
+        /* Action buttons container - bottom corners */
+        .action-cell {
+            position: relative;
+            min-width: 140px;
+            padding-bottom: 35px;
+        }
+
+        .action-btn-left {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+        }
+
+        .action-btn-right {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
         }
 
         /* User Card */
@@ -441,6 +461,21 @@
             
             th, td {
                 padding: 8px 8px;
+            }
+            
+            .action-cell {
+                min-width: 120px;
+                padding-bottom: 32px;
+            }
+            
+            .action-btn-left {
+                bottom: 6px;
+                left: 6px;
+            }
+            
+            .action-btn-right {
+                bottom: 6px;
+                right: 6px;
             }
         }
     </style>
@@ -744,12 +779,12 @@
                                     <td>${methodIcon} ${d.method || 'N/A'}</td>
                                     <td><small>${esc(d.reference || 'N/A')}</small></td>
                                     <td><small>${date}</small></td>
-                                    <td>
-                                        <button class="btn btn-success btn-sm" onclick="approveDeposit('${d.id}')" title="Approve">
-                                            <i class="fas fa-check"></i>
+                                    <td class="action-cell">
+                                        <button class="btn btn-success btn-sm action-btn-left" onclick="approveDeposit('${d.id}')" title="Approve">
+                                            <i class="fas fa-check"></i> Approve
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="rejectDeposit('${d.id}')" title="Reject" style="margin-left:4px;">
-                                            <i class="fas fa-times"></i>
+                                        <button class="btn btn-danger btn-sm action-btn-right" onclick="rejectDeposit('${d.id}')" title="Reject">
+                                            <i class="fas fa-times"></i> Reject
                                         </button>
                                     </td>
                                 </tr>`;
@@ -800,12 +835,12 @@
                                     <td>${methodIcon} ${w.method || 'N/A'}</td>
                                     <td><small>${esc(detailsStr)}</small></td>
                                     <td><small>${date}</small></td>
-                                    <td>
-                                        <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w.id}')" title="Approve">
-                                            <i class="fas fa-check"></i>
+                                    <td class="action-cell">
+                                        <button class="btn btn-success btn-sm action-btn-left" onclick="approveWithdrawal('${w.id}')" title="Approve">
+                                            <i class="fas fa-check"></i> Approve
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="rejectWithdrawal('${w.id}')" title="Reject" style="margin-left:4px;">
-                                            <i class="fas fa-times"></i>
+                                        <button class="btn btn-danger btn-sm action-btn-right" onclick="rejectWithdrawal('${w.id}')" title="Reject">
+                                            <i class="fas fa-times"></i> Reject
                                         </button>
                                     </td>
                                 </tr>`;
