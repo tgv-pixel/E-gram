@@ -36,7 +36,7 @@ TELEBIRR_NUMBER = '0949399753'
 TELEBIRR_NAME = 'Abinet'
 WALLET_ADDRESS = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu'
 REFERRAL_BONUS_PERCENTAGE = 10
-REFERRAL_POINTS = 0.1
+REFERRAL_POINTS_PERCENTAGE = 10
 MIN_DEPOSIT = 10
 MIN_WITHDRAW = 20
 MAX_WITHDRAW_DAILY = 500
@@ -355,7 +355,7 @@ def server_info():
         'telebirr_name': TELEBIRR_NAME,
         'wallet_address': WALLET_ADDRESS,
         'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%',
-        'referral_points': REFERRAL_POINTS,
+        'referral_points_percentage': REFERRAL_POINTS_PERCENTAGE,
         'min_deposit': MIN_DEPOSIT,
         'min_withdraw': MIN_WITHDRAW
     })
@@ -572,7 +572,7 @@ def get_referral_stats(user_id):
                 'totalBonusEarned': total_bonus,
                 'totalPointsEarned': total_points,
                 'referralBonusPercentage': REFERRAL_BONUS_PERCENTAGE,
-                'pointsPerReferral': REFERRAL_POINTS
+                'pointsPerReferral': REFERRAL_POINTS_PERCENTAGE
             },
             'referrals': all_referrals[:10]
         })
@@ -699,7 +699,7 @@ def approve_deposit(deposit_id):
                     referrer = get_user(referred_by)
                     if referrer:
                         bonus_amount = calculate_referral_bonus(amount)
-                        points_awarded = REFERRAL_POINTS
+                        points_awarded = round(amount * REFERRAL_POINTS_PERCENTAGE / 100, 2)
                         
                         # Update referrer
                         save_user(referred_by, {
