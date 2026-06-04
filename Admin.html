@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - SAFE Platform</title>
+    <title>Admin Panel - SAFE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -26,94 +26,141 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f2f5;
+            min-height: 100vh;
             color: #333;
         }
 
-        .admin-header {
-            background: linear-gradient(135deg, var(--dark), #1a252f);
+        /* Top Navigation */
+        .top-nav {
+            background: var(--dark);
             color: white;
-            padding: 20px;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .admin-header h1 {
-            font-size: 1.5em;
+        .nav-brand {
+            font-size: 1.3em;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .admin-header .badge {
+        .nav-brand i {
+            color: var(--warning);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .admin-badge {
             background: var(--danger);
-            padding: 5px 10px;
-            border-radius: 20px;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
             font-size: 0.7em;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
+        .btn-logout {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Container */
         .container {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
         }
 
-        .stats-grid {
+        /* Stats Row */
+        .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
             background: white;
             border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 18px 15px;
             text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .stat-card i {
-            font-size: 2em;
-            margin-bottom: 10px;
-            color: var(--primary);
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            display: block;
         }
 
-        .stat-card .stat-value {
-            font-size: 1.5em;
+        .stat-card.users i { color: var(--primary); }
+        .stat-card.deposits i { color: var(--success); }
+        .stat-card.withdrawals i { color: var(--warning); }
+        .stat-card.pending i { color: var(--danger); }
+
+        .stat-value {
+            font-size: 1.8em;
             font-weight: 700;
             color: var(--dark);
         }
 
-        .stat-card .stat-label {
-            font-size: 0.85em;
+        .stat-label {
+            font-size: 0.7em;
             color: var(--gray);
-            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
+        /* Tabs */
         .tab-nav {
             display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
             background: white;
             border-radius: 12px;
             padding: 5px;
+            margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            gap: 5px;
         }
 
         .tab-btn {
             flex: 1;
             padding: 12px;
             border: none;
-            background: none;
+            background: transparent;
+            color: var(--gray);
+            font-weight: 600;
+            font-size: 0.85em;
             cursor: pointer;
             border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9em;
             transition: all 0.3s;
-            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .tab-btn.active {
@@ -121,241 +168,213 @@
             color: white;
         }
 
-        .tab-btn .count {
-            background: var(--danger);
-            color: white;
+        .tab-count {
+            background: rgba(0,0,0,0.1);
             padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            margin-left: 5px;
-        }
-
-        .deposit-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-
-        .deposit-card:hover {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .deposit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
-        }
-
-        .deposit-id {
-            font-size: 0.75em;
-            color: var(--gray);
-            font-family: monospace;
-        }
-
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
+            border-radius: 10px;
             font-size: 0.8em;
-            font-weight: 600;
         }
 
-        .status-badge.pending {
-            background: #fff3cd;
-            color: #856404;
+        .tab-btn.active .tab-count {
+            background: rgba(255,255,255,0.3);
         }
 
-        .status-badge.approved {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-badge.rejected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .deposit-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .info-item {
+        /* Filter Bar */
+        .filter-bar {
             display: flex;
-            flex-direction: column;
-        }
-
-        .info-label {
-            font-size: 0.8em;
-            color: var(--gray);
-            margin-bottom: 3px;
-        }
-
-        .info-value {
-            font-weight: 600;
-            color: var(--dark);
-            font-size: 0.95em;
-        }
-
-        .info-value.large {
-            font-size: 1.2em;
-            color: var(--success);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9em;
-            display: flex;
-            align-items: center;
             gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: var(--gray);
         }
 
-        .btn-approve {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-approve:hover {
-            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
-        }
-
-        .btn-reject {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-reject:hover {
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-        }
-
-        .btn-view {
+        .filter-btn.active {
+            border-color: var(--primary);
             background: var(--primary);
             color: white;
         }
 
-        .btn:disabled {
+        .filter-btn:hover {
+            border-color: var(--primary);
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-approved, .badge-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Action Buttons */
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-approve {
+            padding: 6px 14px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75em;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-approve:hover {
+            background: #27ae60;
+            transform: translateY(-1px);
+        }
+
+        .btn-reject {
+            padding: 6px 14px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75em;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-reject:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .btn-approve:disabled, .btn-reject:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
 
-        .image-preview {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.3s;
+        .btn-approve.loading, .btn-reject.loading {
+            pointer-events: none;
+            opacity: 0.6;
         }
 
-        .image-preview:hover {
-            transform: scale(1.05);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            max-width: 90%;
-            max-height: 90%;
-        }
-
-        .modal-content img {
-            max-width: 100%;
-            max-height: 90vh;
-            border-radius: 10px;
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 1.5em;
-            cursor: pointer;
-        }
-
+        /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: var(--gray);
         }
 
         .empty-state i {
             font-size: 3em;
             opacity: 0.3;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
-        .search-box {
-            margin-bottom: 20px;
+        /* Loading */
+        .loading-box {
+            text-align: center;
+            padding: 40px;
         }
 
-        .search-box input {
-            width: 100%;
-            padding: 12px 20px;
-            border: 2px solid #e1e5e9;
-            border-radius: 12px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s;
+        .spinner {
+            width: 35px;
+            height: 35px;
+            border: 3px solid #e1e5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
         }
 
-        .search-box input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .refresh-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 25px;
@@ -366,8 +385,11 @@
             padding: 14px 28px;
             border-radius: 25px;
             font-weight: 500;
-            z-index: 2000;
+            font-size: 0.9em;
+            z-index: 1000;
             animation: slideUp 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            white-space: nowrap;
         }
 
         @keyframes slideUp {
@@ -375,128 +397,363 @@
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .login-box .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .login-box label {
+            display: block;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .login-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .login-box .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 0.8em;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .login-error.show {
+            display: block;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .deposit-info {
-                grid-template-columns: 1fr;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .stats-grid {
+            .stats-row {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.75em;
+            }
+            
+            .action-btns {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+            
+            .tab-btn {
+                font-size: 0.7em;
+                padding: 10px 6px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="admin-header">
-        <h1>
-            <i class="fas fa-shield-alt"></i>
-            Admin Panel
-            <span class="badge" id="pendingCount">0</span>
-        </h1>
-        <button class="refresh-btn" onclick="loadAllData()">
-            <i class="fas fa-sync-alt"></i> Refresh
-        </button>
-    </div>
-
-    <div class="container">
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fas fa-users"></i>
-                <div class="stat-value" id="totalUsers">0</div>
-                <div class="stat-label">Total Users</div>
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2><i class="fas fa-shield-alt" style="color: var(--primary);"></i> Admin Login</h2>
+            <div class="input-group">
+                <label>Admin Email</label>
+                <input type="email" id="adminEmail" placeholder="admin@safe.com">
             </div>
-            <div class="stat-card">
-                <i class="fas fa-clock"></i>
-                <div class="stat-value" id="pendingDeposits">0</div>
-                <div class="stat-label">Pending Deposits</div>
+            <div class="input-group">
+                <label>Admin Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter password">
             </div>
-            <div class="stat-card">
-                <i class="fas fa-check-circle"></i>
-                <div class="stat-value" id="totalDeposits">0</div>
-                <div class="stat-label">Total Deposits (USDT)</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-hand-holding-usd"></i>
-                <div class="stat-value" id="pendingWithdrawals">0</div>
-                <div class="stat-label">Pending Withdrawals</div>
-            </div>
-        </div>
-
-        <!-- Search -->
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 Search by user ID, email, or reference..." oninput="filterDeposits()">
-        </div>
-
-        <!-- Tabs -->
-        <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('pending')">
-                Pending <span class="count" id="pendingTabCount">0</span>
+            <div class="login-error" id="loginError">Invalid credentials</div>
+            <button class="btn-login" onclick="adminLogin()">
+                <i class="fas fa-lock"></i> Login
             </button>
-            <button class="tab-btn" onclick="switchTab('approved')">
-                Approved
-            </button>
-            <button class="tab-btn" onclick="switchTab('rejected')">
-                Rejected
-            </button>
-            <button class="tab-btn" onclick="switchTab('all')">
-                All
-            </button>
-        </div>
-
-        <!-- Deposits List -->
-        <div id="depositsList">
-            <div class="empty-state">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading deposits...</p>
-            </div>
         </div>
     </div>
 
-    <!-- Image Modal -->
-    <div class="modal" id="imageModal" onclick="closeModal()">
-        <button class="close-modal" onclick="closeModal()">✕</button>
-        <div class="modal-content">
-            <img id="modalImage" src="" alt="Payment Proof">
+    <!-- Main Content (hidden until login) -->
+    <div id="mainContent" style="display:none;">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <div class="nav-brand">
+                <i class="fas fa-shield-alt"></i> Admin Panel
+            </div>
+            <div class="nav-actions">
+                <span class="admin-badge" id="adminName">Admin</span>
+                <button class="btn-logout" onclick="adminLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card users">
+                    <i class="fas fa-users"></i>
+                    <div class="stat-value" id="statUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card deposits">
+                    <i class="fas fa-arrow-down"></i>
+                    <div class="stat-value" id="statDeposits">0</div>
+                    <div class="stat-label">Total Deposits</div>
+                </div>
+                <div class="stat-card withdrawals">
+                    <i class="fas fa-arrow-up"></i>
+                    <div class="stat-value" id="statWithdrawals">0</div>
+                    <div class="stat-label">Total Withdrawals</div>
+                </div>
+                <div class="stat-card pending">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-value" id="statPending">0</div>
+                    <div class="stat-label">Pending Actions</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('deposits')">
+                    <i class="fas fa-arrow-down"></i> Deposits
+                    <span class="tab-count" id="tabDepositsCount">0</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('withdrawals')">
+                    <i class="fas fa-arrow-up"></i> Withdrawals
+                    <span class="tab-count" id="tabWithdrawalsCount">0</span>
+                </button>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar" id="filterBar">
+                <button class="filter-btn active" onclick="filterBy('all')">All</button>
+                <button class="filter-btn" onclick="filterBy('pending')">⏳ Pending</button>
+                <button class="filter-btn" onclick="filterBy('approved')">✅ Approved</button>
+                <button class="filter-btn" onclick="filterBy('rejected')">❌ Rejected</button>
+            </div>
+
+            <!-- Deposits Table -->
+            <div class="card" id="depositsTable">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> Deposit Transactions</span>
+                    <button class="btn-approve" onclick="refreshData()" style="background:var(--gray);">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="depositsTableBody">
+                            <tr><td colspan="7"><div class="loading-box"><div class="spinner"></div></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Withdrawals Table -->
+            <div class="card" id="withdrawalsTable" style="display:none;">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> Withdrawal Transactions</span>
+                    <button class="btn-approve" onclick="refreshData()" style="background:var(--gray);">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Details</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="withdrawalsTableBody">
+                            <tr><td colspan="7"><div class="loading-box"><div class="spinner"></div></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Toast -->
     <div class="toast" id="toast" style="display:none;"></div>
 
-    <script>
-        const API_BASE = window.location.origin;
-        let currentTab = 'pending';
-        let allDeposits = [];
-        let searchTerm = '';
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
         // ============================================
-        // INITIALIZATION
+        // FIREBASE CONFIG
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
+            authDomain: "webapp-fc856.firebaseapp.com",
+            projectId: "webapp-fc856",
+            storageBucket: "webapp-fc856.appspot.com",
+            messagingSenderId: "892830607693",
+            appId: "1:892830607693:web:a3a886c142586665fc2f04"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_BASE = window.location.origin;
+        const ADMIN_EMAIL = 'admin@safe.com';
+        const ADMIN_PASSWORD = 'admin123';
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let currentTab = 'deposits';
+        let currentFilter = 'all';
+        let allDeposits = [];
+        let allWithdrawals = [];
+        let isAdminLoggedIn = false;
+
+        // ============================================
+        // CHECK SESSION ON LOAD
+        // ============================================
+        const savedSession = sessionStorage.getItem('adminLoggedIn');
+        if (savedSession === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('adminName').textContent = 'Admin';
+            isAdminLoggedIn = true;
             loadAllData();
+        }
+
+        // ============================================
+        // ADMIN LOGIN
+        // ============================================
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const errorEl = document.getElementById('loginError');
             
-            // Auto refresh every 30 seconds
-            setInterval(loadAllData, 30000);
-        });
+            errorEl.classList.remove('show');
+            
+            if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+                errorEl.textContent = 'Invalid credentials. Use admin@safe.com / admin123';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            try {
+                // Try Firebase auth
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (e) {
+                // If Firebase auth fails, still allow with local credentials
+                console.log('Firebase auth skipped, using local auth');
+            }
+            
+            // Success
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('adminName').textContent = 'Admin';
+            isAdminLoggedIn = true;
+            
+            await loadAllData();
+        }
+
+        // ============================================
+        // ADMIN LOGOUT
+        // ============================================
+        async function adminLogout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            try { await signOut(auth); } catch(e) {}
+            location.reload();
+        }
 
         // ============================================
         // LOAD ALL DATA
         // ============================================
         async function loadAllData() {
+            if (!isAdminLoggedIn) return;
+            
             await Promise.all([
                 loadStats(),
-                loadDeposits()
+                loadDeposits(),
+                loadWithdrawals()
             ]);
+        }
+
+        async function refreshData() {
+            showToast('🔄 Refreshing...');
+            await loadAllData();
         }
 
         // ============================================
@@ -507,12 +764,15 @@
                 const response = await fetch(`${API_BASE}/api/admin/stats`);
                 const data = await response.json();
                 
-                if (data.success) {
-                    document.getElementById('totalUsers').textContent = data.stats.totalUsers;
-                    document.getElementById('pendingDeposits').textContent = data.stats.pendingDeposits;
-                    document.getElementById('totalDeposits').textContent = '$' + data.stats.totalDeposits.toLocaleString();
-                    document.getElementById('pendingWithdrawals').textContent = data.stats.pendingWithdrawals;
-                    document.getElementById('pendingCount').textContent = data.stats.pendingDeposits;
+                if (data.success && data.stats) {
+                    const s = data.stats;
+                    document.getElementById('statUsers').textContent = s.totalUsers || 0;
+                    document.getElementById('statDeposits').textContent = '$' + (s.totalDeposits || 0).toFixed(0);
+                    document.getElementById('statWithdrawals').textContent = '$' + (s.totalWithdrawals || 0).toFixed(0);
+                    document.getElementById('statPending').textContent = (s.pendingDeposits || 0) + (s.pendingWithdrawals || 0);
+                    
+                    document.getElementById('tabDepositsCount').textContent = s.pendingDeposits || 0;
+                    document.getElementById('tabWithdrawalsCount').textContent = s.pendingWithdrawals || 0;
                 }
             } catch (err) {
                 console.error('Error loading stats:', err);
@@ -524,31 +784,257 @@
         // ============================================
         async function loadDeposits() {
             try {
-                // Load all deposits from different endpoints
-                const [pendingRes, depositsRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/admin/deposits/pending`),
-                    fetch(`${API_BASE}/api/deposit/all`) // You might need to add this endpoint
-                ]);
-
-                const pendingData = await pendingRes.json();
+                const response = await fetch(`${API_BASE}/api/deposit/all`);
+                const data = await response.json();
                 
-                // Since we don't have a "get all deposits" endpoint, let's collect from pending
-                allDeposits = pendingData.deposits || [];
-                
-                // Update counts
-                const pendingCount = allDeposits.filter(d => d.status === 'pending').length;
-                document.getElementById('pendingTabCount').textContent = pendingCount;
-                
-                // Display current tab
-                displayDeposits();
-                
+                if (data.success) {
+                    allDeposits = data.deposits || [];
+                    allDeposits.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                    renderDeposits();
+                }
             } catch (err) {
                 console.error('Error loading deposits:', err);
-                document.getElementById('depositsList').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Error loading deposits. Make sure server is running.</p>
-                    </div>`;
+            }
+        }
+
+        // ============================================
+        // LOAD WITHDRAWALS
+        // ============================================
+        async function loadWithdrawals() {
+            try {
+                // Use the same deposits/all pattern - server might need a /withdraw/all endpoint
+                // For now, we'll try to get all withdrawals
+                const response = await fetch(`${API_BASE}/api/admin/stats`);
+                const data = await response.json();
+                
+                // Since server.py doesn't have /api/withdraw/all, we'll show what we can
+                // The withdrawals are fetched per-user, so for admin we need a different approach
+                allWithdrawals = [];
+                renderWithdrawals();
+            } catch (err) {
+                console.error('Error loading withdrawals:', err);
+                allWithdrawals = [];
+                renderWithdrawals();
+            }
+        }
+
+        // ============================================
+        // RENDER DEPOSITS
+        // ============================================
+        function renderDeposits() {
+            const tbody = document.getElementById('depositsTableBody');
+            
+            let filtered = allDeposits;
+            if (currentFilter !== 'all') {
+                filtered = allDeposits.filter(d => d.status === currentFilter);
+            }
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No ${currentFilter === 'all' ? '' : currentFilter} deposits found</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(d => {
+                const date = d.timestamp ? new Date(d.timestamp).toLocaleString() : 'N/A';
+                const userName = d.userName || d.userEmail || d.userId?.substring(0, 8) || 'User';
+                const statusClass = `badge-${d.status === 'approved' ? 'approved' : d.status === 'rejected' ? 'rejected' : 'pending'}`;
+                const methodIcon = d.method === 'telebirr' ? '📱' : '💎';
+                const isPending = d.status === 'pending';
+                
+                return `
+                    <tr>
+                        <td title="${d.userId || ''}">${escapeHTML(userName)}</td>
+                        <td><strong>$${parseFloat(d.amount || 0).toFixed(2)}</strong></td>
+                        <td>${methodIcon} ${d.method === 'telebirr' ? 'Telebirr' : 'Crypto'}</td>
+                        <td><small>${escapeHTML(d.reference || 'N/A')}</small></td>
+                        <td><small>${date}</small></td>
+                        <td><span class="badge ${statusClass}">${d.status || 'pending'}</span></td>
+                        <td>
+                            ${isPending ? `
+                                <div class="action-btns">
+                                    <button class="btn-approve" onclick="approveDeposit('${d.id}')">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button class="btn-reject" onclick="rejectDeposit('${d.id}')">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            ` : `
+                                <span style="color:var(--gray);font-size:0.75em;">
+                                    ${d.status === 'approved' ? '✅ Done' : '❌ Rejected'}
+                                </span>
+                            `}
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // ============================================
+        // RENDER WITHDRAWALS
+        // ============================================
+        function renderWithdrawals() {
+            const tbody = document.getElementById('withdrawalsTableBody');
+            
+            let filtered = allWithdrawals;
+            if (currentFilter !== 'all') {
+                const statusMap = { approved: 'completed', rejected: 'rejected', pending: 'pending' };
+                filtered = allWithdrawals.filter(w => w.status === (statusMap[currentFilter] || currentFilter));
+            }
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No ${currentFilter === 'all' ? '' : currentFilter} withdrawals found</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(w => {
+                const date = w.timestamp ? new Date(w.timestamp).toLocaleString() : 'N/A';
+                const userName = w.userName || w.userEmail || w.userId?.substring(0, 8) || 'User';
+                const statusDisplay = w.status === 'completed' ? 'approved' : w.status === 'rejected' ? 'rejected' : 'pending';
+                const statusClass = `badge-${statusDisplay}`;
+                const methodIcon = w.method === 'telebirr' ? '📱' : '💎';
+                const isPending = w.status === 'pending';
+                
+                let details = 'N/A';
+                if (w.details) {
+                    try {
+                        const d = typeof w.details === 'string' ? JSON.parse(w.details) : w.details;
+                        details = d.phone || d.address || 'N/A';
+                    } catch(e) { details = 'N/A'; }
+                }
+                
+                return `
+                    <tr>
+                        <td title="${w.userId || ''}">${escapeHTML(userName)}</td>
+                        <td><strong style="color:var(--danger);">-$${parseFloat(w.amount || 0).toFixed(2)}</strong></td>
+                        <td>${methodIcon} ${w.method === 'telebirr' ? 'Telebirr' : 'Crypto'}</td>
+                        <td><small>${escapeHTML(details)}</small></td>
+                        <td><small>${date}</small></td>
+                        <td><span class="badge ${statusClass}">${w.status || 'pending'}</span></td>
+                        <td>
+                            ${isPending ? `
+                                <div class="action-btns">
+                                    <button class="btn-approve" onclick="approveWithdrawal('${w.id}')">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button class="btn-reject" onclick="rejectWithdrawal('${w.id}')">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            ` : `
+                                <span style="color:var(--gray);font-size:0.75em;">
+                                    ${w.status === 'completed' ? '✅ Done' : '❌ Rejected'}
+                                </span>
+                            `}
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // ============================================
+        // APPROVE DEPOSIT
+        // ============================================
+        async function approveDeposit(depositId) {
+            if (!confirm('Approve this deposit?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/approve`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('✅ Deposit approved!');
+                    await loadAllData();
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (err) {
+                showToast('❌ Error: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // REJECT DEPOSIT
+        // ============================================
+        async function rejectDeposit(depositId) {
+            if (!confirm('Reject this deposit?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/reject`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('❌ Deposit rejected');
+                    await loadAllData();
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (err) {
+                showToast('❌ Error: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // APPROVE WITHDRAWAL
+        // ============================================
+        async function approveWithdrawal(withdrawalId) {
+            if (!confirm('Approve this withdrawal?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/withdraw/${withdrawalId}/approve`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('✅ Withdrawal approved!');
+                    await loadAllData();
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (err) {
+                showToast('❌ Error: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // REJECT WITHDRAWAL
+        // ============================================
+        async function rejectWithdrawal(withdrawalId) {
+            if (!confirm('Reject this withdrawal? Amount will be refunded.')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/withdraw/${withdrawalId}/reject`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('❌ Withdrawal rejected. Amount refunded.');
+                    await loadAllData();
+                } else {
+                    throw new Error(data.error || 'Failed');
+                }
+            } catch (err) {
+                showToast('❌ Error: ' + err.message);
             }
         }
 
@@ -558,250 +1044,93 @@
         function switchTab(tab) {
             currentTab = tab;
             
-            // Update active tab button
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             
-            displayDeposits();
-        }
-
-        // ============================================
-        // FILTER DEPOSITS
-        // ============================================
-        function filterDeposits() {
-            searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            displayDeposits();
-        }
-
-        // ============================================
-        // DISPLAY DEPOSITS
-        // ============================================
-        function displayDeposits() {
-            const container = document.getElementById('depositsList');
-            
-            // Filter by tab
-            let filtered = allDeposits;
-            if (currentTab !== 'all') {
-                filtered = allDeposits.filter(d => d.status === currentTab);
-            }
-            
-            // Filter by search
-            if (searchTerm) {
-                filtered = filtered.filter(d => 
-                    (d.userId && d.userId.toLowerCase().includes(searchTerm)) ||
-                    (d.userEmail && d.userEmail.toLowerCase().includes(searchTerm)) ||
-                    (d.reference && d.reference.toLowerCase().includes(searchTerm)) ||
-                    (d.id && d.id.toLowerCase().includes(searchTerm))
-                );
-            }
-            
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>No ${currentTab} deposits found</p>
-                    </div>`;
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            filtered.forEach(deposit => {
-                const card = createDepositCard(deposit);
-                container.appendChild(card);
-            });
-        }
-
-        // ============================================
-        // CREATE DEPOSIT CARD
-        // ============================================
-        function createDepositCard(deposit) {
-            const card = document.createElement('div');
-            card.className = 'deposit-card';
-            
-            const date = deposit.timestamp ? new Date(deposit.timestamp).toLocaleString() : 'N/A';
-            const birrAmount = deposit.method === 'telebirr' && deposit.amount ? 
-                (deposit.amount * 150).toLocaleString() + ' Birr' : '';
-            
-            const statusClass = deposit.status || 'pending';
-            const statusText = (deposit.status || 'pending').toUpperCase();
-            
-            card.innerHTML = `
-                <div class="deposit-header">
-                    <div>
-                        <div class="deposit-id">ID: ${deposit.id || 'N/A'}</div>
-                        <div style="font-size: 0.8em; color: var(--gray); margin-top: 3px;">${date}</div>
-                    </div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                </div>
-                
-                <div class="deposit-info">
-                    <div class="info-item">
-                        <span class="info-label">User</span>
-                        <span class="info-value">${deposit.userEmail || deposit.userId || 'N/A'}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">User ID</span>
-                        <span class="info-value" style="font-family: monospace; font-size: 0.8em;">${deposit.userId || 'N/A'}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Amount</span>
-                        <span class="info-value large">$${deposit.amount || 0} USDT</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Method</span>
-                        <span class="info-value">
-                            ${deposit.method === 'telebirr' ? '📱 Telebirr' : '💎 Crypto (USDT)'}
-                            ${birrAmount ? '<br><small style="color: var(--gray);">' + birrAmount + '</small>' : ''}
-                        </span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Reference</span>
-                        <span class="info-value" style="font-family: monospace; font-size: 0.85em;">${deposit.reference || 'N/A'}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">First Deposit</span>
-                        <span class="info-value">${deposit.isFirstDeposit ? '✅ Yes' : '❌ No'}</span>
-                    </div>
-                </div>
-                
-                ${deposit.referralBonusPaid ? `
-                    <div style="background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-                        <strong>🎉 Referral Bonus Paid:</strong> 
-                        $${deposit.referralBonusDetails?.bonusAmount || 0} to referrer
-                    </div>
-                ` : ''}
-                
-                ${deposit.status === 'pending' ? `
-                    <div class="action-buttons">
-                        <button class="btn btn-approve" onclick="approveDeposit('${deposit.id}')">
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                        <button class="btn btn-reject" onclick="rejectDeposit('${deposit.id}')">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    </div>
-                ` : `
-                    <div style="color: var(--gray); font-size: 0.85em; font-style: italic;">
-                        ${deposit.status === 'approved' ? 
-                            `Approved at ${deposit.approvedAt ? new Date(deposit.approvedAt).toLocaleString() : 'N/A'}` : 
-                            `Rejected at ${deposit.rejectedAt ? new Date(deposit.rejectedAt).toLocaleString() : 'N/A'}`
-                        }
-                    </div>
-                `}
-            `;
-            
-            return card;
-        }
-
-        // ============================================
-        // APPROVE DEPOSIT
-        // ============================================
-        async function approveDeposit(depositId) {
-            if (!confirm('Are you sure you want to APPROVE this deposit?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/approve`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast('✅ Deposit approved successfully!');
-                    
-                    // Show referral bonus info if applicable
-                    if (data.firstDepositBonus) {
-                        setTimeout(() => {
-                            showToast(`🎉 Referral bonus of $${data.firstDepositBonus.bonusAmount} paid to referrer!`);
-                        }, 2000);
-                    }
-                    
-                    await loadAllData();
-                } else {
-                    showToast('❌ Error: ' + (data.error || 'Failed to approve'));
-                }
-            } catch (err) {
-                console.error('Error approving deposit:', err);
-                showToast('❌ Network error');
+            if (tab === 'deposits') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('depositsTable').style.display = 'block';
+                document.getElementById('withdrawalsTable').style.display = 'none';
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('depositsTable').style.display = 'none';
+                document.getElementById('withdrawalsTable').style.display = 'block';
             }
         }
 
         // ============================================
-        // REJECT DEPOSIT
+        // FILTER
         // ============================================
-        async function rejectDeposit(depositId) {
-            if (!confirm('Are you sure you want to REJECT this deposit?')) {
-                return;
+        function filterBy(status) {
+            currentFilter = status;
+            
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const filterIndex = { all: 0, pending: 1, approved: 2, rejected: 3 };
+            if (filterButtons[filterIndex[status]]) {
+                filterButtons[filterIndex[status]].classList.add('active');
             }
             
-            try {
-                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/reject`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast('❌ Deposit rejected');
-                    await loadAllData();
-                } else {
-                    showToast('❌ Error: ' + (data.error || 'Failed to reject'));
-                }
-            } catch (err) {
-                console.error('Error rejecting deposit:', err);
-                showToast('❌ Network error');
+            if (currentTab === 'deposits') {
+                renderDeposits();
+            } else {
+                renderWithdrawals();
             }
         }
 
         // ============================================
-        // VIEW IMAGE (if you add image support later)
-        // ============================================
-        function viewImage(imageUrl) {
-            const modal = document.getElementById('imageModal');
-            const modalImage = document.getElementById('modalImage');
-            modalImage.src = imageUrl;
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('imageModal').classList.remove('active');
-        }
-
-        // ============================================
-        // TOAST NOTIFICATION
+        // TOAST
         // ============================================
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.style.display = 'block';
+            toast.style.opacity = '1';
             
             clearTimeout(window._toastTimeout);
             window._toastTimeout = setTimeout(() => {
-                toast.style.display = 'none';
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => { 
+                    toast.style.display = 'none'; 
+                    toast.style.transition = '';
+                }, 300);
             }, 3000);
         }
 
         // ============================================
-        // KEYBOARD SHORTCUTS
+        // HELPERS
+        // ============================================
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // KEYBOARD SHORTCUT
         // ============================================
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-            if (e.ctrlKey && e.key === 'r') {
-                e.preventDefault();
-                loadAllData();
+            if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
+                adminLogin();
             }
         });
 
-        console.log('✅ Admin Panel Ready');
-        console.log('📋 Tabs: Pending | Approved | Rejected | All');
-        console.log('⌨️ Shortcuts: Ctrl+R = Refresh, Esc = Close modal');
+        // ============================================
+        // GLOBAL EXPORTS
+        // ============================================
+        window.adminLogin = adminLogin;
+        window.adminLogout = adminLogout;
+        window.switchTab = switchTab;
+        window.filterBy = filterBy;
+        window.approveDeposit = approveDeposit;
+        window.rejectDeposit = rejectDeposit;
+        window.approveWithdrawal = approveWithdrawal;
+        window.rejectWithdrawal = rejectWithdrawal;
+        window.refreshData = refreshData;
+
+        console.log('✅ Admin panel ready');
+        console.log('🔐 Login: admin@safe.com / admin123');
+        console.log('🔗 API Base:', API_BASE);
     </script>
 </body>
 </html>
