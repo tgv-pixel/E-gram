@@ -264,7 +264,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Telebirr Info Box */
+        /* Payment Details */
         .payment-details {
             background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
             border: 2px solid #4caf50;
@@ -304,8 +304,7 @@
             color: var(--dark);
         }
 
-        .form-group input,
-        .form-group select {
+        .form-group input {
             width: 100%;
             padding: 12px 14px;
             border: 2px solid #e1e5e9;
@@ -316,8 +315,7 @@
             background: #fafafa;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus {
             border-color: var(--primary);
             background: white;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -437,6 +435,10 @@
             display: inline-block;
         }
 
+        .submit-btn.loading .btn-text {
+            display: none;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -503,7 +505,7 @@
             color: #856404;
         }
 
-        .history-icon.approved {
+        .history-icon.completed {
             background: #d4edda;
             color: #155724;
         }
@@ -547,7 +549,7 @@
             color: #856404;
         }
 
-        .history-badge.approved {
+        .history-badge.completed {
             background: #d4edda;
             color: #155724;
         }
@@ -567,6 +569,22 @@
             font-size: 2.5em;
             opacity: 0.4;
             margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading-box {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner-big {
+            width: 35px;
+            height: 35px;
+            border: 3px solid #e1e5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
         }
 
         /* Toast */
@@ -627,10 +645,10 @@
             <h3>💰 Your Balances</h3>
             <div class="balance-grid">
                 <div class="balance-card available">
-                    <div class="balance-label">Available for Withdrawal</div>
-                    <div class="balance-amount" id="availableBalance">0.00</div>
+                    <div class="balance-label">Earnings (Withdrawable)</div>
+                    <div class="balance-amount" id="earningsBalance">0.00</div>
                     <div class="balance-currency">USDT</div>
-                    <div class="balance-note">Earnings Balance (Withdrawable)</div>
+                    <div class="balance-note">From daily claims & referrals</div>
                 </div>
                 <div class="balance-card locked">
                     <div class="balance-label">Deposit Balance</div>
@@ -646,10 +664,10 @@
             <i class="fas fa-info-circle"></i>
             <div class="info-text">
                 <strong>Withdrawal Rules:</strong><br>
-                • You can only withdraw from your <span class="highlight">Earnings Balance</span><br>
-                • Deposit Balance is for <span class="highlight">investment purposes only</span><br>
-                • All withdrawals are processed in <span class="highlight">USDT</span><br>
-                • Telebirr withdrawals are converted at <span class="highlight">1 USDT = 150 Birr</span>
+                • Withdrawn from <span class="highlight">Earnings first</span>, then Deposit Balance<br>
+                • All withdrawals processed in <span class="highlight">USDT</span><br>
+                • Telebirr converted at <span class="highlight">1 USDT = 150 Birr</span><br>
+                • Admin approval required for all withdrawals
             </div>
         </div>
 
@@ -673,12 +691,8 @@
             <div id="telebirr-form" class="method-form active">
                 <div class="payment-details">
                     <div class="detail-row">
-                        <span class="detail-label">Withdrawal Method:</span>
+                        <span class="detail-label">Method:</span>
                         <span class="detail-value">Telebirr Mobile Money</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Currency:</span>
-                        <span class="detail-value">USDT → Birr</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Rate:</span>
@@ -710,7 +724,7 @@
 
                 <div class="limits-box">
                     <i class="fas fa-exclamation-triangle"></i> 
-                    Min: <strong>20 USDT</strong> (3,000 Birr) • Max: <strong>500 USDT</strong> (75,000 Birr) per day
+                    Min: <strong>20 USDT</strong> (3,000 Birr) • Max: <strong>500 USDT</strong> per day
                 </div>
 
                 <div class="form-group">
@@ -720,13 +734,12 @@
 
                 <div class="security-notice">
                     <i class="fas fa-shield-alt"></i> 
-                    For security, withdrawals require your <strong>4-digit code</strong>. 
-                    Keep it safe and never share it.
+                    For security, withdrawals require your <strong>4-digit code</strong>.
                 </div>
 
                 <button class="submit-btn" id="telebirr-submit" onclick="submitWithdrawal('telebirr')">
                     <span class="spinner"></span>
-                    <span>Request Withdrawal</span>
+                    <span class="btn-text">Request Withdrawal</span>
                 </button>
             </div>
 
@@ -734,16 +747,12 @@
             <div id="crypto-form" class="method-form">
                 <div class="payment-details">
                     <div class="detail-row">
-                        <span class="detail-label">Withdrawal Method:</span>
+                        <span class="detail-label">Method:</span>
                         <span class="detail-value">Crypto (USDT)</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Network:</span>
                         <span class="detail-value">TRC20 (Tron)</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Currency:</span>
-                        <span class="detail-value">USDT (Direct)</span>
                     </div>
                 </div>
 
@@ -762,7 +771,7 @@
 
                 <div class="limits-box">
                     <i class="fas fa-exclamation-triangle"></i> 
-                    Min: <strong>20 USDT</strong> • Max: <strong>1,000 USDT</strong> per day • <strong>TRC20 Network Only</strong>
+                    Min: <strong>20 USDT</strong> • Max: <strong>500 USDT</strong> per day • <strong>TRC20 Network Only</strong>
                 </div>
 
                 <div class="form-group">
@@ -772,13 +781,12 @@
 
                 <div class="security-notice">
                     <i class="fas fa-shield-alt"></i> 
-                    For security, withdrawals require your <strong>4-digit code</strong>. 
-                    Keep it safe and never share it.
+                    For security, withdrawals require your <strong>4-digit code</strong>.
                 </div>
 
                 <button class="submit-btn" id="crypto-submit" onclick="submitWithdrawal('crypto')">
                     <span class="spinner"></span>
-                    <span>Request Withdrawal</span>
+                    <span class="btn-text">Request Withdrawal</span>
                 </button>
             </div>
 
@@ -791,20 +799,21 @@
                 <i class="fas fa-history"></i> Withdrawal History
             </div>
             <div id="withdrawHistory">
-                <div class="empty-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading history...</p>
+                <div class="loading-box">
+                    <div class="spinner-big"></div>
+                    <p style="color:#999;">Loading history...</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Toast -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-        import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-        import { getDatabase, ref, push, onValue, query as rtdbQuery, orderByChild, equalTo, limitToLast } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
         // ============================================
         // FIREBASE CONFIG
@@ -818,28 +827,29 @@
             appId: "1:892830607693:web:a3a886c142586665fc2f04"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-        const rtdb = getDatabase(app);
 
         // ============================================
-        // CONFIG
+        // CONFIGURATION
         // ============================================
+        const API_BASE = window.location.origin;
         const USDT_TO_BIRR = 150;
         const MIN_WITHDRAW_USDT = 20;
-        const MAX_WITHDRAW_TELEBIRR = 500;
-        const MAX_WITHDRAW_CRYPTO = 1000;
+        const MAX_WITHDRAW_DAILY = 500;
 
         // ============================================
-        // STATE
+        // GLOBAL STATE
         // ============================================
         let currentUser = null;
-        let userData = null;
         let currentMethod = 'telebirr';
+        let earningsBalance = 0;
+        let depositBalanceAmount = 0;
+        let securityCode = '';
 
         // ============================================
-        // AUTH
+        // AUTH CHECK
         // ============================================
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -847,29 +857,51 @@
                 return;
             }
             currentUser = user;
-            await loadUserData();
-            loadWithdrawHistory();
+            console.log('👤 Logged in:', currentUser.uid);
+            
+            await loadUserBalance();
+            await loadSecurityCode();
+            await loadWithdrawHistory();
+            await loadNotifications();
         });
 
         // ============================================
-        // LOAD USER DATA
+        // LOAD USER BALANCE FROM SERVER
         // ============================================
-        async function loadUserData() {
+        async function loadUserBalance() {
+            if (!currentUser) return;
+            
             try {
-                const snap = await getDoc(doc(db, 'users', currentUser.uid));
-                if (snap.exists()) {
-                    userData = snap.data();
-                    userData.id = snap.id;
+                const response = await fetch(`${API_BASE}/api/user/${currentUser.uid}/balance`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    earningsBalance = data.taskEarnings || 0;
+                    depositBalanceAmount = data.depositBalance || 0;
                     
-                    // Display balances
-                    const earnings = userData.taskEarnings || 0;
-                    const deposits = userData.depositBalance || 0;
-                    
-                    document.getElementById('availableBalance').textContent = earnings.toFixed(2);
-                    document.getElementById('depositBalance').textContent = deposits.toFixed(2);
+                    document.getElementById('earningsBalance').textContent = earningsBalance.toFixed(2);
+                    document.getElementById('depositBalance').textContent = depositBalanceAmount.toFixed(2);
                 }
             } catch (err) {
-                console.error('Error loading user:', err);
+                console.error('Error loading balance:', err);
+            }
+        }
+
+        // ============================================
+        // LOAD SECURITY CODE FROM SERVER
+        // ============================================
+        async function loadSecurityCode() {
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/security/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    securityCode = data.code || '';
+                }
+            } catch (err) {
+                console.error('Error loading security code:', err);
             }
         }
 
@@ -910,7 +942,7 @@
         }
 
         // ============================================
-        // SHOW ALERT
+        // SHOW/HIDE ALERT
         // ============================================
         function showAlert(message, type) {
             const alert = document.getElementById('alertBox');
@@ -943,13 +975,13 @@
         }
 
         // ============================================
-        // SUBMIT WITHDRAWAL
+        // SUBMIT WITHDRAWAL VIA SERVER API
         // ============================================
         async function submitWithdrawal(method) {
-            if (!currentUser || !userData) return;
+            if (!currentUser) return;
 
             const amount = parseFloat(document.getElementById(`${method}-amount`).value);
-            const securityCode = document.getElementById(`${method}-security`).value.trim();
+            const securityInput = document.getElementById(`${method}-security`).value.trim();
             const btn = document.getElementById(`${method}-submit`);
 
             // Get details
@@ -971,9 +1003,8 @@
                 return;
             }
 
-            const maxAmount = method === 'telebirr' ? MAX_WITHDRAW_TELEBIRR : MAX_WITHDRAW_CRYPTO;
-            if (amount > maxAmount) {
-                showAlert(`Maximum withdrawal is ${maxAmount} USDT per day`, 'error');
+            if (amount > MAX_WITHDRAW_DAILY) {
+                showAlert(`Maximum withdrawal is ${MAX_WITHDRAW_DAILY} USDT per day`, 'error');
                 return;
             }
 
@@ -987,63 +1018,28 @@
                 return;
             }
 
-            if (!securityCode || securityCode.length !== 4 || !/^\d{4}$/.test(securityCode)) {
+            if (!securityInput || securityInput.length !== 4 || !/^\d{4}$/.test(securityInput)) {
                 showAlert('Please enter a valid 4-digit security code', 'error');
                 return;
             }
 
-            // Check available balance (ONLY earnings can be withdrawn)
-            const availableBalance = userData.taskEarnings || 0;
-            if (amount > availableBalance) {
-                showAlert(`Insufficient balance. You can only withdraw from Earnings (${availableBalance.toFixed(2)} USDT available)`, 'error');
+            // Check total available balance (earnings + deposit)
+            const totalBalance = earningsBalance + depositBalanceAmount;
+            if (amount > totalBalance) {
+                showAlert(`Insufficient balance. You have ${totalBalance.toFixed(2)} USDT available.`, 'error');
                 return;
-            }
-
-            // Check daily limit
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            try {
-                const todayQuery = query(
-                    collection(db, 'withdrawals'),
-                    where('userId', '==', currentUser.uid),
-                    where('status', '!=', 'rejected')
-                );
-                const todaySnap = await getDocs(todayQuery);
-                let dailyTotal = 0;
-                todaySnap.forEach(doc => {
-                    const w = doc.data();
-                    const wDate = w.createdAt?.toDate() || new Date(w.timestamp);
-                    if (wDate >= today) {
-                        dailyTotal += w.amount;
-                    }
-                });
-
-                if (dailyTotal + amount > maxAmount) {
-                    showAlert(`Daily limit reached. Remaining: ${(maxAmount - dailyTotal).toFixed(2)} USDT`, 'error');
-                    return;
-                }
-            } catch (err) {
-                console.log('Daily check skipped');
             }
 
             // ============================================
             // VERIFY SECURITY CODE
             // ============================================
-            try {
-                const secSnap = await getDoc(doc(db, 'withdrawalSecurity', currentUser.uid));
-                const validCode = secSnap.exists() ? secSnap.data().code : '0000';
-                
-                if (securityCode !== validCode) {
-                    showAlert('Invalid security code. Please try again.', 'error');
-                    return;
-                }
-            } catch (err) {
-                console.error('Security check error:', err);
+            if (securityInput !== securityCode) {
+                showAlert('Invalid security code. Please try again.', 'error');
+                return;
             }
 
             // ============================================
-            // SUBMIT
+            // SUBMIT TO SERVER
             // ============================================
             btn.disabled = true;
             btn.classList.add('loading');
@@ -1051,30 +1047,27 @@
             try {
                 const withdrawData = {
                     userId: currentUser.uid,
-                    userEmail: userData.email || currentUser.email,
-                    userName: userData.firstName || userData.fullName || 'User',
                     amount: amount,
                     method: method,
-                    details: details,
-                    status: 'pending',
-                    createdAt: serverTimestamp(),
-                    timestamp: Date.now(),
-                    currency: 'USDT',
-                    birrEquivalent: method === 'telebirr' ? amount * USDT_TO_BIRR : 0
+                    details: details
                 };
 
-                // Save to Firestore
-                await addDoc(collection(db, 'withdrawals'), withdrawData);
-                
-                // Save to RTDB for real-time
-                await push(ref(rtdb, 'withdrawals'), {
-                    ...withdrawData,
-                    createdAt: null,
-                    timestamp: Date.now()
+                const response = await fetch(`${API_BASE}/api/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(withdrawData)
                 });
 
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Withdrawal failed');
+                }
+
+                console.log('✅ Withdrawal submitted:', result);
+
                 const birrMsg = method === 'telebirr' ? ` (${(amount * USDT_TO_BIRR).toLocaleString()} Birr)` : '';
-                showAlert(`✅ Withdrawal of ${amount} USDT${birrMsg} submitted! Processing within 24-48 hours.`, 'success');
+                showAlert(`✅ Withdrawal of ${amount} USDT${birrMsg} submitted! Pending admin approval.`, 'success');
                 showToast('✅ Withdrawal request submitted!');
 
                 // Reset form
@@ -1089,11 +1082,11 @@
                 }
 
                 // Reload data
-                await loadUserData();
+                await loadUserBalance();
 
             } catch (err) {
                 console.error('Withdrawal error:', err);
-                showAlert('Error processing withdrawal. Please try again.', 'error');
+                showAlert('Error: ' + (err.message || 'Failed to process withdrawal'), 'error');
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('loading');
@@ -1101,63 +1094,72 @@
         }
 
         // ============================================
-        // LOAD WITHDRAWAL HISTORY
+        // LOAD WITHDRAWAL HISTORY FROM SERVER
         // ============================================
-        function loadWithdrawHistory() {
+        async function loadWithdrawHistory() {
             const container = document.getElementById('withdrawHistory');
             
-            if (!currentUser) return;
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-lock"></i>
+                        <p>Please login to view history</p>
+                    </div>`;
+                return;
+            }
 
             try {
-                const q = rtdbQuery(
-                    ref(rtdb, 'withdrawals'),
-                    orderByChild('userId'),
-                    equalTo(currentUser.uid)
-                );
+                const response = await fetch(`${API_BASE}/api/withdraw/${currentUser.uid}`);
+                const data = await response.json();
 
-                onValue(q, (snapshot) => {
-                    if (!snapshot.exists()) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-receipt"></i>
-                                <p>No withdrawals yet</p>
-                            </div>`;
-                        return;
+                if (!data.success) {
+                    throw new Error('Failed to load withdrawals');
+                }
+
+                const withdrawals = data.withdrawals || [];
+
+                if (withdrawals.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-receipt"></i>
+                            <p>No withdrawals yet</p>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = withdrawals.map(w => {
+                    const date = w.timestamp ? new Date(w.timestamp) : new Date();
+                    const methodIcon = w.method === 'telebirr' ? '📱' : '💎';
+                    const methodName = w.method === 'telebirr' ? 'Telebirr' : 'Crypto (USDT)';
+                    const status = w.status || 'pending';
+                    const statusDisplay = status === 'completed' ? 'completed' : 
+                                         status === 'rejected' ? 'rejected' : 'pending';
+                    const statusIcon = status === 'completed' ? '✓' : 
+                                      status === 'rejected' ? '✗' : '⏳';
+                    
+                    // Parse details if string
+                    let birrInfo = '';
+                    if (w.details) {
+                        try {
+                            const d = typeof w.details === 'string' ? JSON.parse(w.details) : w.details;
+                            if (d.birrAmount) {
+                                birrInfo = ` (${d.birrAmount.toLocaleString()} Birr)`;
+                            }
+                        } catch(e) {}
                     }
 
-                    let withdrawals = [];
-                    snapshot.forEach(child => {
-                        withdrawals.push({ id: child.key, ...child.val() });
-                    });
+                    return `
+                        <div class="history-item">
+                            <div class="history-icon ${statusDisplay}">${statusIcon}</div>
+                            <div class="history-info">
+                                <div class="history-amount">-${parseFloat(w.amount).toFixed(2)} USDT${birrInfo}</div>
+                                <div class="history-method">${methodIcon} ${methodName}</div>
+                                <div class="history-date">${date.toLocaleString()}</div>
+                            </div>
+                            <span class="history-badge ${statusDisplay}">${status}</span>
+                        </div>`;
+                }).join('');
 
-                    // Sort by timestamp descending
-                    withdrawals.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    
-                    // Show last 20
-                    withdrawals = withdrawals.slice(0, 20);
-
-                    container.innerHTML = withdrawals.map(w => {
-                        const date = w.timestamp ? new Date(w.timestamp) : new Date();
-                        const methodIcon = w.method === 'telebirr' ? '📱' : '💎';
-                        const methodName = w.method === 'telebirr' ? 'Telebirr' : 'Crypto (USDT)';
-                        const birrInfo = w.method === 'telebirr' && w.birrEquivalent 
-                            ? ` (${w.birrEquivalent.toLocaleString()} Birr)` : '';
-                        const status = w.status || 'pending';
-                        
-                        return `
-                            <div class="history-item">
-                                <div class="history-icon ${status}">
-                                    ${status === 'approved' ? '✓' : status === 'rejected' ? '✗' : '⏳'}
-                                </div>
-                                <div class="history-info">
-                                    <div class="history-amount">-${parseFloat(w.amount).toFixed(2)} USDT${birrInfo}</div>
-                                    <div class="history-method">${methodIcon} ${methodName}</div>
-                                    <div class="history-date">${date.toLocaleString()}</div>
-                                </div>
-                                <span class="history-badge ${status}">${status}</span>
-                            </div>`;
-                    }).join('');
-                });
             } catch (err) {
                 console.error('History error:', err);
                 container.innerHTML = `
@@ -1169,6 +1171,26 @@
         }
 
         // ============================================
+        // LOAD NOTIFICATIONS
+        // ============================================
+        async function loadNotifications() {
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/notifications/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (data.success && data.unreadCount > 0) {
+                    const badge = document.getElementById('notificationBadge');
+                    badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+                    badge.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error loading notifications:', err);
+            }
+        }
+
+        // ============================================
         // GLOBAL EXPORTS
         // ============================================
         window.switchMethod = switchMethod;
@@ -1176,9 +1198,9 @@
         window.submitWithdrawal = submitWithdrawal;
 
         console.log('✅ Withdraw page ready');
-        console.log('💰 Currency: USDT (system)');
-        console.log('💱 Telebirr rate: 1 USDT = 150 Birr');
-        console.log('⚠️ Only Earnings Balance is withdrawable');
+        console.log('🔗 API Base:', API_BASE);
+        console.log('💰 Withdrawals processed via server API');
+        console.log('🔐 Security code verified via server');
     </script>
 </body>
 </html>
