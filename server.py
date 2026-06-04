@@ -727,12 +727,12 @@ def approve_deposit(deposit_id):
                             {'amount': bonus_amount, 'points': points_awarded})
                         
                         # Welcome bonus for new user
-                        update_data['points'] = user.get('points', 0) + 50
+                        update_data['points'] = user.get('points', 0) + 0.5
                         
                         add_notification(user_id,
-                            "🎁 Welcome Bonus! You earned 50 points for your first deposit!",
+                            "🎁 Welcome Bonus! You earned 0.5 points for your first deposit!",
                             'welcome_bonus',
-                            {'points': 50})
+                            {'points': 0.5})
             
             save_user(user_id, update_data)
         
