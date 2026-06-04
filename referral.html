@@ -924,7 +924,7 @@
                 } else {
                     // Fallback
                     const code = currentUser.uid.substring(0, 8);
-                    const link = `${window.location.origin}/index.html?ref=${currentUser.uid}`;
+                    const link = `${window.location.origin}/?ref=${currentUser.uid}`;
                     document.getElementById('referralCode').textContent = code;
                     document.getElementById('referralLink').value = link;
                     window._refData = { link, code, name: 'User' };
