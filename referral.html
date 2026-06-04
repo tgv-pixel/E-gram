@@ -15,7 +15,6 @@
             --dark: #2c3e50;
             --light: #f8f9fa;
             --gray: #6c757d;
-            --info: #17a2b8;
             --gold: #ffd700;
         }
 
@@ -613,6 +612,26 @@
             color: #155724;
         }
 
+        /* Loading */
+        .loading-box {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e1e5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -634,26 +653,6 @@
         @keyframes slideUp {
             from { transform: translateX(-50%) translateY(100px); opacity: 0; }
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-
-        /* Loading */
-        .loading-box {
-            text-align: center;
-            padding: 50px 20px;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e1e5e9;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         /* Responsive */
@@ -725,11 +724,11 @@
                 <div class="reward-info">
                     <div class="reward-item">
                         <span class="reward-amount">10%</span>
-                        <span class="reward-label">POINTS<br><small>(for fees)</small></span>
+                        <span class="reward-label">BALANCE<br><small>(for investment)</small></span>
                     </div>
                     <div class="reward-item">
-                        <span class="reward-amount">3%</span>
-                        <span class="reward-label">BALANCE<br><small>(for investment)</small></span>
+                        <span class="reward-amount">100</span>
+                        <span class="reward-label">POINTS<br><small>(for fees)</small></span>
                     </div>
                 </div>
             </div>
@@ -763,7 +762,7 @@
                 <span class="alert-icon">⏳</span>
                 <div class="alert-text">
                     <strong id="pendingAlertCount">0 friend(s)</strong> signed up but haven't deposited yet. 
-                    They must make their <strong>first deposit</strong> for you to earn <strong>10% points + 3% balance</strong>!
+                    They must make their <strong>first deposit</strong> for you to earn <strong>10% balance + 100 points</strong>!
                 </div>
             </div>
 
@@ -813,11 +812,11 @@
                     </div>
                     <div class="step-item">
                         <div class="step-num">3</div>
-                        <div class="step-text"><span class="highlight">10% as POINTS</span> (for transaction fees) + <span class="green">3% as BALANCE</span> (for investment)</div>
+                        <div class="step-text"><span class="green">10% as BALANCE</span> (for investment) + <span class="highlight">100 POINTS</span> (for transaction fees)</div>
                     </div>
                     <div class="step-item">
                         <div class="step-num">4</div>
-                        <div class="step-text">Points = fees only | Deposit Balance = investment | Earnings = withdrawable</div>
+                        <div class="step-text">Balance = investment | Points = withdrawal fees | Earnings = withdrawable</div>
                     </div>
                 </div>
             </div>
@@ -845,20 +844,13 @@
         </div>
     </div>
 
+    <!-- Toast -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            collection, 
-            query, 
-            where, 
-            getDocs, 
-            orderBy 
-        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
         // ============================================
         // FIREBASE CONFIG
@@ -872,15 +864,19 @@
             appId: "1:892830607693:web:a3a886c142586665fc2f04"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_BASE = window.location.origin;
 
         // ============================================
         // GLOBAL STATE
         // ============================================
         let currentUser = null;
-        let userData = null;
         let allReferrals = [];
         let currentTab = 'all';
 
@@ -895,103 +891,92 @@
             currentUser = user;
             console.log('👤 Logged in:', currentUser.uid);
             
-            await loadUserData();
-            await loadAllReferrals();
+            await loadReferralData();
             await loadNotificationCount();
+            
+            document.getElementById('loadingBox').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
         });
 
         // ============================================
-        // LOAD USER DATA
+        // LOAD REFERRAL DATA FROM SERVER
         // ============================================
-        async function loadUserData() {
+        async function loadReferralData() {
+            if (!currentUser) return;
+            
             try {
-                const snap = await getDoc(doc(db, 'users', currentUser.uid));
-                if (snap.exists()) {
-                    userData = snap.data();
-                    userData.id = snap.id;
-                    
-                    // Build referral link: matches index.html format
-                    const code = userData.referralCode || currentUser.uid.substring(0, 8);
-                    const link = `${window.location.origin}/index.html?ref=${code}`;
-                    
-                    document.getElementById('referralCode').textContent = code;
-                    document.getElementById('referralLink').value = link;
-                    
-                    // Store globally
-                    window._refData = { link, code, name: userData.firstName || 'User' };
-                    
-                    console.log('🔗 Referral link:', link);
-                } else {
-                    // Fallback
-                    const code = currentUser.uid.substring(0, 8);
-                    const link = `${window.location.origin}/?ref=${currentUser.uid}`;
-                    document.getElementById('referralCode').textContent = code;
-                    document.getElementById('referralLink').value = link;
-                    window._refData = { link, code, name: 'User' };
+                const response = await fetch(`${API_BASE}/api/referral/stats/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error('Failed to load referral data');
                 }
                 
-                document.getElementById('loadingBox').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
+                // Set referral code and link
+                const referralCode = data.referralCode || currentUser.uid.substring(0, 8);
+                const referralLink = data.referralLink || `${window.location.origin}/?ref=${referralCode}`;
                 
-            } catch (err) {
-                console.error('❌ loadUserData:', err);
-                document.getElementById('loadingBox').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                showToast('Error loading data');
-            }
-        }
-
-        // ============================================
-        // LOAD ALL REFERRALS
-        // ============================================
-        async function loadAllReferrals() {
-            try {
-                console.log('🔍 Fetching referrals for:', currentUser.uid);
+                document.getElementById('referralCode').textContent = referralCode;
+                document.getElementById('referralLink').value = referralLink;
                 
-                const q = query(
-                    collection(db, 'referrals'),
-                    where('referrerId', '==', currentUser.uid),
-                    orderBy('timestamp', 'desc')
-                );
+                // Store globally for share functions
+                window._refData = {
+                    link: referralLink,
+                    code: referralCode,
+                    name: 'User'
+                };
                 
-                const snap = await getDocs(q);
+                // Set stats
+                const stats = data.stats || {};
+                document.getElementById('statTotal').textContent = stats.totalReferrals || 0;
+                document.getElementById('statPending').textContent = stats.pendingReferrals || 0;
+                document.getElementById('statCompleted').textContent = stats.activeReferrals || 0;
                 
-                allReferrals = [];
+                // Display earned: points + balance
+                const pointsEarned = stats.totalPointsEarned || 0;
+                const balanceEarned = stats.totalBonusEarned || 0;
+                document.getElementById('statEarned').textContent = `${pointsEarned} pts + $${balanceEarned.toFixed(2)}`;
                 
-                snap.forEach(doc => {
-                    const r = doc.data();
+                // Tab counts
+                document.getElementById('countAll').textContent = stats.totalReferrals || 0;
+                document.getElementById('countPending').textContent = stats.pendingReferrals || 0;
+                document.getElementById('countDone').textContent = stats.activeReferrals || 0;
+                
+                // Pending alert
+                const pendingCount = stats.pendingReferrals || 0;
+                const pendingAlert = document.getElementById('pendingAlert');
+                if (pendingCount > 0) {
+                    pendingAlert.style.display = 'flex';
+                    document.getElementById('pendingAlertCount').textContent = `${pendingCount} friend(s)`;
+                } else {
+                    pendingAlert.style.display = 'none';
+                }
+                
+                // Process referrals list
+                allReferrals = (data.referrals || []).map(r => {
                     const status = r.status || 'pending_first_deposit';
-                    
-                    allReferrals.push({
-                        id: doc.id,
+                    return {
+                        id: r.id || '',
                         name: r.referredName || 'User',
                         email: r.referredEmail || '',
                         status: status,
-                        // Pending = waiting for first deposit
                         isPending: status === 'pending_first_deposit',
-                        // Done = deposited & bonus paid
                         isDone: status === 'active' || status === 'completed',
                         pointsEarned: r.pointsAwarded || 0,
                         balanceEarned: r.bonusEarned || 0,
                         depositAmount: r.depositAmount || 0,
-                        timestamp: r.timestamp,
+                        timestamp: r.timestamp || null,
                         firstDepositDate: r.firstDepositDate || null
-                    });
+                    };
                 });
                 
                 console.log(`📊 ${allReferrals.length} referrals loaded`);
                 
-                updateStats();
                 displayList(currentTab);
                 
             } catch (err) {
-                console.error('❌ loadAllReferrals:', err);
-                
-                // Fallback from user doc
-                if (userData) {
-                    document.getElementById('statTotal').textContent = userData.referralCount || 0;
-                    document.getElementById('statEarned').textContent = (userData.totalReferralPoints || 0);
-                }
+                console.error('❌ loadReferralData:', err);
+                showToast('Error loading referral data');
                 
                 document.getElementById('referralListContent').innerHTML = `
                     <div class="empty-state">
@@ -999,38 +984,6 @@
                         <h3>No referrals loaded</h3>
                         <p>Could not load referral data. Pull down to refresh.</p>
                     </div>`;
-            }
-        }
-
-        // ============================================
-        // UPDATE STATS
-        // ============================================
-        function updateStats() {
-            const total = allReferrals.length;
-            const pending = allReferrals.filter(r => r.isPending).length;
-            const done = allReferrals.filter(r => r.isDone).length;
-            
-            // Total earned: points + balance value
-            const totalPoints = allReferrals.reduce((sum, r) => sum + (r.pointsEarned || 0), 0);
-            const totalBalance = allReferrals.reduce((sum, r) => sum + (r.balanceEarned || 0), 0);
-            
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statPending').textContent = pending;
-            document.getElementById('statCompleted').textContent = done;
-            document.getElementById('statEarned').textContent = `${totalPoints} pts + $${totalBalance.toFixed(2)}`;
-            
-            // Tab counts
-            document.getElementById('countAll').textContent = total;
-            document.getElementById('countPending').textContent = pending;
-            document.getElementById('countDone').textContent = done;
-            
-            // Pending alert
-            const alert = document.getElementById('pendingAlert');
-            if (pending > 0) {
-                alert.style.display = 'flex';
-                document.getElementById('pendingAlertCount').textContent = `${pending} friend(s)`;
-            } else {
-                alert.style.display = 'none';
             }
         }
 
@@ -1069,7 +1022,7 @@
                     msg = 'Completed referrals appear after friends make their first deposit.';
                 } else {
                     icon = '👥'; title = 'No Referrals Yet';
-                    msg = 'Share your link to start earning 10% points + 3% balance!';
+                    msg = 'Share your link to start earning 10% balance + 100 points!';
                 }
                 
                 container.innerHTML = `
@@ -1095,13 +1048,13 @@
                 // Date formatting
                 let joinDate = '';
                 if (r.timestamp) {
-                    const d = r.timestamp.toDate ? r.timestamp.toDate() : new Date(r.timestamp);
+                    const d = new Date(r.timestamp);
                     joinDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
                 }
                 
                 let depositDate = '';
                 if (r.firstDepositDate) {
-                    const d = r.firstDepositDate.toDate ? r.firstDepositDate.toDate() : new Date(r.firstDepositDate);
+                    const d = new Date(r.firstDepositDate);
                     depositDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
                 }
                 
@@ -1155,11 +1108,11 @@
             navigator.clipboard.writeText(input.value).then(() => {
                 btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
                 btn.classList.add('btn-copied');
+                showToast('✅ Link copied! Share with friends.');
                 setTimeout(() => {
                     btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
                     btn.classList.remove('btn-copied');
                 }, 2000);
-                showToast('✅ Link copied! Share with friends.');
             }).catch(() => {
                 document.execCommand('copy');
                 showToast('✅ Link copied!');
@@ -1189,19 +1142,23 @@
         }
 
         // ============================================
-        // NOTIFICATION COUNT
+        // LOAD NOTIFICATION COUNT
         // ============================================
         async function loadNotificationCount() {
+            if (!currentUser) return;
+            
             try {
-                const q = query(collection(db, 'notifications'), where('userId','==',currentUser.uid), where('read','==',false));
-                const snap = await getDocs(q);
-                const count = snap.size;
-                const badge = document.getElementById('notificationBadge');
-                if (count > 0) {
-                    badge.textContent = count > 99 ? '99+' : count;
+                const response = await fetch(`${API_BASE}/api/notifications/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (data.success && data.unreadCount > 0) {
+                    const badge = document.getElementById('notificationBadge');
+                    badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
                     badge.style.display = 'block';
                 }
-            } catch(e) {}
+            } catch (err) {
+                console.error('Error loading notifications:', err);
+            }
         }
 
         // ============================================
@@ -1210,11 +1167,17 @@
         function showToast(msg) {
             const old = document.querySelector('.toast');
             if (old) old.remove();
+            
             const t = document.createElement('div');
             t.className = 'toast';
             t.textContent = msg;
             document.body.appendChild(t);
-            setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 3000);
+            
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transition = 'opacity 0.3s';
+                setTimeout(() => t.remove(), 300);
+            }, 3000);
         }
 
         // ============================================
@@ -1222,7 +1185,7 @@
         // ============================================
         function esc(str) {
             const d = document.createElement('div');
-            d.textContent = str;
+            d.textContent = str || '';
             return d.innerHTML;
         }
 
@@ -1233,9 +1196,10 @@
         window.share = share;
         window.switchTab = switchTab;
 
-        console.log('✅ Referral page ready');
-        console.log('💰 Rewards: 10% POINTS + 3% BALANCE');
-        console.log('📋 Points = fees | Balance = investment | Earnings = withdrawal');
+        console.log('✅ Referral page ready - Using server API');
+        console.log('🔗 API Base:', API_BASE);
+        console.log('💰 Rewards: 10% BALANCE + 100 POINTS');
+        console.log('📋 Balance = investment | Points = fees | Earnings = withdrawal');
     </script>
 </body>
 </html>
