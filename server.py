@@ -41,6 +41,7 @@ MIN_DEPOSIT = 10
 MIN_WITHDRAW = 20
 MAX_WITHDRAW_DAILY = 500
 WEEKEND_DAYS = [5, 6]
+WITHDRAW_POINTS_FEE_PERCENTAGE = 10  # 10% points fee for withdrawals
 
 # ============================================
 # PRODUCTS CONFIG
@@ -74,6 +75,10 @@ def get_timestamp():
 
 def calculate_referral_bonus(deposit_amount):
     return round(deposit_amount * REFERRAL_BONUS_PERCENTAGE / 100, 2)
+
+def calculate_withdraw_points_fee(amount):
+    """Calculate 10% points fee for withdrawal"""
+    return round(amount * WITHDRAW_POINTS_FEE_PERCENTAGE / 100, 2)
 
 # ============================================
 # FIREBASE REST API HELPERS
@@ -412,7 +417,8 @@ def server_info():
         'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%',
         'referral_points_percentage': REFERRAL_POINTS_PERCENTAGE,
         'min_deposit': MIN_DEPOSIT,
-        'min_withdraw': MIN_WITHDRAW
+        'min_withdraw': MIN_WITHDRAW,
+        'withdraw_points_fee_percentage': f'{WITHDRAW_POINTS_FEE_PERCENTAGE}%'
     })
 
 # ============================================
@@ -1017,7 +1023,7 @@ def reject_deposit(deposit_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
-# API: WITHDRAWAL
+# API: WITHDRAWAL (WITH 10% POINTS FEE)
 # ============================================
 @app.route('/api/withdraw', methods=['POST'])
 def submit_withdrawal():
@@ -1038,21 +1044,52 @@ def submit_withdrawal():
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
+        # ============================================
+        # CHECK 10% POINTS FEE REQUIREMENT
+        # ============================================
+        points_fee = calculate_withdraw_points_fee(amount)
+        user_points = user.get('points', 0) or 0
+        
+        if user_points < points_fee:
+            return jsonify({
+                'success': False,
+                'error': f'Insufficient points for withdrawal fee',
+                'details': {
+                    'requiredPoints': points_fee,
+                    'yourPoints': user_points,
+                    'missingPoints': round(points_fee - user_points, 2),
+                    'feePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE,
+                    'withdrawalAmount': amount,
+                    'message': f'You need {points_fee} points for the {WITHDRAW_POINTS_FEE_PERCENTAGE}% withdrawal fee. You only have {user_points} points. Earn points through referrals and daily claims!'
+                }
+            }), 400
+        
+        # Check total balance
         total_balance = (user.get('depositBalance', 0) or 0) + (user.get('taskEarnings', 0) or 0)
         if amount > total_balance:
             return jsonify({'success': False, 'error': 'Insufficient balance'}), 400
         
+        # Deduct from task earnings first, then deposit balance
         task_earnings = user.get('taskEarnings', 0) or 0
         deposit_balance = user.get('depositBalance', 0) or 0
         
         if task_earnings >= amount:
-            save_user(user_id, {'taskEarnings': task_earnings - amount})
+            new_task_earnings = task_earnings - amount
+            new_deposit_balance = deposit_balance
         else:
             remaining = amount - task_earnings
-            save_user(user_id, {
-                'taskEarnings': 0,
-                'depositBalance': deposit_balance - remaining
-            })
+            new_task_earnings = 0
+            new_deposit_balance = deposit_balance - remaining
+        
+        # Deduct points fee
+        new_points = user_points - points_fee
+        
+        # Update user balances
+        save_user(user_id, {
+            'taskEarnings': new_task_earnings,
+            'depositBalance': new_deposit_balance,
+            'points': new_points
+        })
         
         if isinstance(details, dict):
             details_str = json.dumps(details)
@@ -1067,22 +1104,38 @@ def submit_withdrawal():
             'method': method,
             'details': details_str,
             'status': 'pending',
+            'pointsFee': points_fee,
+            'pointsFeePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE,
             'timestamp': get_timestamp()
         }
         
         withdrawal_id = add_document('withdrawals', withdrawal_data)
         
-        add_notification(user_id,
-            f'💸 Withdrawal of {amount} USDT submitted via {method}. Pending approval.',
-            'withdrawal',
-            {'amount': amount, 'method': method})
+        # Log the points fee deduction
+        points_log_data = {
+            'userId': user_id,
+            'type': 'withdrawal_fee',
+            'amount': -points_fee,
+            'withdrawalId': withdrawal_id,
+            'withdrawalAmount': amount,
+            'description': f'{WITHDRAW_POINTS_FEE_PERCENTAGE}% points fee for {amount} USDT withdrawal',
+            'timestamp': get_timestamp()
+        }
+        add_document('points_logs', points_log_data)
         
-        print(f"💸 New withdrawal: {amount} USDT from {user_id} via {method}")
+        add_notification(user_id,
+            f'💸 Withdrawal of {amount} USDT submitted via {method}. {WITHDRAW_POINTS_FEE_PERCENTAGE}% points fee ({points_fee} points) deducted. Pending approval.',
+            'withdrawal',
+            {'amount': amount, 'method': method, 'pointsFee': points_fee})
+        
+        print(f"💸 New withdrawal: {amount} USDT from {user_id} via {method} | Points fee: {points_fee} | Remaining points: {new_points}")
         
         return jsonify({
             'success': True,
-            'message': 'Withdrawal submitted successfully. Waiting for approval.',
-            'withdrawal': {**withdrawal_data, 'id': withdrawal_id}
+            'message': f'Withdrawal submitted successfully. {points_fee} points deducted as {WITHDRAW_POINTS_FEE_PERCENTAGE}% fee. Waiting for approval.',
+            'withdrawal': {**withdrawal_data, 'id': withdrawal_id},
+            'pointsDeducted': points_fee,
+            'remainingPoints': new_points
         }), 201
         
     except ValueError:
@@ -1143,14 +1196,32 @@ def reject_withdrawal(withdrawal_id):
         if withdrawal:
             user = get_user(withdrawal.get('userId'))
             if user:
+                # Refund the amount
                 current_balance = user.get('depositBalance', 0) or 0
                 refund_amount = withdrawal.get('amount', 0)
+                
+                # Refund points fee
+                points_fee = withdrawal.get('pointsFee', 0) or 0
+                current_points = user.get('points', 0) or 0
+                
                 save_user(withdrawal.get('userId'), {
-                    'depositBalance': current_balance + refund_amount
+                    'depositBalance': current_balance + refund_amount,
+                    'points': current_points + points_fee
                 })
+                
+                # Log points refund
+                points_log_data = {
+                    'userId': withdrawal.get('userId'),
+                    'type': 'withdrawal_fee_refund',
+                    'amount': points_fee,
+                    'withdrawalId': withdrawal_id,
+                    'description': f'Points fee refunded for rejected withdrawal',
+                    'timestamp': get_timestamp()
+                }
+                add_document('points_logs', points_log_data)
             
             add_notification(withdrawal.get('userId'),
-                f'❌ Withdrawal of {withdrawal.get("amount", 0)} USDT rejected. Amount refunded to balance.',
+                f'❌ Withdrawal of {withdrawal.get("amount", 0)} USDT rejected. Amount and {withdrawal.get("pointsFee", 0)} points refunded.',
                 'withdrawal_rejected',
                 {'amount': withdrawal.get('amount', 0)})
         
@@ -1159,10 +1230,23 @@ def reject_withdrawal(withdrawal_id):
             'rejectedAt': get_timestamp()
         })
         
-        print(f"❌ Withdrawal rejected: {withdrawal_id}")
+        print(f"❌ Withdrawal rejected: {withdrawal_id} - Amount and points refunded")
         
-        return jsonify({'success': True, 'message': 'Withdrawal rejected - Amount refunded'})
+        return jsonify({'success': True, 'message': 'Withdrawal rejected - Amount and points refunded'})
         
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# API: POINTS LOGS
+# ============================================
+@app.route('/api/points/logs/<user_id>', methods=['GET'])
+def get_points_logs(user_id):
+    try:
+        logs = get_collection('points_logs')
+        user_logs = [l for l in logs if l.get('userId') == user_id]
+        user_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'logs': user_logs[:50]})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1402,6 +1486,8 @@ def admin_stats():
         pending_deposits = len([d for d in deposits if d.get('status') == 'pending'])
         pending_withdrawals = len([w for w in withdrawals if w.get('status') == 'pending'])
         
+        total_points_fees = sum(w.get('pointsFee', 0) or 0 for w in withdrawals if w.get('status') == 'completed')
+        
         return jsonify({
             'success': True,
             'stats': {
@@ -1411,7 +1497,9 @@ def admin_stats():
                 'activeInvestments': active_investments,
                 'totalReferrals': len(referrals),
                 'pendingDeposits': pending_deposits,
-                'pendingWithdrawals': pending_withdrawals
+                'pendingWithdrawals': pending_withdrawals,
+                'totalPointsFeesCollected': total_points_fees,
+                'withdrawPointsFeePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE
             }
         })
     except Exception as e:
@@ -1437,13 +1525,14 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print("=" * 60)
-    print("🚀 SAFE Platform v3.0 - Firebase REST API")
+    print("🚀 SAFE Platform v3.1 - Firebase REST API")
     print(f"📍 Port: {port}")
     print(f"🗄️  Database: Firebase Firestore + RTDB (REST API)")
     print(f"📱 Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
     print(f"💎 Wallet: {WALLET_ADDRESS}")
     print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}%")
     print(f"💰 Min Deposit: ${MIN_DEPOSIT} | Min Withdraw: ${MIN_WITHDRAW}")
+    print(f"🔒 Withdraw Points Fee: {WITHDRAW_POINTS_FEE_PERCENTAGE}%")
     print("=" * 60)
     print("📡 All API Endpoints Ready:")
     print("   ✅ POST /api/user/create")
@@ -1455,10 +1544,11 @@ if __name__ == '__main__':
     print("   ✅ GET  /api/deposit/all")
     print("   ✅ POST /api/deposit/<id>/approve")
     print("   ✅ POST /api/deposit/<id>/reject")
-    print("   ✅ POST /api/withdraw")
+    print("   ✅ POST /api/withdraw (10% points fee)")
     print("   ✅ GET  /api/withdraw/all")
     print("   ✅ POST /api/withdraw/<id>/approve")
-    print("   ✅ POST /api/withdraw/<id>/reject")
+    print("   ✅ POST /api/withdraw/<id>/reject (refunds points)")
+    print("   ✅ GET  /api/points/logs/<user_id>")
     print("   ✅ GET  /api/referral/all")
     print("   ✅ GET  /api/referral/check/<code>")
     print("   ✅ GET  /api/referral/stats/<id>")
