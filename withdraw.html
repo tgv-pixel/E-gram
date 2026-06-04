@@ -30,7 +30,6 @@
             padding: 0;
         }
 
-        /* Top Navigation */
         .top-nav {
             background: white;
             padding: 15px 20px;
@@ -102,14 +101,12 @@
             font-weight: 700;
         }
 
-        /* Container */
         .container {
             max-width: 550px;
             margin: 0 auto;
             padding: 15px;
         }
 
-        /* Balance Cards */
         .balance-section {
             margin-bottom: 20px;
         }
@@ -167,7 +164,6 @@
             margin-top: 3px;
         }
 
-        /* Info Card */
         .info-card {
             background: white;
             border-radius: 12px;
@@ -196,7 +192,146 @@
             color: var(--primary);
         }
 
-        /* Method Tabs */
+        /* Security Code Setup Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 25px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-box .modal-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .modal-box h2 {
+            font-size: 1.3em;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .modal-box p {
+            font-size: 0.85em;
+            color: var(--gray);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-box .code-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-box .code-inputs input {
+            width: 50px;
+            height: 55px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .modal-box .code-inputs input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-box .confirm-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-box .confirm-inputs input {
+            width: 50px;
+            height: 55px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .modal-box .confirm-inputs input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-box .section-label {
+            font-size: 0.75em;
+            color: var(--gray);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .modal-box .error-msg {
+            color: var(--danger);
+            font-size: 0.8em;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .modal-box .error-msg.show {
+            display: block;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Card */
         .card {
             background: white;
             border-radius: 15px;
@@ -264,7 +399,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Payment Details */
         .payment-details {
             background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
             border: 2px solid #4caf50;
@@ -291,7 +425,6 @@
             font-weight: 700;
         }
 
-        /* Form */
         .form-group {
             margin-bottom: 14px;
         }
@@ -338,7 +471,6 @@
             padding-left: 30px;
         }
 
-        /* Conversion Display */
         .conversion-box {
             background: #fff9e6;
             border: 1px solid #ffc107;
@@ -361,7 +493,6 @@
             color: #e67e22;
         }
 
-        /* Limits */
         .limits-box {
             background: #f8f9fa;
             border-radius: 10px;
@@ -376,7 +507,6 @@
             color: var(--warning);
         }
 
-        /* Security */
         .security-notice {
             background: #fff3cd;
             border: 2px solid #ffc107;
@@ -392,7 +522,64 @@
             color: #e67e22;
         }
 
-        /* Submit */
+        .security-code-display {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 14px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        .security-code-display .code-badge {
+            display: inline-block;
+            background: #2e7d32;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            font-size: 1.1em;
+        }
+
+        .security-input-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .security-input-row input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 700;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .security-input-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .reset-code-link {
+            display: block;
+            text-align: center;
+            font-size: 0.75em;
+            color: var(--primary);
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }
+
+        .reset-code-link:hover {
+            color: var(--primary-dark);
+        }
+
         .submit-btn {
             width: 100%;
             padding: 14px;
@@ -443,7 +630,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Alert */
         .alert {
             padding: 12px 15px;
             border-radius: 10px;
@@ -469,7 +655,6 @@
             border: 1px solid #f5c6cb;
         }
 
-        /* History */
         .history-card {
             background: white;
             border-radius: 15px;
@@ -571,7 +756,6 @@
             margin-bottom: 8px;
         }
 
-        /* Loading */
         .loading-box {
             text-align: center;
             padding: 30px;
@@ -587,7 +771,6 @@
             margin: 0 auto 12px;
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 25px;
@@ -618,6 +801,19 @@
             .balance-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .modal-box .code-inputs input,
+            .modal-box .confirm-inputs input {
+                width: 42px;
+                height: 48px;
+                font-size: 1.2em;
+            }
+            
+            .security-input-row input {
+                width: 42px;
+                height: 45px;
+                font-size: 1.1em;
+            }
         }
     </style>
 </head>
@@ -638,6 +834,82 @@
             </button>
         </div>
     </nav>
+
+    <!-- Security Code Setup Modal -->
+    <div class="modal-overlay" id="securitySetupModal">
+        <div class="modal-box">
+            <div class="modal-icon">🔐</div>
+            <h2 id="modalTitle">Create Withdrawal Code</h2>
+            <p>Create a <strong>4-digit security code</strong> for withdrawals. You'll need this code every time you withdraw.</p>
+            
+            <div class="section-label">Enter Code</div>
+            <div class="code-inputs" id="newCodeInputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'newCodeInputs', 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'newCodeInputs', 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'newCodeInputs', 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'newCodeInputs', 'confirmCodeInputs')">
+            </div>
+            
+            <div class="section-label" style="margin-top:15px;">Confirm Code</div>
+            <div class="confirm-inputs" id="confirmCodeInputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'confirmCodeInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'confirmCodeInputs')">
+            </div>
+            
+            <div class="error-msg" id="setupError"></div>
+            
+            <button class="modal-btn" id="saveCodeBtn" onclick="saveSecurityCode()">
+                <i class="fas fa-lock"></i> Save Withdrawal Code
+            </button>
+            <p style="font-size:0.7em;color:#999;margin-top:10px;">
+                ⚠️ Keep this code safe. You cannot recover it if lost.
+            </p>
+        </div>
+    </div>
+
+    <!-- Reset Security Code Modal -->
+    <div class="modal-overlay" id="securityResetModal">
+        <div class="modal-box">
+            <div class="modal-icon">🔄</div>
+            <h2>Reset Withdrawal Code</h2>
+            <p>Enter your <strong>current code</strong> first, then set a new one.</p>
+            
+            <div class="section-label">Current Code</div>
+            <div class="code-inputs" id="currentCodeInputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'currentCodeInputs', 'resetNewInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'currentCodeInputs', 'resetNewInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'currentCodeInputs', 'resetNewInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'currentCodeInputs', 'resetNewInputs')">
+            </div>
+            
+            <div class="section-label" style="margin-top:15px;">New Code</div>
+            <div class="code-inputs" id="resetNewInputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetNewInputs', 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetNewInputs', 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetNewInputs', 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetNewInputs', 'resetConfirmInputs')">
+            </div>
+            
+            <div class="section-label" style="margin-top:15px;">Confirm New Code</div>
+            <div class="confirm-inputs" id="resetConfirmInputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetConfirmInputs')">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'resetConfirmInputs')">
+            </div>
+            
+            <div class="error-msg" id="resetError"></div>
+            
+            <button class="modal-btn" onclick="resetSecurityCode()">
+                <i class="fas fa-sync-alt"></i> Reset Code
+            </button>
+            <button class="modal-btn" style="background:#e74c3c;margin-top:10px;" onclick="closeResetModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
 
     <div class="container">
         <!-- Balance Section -->
@@ -667,7 +939,7 @@
                 • Withdrawn from <span class="highlight">Earnings first</span>, then Deposit Balance<br>
                 • All withdrawals processed in <span class="highlight">USDT</span><br>
                 • Telebirr converted at <span class="highlight">1 USDT = 150 Birr</span><br>
-                • Admin approval required for all withdrawals
+                • Your <span class="highlight">4-digit withdrawal code</span> is required
             </div>
         </div>
 
@@ -727,15 +999,26 @@
                     Min: <strong>20 USDT</strong> (3,000 Birr) • Max: <strong>500 USDT</strong> per day
                 </div>
 
-                <div class="form-group">
-                    <label>Security Code</label>
-                    <input type="text" id="telebirr-security" placeholder="Enter 4-digit security code" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                <!-- Security Code Input -->
+                <div class="security-code-display" id="codeDisplay" style="display:none;">
+                    <i class="fas fa-shield-alt"></i> Your withdrawal code: 
+                    <span class="code-badge" id="codeBadge">****</span>
+                    <span style="cursor:pointer;margin-left:5px;" onclick="toggleCodeVisibility()" id="toggleEye">
+                        <i class="fas fa-eye"></i>
+                    </span>
                 </div>
 
-                <div class="security-notice">
-                    <i class="fas fa-shield-alt"></i> 
-                    For security, withdrawals require your <strong>4-digit code</strong>.
+                <div class="section-label" style="text-align:center;margin-bottom:8px;">Enter Your 4-Digit Withdrawal Code</div>
+                <div class="security-input-row" id="telebirr-code-inputs">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'telebirr-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'telebirr-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'telebirr-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'telebirr-code-inputs')" class="code-digit">
                 </div>
+
+                <span class="reset-code-link" onclick="openResetModal()">
+                    <i class="fas fa-key"></i> Forgot or Reset Code?
+                </span>
 
                 <button class="submit-btn" id="telebirr-submit" onclick="submitWithdrawal('telebirr')">
                     <span class="spinner"></span>
@@ -774,15 +1057,18 @@
                     Min: <strong>20 USDT</strong> • Max: <strong>500 USDT</strong> per day • <strong>TRC20 Network Only</strong>
                 </div>
 
-                <div class="form-group">
-                    <label>Security Code</label>
-                    <input type="text" id="crypto-security" placeholder="Enter 4-digit security code" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                <!-- Security Code Input -->
+                <div class="section-label" style="text-align:center;margin-bottom:8px;">Enter Your 4-Digit Withdrawal Code</div>
+                <div class="security-input-row" id="crypto-code-inputs">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'crypto-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'crypto-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'crypto-code-inputs')" class="code-digit">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="handleCodeInput(this, 'crypto-code-inputs')" class="code-digit">
                 </div>
 
-                <div class="security-notice">
-                    <i class="fas fa-shield-alt"></i> 
-                    For security, withdrawals require your <strong>4-digit code</strong>.
-                </div>
+                <span class="reset-code-link" onclick="openResetModal()">
+                    <i class="fas fa-key"></i> Forgot or Reset Code?
+                </span>
 
                 <button class="submit-btn" id="crypto-submit" onclick="submitWithdrawal('crypto')">
                     <span class="spinner"></span>
@@ -815,9 +1101,6 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
-        // ============================================
-        // FIREBASE CONFIG
-        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
             authDomain: "webapp-fc856.firebaseapp.com",
@@ -827,26 +1110,20 @@
             appId: "1:892830607693:web:a3a886c142586665fc2f04"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // ============================================
-        // CONFIGURATION
-        // ============================================
         const API_BASE = window.location.origin;
         const USDT_TO_BIRR = 150;
         const MIN_WITHDRAW_USDT = 20;
         const MAX_WITHDRAW_DAILY = 500;
 
-        // ============================================
-        // GLOBAL STATE
-        // ============================================
         let currentUser = null;
         let currentMethod = 'telebirr';
         let earningsBalance = 0;
         let depositBalanceAmount = 0;
         let securityCode = '';
+        let codeVisible = false;
 
         // ============================================
         // AUTH CHECK
@@ -860,25 +1137,22 @@
             console.log('👤 Logged in:', currentUser.uid);
             
             await loadUserBalance();
-            await loadSecurityCode();
+            await checkSecurityCode();
             await loadWithdrawHistory();
             await loadNotifications();
         });
 
         // ============================================
-        // LOAD USER BALANCE FROM SERVER
+        // LOAD USER BALANCE
         // ============================================
         async function loadUserBalance() {
             if (!currentUser) return;
-            
             try {
                 const response = await fetch(`${API_BASE}/api/user/${currentUser.uid}/balance`);
                 const data = await response.json();
-                
                 if (data.success) {
                     earningsBalance = data.taskEarnings || 0;
                     depositBalanceAmount = data.depositBalance || 0;
-                    
                     document.getElementById('earningsBalance').textContent = earningsBalance.toFixed(2);
                     document.getElementById('depositBalance').textContent = depositBalanceAmount.toFixed(2);
                 }
@@ -888,21 +1162,234 @@
         }
 
         // ============================================
-        // LOAD SECURITY CODE FROM SERVER
+        // CHECK IF USER HAS SECURITY CODE
         // ============================================
-        async function loadSecurityCode() {
+        async function checkSecurityCode() {
             if (!currentUser) return;
-            
             try {
                 const response = await fetch(`${API_BASE}/api/security/${currentUser.uid}`);
                 const data = await response.json();
                 
-                if (data.success) {
-                    securityCode = data.code || '';
+                if (data.success && data.code && data.code.length === 4) {
+                    securityCode = data.code;
+                    // Code exists - show code display
+                    document.getElementById('codeDisplay').style.display = 'block';
+                    document.getElementById('codeBadge').textContent = '****';
+                    console.log('✅ Security code exists');
+                } else {
+                    // No code set - show setup modal
+                    securityCode = '';
+                    document.getElementById('securitySetupModal').classList.add('show');
+                    console.log('🔐 First time - need to set security code');
                 }
             } catch (err) {
-                console.error('Error loading security code:', err);
+                console.error('Error checking security code:', err);
+                document.getElementById('securitySetupModal').classList.add('show');
             }
+        }
+
+        // ============================================
+        // HANDLE CODE INPUT (auto-focus next)
+        // ============================================
+        function handleCodeInput(currentInput, containerId, nextContainerId) {
+            const value = currentInput.value.replace(/[^0-9]/g, '');
+            currentInput.value = value;
+            
+            if (value && currentInput.nextElementSibling) {
+                currentInput.nextElementSibling.focus();
+            }
+            
+            // If last input filled and there's a next container, focus it
+            if (value && !currentInput.nextElementSibling && nextContainerId) {
+                const nextContainer = document.getElementById(nextContainerId);
+                if (nextContainer) {
+                    const firstInput = nextContainer.querySelector('input');
+                    if (firstInput) firstInput.focus();
+                }
+            }
+        }
+
+        // ============================================
+        // GET CODE FROM INPUTS
+        // ============================================
+        function getCodeFromInputs(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return '';
+            const inputs = container.querySelectorAll('input');
+            let code = '';
+            inputs.forEach(input => { code += input.value; });
+            return code;
+        }
+
+        // ============================================
+        // CLEAR CODE INPUTS
+        // ============================================
+        function clearCodeInputs(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const inputs = container.querySelectorAll('input');
+            inputs.forEach(input => { input.value = ''; });
+        }
+
+        // ============================================
+        // SAVE SECURITY CODE (First Time Setup)
+        // ============================================
+        async function saveSecurityCode() {
+            const newCode = getCodeFromInputs('newCodeInputs');
+            const confirmCode = getCodeFromInputs('confirmCodeInputs');
+            const errorEl = document.getElementById('setupError');
+            
+            if (newCode.length !== 4 || !/^\d{4}$/.test(newCode)) {
+                errorEl.textContent = 'Please enter a valid 4-digit code';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            if (newCode !== confirmCode) {
+                errorEl.textContent = 'Codes do not match. Please try again.';
+                errorEl.classList.add('show');
+                clearCodeInputs('confirmCodeInputs');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/security/reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: currentUser.uid,
+                        newCode: newCode 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    securityCode = newCode;
+                    document.getElementById('securitySetupModal').classList.remove('show');
+                    document.getElementById('codeDisplay').style.display = 'block';
+                    document.getElementById('codeBadge').textContent = '****';
+                    showToast('✅ Withdrawal code created successfully!');
+                    clearCodeInputs('newCodeInputs');
+                    clearCodeInputs('confirmCodeInputs');
+                    errorEl.classList.remove('show');
+                } else {
+                    errorEl.textContent = 'Failed to save code. Try again.';
+                    errorEl.classList.add('show');
+                }
+            } catch (err) {
+                console.error('Error saving security code:', err);
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        // ============================================
+        // TOGGLE CODE VISIBILITY
+        // ============================================
+        function toggleCodeVisibility() {
+            codeVisible = !codeVisible;
+            const badge = document.getElementById('codeBadge');
+            const eye = document.getElementById('toggleEye');
+            
+            if (codeVisible) {
+                badge.textContent = securityCode;
+                eye.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            } else {
+                badge.textContent = '****';
+                eye.innerHTML = '<i class="fas fa-eye"></i>';
+            }
+        }
+
+        // ============================================
+        // OPEN RESET MODAL
+        // ============================================
+        function openResetModal() {
+            clearCodeInputs('currentCodeInputs');
+            clearCodeInputs('resetNewInputs');
+            clearCodeInputs('resetConfirmInputs');
+            document.getElementById('resetError').classList.remove('show');
+            document.getElementById('securityResetModal').classList.add('show');
+        }
+
+        function closeResetModal() {
+            document.getElementById('securityResetModal').classList.remove('show');
+        }
+
+        // ============================================
+        // RESET SECURITY CODE
+        // ============================================
+        async function resetSecurityCode() {
+            const currentCode = getCodeFromInputs('currentCodeInputs');
+            const newCode = getCodeFromInputs('resetNewInputs');
+            const confirmCode = getCodeFromInputs('resetConfirmInputs');
+            const errorEl = document.getElementById('resetError');
+            
+            if (currentCode.length !== 4 || currentCode !== securityCode) {
+                errorEl.textContent = 'Current code is incorrect';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            if (newCode.length !== 4 || !/^\d{4}$/.test(newCode)) {
+                errorEl.textContent = 'Please enter a valid 4-digit new code';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            if (newCode !== confirmCode) {
+                errorEl.textContent = 'New codes do not match';
+                errorEl.classList.add('show');
+                clearCodeInputs('resetConfirmInputs');
+                return;
+            }
+            
+            if (newCode === currentCode) {
+                errorEl.textContent = 'New code must be different from current code';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/security/reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: currentUser.uid,
+                        newCode: newCode 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    securityCode = newCode;
+                    document.getElementById('securityResetModal').classList.remove('show');
+                    codeVisible = false;
+                    document.getElementById('codeBadge').textContent = '****';
+                    document.getElementById('toggleEye').innerHTML = '<i class="fas fa-eye"></i>';
+                    showToast('✅ Withdrawal code updated!');
+                    clearCodeInputs('currentCodeInputs');
+                    clearCodeInputs('resetNewInputs');
+                    clearCodeInputs('resetConfirmInputs');
+                    errorEl.classList.remove('show');
+                } else {
+                    errorEl.textContent = 'Failed to reset code. Try again.';
+                    errorEl.classList.add('show');
+                }
+            } catch (err) {
+                console.error('Error resetting security code:', err);
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        // ============================================
+        // GET SECURITY CODE FROM FORM INPUTS
+        // ============================================
+        function getEnteredCode(method) {
+            const containerId = `${method}-code-inputs`;
+            return getCodeFromInputs(containerId);
         }
 
         // ============================================
@@ -910,7 +1397,6 @@
         // ============================================
         function switchMethod(method) {
             currentMethod = method;
-            
             document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.method-form').forEach(f => f.classList.remove('active'));
             
@@ -921,18 +1407,13 @@
                 document.querySelectorAll('.method-tab')[1].classList.add('active');
                 document.getElementById('crypto-form').classList.add('active');
             }
-            
             hideAlert();
         }
 
-        // ============================================
-        // UPDATE TELEBIRR CONVERSION
-        // ============================================
         function updateTelebirrConversion() {
             const amount = parseFloat(document.getElementById('telebirr-amount').value) || 0;
             const birr = amount * USDT_TO_BIRR;
             const conversionBox = document.getElementById('telebirr-conversion');
-            
             if (amount > 0) {
                 conversionBox.classList.add('show');
                 document.getElementById('telebirr-birr').textContent = birr.toLocaleString() + ' Birr';
@@ -941,9 +1422,6 @@
             }
         }
 
-        // ============================================
-        // SHOW/HIDE ALERT
-        // ============================================
         function showAlert(message, type) {
             const alert = document.getElementById('alertBox');
             alert.textContent = message;
@@ -955,18 +1433,13 @@
             document.getElementById('alertBox').classList.remove('show');
         }
 
-        // ============================================
-        // SHOW TOAST
-        // ============================================
         function showToast(msg) {
             const old = document.querySelector('.toast');
             if (old) old.remove();
-            
             const t = document.createElement('div');
             t.className = 'toast';
             t.textContent = msg;
             document.body.appendChild(t);
-            
             setTimeout(() => {
                 t.style.opacity = '0';
                 t.style.transition = 'opacity 0.3s';
@@ -975,16 +1448,22 @@
         }
 
         // ============================================
-        // SUBMIT WITHDRAWAL VIA SERVER API
+        // SUBMIT WITHDRAWAL
         // ============================================
         async function submitWithdrawal(method) {
             if (!currentUser) return;
+            
+            // Check if security code is set
+            if (!securityCode) {
+                document.getElementById('securitySetupModal').classList.add('show');
+                showAlert('⚠️ Please create your withdrawal code first', 'error');
+                return;
+            }
 
             const amount = parseFloat(document.getElementById(`${method}-amount`).value);
-            const securityInput = document.getElementById(`${method}-security`).value.trim();
+            const enteredCode = getEnteredCode(method);
             const btn = document.getElementById(`${method}-submit`);
 
-            // Get details
             let details = {};
             if (method === 'telebirr') {
                 details.phone = document.getElementById('telebirr-number').value.trim();
@@ -995,9 +1474,7 @@
                 details.network = 'TRC20';
             }
 
-            // ============================================
-            // VALIDATION
-            // ============================================
+            // Validation
             if (!amount || amount < MIN_WITHDRAW_USDT) {
                 showAlert(`Minimum withdrawal is ${MIN_WITHDRAW_USDT} USDT`, 'error');
                 return;
@@ -1018,44 +1495,38 @@
                 return;
             }
 
-            if (!securityInput || securityInput.length !== 4 || !/^\d{4}$/.test(securityInput)) {
-                showAlert('Please enter a valid 4-digit security code', 'error');
+            if (enteredCode.length !== 4 || !/^\d{4}$/.test(enteredCode)) {
+                showAlert('Please enter your complete 4-digit withdrawal code', 'error');
                 return;
             }
 
-            // Check total available balance (earnings + deposit)
             const totalBalance = earningsBalance + depositBalanceAmount;
             if (amount > totalBalance) {
                 showAlert(`Insufficient balance. You have ${totalBalance.toFixed(2)} USDT available.`, 'error');
                 return;
             }
 
-            // ============================================
-            // VERIFY SECURITY CODE
-            // ============================================
-            if (securityInput !== securityCode) {
-                showAlert('Invalid security code. Please try again.', 'error');
+            // Verify security code
+            if (enteredCode !== securityCode) {
+                showAlert('❌ Invalid withdrawal code. Please try again.', 'error');
+                clearCodeInputs(`${method}-code-inputs`);
                 return;
             }
 
-            // ============================================
-            // SUBMIT TO SERVER
-            // ============================================
+            // Submit
             btn.disabled = true;
             btn.classList.add('loading');
 
             try {
-                const withdrawData = {
-                    userId: currentUser.uid,
-                    amount: amount,
-                    method: method,
-                    details: details
-                };
-
                 const response = await fetch(`${API_BASE}/api/withdraw`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(withdrawData)
+                    body: JSON.stringify({
+                        userId: currentUser.uid,
+                        amount: amount,
+                        method: method,
+                        details: details
+                    })
                 });
 
                 const result = await response.json();
@@ -1072,7 +1543,7 @@
 
                 // Reset form
                 document.getElementById(`${method}-amount`).value = '';
-                document.getElementById(`${method}-security`).value = '';
+                clearCodeInputs(`${method}-code-inputs`);
                 if (method === 'telebirr') {
                     document.getElementById('telebirr-number').value = '';
                     document.getElementById('telebirr-name').value = '';
@@ -1081,7 +1552,6 @@
                     document.getElementById('crypto-address').value = '';
                 }
 
-                // Reload data
                 await loadUserBalance();
 
             } catch (err) {
@@ -1094,17 +1564,12 @@
         }
 
         // ============================================
-        // LOAD WITHDRAWAL HISTORY FROM SERVER
+        // LOAD WITHDRAWAL HISTORY
         // ============================================
         async function loadWithdrawHistory() {
             const container = document.getElementById('withdrawHistory');
-            
             if (!currentUser) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-user-lock"></i>
-                        <p>Please login to view history</p>
-                    </div>`;
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-user-lock"></i><p>Please login to view history</p></div>';
                 return;
             }
 
@@ -1112,18 +1577,12 @@
                 const response = await fetch(`${API_BASE}/api/withdraw/${currentUser.uid}`);
                 const data = await response.json();
 
-                if (!data.success) {
-                    throw new Error('Failed to load withdrawals');
-                }
+                if (!data.success) throw new Error('Failed to load withdrawals');
 
                 const withdrawals = data.withdrawals || [];
 
                 if (withdrawals.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-receipt"></i>
-                            <p>No withdrawals yet</p>
-                        </div>`;
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>No withdrawals yet</p></div>';
                     return;
                 }
 
@@ -1132,19 +1591,14 @@
                     const methodIcon = w.method === 'telebirr' ? '📱' : '💎';
                     const methodName = w.method === 'telebirr' ? 'Telebirr' : 'Crypto (USDT)';
                     const status = w.status || 'pending';
-                    const statusDisplay = status === 'completed' ? 'completed' : 
-                                         status === 'rejected' ? 'rejected' : 'pending';
-                    const statusIcon = status === 'completed' ? '✓' : 
-                                      status === 'rejected' ? '✗' : '⏳';
+                    const statusDisplay = status === 'completed' ? 'completed' : status === 'rejected' ? 'rejected' : 'pending';
+                    const statusIcon = status === 'completed' ? '✓' : status === 'rejected' ? '✗' : '⏳';
                     
-                    // Parse details if string
                     let birrInfo = '';
                     if (w.details) {
                         try {
                             const d = typeof w.details === 'string' ? JSON.parse(w.details) : w.details;
-                            if (d.birrAmount) {
-                                birrInfo = ` (${d.birrAmount.toLocaleString()} Birr)`;
-                            }
+                            if (d.birrAmount) birrInfo = ` (${d.birrAmount.toLocaleString()} Birr)`;
                         } catch(e) {}
                     }
 
@@ -1162,11 +1616,7 @@
 
             } catch (err) {
                 console.error('History error:', err);
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <p>Error loading history</p>
-                    </div>`;
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading history</p></div>';
             }
         }
 
@@ -1175,11 +1625,9 @@
         // ============================================
         async function loadNotifications() {
             if (!currentUser) return;
-            
             try {
                 const response = await fetch(`${API_BASE}/api/notifications/${currentUser.uid}`);
                 const data = await response.json();
-                
                 if (data.success && data.unreadCount > 0) {
                     const badge = document.getElementById('notificationBadge');
                     badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
@@ -1196,11 +1644,16 @@
         window.switchMethod = switchMethod;
         window.updateTelebirrConversion = updateTelebirrConversion;
         window.submitWithdrawal = submitWithdrawal;
+        window.handleCodeInput = handleCodeInput;
+        window.saveSecurityCode = saveSecurityCode;
+        window.toggleCodeVisibility = toggleCodeVisibility;
+        window.openResetModal = openResetModal;
+        window.closeResetModal = closeResetModal;
+        window.resetSecurityCode = resetSecurityCode;
 
         console.log('✅ Withdraw page ready');
+        console.log('🔐 Security code required for withdrawals');
         console.log('🔗 API Base:', API_BASE);
-        console.log('💰 Withdrawals processed via server API');
-        console.log('🔐 Security code verified via server');
     </script>
 </body>
 </html>
