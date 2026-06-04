@@ -516,24 +516,6 @@
             signInWithEmailAndPassword, 
             onAuthStateChanged 
         } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-        import { 
-            getDatabase, 
-            ref, 
-            set, 
-            push 
-        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            getDoc, 
-            getDocs,
-            query,
-            where,
-            addDoc,
-            collection, 
-            serverTimestamp 
-        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
         // ============================================
         // FIREBASE CONFIG
@@ -550,10 +532,11 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const rtdb = getDatabase(app);
-        const db = getFirestore(app);
 
-        console.log('✅ Firebase ready');
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_BASE = window.location.origin;
 
         // ============================================
         // GLOBAL VARIABLES
@@ -563,6 +546,8 @@
         let referrerName = null;      // Referrer's display name
         let referralValid = false;    // Is referral code valid?
         let referralChecked = false;  // Has referral been verified?
+
+        console.log('✅ Firebase ready');
 
         // ============================================
         // AUTH STATE - Redirect if logged in
@@ -593,7 +578,7 @@
         }
 
         // ============================================
-        // CHECK REFERRAL CODE - Validate with Firestore
+        // CHECK REFERRAL CODE VIA SERVER API
         // ============================================
         async function checkReferralCode() {
             const refCode = getReferralFromURL();
@@ -610,7 +595,7 @@
                     <span>No referral code detected</span>
                     <div class="ref-details">
                         Sign up to get your own referral link!<br>
-                        Earn <span class="ref-highlight points">10% points</span> + <span class="ref-highlight balance">3% balance</span> per referral
+                        Earn <span class="ref-highlight balance">10% balance</span> + <span class="ref-highlight points">100 points</span> per referral
                     </div>`;
                 referredBy = null;
                 referrerName = null;
@@ -632,40 +617,18 @@
                 <span>Verifying referral code...</span>`;
 
             try {
-                console.log('🔍 Checking referral code:', refCode);
+                console.log('🔍 Checking referral code via server:', refCode);
                 
-                let foundReferrer = null;
-                let foundReferrerId = null;
+                // Call server API to validate referral
+                const response = await fetch(`${API_BASE}/api/referral/check/${refCode}`);
+                const data = await response.json();
                 
-                // METHOD 1: Query by referralCode field
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('referralCode', '==', refCode));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const userDoc = querySnapshot.docs[0];
-                    foundReferrer = userDoc.data();
-                    foundReferrerId = userDoc.id;
-                    console.log('✅ Found referrer by referralCode:', foundReferrerId);
-                } else {
-                    // METHOD 2: Direct user ID lookup
-                    console.log('🔍 Trying user ID lookup...');
-                    const userDocSnap = await getDoc(doc(db, 'users', refCode));
-                    
-                    if (userDocSnap.exists()) {
-                        foundReferrer = userDocSnap.data();
-                        foundReferrerId = userDocSnap.id;
-                        console.log('✅ Found referrer by user ID:', foundReferrerId);
-                    }
-                }
-                
-                // UPDATE UI
-                if (foundReferrer && foundReferrerId) {
+                if (data.success && data.valid) {
                     // Valid referral!
-                    referredBy = foundReferrerId;
-                    referrerName = foundReferrer.firstName || foundReferrer.fullName || 'Friend';
+                    referredBy = data.referrerId;
+                    referrerName = data.referrerName || 'Friend';
                     referralValid = true;
-                    referralCodeHidden.value = foundReferrerId;
+                    referralCodeHidden.value = data.referrerId;
                     referrerNameHidden.value = referrerName;
                     
                     const displayName = referrerName.length > 20 ? referrerName.substring(0, 20) + '...' : referrerName;
@@ -677,8 +640,8 @@
                         <span>Invited by <span class="ref-name">${escapeHTML(displayName)}</span>!</span>
                         <div class="ref-details">
                             When you make your <strong>first deposit</strong>, your inviter earns:<br>
-                            <span class="ref-highlight points">10% as POINTS</span> + 
-                            <span class="ref-highlight balance">3% as BALANCE</span>
+                            <span class="ref-highlight balance">10% as BALANCE</span> + 
+                            <span class="ref-highlight points">100 POINTS</span>
                         </div>`;
                     
                     // Login referral box
@@ -792,19 +755,7 @@
         }
 
         // ============================================
-        // GENERATE REFERRAL CODE
-        // ============================================
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let code = '';
-            for (let i = 0; i < 8; i++) {
-                code += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return code;
-        }
-
-        // ============================================
-        // SIGN UP
+        // SIGN UP - Firebase Auth + Server API
         // ============================================
         async function signUp() {
             const fullName = document.getElementById('fullName').value.trim();
@@ -839,92 +790,46 @@
             btn.classList.add('loading');
 
             try {
-                // Create auth user
+                // Step 1: Create Firebase Auth user
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                const referralCode = generateReferralCode();
                 
-                console.log('👤 User created:', user.uid);
+                console.log('👤 Firebase user created:', user.uid);
                 console.log('🔗 Referrer:', referredBy, referrerName);
                 
-                // ============================================
-                // BUILD USER DATA
-                // ============================================
+                // Step 2: Create user in backend via server API
                 const userData = {
+                    userId: user.uid,
+                    email: email,
                     fullName: fullName,
                     firstName: fullName.split(' ')[0],
                     lastName: fullName.split(' ').slice(1).join(' ') || '',
-                    email: email,
                     phone: phone || '',
-                    createdAt: serverTimestamp(),
-                    status: 'active',
-                    referralCode: referralCode,
                     referredBy: referredBy || null,
-                    referredByName: referrerName || null,
-                    referralCount: 0,
-                    referralBonus: 0,
-                    totalReferralPoints: 0,
-                    depositBalance: 0,
-                    taskEarnings: 0,
-                    points: 0,
-                    firstDepositCompleted: false,
-                    lastLogin: null
+                    referredByName: referrerName || null
                 };
-
-                // Save to Firestore
-                await setDoc(doc(db, 'users', user.uid), userData);
-                console.log('✅ User saved to Firestore');
                 
-                // Save to RTDB
-                await set(ref(rtdb, 'users/' + user.uid), {
-                    email: email,
-                    fullName: fullName,
-                    referralCode: referralCode,
-                    referredBy: referredBy || null,
-                    status: 'active',
-                    lastLogin: null
+                console.log('📤 Creating user in backend...');
+                
+                const apiResponse = await fetch(`${API_BASE}/api/user/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
                 });
-                console.log('✅ User saved to RTDB');
-
-                // ============================================
-                // CREATE REFERRAL RECORD (if referred)
-                // ============================================
-                if (referredBy && referralValid) {
-                    try {
-                        const referralData = {
-                            referrerId: referredBy,
-                            referredUserId: user.uid,
-                            referredEmail: email,
-                            referredName: fullName,
-                            timestamp: serverTimestamp(),
-                            status: 'pending_first_deposit',
-                            pointsAwarded: 0,
-                            bonusEarned: 0,
-                            depositAmount: 0,
-                            bonusPercentage: 10,
-                            balancePercentage: 3
-                        };
-                        
-                        await addDoc(collection(db, 'referrals'), referralData);
-                        console.log('✅ Referral record created');
-                        
-                        // RTDB notification
-                        await push(ref(rtdb, 'referral_notifications/' + referredBy), {
-                            type: 'new_signup',
-                            email: email,
-                            fullName: fullName,
-                            userId: user.uid,
-                            timestamp: Date.now(),
-                            read: false,
-                            claimed: false
-                        });
-                        console.log('✅ Referral notification sent');
-                        
-                    } catch (refError) {
-                        console.error('⚠️ Referral record error:', refError);
+                
+                const apiData = await apiResponse.json();
+                
+                if (!apiResponse.ok) {
+                    // If user already exists in backend, that's okay
+                    if (apiResponse.status !== 409) {
+                        console.error('Backend error:', apiData);
+                        throw new Error(apiData.error || 'Failed to create account in backend');
                     }
+                    console.log('⚠️ User already exists in backend, continuing...');
                 }
-
+                
+                console.log('✅ Backend response:', apiData);
+                
                 // Success
                 const bonusMsg = (referredBy && referralValid) 
                     ? '🎉 Account created! Your inviter will earn rewards after your first deposit.' 
@@ -937,24 +842,19 @@
                 }, 1500);
                 
             } catch (error) {
-                console.error('❌ Signup error:', error.code);
+                console.error('❌ Signup error:', error.code || error.message);
                 
                 let msg = 'Registration failed.';
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        msg = 'Email already registered. Please login.';
-                        break;
-                    case 'auth/weak-password':
-                        msg = 'Password too weak. Use 6+ characters.';
-                        break;
-                    case 'auth/invalid-email':
-                        msg = 'Invalid email address.';
-                        break;
-                    case 'auth/network-request-failed':
-                        msg = 'Network error. Check your connection.';
-                        break;
-                    default:
-                        msg = error.message || 'Registration failed.';
+                if (error.code === 'auth/email-already-in-use') {
+                    msg = 'Email already registered. Please login.';
+                } else if (error.code === 'auth/weak-password') {
+                    msg = 'Password too weak. Use 6+ characters.';
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = 'Invalid email address.';
+                } else if (error.code === 'auth/network-request-failed') {
+                    msg = 'Network error. Check your connection.';
+                } else {
+                    msg = error.message || 'Registration failed.';
                 }
                 
                 showSignupMessage(msg, 'error');
@@ -986,10 +886,6 @@
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 console.log('✅ Login:', userCredential.user.uid);
-                
-                // Update last login (non-blocking)
-                const uid = userCredential.user.uid;
-                setDoc(doc(db, 'users', uid), { lastLogin: serverTimestamp() }, { merge: true }).catch(() => {});
                 
                 showLoginMessage('✅ Login successful! Redirecting...', 'success');
                 
@@ -1029,7 +925,7 @@
         // ============================================
         function escapeHTML(str) {
             const div = document.createElement('div');
-            div.textContent = str;
+            div.textContent = str || '';
             return div.innerHTML;
         }
 
@@ -1040,10 +936,10 @@
         window.signUp = signUp;
         window.login = login;
         window.generateCaptcha = generateCaptcha;
-        window.checkReferralCode = checkReferralCode;
 
         console.log('✅ Auth page ready');
-        console.log('💰 Rewards: 10% POINTS + 3% BALANCE on first deposit');
+        console.log('🔗 API Base:', API_BASE);
+        console.log('💰 Rewards: 10% BALANCE + 100 POINTS on first deposit');
     </script>
 </body>
 </html>
