@@ -121,7 +121,7 @@
 
         .balance-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
         }
 
@@ -138,6 +138,10 @@
 
         .balance-card.locked {
             background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        .balance-card.points {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
         }
 
         .balance-label {
@@ -190,6 +194,35 @@
         .info-card .highlight {
             font-weight: 700;
             color: var(--primary);
+        }
+
+        .points-fee-card {
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+            border: 2px solid #ffc107 !important;
+            animation: pulse-yellow 2s infinite;
+        }
+
+        @keyframes pulse-yellow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0); }
+        }
+
+        .points-fee-card .info-text .highlight {
+            color: #e67e22;
+        }
+
+        .points-fee-card .fee-warning {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .points-fee-card .fee-ok {
+            color: #27ae60;
+            font-weight: 600;
+            margin-top: 4px;
+            display: block;
         }
 
         /* Security Code Setup Modal */
@@ -917,16 +950,22 @@
             <h3>💰 Your Balances</h3>
             <div class="balance-grid">
                 <div class="balance-card available">
-                    <div class="balance-label">Earnings (Withdrawable)</div>
+                    <div class="balance-label">Earnings</div>
                     <div class="balance-amount" id="earningsBalance">0.00</div>
                     <div class="balance-currency">USDT</div>
-                    <div class="balance-note">From daily claims & referrals</div>
+                    <div class="balance-note">Withdrawable</div>
                 </div>
                 <div class="balance-card locked">
-                    <div class="balance-label">Deposit Balance</div>
+                    <div class="balance-label">Deposit</div>
                     <div class="balance-amount" id="depositBalance">0.00</div>
                     <div class="balance-currency">USDT</div>
-                    <div class="balance-note">For Investment Only</div>
+                    <div class="balance-note">Investment Only</div>
+                </div>
+                <div class="balance-card points">
+                    <div class="balance-label">Points</div>
+                    <div class="balance-amount" id="pointsBalanceCard">0.00</div>
+                    <div class="balance-currency">PTS</div>
+                    <div class="balance-note">For Fees</div>
                 </div>
             </div>
         </div>
@@ -939,7 +978,18 @@
                 • Withdrawn from <span class="highlight">Earnings first</span>, then Deposit Balance<br>
                 • All withdrawals processed in <span class="highlight">USDT</span><br>
                 • Telebirr converted at <span class="highlight">1 USDT = 150 Birr</span><br>
+                • <span class="highlight" style="color:#e74c3c;">10% POINTS FEE</span> required for withdrawals<br>
                 • Your <span class="highlight">4-digit withdrawal code</span> is required
+            </div>
+        </div>
+
+        <!-- Points Fee Info Card -->
+        <div class="info-card points-fee-card" id="pointsFeeCard">
+            <i class="fas fa-coins" style="color: #f39c12; font-size: 1.5em;"></i>
+            <div class="info-text">
+                <strong>⚠️ 10% Points Fee Required</strong><br>
+                Your Points Balance: <span class="highlight" id="pointsBalanceDisplay" style="color: #e67e22;">0.00</span><br>
+                <span id="pointsFeeMessage">Enter withdrawal amount to calculate required points</span>
             </div>
         </div>
 
@@ -996,7 +1046,8 @@
 
                 <div class="limits-box">
                     <i class="fas fa-exclamation-triangle"></i> 
-                    Min: <strong>20 USDT</strong> (3,000 Birr) • Max: <strong>500 USDT</strong> per day
+                    Min: <strong>20 USDT</strong> (3,000 Birr) • Max: <strong>500 USDT</strong> per day<br>
+                    <span style="color:#e74c3c;">⚠️ 10% points fee will be deducted</span>
                 </div>
 
                 <!-- Security Code Input -->
@@ -1043,7 +1094,7 @@
                     <label>Amount (USDT)</label>
                     <div class="input-with-symbol">
                         <span class="symbol">$</span>
-                        <input type="number" id="crypto-amount" placeholder="Min 20 USDT" min="20" step="0.01">
+                        <input type="number" id="crypto-amount" placeholder="Min 20 USDT" min="20" step="0.01" oninput="updateCryptoPointsFee()">
                     </div>
                 </div>
 
@@ -1054,7 +1105,8 @@
 
                 <div class="limits-box">
                     <i class="fas fa-exclamation-triangle"></i> 
-                    Min: <strong>20 USDT</strong> • Max: <strong>500 USDT</strong> per day • <strong>TRC20 Network Only</strong>
+                    Min: <strong>20 USDT</strong> • Max: <strong>500 USDT</strong> per day • <strong>TRC20 Network Only</strong><br>
+                    <span style="color:#e74c3c;">⚠️ 10% points fee will be deducted</span>
                 </div>
 
                 <!-- Security Code Input -->
@@ -1117,11 +1169,13 @@
         const USDT_TO_BIRR = 150;
         const MIN_WITHDRAW_USDT = 20;
         const MAX_WITHDRAW_DAILY = 500;
+        const WITHDRAW_POINTS_FEE_PERCENTAGE = 10;
 
         let currentUser = null;
         let currentMethod = 'telebirr';
         let earningsBalance = 0;
         let depositBalanceAmount = 0;
+        let userPoints = 0;
         let securityCode = '';
         let codeVisible = false;
 
@@ -1153,8 +1207,12 @@
                 if (data.success) {
                     earningsBalance = data.taskEarnings || 0;
                     depositBalanceAmount = data.depositBalance || 0;
+                    userPoints = data.points || 0;
+                    
                     document.getElementById('earningsBalance').textContent = earningsBalance.toFixed(2);
                     document.getElementById('depositBalance').textContent = depositBalanceAmount.toFixed(2);
+                    document.getElementById('pointsBalanceCard').textContent = userPoints.toFixed(2);
+                    document.getElementById('pointsBalanceDisplay').textContent = userPoints.toFixed(2);
                 }
             } catch (err) {
                 console.error('Error loading balance:', err);
@@ -1172,12 +1230,10 @@
                 
                 if (data.success && data.code && data.code.length === 4) {
                     securityCode = data.code;
-                    // Code exists - show code display
                     document.getElementById('codeDisplay').style.display = 'block';
                     document.getElementById('codeBadge').textContent = '****';
                     console.log('✅ Security code exists');
                 } else {
-                    // No code set - show setup modal
                     securityCode = '';
                     document.getElementById('securitySetupModal').classList.add('show');
                     console.log('🔐 First time - need to set security code');
@@ -1199,7 +1255,6 @@
                 currentInput.nextElementSibling.focus();
             }
             
-            // If last input filled and there's a next container, focus it
             if (value && !currentInput.nextElementSibling && nextContainerId) {
                 const nextContainer = document.getElementById(nextContainerId);
                 if (nextContainer) {
@@ -1393,6 +1448,31 @@
         }
 
         // ============================================
+        // UPDATE POINTS FEE DISPLAY
+        // ============================================
+        function updatePointsFeeDisplay(amount) {
+            const feeEl = document.getElementById('pointsFeeMessage');
+            const pointsFeeCard = document.getElementById('pointsFeeCard');
+            
+            if (amount > 0) {
+                const fee = amount * WITHDRAW_POINTS_FEE_PERCENTAGE / 100;
+                
+                if (userPoints < fee) {
+                    feeEl.innerHTML = `Required: <strong style="color:#e74c3c;">${fee.toFixed(2)} points</strong> for ${amount} USDT<br>`;
+                    feeEl.innerHTML += `<span class="fee-warning">⚠️ Insufficient! Need ${(fee - userPoints).toFixed(2)} more points</span>`;
+                    pointsFeeCard.style.border = '2px solid #e74c3c';
+                } else {
+                    feeEl.innerHTML = `Required: <strong style="color:#2e7d32;">${fee.toFixed(2)} points</strong> for ${amount} USDT<br>`;
+                    feeEl.innerHTML += `<span class="fee-ok">✅ You have enough points (${userPoints.toFixed(2)})</span>`;
+                    pointsFeeCard.style.border = '2px solid #2ecc71';
+                }
+            } else {
+                feeEl.textContent = 'Enter withdrawal amount to calculate required points';
+                pointsFeeCard.style.border = '2px solid #ffc107';
+            }
+        }
+
+        // ============================================
         // SWITCH METHOD
         // ============================================
         function switchMethod(method) {
@@ -1408,6 +1488,8 @@
                 document.getElementById('crypto-form').classList.add('active');
             }
             hideAlert();
+            document.getElementById('pointsFeeMessage').textContent = 'Enter withdrawal amount to calculate required points';
+            document.getElementById('pointsFeeCard').style.border = '2px solid #ffc107';
         }
 
         function updateTelebirrConversion() {
@@ -1420,13 +1502,19 @@
             } else {
                 conversionBox.classList.remove('show');
             }
+            updatePointsFeeDisplay(amount);
+        }
+
+        function updateCryptoPointsFee() {
+            const amount = parseFloat(document.getElementById('crypto-amount').value) || 0;
+            updatePointsFeeDisplay(amount);
         }
 
         function showAlert(message, type) {
             const alert = document.getElementById('alertBox');
             alert.textContent = message;
             alert.className = `alert alert-${type} show`;
-            setTimeout(() => alert.classList.remove('show'), 5000);
+            setTimeout(() => alert.classList.remove('show'), 8000);
         }
 
         function hideAlert() {
@@ -1485,6 +1573,13 @@
                 return;
             }
 
+            // Check points fee requirement
+            const pointsFee = amount * WITHDRAW_POINTS_FEE_PERCENTAGE / 100;
+            if (userPoints < pointsFee) {
+                showAlert(`❌ Insufficient points! You need ${pointsFee.toFixed(2)} points for the 10% withdrawal fee, but you only have ${userPoints.toFixed(2)} points. Earn points through referrals and daily claims!`, 'error');
+                return;
+            }
+
             if (method === 'telebirr' && !details.phone) {
                 showAlert('Please enter your Telebirr phone number', 'error');
                 return;
@@ -1538,8 +1633,9 @@
                 console.log('✅ Withdrawal submitted:', result);
 
                 const birrMsg = method === 'telebirr' ? ` (${(amount * USDT_TO_BIRR).toLocaleString()} Birr)` : '';
-                showAlert(`✅ Withdrawal of ${amount} USDT${birrMsg} submitted! Pending admin approval.`, 'success');
-                showToast('✅ Withdrawal request submitted!');
+                const pointsMsg = `\n${result.pointsDeducted} points deducted as 10% fee.`;
+                showAlert(`✅ Withdrawal of ${amount} USDT${birrMsg} submitted!${pointsMsg}\nPending admin approval.`, 'success');
+                showToast(`✅ Withdrawal submitted! ${result.pointsDeducted} points fee deducted.`);
 
                 // Reset form
                 document.getElementById(`${method}-amount`).value = '';
@@ -1552,7 +1648,12 @@
                     document.getElementById('crypto-address').value = '';
                 }
 
+                // Reset points fee display
+                document.getElementById('pointsFeeMessage').textContent = 'Enter withdrawal amount to calculate required points';
+                document.getElementById('pointsFeeCard').style.border = '2px solid #ffc107';
+
                 await loadUserBalance();
+                await loadWithdrawHistory();
 
             } catch (err) {
                 console.error('Withdrawal error:', err);
@@ -1602,12 +1703,18 @@
                         } catch(e) {}
                     }
 
+                    let pointsFeeInfo = '';
+                    if (w.pointsFee) {
+                        pointsFeeInfo = `<div style="font-size:0.65em;color:#999;">Fee: -${w.pointsFee} points</div>`;
+                    }
+
                     return `
                         <div class="history-item">
                             <div class="history-icon ${statusDisplay}">${statusIcon}</div>
                             <div class="history-info">
                                 <div class="history-amount">-${parseFloat(w.amount).toFixed(2)} USDT${birrInfo}</div>
                                 <div class="history-method">${methodIcon} ${methodName}</div>
+                                ${pointsFeeInfo}
                                 <div class="history-date">${date.toLocaleString()}</div>
                             </div>
                             <span class="history-badge ${statusDisplay}">${status}</span>
@@ -1643,6 +1750,7 @@
         // ============================================
         window.switchMethod = switchMethod;
         window.updateTelebirrConversion = updateTelebirrConversion;
+        window.updateCryptoPointsFee = updateCryptoPointsFee;
         window.submitWithdrawal = submitWithdrawal;
         window.handleCodeInput = handleCodeInput;
         window.saveSecurityCode = saveSecurityCode;
@@ -1653,6 +1761,7 @@
 
         console.log('✅ Withdraw page ready');
         console.log('🔐 Security code required for withdrawals');
+        console.log('💰 10% points fee required for all withdrawals');
         console.log('🔗 API Base:', API_BASE);
     </script>
 </body>
