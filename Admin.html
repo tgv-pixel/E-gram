@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - SAFE Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, var(--dark), #1a252f);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .admin-header h1 {
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-header .badge {
+            background: var(--danger);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .stat-card i {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.85em;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            color: var(--gray);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-btn .count {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 5px;
+        }
+
+        .deposit-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .deposit-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .deposit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .deposit-id {
+            font-size: 0.75em;
+            color: var(--gray);
+            font-family: monospace;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .deposit-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.8em;
+            color: var(--gray);
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95em;
+        }
+
+        .info-value.large {
+            font-size: 1.2em;
+            color: var(--success);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-view {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .image-preview:hover {
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 10px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3em;
+            opacity: 0.3;
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 25px;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .deposit-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="admin-header">
+        <h1>
+            <i class="fas fa-shield-alt"></i>
+            Admin Panel
+            <span class="badge" id="pendingCount">0</span>
+        </h1>
+        <button class="refresh-btn" onclick="loadAllData()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-value" id="pendingDeposits">0</div>
+                <div class="stat-label">Pending Deposits</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-value" id="totalDeposits">0</div>
+                <div class="stat-label">Total Deposits (USDT)</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-hand-holding-usd"></i>
+                <div class="stat-value" id="pendingWithdrawals">0</div>
+                <div class="stat-label">Pending Withdrawals</div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Search by user ID, email, or reference..." oninput="filterDeposits()">
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('pending')">
+                Pending <span class="count" id="pendingTabCount">0</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('approved')">
+                Approved
+            </button>
+            <button class="tab-btn" onclick="switchTab('rejected')">
+                Rejected
+            </button>
+            <button class="tab-btn" onclick="switchTab('all')">
+                All
+            </button>
+        </div>
+
+        <!-- Deposits List -->
+        <div id="depositsList">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading deposits...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal" id="imageModal" onclick="closeModal()">
+        <button class="close-modal" onclick="closeModal()">✕</button>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="Payment Proof">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentTab = 'pending';
+        let allDeposits = [];
+        let searchTerm = '';
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+            
+            // Auto refresh every 30 seconds
+            setInterval(loadAllData, 30000);
+        });
+
+        // ============================================
+        // LOAD ALL DATA
+        // ============================================
+        async function loadAllData() {
+            await Promise.all([
+                loadStats(),
+                loadDeposits()
+            ]);
+        }
+
+        // ============================================
+        // LOAD STATS
+        // ============================================
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.stats.totalUsers;
+                    document.getElementById('pendingDeposits').textContent = data.stats.pendingDeposits;
+                    document.getElementById('totalDeposits').textContent = '$' + data.stats.totalDeposits.toLocaleString();
+                    document.getElementById('pendingWithdrawals').textContent = data.stats.pendingWithdrawals;
+                    document.getElementById('pendingCount').textContent = data.stats.pendingDeposits;
+                }
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
+        }
+
+        // ============================================
+        // LOAD DEPOSITS
+        // ============================================
+        async function loadDeposits() {
+            try {
+                // Load all deposits from different endpoints
+                const [pendingRes, depositsRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/admin/deposits/pending`),
+                    fetch(`${API_BASE}/api/deposit/all`) // You might need to add this endpoint
+                ]);
+
+                const pendingData = await pendingRes.json();
+                
+                // Since we don't have a "get all deposits" endpoint, let's collect from pending
+                allDeposits = pendingData.deposits || [];
+                
+                // Update counts
+                const pendingCount = allDeposits.filter(d => d.status === 'pending').length;
+                document.getElementById('pendingTabCount').textContent = pendingCount;
+                
+                // Display current tab
+                displayDeposits();
+                
+            } catch (err) {
+                console.error('Error loading deposits:', err);
+                document.getElementById('depositsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error loading deposits. Make sure server is running.</p>
+                    </div>`;
+            }
+        }
+
+        // ============================================
+        // SWITCH TAB
+        // ============================================
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update active tab button
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            displayDeposits();
+        }
+
+        // ============================================
+        // FILTER DEPOSITS
+        // ============================================
+        function filterDeposits() {
+            searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            displayDeposits();
+        }
+
+        // ============================================
+        // DISPLAY DEPOSITS
+        // ============================================
+        function displayDeposits() {
+            const container = document.getElementById('depositsList');
+            
+            // Filter by tab
+            let filtered = allDeposits;
+            if (currentTab !== 'all') {
+                filtered = allDeposits.filter(d => d.status === currentTab);
+            }
+            
+            // Filter by search
+            if (searchTerm) {
+                filtered = filtered.filter(d => 
+                    (d.userId && d.userId.toLowerCase().includes(searchTerm)) ||
+                    (d.userEmail && d.userEmail.toLowerCase().includes(searchTerm)) ||
+                    (d.reference && d.reference.toLowerCase().includes(searchTerm)) ||
+                    (d.id && d.id.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No ${currentTab} deposits found</p>
+                    </div>`;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            filtered.forEach(deposit => {
+                const card = createDepositCard(deposit);
+                container.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // CREATE DEPOSIT CARD
+        // ============================================
+        function createDepositCard(deposit) {
+            const card = document.createElement('div');
+            card.className = 'deposit-card';
+            
+            const date = deposit.timestamp ? new Date(deposit.timestamp).toLocaleString() : 'N/A';
+            const birrAmount = deposit.method === 'telebirr' && deposit.amount ? 
+                (deposit.amount * 150).toLocaleString() + ' Birr' : '';
+            
+            const statusClass = deposit.status || 'pending';
+            const statusText = (deposit.status || 'pending').toUpperCase();
+            
+            card.innerHTML = `
+                <div class="deposit-header">
+                    <div>
+                        <div class="deposit-id">ID: ${deposit.id || 'N/A'}</div>
+                        <div style="font-size: 0.8em; color: var(--gray); margin-top: 3px;">${date}</div>
+                    </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                
+                <div class="deposit-info">
+                    <div class="info-item">
+                        <span class="info-label">User</span>
+                        <span class="info-value">${deposit.userEmail || deposit.userId || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">User ID</span>
+                        <span class="info-value" style="font-family: monospace; font-size: 0.8em;">${deposit.userId || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Amount</span>
+                        <span class="info-value large">$${deposit.amount || 0} USDT</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Method</span>
+                        <span class="info-value">
+                            ${deposit.method === 'telebirr' ? '📱 Telebirr' : '💎 Crypto (USDT)'}
+                            ${birrAmount ? '<br><small style="color: var(--gray);">' + birrAmount + '</small>' : ''}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Reference</span>
+                        <span class="info-value" style="font-family: monospace; font-size: 0.85em;">${deposit.reference || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">First Deposit</span>
+                        <span class="info-value">${deposit.isFirstDeposit ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                </div>
+                
+                ${deposit.referralBonusPaid ? `
+                    <div style="background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>🎉 Referral Bonus Paid:</strong> 
+                        $${deposit.referralBonusDetails?.bonusAmount || 0} to referrer
+                    </div>
+                ` : ''}
+                
+                ${deposit.status === 'pending' ? `
+                    <div class="action-buttons">
+                        <button class="btn btn-approve" onclick="approveDeposit('${deposit.id}')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-reject" onclick="rejectDeposit('${deposit.id}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    </div>
+                ` : `
+                    <div style="color: var(--gray); font-size: 0.85em; font-style: italic;">
+                        ${deposit.status === 'approved' ? 
+                            `Approved at ${deposit.approvedAt ? new Date(deposit.approvedAt).toLocaleString() : 'N/A'}` : 
+                            `Rejected at ${deposit.rejectedAt ? new Date(deposit.rejectedAt).toLocaleString() : 'N/A'}`
+                        }
+                    </div>
+                `}
+            `;
+            
+            return card;
+        }
+
+        // ============================================
+        // APPROVE DEPOSIT
+        // ============================================
+        async function approveDeposit(depositId) {
+            if (!confirm('Are you sure you want to APPROVE this deposit?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('✅ Deposit approved successfully!');
+                    
+                    // Show referral bonus info if applicable
+                    if (data.firstDepositBonus) {
+                        setTimeout(() => {
+                            showToast(`🎉 Referral bonus of $${data.firstDepositBonus.bonusAmount} paid to referrer!`);
+                        }, 2000);
+                    }
+                    
+                    await loadAllData();
+                } else {
+                    showToast('❌ Error: ' + (data.error || 'Failed to approve'));
+                }
+            } catch (err) {
+                console.error('Error approving deposit:', err);
+                showToast('❌ Network error');
+            }
+        }
+
+        // ============================================
+        // REJECT DEPOSIT
+        // ============================================
+        async function rejectDeposit(depositId) {
+            if (!confirm('Are you sure you want to REJECT this deposit?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/deposit/${depositId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('❌ Deposit rejected');
+                    await loadAllData();
+                } else {
+                    showToast('❌ Error: ' + (data.error || 'Failed to reject'));
+                }
+            } catch (err) {
+                console.error('Error rejecting deposit:', err);
+                showToast('❌ Network error');
+            }
+        }
+
+        // ============================================
+        // VIEW IMAGE (if you add image support later)
+        // ============================================
+        function viewImage(imageUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = imageUrl;
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+        }
+
+        // ============================================
+        // TOAST NOTIFICATION
+        // ============================================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            
+            clearTimeout(window._toastTimeout);
+            window._toastTimeout = setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // ============================================
+        // KEYBOARD SHORTCUTS
+        // ============================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                loadAllData();
+            }
+        });
+
+        console.log('✅ Admin Panel Ready');
+        console.log('📋 Tabs: Pending | Approved | Rejected | All');
+        console.log('⌨️ Shortcuts: Ctrl+R = Refresh, Esc = Close modal');
+    </script>
+</body>
+</html>
