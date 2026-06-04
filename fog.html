@@ -137,6 +137,22 @@
             margin-top: 8px;
         }
 
+        /* Debug info */
+        .debug-info {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            font-size: 0.7em;
+            color: #888;
+            display: none;
+        }
+
+        .debug-info.show {
+            display: block;
+        }
+
         /* Users List Card */
         .users-list-card {
             background: var(--card);
@@ -258,24 +274,6 @@
         .user-list-arrow {
             color: #666;
             font-size: 0.8em;
-        }
-
-        .load-more-btn {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #aaa;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.85em;
-            margin-top: 10px;
-            transition: all 0.2s;
-        }
-
-        .load-more-btn:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
         }
 
         /* User Edit Card */
@@ -676,6 +674,7 @@
             <div class="search-hint">
                 <i class="fas fa-info-circle"></i> Click on a user below to edit their balances
             </div>
+            <div class="debug-info" id="debugInfo"></div>
         </div>
 
         <!-- Users List -->
@@ -826,10 +825,35 @@
                 const response = await fetch(`${API_BASE}/api/users/all`);
                 const data = await response.json();
 
+                // Debug: Show raw response
+                console.log('📦 Raw API Response:', data);
+                
                 if (data.success && data.users) {
                     allUsers = data.users;
+                    
+                    // Debug: Show first user data
+                    if (allUsers.length > 0) {
+                        console.log('👤 First user data:', allUsers[0]);
+                        console.log('📧 First user email:', allUsers[0].email);
+                        console.log('🔑 First user keys:', Object.keys(allUsers[0]));
+                    }
+                    
                     document.getElementById('userCount').textContent = allUsers.length + ' users';
                     renderUsersList(allUsers);
+                    
+                    // Show debug info
+                    const debugDiv = document.getElementById('debugInfo');
+                    if (allUsers.length > 0) {
+                        const sampleUser = allUsers[0];
+                        debugDiv.innerHTML = `
+                            <strong>Debug:</strong> Loaded ${allUsers.length} users. 
+                            Sample user: ID="${sampleUser.userId}", 
+                            Name="${sampleUser.fullName || 'N/A'}", 
+                            Email="${sampleUser.email || 'MISSING'}", 
+                            Keys: [${Object.keys(sampleUser).join(', ')}]
+                        `;
+                        debugDiv.classList.add('show');
+                    }
                 } else {
                     container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load users: ' + (data.error || 'Unknown error') + '</p></div>';
                 }
@@ -873,16 +897,20 @@
             const displayUsers = users.slice(0, 50);
 
             container.innerHTML = displayUsers.map(u => {
-                const initial = (u.fullName || u.email || 'U').charAt(0).toUpperCase();
+                const initial = (u.fullName || u.email || u.userId || 'U').charAt(0).toUpperCase();
                 const isSelected = currentUserId === u.userId;
                 const userId = u.userId || '';
+                
+                // Get email - check multiple possible field names
+                const email = u.email || u.userEmail || '';
+                const fullName = u.fullName || u.firstName || 'Unknown';
 
                 return `
                     <div class="user-list-item ${isSelected ? 'selected' : ''}" onclick="selectUser('${escAttr(userId)}')" id="user-item-${escAttr(userId)}">
                         <div class="user-list-avatar">${escHtml(initial)}</div>
                         <div class="user-list-info">
-                            <div class="user-list-name">${escHtml(u.fullName || 'Unknown')}</div>
-                            <div class="user-list-email">${escHtml(u.email || 'No email')}</div>
+                            <div class="user-list-name">${escHtml(fullName)}</div>
+                            <div class="user-list-email">${escHtml(email || 'No email')}</div>
                         </div>
                         <div class="user-list-balances">
                             <div class="user-list-balance deposit">
@@ -928,6 +956,7 @@
                 }
                 
                 const data = await response.json();
+                console.log('👤 Single user data:', data);
 
                 if (data.success && data.user) {
                     displayUser(userId, data.user);
@@ -954,12 +983,19 @@
         function displayUser(userId, userData) {
             currentUserData = userData;
             currentUserId = userId;
+            
+            console.log('📋 Displaying user:', userData);
+            console.log('📧 User email:', userData.email);
 
             document.getElementById('userCard').classList.add('show');
             document.getElementById('userAvatar').textContent = 
-                (userData.firstName || userData.fullName || 'U').charAt(0).toUpperCase();
+                (userData.firstName || userData.fullName || userData.email || 'U').charAt(0).toUpperCase();
             document.getElementById('userName').textContent = userData.fullName || userData.firstName || 'User';
-            document.getElementById('userEmail').textContent = userData.email || 'No email';
+            
+            // Show email - try multiple possible field names
+            const email = userData.email || userData.userEmail || 'No email';
+            document.getElementById('userEmail').textContent = email;
+            
             document.getElementById('userIdDisplay').textContent = userId;
 
             document.getElementById('depositValue').textContent = 
@@ -1058,7 +1094,7 @@
         }
 
         // ============================================
-        // CONFIRM ADJUST (Uses: save_user() via server endpoint)
+        // CONFIRM ADJUST
         // ============================================
         async function confirmAdjust() {
             const amount = parseFloat(document.getElementById('modalAmount').value);
@@ -1082,22 +1118,12 @@
                 newValue = Math.max(0, currentValue - amount);
             }
 
-            // Show loading state
             const confirmBtn = document.getElementById('modalConfirmBtn');
             const originalHtml = confirmBtn.innerHTML;
             confirmBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>';
             confirmBtn.disabled = true;
 
             try {
-                // Use the save_user function pattern from server.py
-                // The server doesn't have a /api/user/<id>/update endpoint,
-                // so we need to create a custom endpoint or use the existing save_user function
-                
-                // Solution: Create a direct update via a new endpoint that mimics save_user
-                const updateData = {};
-                updateData[currentField] = newValue;
-                
-                // We'll use the same structure save_user expects
                 const response = await fetch(`${API_BASE}/api/user/${encodeURIComponent(currentUserId)}/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1116,10 +1142,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Update local data
                     currentUserData[currentField] = newValue;
                     
-                    // Refresh display
                     document.getElementById('depositValue').textContent = 
                         '$' + (currentUserData.depositBalance || 0).toFixed(2);
                     document.getElementById('earningValue').textContent = 
@@ -1127,13 +1151,11 @@
                     document.getElementById('pointsValue').textContent = 
                         (currentUserData.points || 0) + ' pts';
 
-                    // Update user in allUsers list
                     const userIndex = allUsers.findIndex(u => u.userId === currentUserId);
                     if (userIndex !== -1) {
                         allUsers[userIndex][currentField] = newValue;
                     }
 
-                    // Save to history
                     saveHistory(currentUserId, {
                         field: currentField,
                         action: currentAction,
@@ -1150,7 +1172,6 @@
                     closeModal();
                     loadHistory(currentUserId);
                     
-                    // Refresh the list
                     const query = document.getElementById('searchInput').value.trim().toLowerCase();
                     const filteredUsers = query ? allUsers.filter(u => 
                         (u.userId && u.userId.toLowerCase().includes(query)) ||
@@ -1159,7 +1180,6 @@
                     ) : allUsers;
                     renderUsersList(filteredUsers);
                     
-                    // Keep selection highlight
                     const item = document.getElementById(`user-item-${currentUserId}`);
                     if (item) item.classList.add('selected');
                 } else {
@@ -1168,7 +1188,7 @@
 
             } catch (err) {
                 console.error('Update error:', err);
-                showToast('❌ Error: ' + err.message + '. Make sure the server has the update endpoint.');
+                showToast('❌ Error: ' + err.message);
             } finally {
                 confirmBtn.innerHTML = originalHtml;
                 confirmBtn.disabled = false;
@@ -1286,9 +1306,6 @@
 
         console.log('✅ Balance Manager ready');
         console.log('🔗 API Base:', API_BASE);
-        console.log('📡 Required server endpoint:');
-        console.log('   POST /api/user/<userId>/update');
-        console.log('   Body: { "field": "depositBalance", "value": 100, "userId": "xxx" }');
     </script>
 </body>
 </html>
