@@ -21,11 +21,11 @@ data_store = {
     'withdrawals': [],
     'investments': [],
     'referrals': [],
-    'referral_bonuses': [],  # Track referral bonuses paid
+    'referral_bonuses': [],
     'notifications': [],
     'withdrawal_security': {},
     'daily_claims': {},
-    'pending_referral_bonuses': {}  # Track pending referral bonuses awaiting first deposit
+    'pending_referral_bonuses': {}
 }
 
 # ============================================
@@ -35,43 +35,36 @@ ADMIN_EMAILS = ['admin@safe.com']
 TELEBIRR_NUMBER = '0949399753'
 TELEBIRR_NAME = 'Abinet'
 WALLET_ADDRESS = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu'
-REFERRAL_BONUS = 10  # Base referral bonus in USD
-REFERRAL_BONUS_PERCENTAGE = 10  # 10% of first deposit
-REFERRAL_POINTS = 100  # Points awarded for successful referral
+REFERRAL_BONUS = 10
+REFERRAL_BONUS_PERCENTAGE = 10
+REFERRAL_POINTS = 100
 MIN_DEPOSIT = 10
 MIN_WITHDRAW = 20
 MAX_WITHDRAW_DAILY = 500
-WEEKEND_DAYS = [5, 6]  # Saturday=5, Sunday=6
+WEEKEND_DAYS = [5, 6]
 
 # ============================================
 # UTILITY FUNCTIONS
 # ============================================
 def generate_id(length=12):
-    """Generate random ID"""
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 def generate_referral_code():
-    """Generate 8-char referral code"""
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 def generate_security_code():
-    """Generate 4-digit security code"""
     return str(random.randint(1000, 9999))
 
 def is_weekend():
-    """Check if today is weekend"""
     return datetime.now().weekday() in WEEKEND_DAYS
 
 def hash_password(password):
-    """Simple password hashing"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def get_timestamp():
-    """Get current timestamp"""
     return datetime.utcnow().isoformat()
 
 def format_date(dt_string):
-    """Format date string"""
     try:
         dt = datetime.fromisoformat(dt_string)
         return dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -79,7 +72,6 @@ def format_date(dt_string):
         return dt_string
 
 def calculate_referral_bonus(deposit_amount):
-    """Calculate 10% referral bonus from deposit amount"""
     return round(deposit_amount * REFERRAL_BONUS_PERCENTAGE / 100, 2)
 
 # ============================================
@@ -88,48 +80,43 @@ def calculate_referral_bonus(deposit_amount):
 
 @app.route('/')
 def index():
-    """Main index page"""
     return send_from_directory('.', 'index.html')
 
 @app.route('/home')
 def home():
-    """Home page"""
     return send_from_directory('.', 'home.html')
 
 @app.route('/referral')
 def referral():
-    """Referral page"""
     return send_from_directory('.', 'referral.html')
 
 @app.route('/notification')
 def notification():
-    """Notification page"""
     return send_from_directory('.', 'notification.html')
 
 @app.route('/product')
 def product():
-    """Product/Investment page"""
     return send_from_directory('.', 'product.html')
 
 @app.route('/daily')
 def daily():
-    """Daily earnings page"""
     return send_from_directory('.', 'daily.html')
 
 @app.route('/withdraw')
 def withdraw():
-    """Withdrawal page"""
     return send_from_directory('.', 'withdraw.html')
 
 @app.route('/deposite')
 def deposite():
-    """Deposit page"""
     return send_from_directory('.', 'deposite.html')
+
+@app.route('/admin.html')
+def admin_panel():
+    return send_from_directory('.', 'admin.html')
 
 # Fallback for any other paths
 @app.route('/<path:path>')
 def serve_static(path):
-    """Serve static files or fallback to index"""
     if os.path.exists(path):
         return send_from_directory('.', path)
     if not '.' in path:
@@ -148,7 +135,10 @@ def health_check():
         'message': 'SAFE Platform Running',
         'timestamp': get_timestamp(),
         'referral_system': 'active',
-        'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%'
+        'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%',
+        'total_users': len(data_store['users']),
+        'total_deposits': len(data_store['deposits']),
+        'total_withdrawals': len(data_store['withdrawals'])
     })
 
 # ============================================
@@ -174,7 +164,6 @@ def server_info():
 # ============================================
 @app.route('/api/user/create', methods=['POST'])
 def create_user():
-    """Create new user record"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -215,25 +204,22 @@ def create_user():
             'updatedAt': get_timestamp()
         }
         
-        # ============================================
-        # REFERRAL SYSTEM - Handle referral on signup
-        # ============================================
+        # Handle referral on signup
         referred_by = data.get('referredBy')
         referral_record = None
         
         if referred_by and referred_by in data_store['users']:
             referrer = data_store['users'][referred_by]
             
-            # Create referral record (pending first deposit)
             referral_record = {
                 'id': generate_id(),
                 'referrerId': referred_by,
                 'referredUserId': user_id,
                 'referredEmail': data.get('email', ''),
                 'referredName': data.get('firstName', ''),
-                'bonusEarned': 0,  # Will be calculated on first deposit
+                'bonusEarned': 0,
                 'pointsAwarded': 0,
-                'status': 'pending_first_deposit',  # Waiting for first deposit
+                'status': 'pending_first_deposit',
                 'signupDate': get_timestamp(),
                 'firstDepositDate': None,
                 'timestamp': get_timestamp()
@@ -241,17 +227,14 @@ def create_user():
             
             data_store['referrals'].append(referral_record)
             
-            # Store pending bonus info
             data_store['pending_referral_bonuses'][user_id] = {
                 'referrerId': referred_by,
                 'referralId': referral_record['id'],
                 'bonusPercentage': REFERRAL_BONUS_PERCENTAGE
             }
             
-            # Update referrer's referral count
             referrer['referralCount'] = referrer.get('referralCount', 0) + 1
             
-            # Notification to referrer about new signup
             data_store['notifications'].append({
                 'userId': referred_by,
                 'type': 'referral_signup',
@@ -278,13 +261,13 @@ def create_user():
 
 @app.route('/api/user/<user_id>', methods=['GET'])
 def get_user(user_id):
-    """Get user data"""
     try:
         if user_id in data_store['users']:
             user = data_store['users'][user_id].copy()
+            user['referralLink'] = f"{request.host_url}?ref={user['referralCode']}"
             
-            # Add referral link
-            user['referralLink'] = f"{request.host_url}index.html?ref={user['referralCode']}"
+            # Calculate total balance
+            user['totalBalance'] = user['depositBalance'] + user['taskEarnings']
             
             return jsonify({
                 'success': True,
@@ -294,14 +277,49 @@ def get_user(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/user/<user_id>/balance', methods=['GET'])
+def get_user_balance(user_id):
+    try:
+        if user_id in data_store['users']:
+            user = data_store['users'][user_id]
+            return jsonify({
+                'success': True,
+                'depositBalance': user['depositBalance'],
+                'taskEarnings': user['taskEarnings'],
+                'totalBalance': user['depositBalance'] + user['taskEarnings'],
+                'points': user.get('points', 0),
+                'referralBonus': user.get('referralBonus', 0)
+            })
+        return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/all', methods=['GET'])
+def get_all_users():
+    """Get all users (admin)"""
+    try:
+        users_list = []
+        for user_id, user_data in data_store['users'].items():
+            users_list.append({
+                'userId': user_id,
+                'email': user_data.get('email', ''),
+                'firstName': user_data.get('firstName', ''),
+                'depositBalance': user_data.get('depositBalance', 0),
+                'taskEarnings': user_data.get('taskEarnings', 0),
+                'referralCount': user_data.get('referralCount', 0),
+                'status': user_data.get('status', 'active'),
+                'createdAt': user_data.get('createdAt', '')
+            })
+        return jsonify({'success': True, 'users': users_list})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============================================
 # API: VALIDATE REFERRAL CODE
 # ============================================
 @app.route('/api/referral/validate/<code>', methods=['GET'])
 def validate_referral_code(code):
-    """Validate a referral code and return referrer info"""
     try:
-        # Search for user with this referral code
         for user_id, user_data in data_store['users'].items():
             if user_data.get('referralCode') == code:
                 return jsonify({
@@ -313,7 +331,6 @@ def validate_referral_code(code):
                     'referralCode': code
                 })
         
-        # Also check if code matches a user ID directly
         if code in data_store['users']:
             user_data = data_store['users'][code]
             return jsonify({
@@ -335,11 +352,10 @@ def validate_referral_code(code):
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: DEPOSIT (With Referral Bonus Processing)
+# API: DEPOSIT
 # ============================================
 @app.route('/api/deposit', methods=['POST'])
 def submit_deposit():
-    """Submit deposit request with referral bonus processing"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -353,7 +369,6 @@ def submit_deposit():
         if amount < MIN_DEPOSIT:
             return jsonify({'error': f'Minimum deposit is {MIN_DEPOSIT} USDT'}), 400
         
-        # Check if user exists
         if user_id not in data_store['users']:
             return jsonify({'error': 'User not found'}), 404
         
@@ -385,6 +400,8 @@ def submit_deposit():
             'timestamp': get_timestamp()
         })
         
+        print(f"📥 New deposit: {amount} USDT from {user_id} via {method}")
+        
         return jsonify({
             'success': True,
             'message': 'Deposit submitted successfully',
@@ -395,11 +412,38 @@ def submit_deposit():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/deposit/<user_id>', methods=['GET'])
+def get_deposits(user_id):
+    try:
+        user_deposits = [d for d in data_store['deposits'] if d['userId'] == user_id]
+        user_deposits.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        for deposit in user_deposits:
+            if deposit.get('referralBonusPaid'):
+                deposit['referralBonusInfo'] = deposit.get('referralBonusDetails', {})
+        
+        return jsonify({
+            'success': True,
+            'deposits': user_deposits[-20:],
+            'firstDepositCompleted': data_store['users'].get(user_id, {}).get('firstDepositCompleted', False)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/deposit/all', methods=['GET'])
+def get_all_deposits():
+    """Get all deposits (admin)"""
+    try:
+        all_deposits = sorted(data_store['deposits'], key=lambda x: x['timestamp'], reverse=True)
+        return jsonify({
+            'success': True,
+            'deposits': all_deposits
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/deposit/<deposit_id>/approve', methods=['POST'])
 def approve_deposit(deposit_id):
-    """
-    Approve deposit AND process referral bonus if it's first deposit
-    """
     try:
         deposit = None
         for d in data_store['deposits']:
@@ -423,14 +467,11 @@ def approve_deposit(deposit_id):
             user = data_store['users'][user_id]
             user['depositBalance'] += amount
             
-            # Mark first deposit as completed
             if is_first_deposit and not user.get('firstDepositCompleted', False):
                 user['firstDepositCompleted'] = True
                 deposit['firstDepositProcessed'] = True
                 
-                # ============================================
-                # PROCESS REFERRAL BONUS (10% of first deposit)
-                # ============================================
+                # Process referral bonus
                 referral_bonus_result = process_referral_bonus(user_id, amount, deposit_id)
                 
                 if referral_bonus_result:
@@ -447,6 +488,8 @@ def approve_deposit(deposit_id):
             'timestamp': get_timestamp()
         })
         
+        print(f"✅ Deposit approved: {deposit_id} - {amount} USDT")
+        
         return jsonify({
             'success': True,
             'message': 'Deposit approved successfully',
@@ -457,15 +500,38 @@ def approve_deposit(deposit_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
-    """
-    Process 10% referral bonus for first deposit
-    Returns bonus details or None
-    """
+@app.route('/api/deposit/<deposit_id>/reject', methods=['POST'])
+def reject_deposit(deposit_id):
     try:
-        # Check if this user has a pending referral bonus
+        for deposit in data_store['deposits']:
+            if deposit['id'] == deposit_id:
+                deposit['status'] = 'rejected'
+                deposit['rejectedAt'] = get_timestamp()
+                
+                data_store['notifications'].append({
+                    'userId': deposit['userId'],
+                    'type': 'deposit_rejected',
+                    'message': f'❌ Deposit of {deposit["amount"]} USDT was rejected.',
+                    'amount': deposit['amount'],
+                    'read': False,
+                    'timestamp': get_timestamp()
+                })
+                
+                print(f"❌ Deposit rejected: {deposit_id}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Deposit rejected',
+                    'deposit': deposit
+                })
+        
+        return jsonify({'error': 'Deposit not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
+    try:
         if new_user_id not in data_store['pending_referral_bonuses']:
-            # Check if user was referred (from user data)
             if new_user_id in data_store['users']:
                 user = data_store['users'][new_user_id]
                 referred_by = user.get('referredBy')
@@ -475,7 +541,6 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
             else:
                 return None
         
-        # Get referral info
         if new_user_id in data_store['pending_referral_bonuses']:
             bonus_info = data_store['pending_referral_bonuses'][new_user_id]
             referrer_id = bonus_info['referrerId']
@@ -489,17 +554,14 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
         
         referrer = data_store['users'][referrer_id]
         
-        # Calculate 10% bonus
         bonus_amount = calculate_referral_bonus(deposit_amount)
         points_awarded = REFERRAL_POINTS
         
-        # Credit bonus to referrer
         referrer['depositBalance'] = referrer.get('depositBalance', 0) + bonus_amount
         referrer['referralBonus'] = referrer.get('referralBonus', 0) + bonus_amount
         referrer['totalReferralPoints'] = referrer.get('totalReferralPoints', 0) + points_awarded
         referrer['points'] = referrer.get('points', 0) + points_awarded
         
-        # Update referral record
         for ref in data_store['referrals']:
             if ref['referredUserId'] == new_user_id and ref['referrerId'] == referrer_id:
                 ref['status'] = 'active'
@@ -511,7 +573,6 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
                 ref['depositId'] = deposit_id
                 break
         
-        # Record bonus payment
         bonus_record = {
             'id': generate_id(),
             'referrerId': referrer_id,
@@ -525,11 +586,9 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
         }
         data_store['referral_bonuses'].append(bonus_record)
         
-        # Clear pending bonus
         if new_user_id in data_store['pending_referral_bonuses']:
             del data_store['pending_referral_bonuses'][new_user_id]
         
-        # Notification to referrer
         new_user = data_store['users'].get(new_user_id, {})
         new_user_name = new_user.get('firstName', 'User')
         
@@ -545,10 +604,9 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
             'timestamp': get_timestamp()
         })
         
-        # Notification to new user (they also get something for using referral)
         if new_user_id in data_store['users']:
             new_user_data = data_store['users'][new_user_id]
-            new_user_data['points'] = new_user_data.get('points', 0) + 50  # Bonus points for using referral
+            new_user_data['points'] = new_user_data.get('points', 0) + 50
             
             data_store['notifications'].append({
                 'userId': new_user_id,
@@ -574,37 +632,27 @@ def process_referral_bonus(new_user_id, deposit_amount, deposit_id):
         return None
 
 # ============================================
-# API: REFERRAL SYSTEM ENDPOINTS
+# API: REFERRAL SYSTEM
 # ============================================
 @app.route('/api/referral/stats/<user_id>', methods=['GET'])
 def get_referral_stats(user_id):
-    """Get detailed referral statistics for a user"""
     try:
         if user_id not in data_store['users']:
             return jsonify({'error': 'User not found'}), 404
         
         user = data_store['users'][user_id]
-        
-        # Get all referrals
         user_referrals = [r for r in data_store['referrals'] if r['referrerId'] == user_id]
-        
-        # Get referral bonuses
         user_bonuses = [b for b in data_store['referral_bonuses'] if b['referrerId'] == user_id]
         
-        # Calculate stats
         total_referrals = len(user_referrals)
         active_referrals = len([r for r in user_referrals if r['status'] == 'active'])
         pending_referrals = len([r for r in user_referrals if r['status'] == 'pending_first_deposit'])
         total_bonus_earned = sum(b['bonusAmount'] for b in user_bonuses)
         total_points_earned = sum(b['pointsAwarded'] for b in user_bonuses)
         
-        # Generate referral link
-        referral_link = f"{request.host_url}index.html?ref={user['referralCode']}"
-        
-        # Get recent referrals (last 10)
+        referral_link = f"{request.host_url}?ref={user['referralCode']}"
         recent_referrals = sorted(user_referrals, key=lambda x: x['timestamp'], reverse=True)[:10]
         
-        # Get pending bonuses
         pending_bonuses = []
         for user_id_key, bonus_info in data_store['pending_referral_bonuses'].items():
             if bonus_info['referrerId'] == user_id:
@@ -630,7 +678,7 @@ def get_referral_stats(user_id):
                 'pointsPerReferral': REFERRAL_POINTS
             },
             'referrals': recent_referrals,
-            'bonuses': user_bonuses[-20:],  # Last 20 bonuses
+            'bonuses': user_bonuses[-20:],
             'pendingBonuses': pending_bonuses
         })
         
@@ -639,7 +687,6 @@ def get_referral_stats(user_id):
 
 @app.route('/api/referral/bonuses/<user_id>', methods=['GET'])
 def get_referral_bonuses(user_id):
-    """Get all referral bonuses received by a user"""
     try:
         user_bonuses = [b for b in data_store['referral_bonuses'] if b['referrerId'] == user_id]
         user_bonuses.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -659,7 +706,6 @@ def get_referral_bonuses(user_id):
 
 @app.route('/api/referral/pending/<user_id>', methods=['GET'])
 def get_pending_referrals(user_id):
-    """Get pending referrals (users who signed up but haven't deposited yet)"""
     try:
         pending = []
         for referred_user_id, bonus_info in data_store['pending_referral_bonuses'].items():
@@ -685,12 +731,7 @@ def get_pending_referrals(user_id):
 
 @app.route('/api/referral/check/<code>', methods=['GET'])
 def check_referral_code(code):
-    """
-    Check if a referral code is valid
-    Used by index.html to validate referral links
-    """
     try:
-        # Search by referral code field
         for user_id, user_data in data_store['users'].items():
             if user_data.get('referralCode') == code:
                 return jsonify({
@@ -702,7 +743,6 @@ def check_referral_code(code):
                     'message': f"Valid referral from {user_data.get('firstName', 'Friend')}"
                 })
         
-        # Check if code matches a user ID directly
         if code in data_store['users']:
             user_data = data_store['users'][code]
             return jsonify({
@@ -724,63 +764,10 @@ def check_referral_code(code):
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: DEPOSIT - ADDITIONAL ENDPOINTS
-# ============================================
-@app.route('/api/deposit/<user_id>', methods=['GET'])
-def get_deposits(user_id):
-    """Get user deposits"""
-    try:
-        user_deposits = [d for d in data_store['deposits'] if d['userId'] == user_id]
-        user_deposits.sort(key=lambda x: x['timestamp'], reverse=True)
-        
-        # Add referral bonus info to deposits
-        for deposit in user_deposits:
-            if deposit.get('referralBonusPaid'):
-                deposit['referralBonusInfo'] = deposit.get('referralBonusDetails', {})
-        
-        return jsonify({
-            'success': True,
-            'deposits': user_deposits[-20:],
-            'firstDepositCompleted': data_store['users'].get(user_id, {}).get('firstDepositCompleted', False)
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/deposit/<deposit_id>/reject', methods=['POST'])
-def reject_deposit(deposit_id):
-    """Reject a deposit"""
-    try:
-        for deposit in data_store['deposits']:
-            if deposit['id'] == deposit_id:
-                deposit['status'] = 'rejected'
-                deposit['rejectedAt'] = get_timestamp()
-                
-                # Notification
-                data_store['notifications'].append({
-                    'userId': deposit['userId'],
-                    'type': 'deposit_rejected',
-                    'message': f'❌ Deposit of {deposit["amount"]} USDT was rejected.',
-                    'amount': deposit['amount'],
-                    'read': False,
-                    'timestamp': get_timestamp()
-                })
-                
-                return jsonify({
-                    'success': True,
-                    'message': 'Deposit rejected',
-                    'deposit': deposit
-                })
-        
-        return jsonify({'error': 'Deposit not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============================================
 # API: WITHDRAWAL
 # ============================================
 @app.route('/api/withdraw', methods=['POST'])
 def submit_withdrawal():
-    """Submit withdrawal request"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -799,7 +786,7 @@ def submit_withdrawal():
         today = datetime.now().strftime('%Y-%m-%d')
         daily_total = sum(
             w['amount'] for w in data_store['withdrawals']
-            if w['userId'] == user_id and w['timestamp'].startswith(today)
+            if w['userId'] == user_id and w['timestamp'].startswith(today) and w['status'] != 'rejected'
         )
         if daily_total + amount > MAX_WITHDRAW_DAILY:
             return jsonify({'error': f'Daily withdrawal limit is {MAX_WITHDRAW_DAILY} USDT'}), 400
@@ -829,7 +816,6 @@ def submit_withdrawal():
         
         data_store['withdrawals'].append(withdrawal)
         
-        # Notification
         data_store['notifications'].append({
             'userId': user_id,
             'type': 'withdrawal',
@@ -838,6 +824,8 @@ def submit_withdrawal():
             'read': False,
             'timestamp': get_timestamp()
         })
+        
+        print(f"💸 New withdrawal: {amount} USDT from {user_id}")
         
         return jsonify({
             'success': True,
@@ -850,7 +838,6 @@ def submit_withdrawal():
 
 @app.route('/api/withdraw/<user_id>', methods=['GET'])
 def get_withdrawals(user_id):
-    """Get user withdrawals"""
     try:
         user_withdrawals = [w for w in data_store['withdrawals'] if w['userId'] == user_id]
         user_withdrawals.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -859,6 +846,85 @@ def get_withdrawals(user_id):
             'success': True,
             'withdrawals': user_withdrawals[-20:]
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/withdraw/<withdrawal_id>/approve', methods=['POST'])
+def approve_withdrawal(withdrawal_id):
+    try:
+        for withdrawal in data_store['withdrawals']:
+            if withdrawal['id'] == withdrawal_id:
+                withdrawal['status'] = 'completed'
+                withdrawal['completedAt'] = get_timestamp()
+                
+                # Deduct from balance
+                user_id = withdrawal['userId']
+                if user_id in data_store['users']:
+                    user = data_store['users'][user_id]
+                    amount = withdrawal['amount']
+                    if user['taskEarnings'] >= amount:
+                        user['taskEarnings'] -= amount
+                    else:
+                        remaining = amount - user['taskEarnings']
+                        user['taskEarnings'] = 0
+                        user['depositBalance'] -= remaining
+                
+                data_store['notifications'].append({
+                    'userId': user_id,
+                    'type': 'withdrawal_approved',
+                    'message': f'✅ Withdrawal of {withdrawal["amount"]} USDT approved!',
+                    'amount': withdrawal['amount'],
+                    'read': False,
+                    'timestamp': get_timestamp()
+                })
+                
+                print(f"✅ Withdrawal approved: {withdrawal_id}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Withdrawal approved',
+                    'withdrawal': withdrawal
+                })
+        
+        return jsonify({'error': 'Withdrawal not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/withdraw/<withdrawal_id>/reject', methods=['POST'])
+def reject_withdrawal(withdrawal_id):
+    try:
+        for withdrawal in data_store['withdrawals']:
+            if withdrawal['id'] == withdrawal_id:
+                withdrawal['status'] = 'rejected'
+                withdrawal['rejectedAt'] = get_timestamp()
+                
+                data_store['notifications'].append({
+                    'userId': withdrawal['userId'],
+                    'type': 'withdrawal_rejected',
+                    'message': f'❌ Withdrawal of {withdrawal["amount"]} USDT was rejected.',
+                    'amount': withdrawal['amount'],
+                    'read': False,
+                    'timestamp': get_timestamp()
+                })
+                
+                print(f"❌ Withdrawal rejected: {withdrawal_id}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Withdrawal rejected',
+                    'withdrawal': withdrawal
+                })
+        
+        return jsonify({'error': 'Withdrawal not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/withdrawals/pending', methods=['GET'])
+def get_pending_withdrawals():
+    """Get all pending withdrawals (admin)"""
+    try:
+        pending = [w for w in data_store['withdrawals'] if w['status'] == 'pending']
+        return jsonify({'success': True, 'withdrawals': pending})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -880,7 +946,6 @@ def get_products():
 
 @app.route('/api/investment/buy', methods=['POST'])
 def buy_investment():
-    """Purchase investment product"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -918,6 +983,8 @@ def buy_investment():
         
         data_store['investments'].append(investment)
         
+        print(f"📊 Investment purchased: {product_name} by {user_id}")
+        
         return jsonify({
             'success': True,
             'message': f'Successfully purchased {product_name}',
@@ -929,7 +996,6 @@ def buy_investment():
 
 @app.route('/api/investment/<user_id>', methods=['GET'])
 def get_investments(user_id):
-    """Get user investments"""
     try:
         user_investments = [i for i in data_store['investments'] if i['userId'] == user_id and i['status'] == 'active']
         
@@ -948,7 +1014,6 @@ def get_investments(user_id):
 # ============================================
 @app.route('/api/daily/claim', methods=['POST'])
 def claim_daily_earnings():
-    """Claim daily earnings from investment"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -999,7 +1064,6 @@ def claim_daily_earnings():
 
 @app.route('/api/daily/check/<user_id>', methods=['GET'])
 def check_daily_status(user_id):
-    """Check if user can claim today"""
     try:
         if is_weekend():
             return jsonify({'canClaim': False, 'reason': 'Weekend - no claims allowed', 'isWeekend': True})
@@ -1012,7 +1076,6 @@ def check_daily_status(user_id):
 # ============================================
 @app.route('/api/notifications/<user_id>', methods=['GET'])
 def get_notifications(user_id):
-    """Get user notifications"""
     try:
         user_notifications = [n for n in data_store['notifications'] if n['userId'] == user_id]
         user_notifications.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -1029,7 +1092,6 @@ def get_notifications(user_id):
 
 @app.route('/api/notification/read', methods=['POST'])
 def mark_notification_read():
-    """Mark notification as read"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -1045,7 +1107,6 @@ def mark_notification_read():
 
 @app.route('/api/notifications/read-all', methods=['POST'])
 def mark_all_notifications_read():
-    """Mark all notifications as read for a user"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -1063,7 +1124,6 @@ def mark_all_notifications_read():
 # ============================================
 @app.route('/api/security/<user_id>', methods=['GET'])
 def get_security_code(user_id):
-    """Get user security code (masked)"""
     try:
         if user_id in data_store['withdrawal_security']:
             code = data_store['withdrawal_security'][user_id]['code']
@@ -1074,7 +1134,6 @@ def get_security_code(user_id):
 
 @app.route('/api/security/reset', methods=['POST'])
 def reset_security_code():
-    """Reset security code"""
     try:
         data = request.json
         user_id = data.get('userId')
@@ -1095,7 +1154,6 @@ def reset_security_code():
 # ============================================
 @app.route('/api/admin/stats', methods=['GET'])
 def get_admin_stats():
-    """Get platform statistics (admin)"""
     try:
         total_users = len(data_store['users'])
         total_deposits = sum(d['amount'] for d in data_store['deposits'] if d['status'] == 'approved')
@@ -1123,25 +1181,14 @@ def get_admin_stats():
 
 @app.route('/api/admin/deposits/pending', methods=['GET'])
 def get_pending_deposits():
-    """Get pending deposits (admin)"""
     try:
         pending = [d for d in data_store['deposits'] if d['status'] == 'pending']
         return jsonify({'success': True, 'deposits': pending})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/withdrawals/pending', methods=['GET'])
-def get_pending_withdrawals():
-    """Get pending withdrawals (admin)"""
-    try:
-        pending = [w for w in data_store['withdrawals'] if w['status'] == 'pending']
-        return jsonify({'success': True, 'withdrawals': pending})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/admin/referrals', methods=['GET'])
 def get_all_referrals():
-    """Get all referrals (admin)"""
     try:
         return jsonify({
             'success': True,
@@ -1153,6 +1200,42 @@ def get_all_referrals():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ============================================
+# DATA PERSISTENCE (Save/Load)
+# ============================================
+@app.route('/api/data/save', methods=['POST'])
+def save_data():
+    """Save current data to file"""
+    try:
+        with open('data_backup.json', 'w') as f:
+            json.dump(data_store, f, indent=2)
+        return jsonify({'success': True, 'message': 'Data saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/data/load', methods=['POST'])
+def load_data():
+    """Load data from file"""
+    try:
+        if os.path.exists('data_backup.json'):
+            with open('data_backup.json', 'r') as f:
+                loaded_data = json.load(f)
+                data_store.update(loaded_data)
+            return jsonify({'success': True, 'message': 'Data loaded successfully'})
+        return jsonify({'error': 'No backup file found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Auto-save on startup
+if os.path.exists('data_backup.json'):
+    try:
+        with open('data_backup.json', 'r') as f:
+            loaded_data = json.load(f)
+            data_store.update(loaded_data)
+        print("✅ Data loaded from backup")
+    except:
+        print("⚠️ Could not load backup, starting fresh")
 
 # ============================================
 # ERROR HANDLERS
@@ -1174,28 +1257,39 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print("=" * 60)
-    print("🚀 SAFE Platform Server")
+    print("🚀 SAFE Platform Server v2.0")
     print(f"📍 Running on port: {port}")
     print(f"📱 Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
     print(f"💳 Wallet: {WALLET_ADDRESS}")
     print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}% of first deposit")
     print(f"⭐ Referral Points: {REFERRAL_POINTS}")
+    print(f"👤 Users: {len(data_store['users'])}")
+    print(f"💰 Deposits: {len(data_store['deposits'])}")
+    print(f"💸 Withdrawals: {len(data_store['withdrawals'])}")
     print("")
     print("📋 Available Routes:")
-    print("  /              - Home/Index (with referral detection)")
-    print("  /home          - Home Dashboard")
+    print("  /              - Home/Login")
+    print("  /home          - Dashboard")
+    print("  /deposite      - Deposit Page")
+    print("  /withdraw      - Withdrawal Page")
+    print("  /product       - Investments")
     print("  /referral      - Referral Page")
     print("  /notification  - Notifications")
-    print("  /product       - Products/Investments")
     print("  /daily         - Daily Earnings")
-    print("  /withdraw      - Withdrawals")
-    print("  /deposite      - Deposits")
+    print("  /admin.html    - Admin Panel")
     print("")
-    print("🔗 Referral API Endpoints:")
-    print("  GET  /api/referral/check/<code>     - Validate referral code")
-    print("  GET  /api/referral/stats/<user_id>  - Get referral stats")
-    print("  GET  /api/referral/bonuses/<user_id> - Get referral bonuses")
-    print("  GET  /api/referral/pending/<user_id> - Get pending referrals")
+    print("🔗 API Endpoints:")
+    print("  POST /api/deposit              - Submit deposit")
+    print("  GET  /api/deposit/<user_id>    - Get user deposits")
+    print("  GET  /api/deposit/all          - Get all deposits (admin)")
+    print("  POST /api/deposit/<id>/approve - Approve deposit")
+    print("  POST /api/deposit/<id>/reject  - Reject deposit")
+    print("  POST /api/withdraw             - Submit withdrawal")
+    print("  POST /api/withdraw/<id>/approve- Approve withdrawal")
+    print("  POST /api/withdraw/<id>/reject - Reject withdrawal")
+    print("  GET  /api/admin/stats          - Admin statistics")
+    print("  POST /api/data/save            - Save data to file")
+    print("  POST /api/data/load            - Load data from file")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=False)
