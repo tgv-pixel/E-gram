@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, redirect
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
@@ -7,81 +7,52 @@ import hashlib
 import random
 import string
 import time
+import requests
 from functools import wraps
-import firebase_admin
-from firebase_admin import credentials, firestore, db
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
 
 # ============================================
-# FIREBASE INITIALIZATION
+# FIREBASE CONFIG - Using REST API
 # ============================================
-# Option 1: Using service account JSON file (Recommended for production)
-# Download service account key from Firebase Console > Project Settings > Service Accounts
-# Save it as 'serviceAccountKey.json' in the same directory
+FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
+    "authDomain": "webapp-fc856.firebaseapp.com",
+    "projectId": "webapp-fc856",
+    "storageBucket": "webapp-fc856.appspot.com",
+    "messagingSenderId": "892830607693",
+    "appId": "1:892830607693:web:a3a886c142586665fc2f04"
+}
 
-try:
-    cred = credentials.Certificate('serviceAccountKey.json')
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://webapp-fc856-default-rtdb.firebaseio.com',  # Your RTDB URL
-        'projectId': 'webapp-fc856'
-    })
-    print("✅ Firebase initialized with service account")
-except Exception as e:
-    print(f"⚠️ Service account not found, trying application default credentials...")
-    try:
-        firebase_admin.initialize_app(options={
-            'databaseURL': 'https://webapp-fc856-default-rtdb.firebaseio.com',
-            'projectId': 'webapp-fc856'
-        })
-        print("✅ Firebase initialized with default credentials")
-    except Exception as e2:
-        print(f"❌ Firebase initialization failed: {e2}")
-        print("⚠️ Falling back to environment variables method...")
-        # Option 3: Use environment variables (for platforms like Render, Railway, etc.)
-        # Set these in your hosting platform's environment variables
-        firebase_config = {
-            "type": "service_account",
-            "project_id": os.environ.get('FIREBASE_PROJECT_ID', 'webapp-fc856'),
-            "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID', ''),
-            "private_key": os.environ.get('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-            "client_email": os.environ.get('FIREBASE_CLIENT_EMAIL', ''),
-            "client_id": os.environ.get('FIREBASE_CLIENT_ID', ''),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": os.environ.get('FIREBASE_CLIENT_CERT_URL', '')
-        }
-        
-        try:
-            cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://webapp-fc856-default-rtdb.firebaseio.com'
-            })
-            print("✅ Firebase initialized with environment variables")
-        except Exception as e3:
-            print(f"❌ All Firebase initialization methods failed: {e3}")
-            raise
-
-# Get Firestore and RTDB clients
-db_firestore = firestore.client()
-rtdb = db.reference() if hasattr(db, 'reference') else None
+PROJECT_ID = "webapp-fc856"
+FIRESTORE_BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents"
+RTDB_BASE_URL = f"https://webapp-fc856-default-rtdb.firebaseio.com"
 
 # ============================================
 # CONFIGURATION
 # ============================================
-ADMIN_EMAILS = ['admin@safe.com']
 TELEBIRR_NUMBER = '0949399753'
 TELEBIRR_NAME = 'Abinet'
 WALLET_ADDRESS = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu'
-REFERRAL_BONUS = 10
 REFERRAL_BONUS_PERCENTAGE = 10
 REFERRAL_POINTS = 100
 MIN_DEPOSIT = 10
 MIN_WITHDRAW = 20
 MAX_WITHDRAW_DAILY = 500
 WEEKEND_DAYS = [5, 6]
+
+# ============================================
+# PRODUCTS CONFIG
+# ============================================
+PRODUCTS = [
+    {'name': 'Level 1', 'price': 30, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
+    {'name': 'Level 2', 'price': 50, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
+    {'name': 'Level 3', 'price': 100, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
+    {'name': 'VIP 1', 'price': 300, 'dailyEarnings': 15, 'duration': 130, 'isFixed': True, 'category': 'vip'},
+    {'name': 'VIP 2', 'price': 500, 'dailyEarnings': 25, 'duration': 130, 'isFixed': True, 'category': 'vip'},
+    {'name': 'VIP 3', 'price': 1000, 'dailyEarnings': 50, 'duration': 130, 'isFixed': True, 'category': 'vip'},
+]
 
 # ============================================
 # UTILITY FUNCTIONS
@@ -98,273 +69,252 @@ def generate_security_code():
 def is_weekend():
     return datetime.now().weekday() in WEEKEND_DAYS
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
 def get_timestamp():
     return datetime.utcnow().isoformat()
-
-def format_date(dt):
-    if isinstance(dt, datetime):
-        return dt.strftime('%Y-%m-%d %H:%M:%S')
-    elif isinstance(dt, str):
-        return dt
-    return str(dt)
 
 def calculate_referral_bonus(deposit_amount):
     return round(deposit_amount * REFERRAL_BONUS_PERCENTAGE / 100, 2)
 
 # ============================================
-# FIREBASE HELPER FUNCTIONS
+# FIREBASE REST API HELPERS
 # ============================================
-def get_user_from_firestore(user_id):
-    """Get user data from Firestore"""
+def firestore_request(method, path, data=None):
+    """Make request to Firestore REST API"""
+    url = f"{FIRESTORE_BASE_URL}/{path}"
+    headers = {'Content-Type': 'application/json'}
+    
     try:
-        doc_ref = db_firestore.collection('users').document(user_id)
-        doc = doc_ref.get()
-        if doc.exists:
-            return doc.to_dict()
-        return None
+        if method == 'GET':
+            response = requests.get(url, headers=headers)
+        elif method == 'POST':
+            response = requests.post(url, headers=headers, json=data)
+        elif method == 'PATCH':
+            response = requests.patch(url, headers=headers, json=data)
+        elif method == 'DELETE':
+            response = requests.delete(url, headers=headers)
+        else:
+            return None
+        
+        if response.status_code in [200, 201]:
+            return response.json()
+        elif response.status_code == 404:
+            return None
+        else:
+            print(f"Firestore API Error: {response.status_code} - {response.text}")
+            return None
     except Exception as e:
-        print(f"Error getting user from Firestore: {e}")
+        print(f"Firestore Request Error: {e}")
         return None
 
-def save_user_to_firestore(user_id, user_data):
-    """Save user data to Firestore"""
+def rtdb_request(method, path, data=None):
+    """Make request to Realtime Database REST API"""
+    url = f"{RTDB_BASE_URL}/{path}.json"
+    headers = {'Content-Type': 'application/json'}
+    
     try:
-        db_firestore.collection('users').document(user_id).set(user_data, merge=True)
-        return True
+        if method == 'GET':
+            response = requests.get(url, headers=headers)
+        elif method == 'PUT':
+            response = requests.put(url, headers=headers, json=data)
+        elif method == 'PATCH':
+            response = requests.patch(url, headers=headers, json=data)
+        elif method == 'DELETE':
+            response = requests.delete(url, headers=headers)
+        else:
+            return None
+        
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None
+        else:
+            print(f"RTDB API Error: {response.status_code}")
+            return None
     except Exception as e:
-        print(f"Error saving user to Firestore: {e}")
-        return False
+        print(f"RTDB Request Error: {e}")
+        return None
 
-def get_all_users_from_firestore():
+# ============================================
+# FIREBASE CRUD OPERATIONS
+# ============================================
+
+def get_user(user_id):
+    """Get user from Firestore"""
+    result = firestore_request('GET', f'users/{user_id}')
+    if result and 'fields' in result:
+        return firestore_to_dict(result['fields'])
+    return None
+
+def save_user(user_id, user_data):
+    """Save/Update user in Firestore"""
+    firestore_data = dict_to_firestore(user_data)
+    
+    # Remove userId from data if present (it's the document ID)
+    if 'userId' in firestore_data:
+        del firestore_data['userId']
+    
+    # Check if user exists
+    existing = get_user(user_id)
+    if existing:
+        # Update
+        result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
+    else:
+        # Create
+        result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
+    
+    # Also save basic info to RTDB for quick access
+    rtdb_data = {
+        'email': user_data.get('email', ''),
+        'fullName': user_data.get('fullName', ''),
+        'referralCode': user_data.get('referralCode', ''),
+        'referredBy': user_data.get('referredBy'),
+        'status': user_data.get('status', 'active'),
+        'depositBalance': user_data.get('depositBalance', 0)
+    }
+    rtdb_request('PUT', f'users/{user_id}', rtdb_data)
+    
+    return result is not None
+
+def get_all_users():
     """Get all users from Firestore"""
-    try:
-        users_ref = db_firestore.collection('users')
-        docs = users_ref.stream()
+    result = firestore_request('GET', 'users')
+    if result and 'documents' in result:
         users = {}
-        for doc in docs:
-            users[doc.id] = doc.to_dict()
+        for doc in result['documents']:
+            user_id = doc['name'].split('/')[-1]
+            users[user_id] = firestore_to_dict(doc.get('fields', {}))
         return users
-    except Exception as e:
-        print(f"Error getting all users: {e}")
-        return {}
+    return {}
 
-def add_deposit_to_firestore(deposit_data):
-    """Add deposit to Firestore"""
-    try:
-        doc_ref = db_firestore.collection('deposits').document()
-        deposit_data['id'] = doc_ref.id
-        doc_ref.set(deposit_data)
-        return doc_ref.id
-    except Exception as e:
-        print(f"Error adding deposit: {e}")
-        return None
+def add_document(collection, data, doc_id=None):
+    """Add document to Firestore collection"""
+    if doc_id:
+        path = f'{collection}/{doc_id}'
+        result = firestore_request('PATCH', path, {'fields': dict_to_firestore(data)})
+        return doc_id if result else None
+    else:
+        doc_id = generate_id()
+        path = f'{collection}/{doc_id}'
+        result = firestore_request('PATCH', path, {'fields': dict_to_firestore(data)})
+        return doc_id if result else None
 
-def get_deposits_from_firestore(user_id=None):
-    """Get deposits from Firestore"""
-    try:
-        deposits_ref = db_firestore.collection('deposits')
-        if user_id:
-            query = deposits_ref.where('userId', '==', user_id).order_by('timestamp', direction=firestore.Query.DESCENDING)
-        else:
-            query = deposits_ref.order_by('timestamp', direction=firestore.Query.DESCENDING)
-        
-        docs = query.stream()
-        deposits = []
-        for doc in docs:
-            deposit = doc.to_dict()
-            deposit['id'] = doc.id
-            deposits.append(deposit)
-        return deposits
-    except Exception as e:
-        print(f"Error getting deposits: {e}")
-        return []
+def get_collection(collection, filters=None):
+    """Get documents from Firestore collection"""
+    result = firestore_request('GET', collection)
+    if result and 'documents' in result:
+        docs = []
+        for doc in result['documents']:
+            data = firestore_to_dict(doc.get('fields', {}))
+            data['id'] = doc['name'].split('/')[-1]
+            
+            # Apply filters (basic)
+            if filters:
+                skip = False
+                for key, value in filters.items():
+                    if key in data:
+                        if isinstance(data[key], dict):
+                            actual_value = data[key].get('stringValue') or data[key].get('integerValue')
+                        else:
+                            actual_value = data[key]
+                        if actual_value != value:
+                            skip = True
+                            break
+                if skip:
+                    continue
+            docs.append(data)
+        return docs
+    return []
 
-def update_deposit_in_firestore(deposit_id, update_data):
-    """Update deposit in Firestore"""
-    try:
-        db_firestore.collection('deposits').document(deposit_id).update(update_data)
-        return True
-    except Exception as e:
-        print(f"Error updating deposit: {e}")
-        return False
+def update_document(collection, doc_id, update_data):
+    """Update document in Firestore"""
+    path = f'{collection}/{doc_id}'
+    result = firestore_request('PATCH', path, {'fields': dict_to_firestore(update_data)})
+    return result is not None
 
-def add_withdrawal_to_firestore(withdrawal_data):
-    """Add withdrawal to Firestore"""
-    try:
-        doc_ref = db_firestore.collection('withdrawals').document()
-        withdrawal_data['id'] = doc_ref.id
-        doc_ref.set(withdrawal_data)
-        return doc_ref.id
-    except Exception as e:
-        print(f"Error adding withdrawal: {e}")
-        return None
-
-def get_withdrawals_from_firestore(user_id=None):
-    """Get withdrawals from Firestore"""
-    try:
-        withdrawals_ref = db_firestore.collection('withdrawals')
-        if user_id:
-            query = withdrawals_ref.where('userId', '==', user_id).order_by('timestamp', direction=firestore.Query.DESCENDING)
-        else:
-            query = withdrawals_ref.order_by('timestamp', direction=firestore.Query.DESCENDING)
-        
-        docs = query.stream()
-        withdrawals = []
-        for doc in docs:
-            withdrawal = doc.to_dict()
-            withdrawal['id'] = doc.id
-            withdrawals.append(withdrawal)
-        return withdrawals
-    except Exception as e:
-        print(f"Error getting withdrawals: {e}")
-        return []
-
-def update_withdrawal_in_firestore(withdrawal_id, update_data):
-    """Update withdrawal in Firestore"""
-    try:
-        db_firestore.collection('withdrawals').document(withdrawal_id).update(update_data)
-        return True
-    except Exception as e:
-        print(f"Error updating withdrawal: {e}")
-        return False
-
-def add_referral_to_firestore(referral_data):
-    """Add referral to Firestore"""
-    try:
-        doc_ref = db_firestore.collection('referrals').document()
-        referral_data['id'] = doc_ref.id
-        doc_ref.set(referral_data)
-        return doc_ref.id
-    except Exception as e:
-        print(f"Error adding referral: {e}")
-        return None
-
-def get_referrals_from_firestore(referrer_id=None):
-    """Get referrals from Firestore"""
-    try:
-        referrals_ref = db_firestore.collection('referrals')
-        if referrer_id:
-            query = referrals_ref.where('referrerId', '==', referrer_id).order_by('timestamp', direction=firestore.Query.DESCENDING)
-        else:
-            query = referrals_ref.order_by('timestamp', direction=firestore.Query.DESCENDING)
-        
-        docs = query.stream()
-        referrals = []
-        for doc in docs:
-            referral = doc.to_dict()
-            referral['id'] = doc.id
-            referrals.append(referral)
-        return referrals
-    except Exception as e:
-        print(f"Error getting referrals: {e}")
-        return []
-
-def add_notification_to_firestore(notification_data):
-    """Add notification to Firestore"""
-    try:
-        doc_ref = db_firestore.collection('notifications').document()
-        notification_data['id'] = doc_ref.id
-        doc_ref.set(notification_data)
-        return doc_ref.id
-    except Exception as e:
-        print(f"Error adding notification: {e}")
-        return None
-
-def get_notifications_from_firestore(user_id):
-    """Get notifications from Firestore"""
-    try:
-        notif_ref = db_firestore.collection('notifications')
-        query = notif_ref.where('userId', '==', user_id).order_by('timestamp', direction=firestore.Query.DESCENDING)
-        docs = query.stream()
-        notifications = []
-        for doc in docs:
-            notif = doc.to_dict()
-            notif['id'] = doc.id
-            notifications.append(notif)
-        return notifications
-    except Exception as e:
-        print(f"Error getting notifications: {e}")
-        return []
-
-def add_investment_to_firestore(investment_data):
-    """Add investment to Firestore"""
-    try:
-        doc_ref = db_firestore.collection('investments').document()
-        investment_data['id'] = doc_ref.id
-        doc_ref.set(investment_data)
-        return doc_ref.id
-    except Exception as e:
-        print(f"Error adding investment: {e}")
-        return None
-
-def get_investments_from_firestore(user_id):
-    """Get investments from Firestore"""
-    try:
-        inv_ref = db_firestore.collection('investments')
-        query = inv_ref.where('userId', '==', user_id).where('status', '==', 'active')
-        docs = query.stream()
-        investments = []
-        for doc in docs:
-            inv = doc.to_dict()
-            inv['id'] = doc.id
-            investments.append(inv)
-        return investments
-    except Exception as e:
-        print(f"Error getting investments: {e}")
-        return []
-
-def update_investment_in_firestore(investment_id, update_data):
-    """Update investment in Firestore"""
-    try:
-        db_firestore.collection('investments').document(investment_id).update(update_data)
-        return True
-    except Exception as e:
-        print(f"Error updating investment: {e}")
-        return False
+def add_notification(user_id, message, notif_type, extra_data=None):
+    """Add notification for user"""
+    notif_data = {
+        'userId': user_id,
+        'type': notif_type,
+        'message': message,
+        'read': False,
+        'timestamp': get_timestamp()
+    }
+    if extra_data:
+        notif_data.update(extra_data)
+    
+    doc_id = generate_id()
+    add_document('notifications', notif_data, doc_id)
+    
+    # Also save to RTDB for real-time updates
+    rtdb_request('PUT', f'notifications/{user_id}/{doc_id}', notif_data)
 
 # ============================================
-# STATIC FILE SERVING - MAIN ROUTES
+# DATA CONVERSION HELPERS
+# ============================================
+def firestore_to_dict(fields):
+    """Convert Firestore fields to Python dict"""
+    result = {}
+    for key, value in fields.items():
+        if 'stringValue' in value:
+            result[key] = value['stringValue']
+        elif 'integerValue' in value:
+            result[key] = int(value['integerValue'])
+        elif 'doubleValue' in value:
+            result[key] = float(value['doubleValue'])
+        elif 'booleanValue' in value:
+            result[key] = value['booleanValue']
+        elif 'nullValue' in value:
+            result[key] = None
+        elif 'timestampValue' in value:
+            result[key] = value['timestampValue']
+        elif 'mapValue' in value:
+            result[key] = firestore_to_dict(value['mapValue'].get('fields', {}))
+        elif 'arrayValue' in value:
+            result[key] = [
+                firestore_to_dict(v.get('mapValue', {}).get('fields', {})) 
+                if 'mapValue' in v else v.get('stringValue', v.get('integerValue', ''))
+                for v in value['arrayValue'].get('values', [])
+            ]
+        else:
+            result[key] = value
+    return result
+
+def dict_to_firestore(data):
+    """Convert Python dict to Firestore format"""
+    result = {}
+    for key, value in data.items():
+        if value is None:
+            result[key] = {'nullValue': None}
+        elif isinstance(value, bool):
+            result[key] = {'booleanValue': value}
+        elif isinstance(value, int):
+            result[key] = {'integerValue': value}
+        elif isinstance(value, float):
+            result[key] = {'doubleValue': value}
+        elif isinstance(value, str):
+            result[key] = {'stringValue': value}
+        elif isinstance(value, dict):
+            result[key] = {'mapValue': {'fields': dict_to_firestore(value)}}
+        elif isinstance(value, list):
+            result[key] = {
+                'arrayValue': {
+                    'values': [{'stringValue': str(v)} if not isinstance(v, dict) 
+                              else {'mapValue': {'fields': dict_to_firestore(v)}} 
+                              for v in value]
+                }
+            }
+        else:
+            result[key] = {'stringValue': str(value)}
+    return result
+
+# ============================================
+# STATIC FILE SERVING
 # ============================================
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/home')
-def home():
-    return send_from_directory('.', 'home.html')
-
-@app.route('/referral')
-def referral():
-    return send_from_directory('.', 'referral.html')
-
-@app.route('/notification')
-def notification():
-    return send_from_directory('.', 'notification.html')
-
-@app.route('/product')
-def product():
-    return send_from_directory('.', 'product.html')
-
-@app.route('/daily')
-def daily():
-    return send_from_directory('.', 'daily.html')
-
-@app.route('/withdraw')
-def withdraw():
-    return send_from_directory('.', 'withdraw.html')
-
-@app.route('/deposite')
-def deposite():
-    return send_from_directory('.', 'deposite.html')
-
-@app.route('/admin.html')
-def admin_panel():
-    return send_from_directory('.', 'admin.html')
-
-# Fallback for any other paths
 @app.route('/<path:path>')
 def serve_static(path):
     if os.path.exists(path):
@@ -381,15 +331,13 @@ def serve_static(path):
 @app.route('/api/health')
 def health_check():
     try:
-        users = get_all_users_from_firestore()
+        users = get_all_users()
         return jsonify({
             'status': 'ok',
-            'message': 'SAFE Platform Running with Firebase',
-            'timestamp': get_timestamp(),
-            'referral_system': 'active',
-            'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%',
+            'message': 'SAFE Platform Running',
+            'database': 'Firebase (REST API)',
             'total_users': len(users),
-            'database': 'Firebase Firestore'
+            'timestamp': get_timestamp()
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -407,14 +355,13 @@ def server_info():
         'telebirr_name': TELEBIRR_NAME,
         'wallet_address': WALLET_ADDRESS,
         'referral_bonus_percentage': f'{REFERRAL_BONUS_PERCENTAGE}%',
-        'referral_bonus_base': REFERRAL_BONUS,
         'referral_points': REFERRAL_POINTS,
         'min_deposit': MIN_DEPOSIT,
         'min_withdraw': MIN_WITHDRAW
     })
 
 # ============================================
-# API: USER MANAGEMENT (Using Firebase)
+# API: USER MANAGEMENT
 # ============================================
 @app.route('/api/user/create', methods=['POST'])
 def create_user():
@@ -425,9 +372,9 @@ def create_user():
         if not user_id:
             return jsonify({'error': 'User ID required'}), 400
         
-        # Check if user exists in Firebase
-        existing_user = get_user_from_firestore(user_id)
-        if existing_user:
+        # Check if user exists
+        existing = get_user(user_id)
+        if existing:
             return jsonify({'error': 'User already exists'}), 409
         
         referral_code = generate_referral_code()
@@ -438,7 +385,7 @@ def create_user():
             'email': data.get('email', ''),
             'fullName': data.get('fullName', ''),
             'firstName': data.get('firstName', data.get('fullName', '').split(' ')[0] if data.get('fullName') else ''),
-            'lastName': data.get('lastName', ' '.join(data.get('fullName', '').split(' ')[1:]) if data.get('fullName') else ''),
+            'lastName': data.get('lastName', ''),
             'phone': data.get('phone', ''),
             'referralCode': referral_code,
             'referredBy': data.get('referredBy', None),
@@ -451,90 +398,62 @@ def create_user():
             'totalReferralPoints': 0,
             'firstDepositCompleted': False,
             'status': 'active',
-            'createdAt': firestore.SERVER_TIMESTAMP,
-            'lastLogin': None,
-            'securityCode': security_code
+            'securityCode': security_code,
+            'createdAt': get_timestamp(),
+            'lastLogin': None
         }
         
         # Save to Firestore
-        save_user_to_firestore(user_id, user_data)
-        
-        # Also save basic info to RTDB for quick access
-        if rtdb:
-            rtdb.child('users').child(user_id).set({
-                'email': user_data['email'],
-                'fullName': user_data['fullName'],
+        if save_user(user_id, user_data):
+            # Handle referral
+            referred_by = data.get('referredBy')
+            if referred_by:
+                referrer = get_user(referred_by)
+                if referrer:
+                    # Create referral record
+                    referral_data = {
+                        'referrerId': referred_by,
+                        'referredUserId': user_id,
+                        'referredEmail': data.get('email', ''),
+                        'referredName': data.get('fullName', ''),
+                        'bonusEarned': 0,
+                        'pointsAwarded': 0,
+                        'status': 'pending_first_deposit',
+                        'timestamp': get_timestamp()
+                    }
+                    add_document('referrals', referral_data)
+                    
+                    # Update referrer count
+                    current_count = referrer.get('referralCount', 0)
+                    save_user(referred_by, {'referralCount': current_count + 1})
+                    
+                    # Notify referrer
+                    add_notification(referred_by, 
+                        f"🎉 {data.get('fullName', 'New user')} joined using your referral link!", 
+                        'referral_signup',
+                        {'referredUserId': user_id, 'referredName': data.get('fullName', '')})
+            
+            return jsonify({
+                'success': True,
+                'message': 'User created successfully',
                 'referralCode': referral_code,
-                'referredBy': user_data['referredBy'],
-                'status': 'active',
-                'lastLogin': None
-            })
+                'securityCode': security_code
+            }), 201
         
-        # Handle referral on signup
-        referred_by = data.get('referredBy')
-        referral_record = None
-        
-        if referred_by:
-            referrer = get_user_from_firestore(referred_by)
-            if referrer:
-                referral_record = {
-                    'referrerId': referred_by,
-                    'referredUserId': user_id,
-                    'referredEmail': data.get('email', ''),
-                    'referredName': data.get('fullName', data.get('firstName', '')),
-                    'bonusEarned': 0,
-                    'pointsAwarded': 0,
-                    'status': 'pending_first_deposit',
-                    'signupDate': get_timestamp(),
-                    'firstDepositDate': None,
-                    'timestamp': firestore.SERVER_TIMESTAMP
-                }
-                
-                referral_id = add_referral_to_firestore(referral_record)
-                
-                # Update referrer's count
-                save_user_to_firestore(referred_by, {
-                    'referralCount': firestore.Increment(1)
-                })
-                
-                # Add notification for referrer
-                notification_data = {
-                    'userId': referred_by,
-                    'type': 'referral_signup',
-                    'message': f"🎉 {data.get('fullName', data.get('firstName', 'New user'))} joined using your referral link!",
-                    'referredUserId': user_id,
-                    'referredName': data.get('fullName', data.get('firstName', 'New User')),
-                    'read': False,
-                    'timestamp': firestore.SERVER_TIMESTAMP
-                }
-                add_notification_to_firestore(notification_data)
-                
-                print(f"✅ Referral tracked: {referred_by} referred {user_id}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'User created successfully in Firebase',
-            'referralCode': referral_code,
-            'securityCode': security_code,
-            'referredBy': referred_by,
-            'referralStatus': 'pending_first_deposit' if referral_record else None
-        }), 201
+        return jsonify({'error': 'Failed to create user'}), 500
         
     except Exception as e:
         print(f"Error creating user: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/user/<user_id>', methods=['GET'])
-def get_user(user_id):
+def get_user_api(user_id):
     try:
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if user:
             user['referralLink'] = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
             user['totalBalance'] = user.get('depositBalance', 0) + user.get('taskEarnings', 0)
-            return jsonify({
-                'success': True,
-                'user': user
-            })
+            return jsonify({'success': True, 'user': user})
         return jsonify({'error': 'User not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -542,7 +461,7 @@ def get_user(user_id):
 @app.route('/api/user/<user_id>/balance', methods=['GET'])
 def get_user_balance(user_id):
     try:
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if user:
             return jsonify({
                 'success': True,
@@ -557,75 +476,112 @@ def get_user_balance(user_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/all', methods=['GET'])
-def get_all_users():
-    """Get all users (admin)"""
+def get_all_users_api():
     try:
-        users = get_all_users_from_firestore()
+        users = get_all_users()
         users_list = []
-        for user_id, user_data in users.items():
+        for uid, data in users.items():
             users_list.append({
-                'userId': user_id,
-                'email': user_data.get('email', ''),
-                'fullName': user_data.get('fullName', ''),
-                'firstName': user_data.get('firstName', ''),
-                'depositBalance': user_data.get('depositBalance', 0),
-                'taskEarnings': user_data.get('taskEarnings', 0),
-                'referralCount': user_data.get('referralCount', 0),
-                'status': user_data.get('status', 'active'),
-                'createdAt': str(user_data.get('createdAt', ''))
+                'userId': uid,
+                'email': data.get('email', ''),
+                'fullName': data.get('fullName', ''),
+                'depositBalance': data.get('depositBalance', 0),
+                'taskEarnings': data.get('taskEarnings', 0),
+                'referralCount': data.get('referralCount', 0),
+                'status': data.get('status', 'active'),
+                'createdAt': data.get('createdAt', '')
             })
         return jsonify({'success': True, 'users': users_list})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: VALIDATE REFERRAL CODE (Using Firebase)
+# API: REFERRAL VALIDATION
 # ============================================
 @app.route('/api/referral/validate/<code>', methods=['GET'])
 @app.route('/api/referral/check/<code>', methods=['GET'])
-def validate_referral_code(code):
+def validate_referral(code):
     try:
-        # First try by referralCode field
-        users_ref = db_firestore.collection('users')
-        query = users_ref.where('referralCode', '==', code).limit(1)
-        results = query.stream()
+        # Search all users for matching referral code
+        users = get_all_users()
         
-        for doc in results:
-            user_data = doc.to_dict()
-            return jsonify({
-                'success': True,
-                'valid': True,
-                'referrerId': doc.id,
-                'referrerName': user_data.get('firstName', user_data.get('fullName', 'User')),
-                'referrerEmail': user_data.get('email', ''),
-                'referralCode': code
-            })
+        for uid, user_data in users.items():
+            if user_data.get('referralCode') == code:
+                return jsonify({
+                    'success': True,
+                    'valid': True,
+                    'referrerId': uid,
+                    'referrerName': user_data.get('firstName', user_data.get('fullName', 'User')),
+                    'referrerEmail': user_data.get('email', ''),
+                    'referralCode': code
+                })
         
-        # Try by user ID (in case code is a user ID)
-        user_doc = db_firestore.collection('users').document(code).get()
-        if user_doc.exists:
-            user_data = user_doc.to_dict()
+        # Also check if code is a user ID
+        user = get_user(code)
+        if user:
             return jsonify({
                 'success': True,
                 'valid': True,
                 'referrerId': code,
-                'referrerName': user_data.get('firstName', user_data.get('fullName', 'User')),
-                'referrerEmail': user_data.get('email', ''),
-                'referralCode': user_data.get('referralCode', code)
+                'referrerName': user.get('firstName', user.get('fullName', 'User')),
+                'referrerEmail': user.get('email', ''),
+                'referralCode': user.get('referralCode', code)
             })
         
         return jsonify({
             'success': True,
             'valid': False,
             'message': 'Invalid referral code'
-        }), 200
+        })
         
     except Exception as e:
         print(f"Error validating referral: {e}")
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: DEPOSIT (Using Firebase)
+# API: REFERRAL STATS
+# ============================================
+@app.route('/api/referral/stats/<user_id>', methods=['GET'])
+def get_referral_stats(user_id):
+    try:
+        user = get_user(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get all referrals for this user
+        all_referrals = get_collection('referrals', {'referrerId': user_id})
+        
+        total_referrals = len(all_referrals)
+        active_referrals = len([r for r in all_referrals if r.get('status') == 'active'])
+        pending_referrals = len([r for r in all_referrals if r.get('status') == 'pending_first_deposit'])
+        
+        # Calculate bonuses
+        total_bonus = sum(r.get('bonusEarned', 0) for r in all_referrals)
+        total_points = sum(r.get('pointsAwarded', 0) for r in all_referrals)
+        
+        referral_link = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
+        
+        return jsonify({
+            'success': True,
+            'referralCode': user.get('referralCode'),
+            'referralLink': referral_link,
+            'stats': {
+                'totalReferrals': total_referrals,
+                'activeReferrals': active_referrals,
+                'pendingReferrals': pending_referrals,
+                'totalBonusEarned': total_bonus,
+                'totalPointsEarned': total_points,
+                'referralBonusPercentage': REFERRAL_BONUS_PERCENTAGE,
+                'pointsPerReferral': REFERRAL_POINTS
+            },
+            'referrals': all_referrals[:10]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
+# API: DEPOSIT
 # ============================================
 @app.route('/api/deposit', methods=['POST'])
 def submit_deposit():
@@ -642,7 +598,7 @@ def submit_deposit():
         if amount < MIN_DEPOSIT:
             return jsonify({'error': f'Minimum deposit is {MIN_DEPOSIT} USDT'}), 400
         
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -658,45 +614,40 @@ def submit_deposit():
             'status': 'pending',
             'isFirstDeposit': is_first_deposit,
             'referralBonusPaid': False,
-            'timestamp': firestore.SERVER_TIMESTAMP,
-            'createdAt': get_timestamp()
+            'timestamp': get_timestamp()
         }
         
-        deposit_id = add_deposit_to_firestore(deposit_data)
+        deposit_id = add_document('deposits', deposit_data)
         
-        # Notification to user
-        notification_data = {
-            'userId': user_id,
-            'type': 'deposit',
-            'message': f'Deposit of {amount} USDT submitted via {method}. Pending approval.',
-            'amount': amount,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        }
-        add_notification_to_firestore(notification_data)
+        # Notify user
+        add_notification(user_id, 
+            f'Deposit of {amount} USDT submitted. Pending approval.', 
+            'deposit',
+            {'amount': amount})
         
         print(f"📥 New deposit: {amount} USDT from {user_id}")
         
         return jsonify({
             'success': True,
-            'message': 'Deposit submitted successfully',
+            'message': 'Deposit submitted',
             'deposit': {**deposit_data, 'id': deposit_id},
             'isFirstDeposit': is_first_deposit
         }), 201
         
     except Exception as e:
-        print(f"Error submitting deposit: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/deposit/<user_id>', methods=['GET'])
 def get_deposits(user_id):
     try:
-        deposits = get_deposits_from_firestore(user_id)
-        user = get_user_from_firestore(user_id)
+        deposits = get_collection('deposits', {'userId': user_id})
+        # Sort by timestamp descending
+        deposits.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
+        user = get_user(user_id)
         return jsonify({
             'success': True,
-            'deposits': deposits,
+            'deposits': deposits[:20],
             'firstDepositCompleted': user.get('firstDepositCompleted', False) if user else False
         })
     except Exception as e:
@@ -704,277 +655,125 @@ def get_deposits(user_id):
 
 @app.route('/api/deposit/all', methods=['GET'])
 def get_all_deposits():
-    """Get all deposits (admin)"""
     try:
-        deposits = get_deposits_from_firestore()
-        return jsonify({
-            'success': True,
-            'deposits': deposits
-        })
+        deposits = get_collection('deposits')
+        deposits.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'deposits': deposits})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/deposit/<deposit_id>/approve', methods=['POST'])
 def approve_deposit(deposit_id):
     try:
-        # Get deposit from Firestore
-        deposit_ref = db_firestore.collection('deposits').document(deposit_id)
-        deposit_doc = deposit_ref.get()
+        # Get deposit
+        deposits = get_collection('deposits')
+        deposit = next((d for d in deposits if d.get('id') == deposit_id), None)
         
-        if not deposit_doc.exists:
+        if not deposit:
             return jsonify({'error': 'Deposit not found'}), 404
-        
-        deposit = deposit_doc.to_dict()
-        
-        if deposit.get('status') == 'approved':
-            return jsonify({'error': 'Deposit already approved'}), 400
         
         user_id = deposit['userId']
         amount = deposit['amount']
         is_first_deposit = deposit.get('isFirstDeposit', False)
         
         # Update deposit status
-        update_data = {
+        update_document('deposits', deposit_id, {
             'status': 'approved',
-            'approvedAt': firestore.SERVER_TIMESTAMP
-        }
-        update_deposit_in_firestore(deposit_id, update_data)
+            'approvedAt': get_timestamp()
+        })
         
         # Update user balance
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if user:
-            user_update = {
-                'depositBalance': firestore.Increment(amount)
+            current_balance = user.get('depositBalance', 0)
+            update_data = {
+                'depositBalance': current_balance + amount
             }
             
             if is_first_deposit and not user.get('firstDepositCompleted', False):
-                user_update['firstDepositCompleted'] = True
+                update_data['firstDepositCompleted'] = True
                 
                 # Process referral bonus
-                referral_bonus = process_referral_bonus_firebase(user_id, amount, deposit_id)
-                if referral_bonus:
-                    update_deposit_in_firestore(deposit_id, {
-                        'referralBonusPaid': True,
-                        'referralBonusDetails': referral_bonus
-                    })
+                referred_by = user.get('referredBy')
+                if referred_by:
+                    referrer = get_user(referred_by)
+                    if referrer:
+                        bonus_amount = calculate_referral_bonus(amount)
+                        points_awarded = REFERRAL_POINTS
+                        
+                        # Update referrer
+                        save_user(referred_by, {
+                            'depositBalance': referrer.get('depositBalance', 0) + bonus_amount,
+                            'referralBonus': referrer.get('referralBonus', 0) + bonus_amount,
+                            'totalReferralPoints': referrer.get('totalReferralPoints', 0) + points_awarded,
+                            'points': referrer.get('points', 0) + points_awarded
+                        })
+                        
+                        # Update referral record
+                        referrals = get_collection('referrals', {'referrerId': referred_by})
+                        for ref in referrals:
+                            if ref.get('referredUserId') == user_id:
+                                update_document('referrals', ref['id'], {
+                                    'status': 'active',
+                                    'bonusEarned': bonus_amount,
+                                    'pointsAwarded': points_awarded,
+                                    'firstDepositDate': get_timestamp()
+                                })
+                        
+                        # Notifications
+                        add_notification(referred_by,
+                            f"🎉 Referral Bonus! {user.get('fullName', 'User')} deposited ${amount}. You earned ${bonus_amount} + {points_awarded} points!",
+                            'referral_bonus',
+                            {'amount': bonus_amount, 'points': points_awarded})
+                        
+                        # Welcome bonus for new user
+                        update_data['points'] = user.get('points', 0) + 50
+                        
+                        add_notification(user_id,
+                            "🎁 Welcome Bonus! You earned 50 points for your first deposit!",
+                            'welcome_bonus',
+                            {'points': 50})
             
-            save_user_to_firestore(user_id, user_update)
+            save_user(user_id, update_data)
         
-        # Notification to user
-        notification_data = {
-            'userId': user_id,
-            'type': 'deposit_approved',
-            'message': f'✅ Deposit of {amount} USDT approved!',
-            'amount': amount,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        }
-        add_notification_to_firestore(notification_data)
+        # Notify user
+        add_notification(user_id,
+            f'✅ Deposit of {amount} USDT approved!',
+            'deposit_approved',
+            {'amount': amount})
         
         print(f"✅ Deposit approved: {deposit_id} - {amount} USDT")
         
-        return jsonify({
-            'success': True,
-            'message': 'Deposit approved successfully',
-            'deposit': {**deposit, **update_data}
-        })
+        return jsonify({'success': True, 'message': 'Deposit approved'})
         
     except Exception as e:
-        print(f"Error approving deposit: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/deposit/<deposit_id>/reject', methods=['POST'])
 def reject_deposit(deposit_id):
     try:
-        deposit_ref = db_firestore.collection('deposits').document(deposit_id)
-        deposit_doc = deposit_ref.get()
-        
-        if not deposit_doc.exists:
-            return jsonify({'error': 'Deposit not found'}), 404
-        
-        deposit = deposit_doc.to_dict()
-        
-        update_data = {
+        update_document('deposits', deposit_id, {
             'status': 'rejected',
-            'rejectedAt': firestore.SERVER_TIMESTAMP
-        }
-        update_deposit_in_firestore(deposit_id, update_data)
+            'rejectedAt': get_timestamp()
+        })
         
-        # Notification to user
-        notification_data = {
-            'userId': deposit['userId'],
-            'type': 'deposit_rejected',
-            'message': f'❌ Deposit of {deposit["amount"]} USDT was rejected.',
-            'amount': deposit['amount'],
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        }
-        add_notification_to_firestore(notification_data)
+        deposits = get_collection('deposits')
+        deposit = next((d for d in deposits if d.get('id') == deposit_id), None)
+        
+        if deposit:
+            add_notification(deposit['userId'],
+                f'❌ Deposit of {deposit["amount"]} USDT rejected.',
+                'deposit_rejected')
         
         print(f"❌ Deposit rejected: {deposit_id}")
         
-        return jsonify({
-            'success': True,
-            'message': 'Deposit rejected',
-            'deposit': {**deposit, **update_data}
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-def process_referral_bonus_firebase(new_user_id, deposit_amount, deposit_id):
-    """Process referral bonus using Firebase"""
-    try:
-        new_user = get_user_from_firestore(new_user_id)
-        if not new_user:
-            return None
-        
-        referred_by = new_user.get('referredBy')
-        if not referred_by:
-            return None
-        
-        referrer = get_user_from_firestore(referred_by)
-        if not referrer:
-            return None
-        
-        bonus_amount = calculate_referral_bonus(deposit_amount)
-        points_awarded = REFERRAL_POINTS
-        
-        # Update referrer's balance and points
-        save_user_to_firestore(referred_by, {
-            'depositBalance': firestore.Increment(bonus_amount),
-            'referralBonus': firestore.Increment(bonus_amount),
-            'totalReferralPoints': firestore.Increment(points_awarded),
-            'points': firestore.Increment(points_awarded)
-        })
-        
-        # Update referral record
-        referrals = get_referrals_from_firestore(referred_by)
-        for ref in referrals:
-            if ref.get('referredUserId') == new_user_id:
-                update_data = {
-                    'status': 'active',
-                    'bonusEarned': bonus_amount,
-                    'pointsAwarded': points_awarded,
-                    'firstDepositDate': get_timestamp(),
-                    'depositAmount': deposit_amount,
-                    'bonusPercentage': REFERRAL_BONUS_PERCENTAGE,
-                    'depositId': deposit_id
-                }
-                # Update the referral document
-                db_firestore.collection('referrals').document(ref['id']).update(update_data)
-                break
-        
-        # Add bonus record
-        bonus_record = {
-            'referrerId': referred_by,
-            'referredUserId': new_user_id,
-            'depositId': deposit_id,
-            'depositAmount': deposit_amount,
-            'bonusPercentage': REFERRAL_BONUS_PERCENTAGE,
-            'bonusAmount': bonus_amount,
-            'pointsAwarded': points_awarded,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        }
-        db_firestore.collection('referral_bonuses').add(bonus_record)
-        
-        # Give welcome bonus to new user
-        save_user_to_firestore(new_user_id, {
-            'points': firestore.Increment(50)
-        })
-        
-        # Notifications
-        new_user_name = new_user.get('fullName', new_user.get('firstName', 'User'))
-        
-        # Notify referrer
-        add_notification_to_firestore({
-            'userId': referred_by,
-            'type': 'referral_bonus',
-            'message': f"🎉 Referral Bonus! {new_user_name} made first deposit of ${deposit_amount}. You earned ${bonus_amount} + {points_awarded} points!",
-            'amount': bonus_amount,
-            'points': points_awarded,
-            'referredUserName': new_user_name,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
-        
-        # Notify new user
-        add_notification_to_firestore({
-            'userId': new_user_id,
-            'type': 'referral_welcome_bonus',
-            'message': f"🎁 Welcome Bonus! You earned 50 points for joining with a referral link!",
-            'points': 50,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
-        
-        print(f"✅ Referral Bonus: {referred_by} received ${bonus_amount}")
-        
-        return {
-            'referrerId': referred_by,
-            'bonusAmount': bonus_amount,
-            'bonusPercentage': REFERRAL_BONUS_PERCENTAGE,
-            'pointsAwarded': points_awarded,
-            'depositAmount': deposit_amount
-        }
-        
-    except Exception as e:
-        print(f"Error processing referral bonus: {e}")
-        return None
-
-# ============================================
-# API: REFERRAL SYSTEM (Using Firebase)
-# ============================================
-@app.route('/api/referral/stats/<user_id>', methods=['GET'])
-def get_referral_stats(user_id):
-    try:
-        user = get_user_from_firestore(user_id)
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        referrals = get_referrals_from_firestore(user_id)
-        
-        total_referrals = len(referrals)
-        active_referrals = len([r for r in referrals if r.get('status') == 'active'])
-        pending_referrals = len([r for r in referrals if r.get('status') == 'pending_first_deposit'])
-        
-        # Get bonuses
-        bonuses_ref = db_firestore.collection('referral_bonuses')
-        bonus_query = bonuses_ref.where('referrerId', '==', user_id)
-        bonus_docs = bonus_query.stream()
-        bonuses = []
-        total_bonus = 0
-        total_points = 0
-        for doc in bonus_docs:
-            b = doc.to_dict()
-            bonuses.append(b)
-            total_bonus += b.get('bonusAmount', 0)
-            total_points += b.get('pointsAwarded', 0)
-        
-        referral_link = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
-        
-        return jsonify({
-            'success': True,
-            'referralCode': user.get('referralCode'),
-            'referralLink': referral_link,
-            'stats': {
-                'totalReferrals': total_referrals,
-                'activeReferrals': active_referrals,
-                'pendingReferrals': pending_referrals,
-                'totalBonusEarned': round(total_bonus, 2),
-                'totalPointsEarned': total_points,
-                'referralBonusPercentage': REFERRAL_BONUS_PERCENTAGE,
-                'pointsPerReferral': REFERRAL_POINTS
-            },
-            'referrals': referrals[:10],
-            'bonuses': bonuses[:20]
-        })
+        return jsonify({'success': True, 'message': 'Deposit rejected'})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: WITHDRAWAL (Using Firebase)
+# API: WITHDRAWAL
 # ============================================
 @app.route('/api/withdraw', methods=['POST'])
 def submit_withdrawal():
@@ -991,18 +790,7 @@ def submit_withdrawal():
         if amount < MIN_WITHDRAW:
             return jsonify({'error': f'Minimum withdrawal is {MIN_WITHDRAW} USDT'}), 400
         
-        # Check daily limit
-        today = datetime.now().strftime('%Y-%m-%d')
-        all_withdrawals = get_withdrawals_from_firestore(user_id)
-        daily_total = sum(
-            w['amount'] for w in all_withdrawals
-            if w.get('timestamp') and today in str(w['timestamp']) and w.get('status') != 'rejected'
-        )
-        if daily_total + amount > MAX_WITHDRAW_DAILY:
-            return jsonify({'error': f'Daily withdrawal limit is {MAX_WITHDRAW_DAILY} USDT'}), 400
-        
-        # Check balance
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -1011,13 +799,16 @@ def submit_withdrawal():
             return jsonify({'error': 'Insufficient balance'}), 400
         
         # Deduct from balance
-        if user.get('taskEarnings', 0) >= amount:
-            save_user_to_firestore(user_id, {'taskEarnings': firestore.Increment(-amount)})
+        task_earnings = user.get('taskEarnings', 0)
+        deposit_balance = user.get('depositBalance', 0)
+        
+        if task_earnings >= amount:
+            save_user(user_id, {'taskEarnings': task_earnings - amount})
         else:
-            remaining = amount - user.get('taskEarnings', 0)
-            save_user_to_firestore(user_id, {
+            remaining = amount - task_earnings
+            save_user(user_id, {
                 'taskEarnings': 0,
-                'depositBalance': firestore.Increment(-remaining)
+                'depositBalance': deposit_balance - remaining
             })
         
         withdrawal_data = {
@@ -1026,80 +817,57 @@ def submit_withdrawal():
             'userName': user.get('fullName', ''),
             'amount': amount,
             'method': method,
-            'details': details,
+            'details': str(details),
             'status': 'pending',
-            'timestamp': firestore.SERVER_TIMESTAMP
+            'timestamp': get_timestamp()
         }
         
-        withdrawal_id = add_withdrawal_to_firestore(withdrawal_data)
+        withdrawal_id = add_document('withdrawals', withdrawal_data)
         
-        # Notification
-        add_notification_to_firestore({
-            'userId': user_id,
-            'type': 'withdrawal',
-            'message': f'Withdrawal of {amount} USDT via {method} submitted.',
-            'amount': amount,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
+        add_notification(user_id,
+            f'Withdrawal of {amount} USDT submitted.',
+            'withdrawal',
+            {'amount': amount})
         
         print(f"💸 New withdrawal: {amount} USDT from {user_id}")
         
         return jsonify({
             'success': True,
-            'message': 'Withdrawal submitted successfully',
+            'message': 'Withdrawal submitted',
             'withdrawal': {**withdrawal_data, 'id': withdrawal_id}
         }), 201
         
     except Exception as e:
-        print(f"Error submitting withdrawal: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/withdraw/<user_id>', methods=['GET'])
 def get_withdrawals(user_id):
     try:
-        withdrawals = get_withdrawals_from_firestore(user_id)
-        return jsonify({
-            'success': True,
-            'withdrawals': withdrawals
-        })
+        withdrawals = get_collection('withdrawals', {'userId': user_id})
+        withdrawals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'withdrawals': withdrawals[:20]})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/withdraw/<withdrawal_id>/approve', methods=['POST'])
 def approve_withdrawal(withdrawal_id):
     try:
-        withdrawal_ref = db_firestore.collection('withdrawals').document(withdrawal_id)
-        withdrawal_doc = withdrawal_ref.get()
-        
-        if not withdrawal_doc.exists:
-            return jsonify({'error': 'Withdrawal not found'}), 404
-        
-        withdrawal = withdrawal_doc.to_dict()
-        
-        update_data = {
+        update_document('withdrawals', withdrawal_id, {
             'status': 'completed',
-            'completedAt': firestore.SERVER_TIMESTAMP
-        }
-        update_withdrawal_in_firestore(withdrawal_id, update_data)
-        
-        # Notification
-        add_notification_to_firestore({
-            'userId': withdrawal['userId'],
-            'type': 'withdrawal_approved',
-            'message': f'✅ Withdrawal of {withdrawal["amount"]} USDT approved!',
-            'amount': withdrawal['amount'],
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
+            'completedAt': get_timestamp()
         })
+        
+        withdrawals = get_collection('withdrawals')
+        withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
+        
+        if withdrawal:
+            add_notification(withdrawal['userId'],
+                f'✅ Withdrawal of {withdrawal["amount"]} USDT approved!',
+                'withdrawal_approved')
         
         print(f"✅ Withdrawal approved: {withdrawal_id}")
         
-        return jsonify({
-            'success': True,
-            'message': 'Withdrawal approved',
-            'withdrawal': {**withdrawal, **update_data}
-        })
+        return jsonify({'success': True, 'message': 'Withdrawal approved'})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1107,42 +875,29 @@ def approve_withdrawal(withdrawal_id):
 @app.route('/api/withdraw/<withdrawal_id>/reject', methods=['POST'])
 def reject_withdrawal(withdrawal_id):
     try:
-        withdrawal_ref = db_firestore.collection('withdrawals').document(withdrawal_id)
-        withdrawal_doc = withdrawal_ref.get()
+        withdrawals = get_collection('withdrawals')
+        withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
         
-        if not withdrawal_doc.exists:
-            return jsonify({'error': 'Withdrawal not found'}), 404
+        if withdrawal:
+            # Refund amount
+            user = get_user(withdrawal['userId'])
+            if user:
+                save_user(withdrawal['userId'], {
+                    'depositBalance': user.get('depositBalance', 0) + withdrawal['amount']
+                })
+            
+            add_notification(withdrawal['userId'],
+                f'❌ Withdrawal of {withdrawal["amount"]} USDT rejected. Amount refunded.',
+                'withdrawal_rejected')
         
-        withdrawal = withdrawal_doc.to_dict()
-        
-        # Refund the amount
-        user_id = withdrawal['userId']
-        amount = withdrawal['amount']
-        save_user_to_firestore(user_id, {'depositBalance': firestore.Increment(amount)})
-        
-        update_data = {
+        update_document('withdrawals', withdrawal_id, {
             'status': 'rejected',
-            'rejectedAt': firestore.SERVER_TIMESTAMP
-        }
-        update_withdrawal_in_firestore(withdrawal_id, update_data)
-        
-        # Notification
-        add_notification_to_firestore({
-            'userId': user_id,
-            'type': 'withdrawal_rejected',
-            'message': f'❌ Withdrawal of {amount} USDT rejected. Amount refunded.',
-            'amount': amount,
-            'read': False,
-            'timestamp': firestore.SERVER_TIMESTAMP
+            'rejectedAt': get_timestamp()
         })
         
         print(f"❌ Withdrawal rejected: {withdrawal_id}")
         
-        return jsonify({
-            'success': True,
-            'message': 'Withdrawal rejected',
-            'withdrawal': {**withdrawal, **update_data}
-        })
+        return jsonify({'success': True, 'message': 'Withdrawal rejected'})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1150,15 +905,6 @@ def reject_withdrawal(withdrawal_id):
 # ============================================
 # API: PRODUCTS & INVESTMENTS
 # ============================================
-PRODUCTS = [
-    {'name': 'Level 1', 'price': 30, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
-    {'name': 'Level 2', 'price': 50, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
-    {'name': 'Level 3', 'price': 100, 'dailyEarnings': 4, 'duration': 120, 'isFixed': False, 'category': 'basic'},
-    {'name': 'VIP 1', 'price': 300, 'dailyEarnings': 15, 'duration': 130, 'isFixed': True, 'category': 'vip'},
-    {'name': 'VIP 2', 'price': 500, 'dailyEarnings': 25, 'duration': 130, 'isFixed': True, 'category': 'vip'},
-    {'name': 'VIP 3', 'price': 1000, 'dailyEarnings': 50, 'duration': 130, 'isFixed': True, 'category': 'vip'},
-]
-
 @app.route('/api/products', methods=['GET'])
 def get_products():
     return jsonify({'success': True, 'products': PRODUCTS})
@@ -1170,22 +916,20 @@ def buy_investment():
         user_id = data.get('userId')
         product_name = data.get('productName')
         
-        if not user_id or not product_name:
-            return jsonify({'error': 'User ID and product name required'}), 400
-        
         product = next((p for p in PRODUCTS if p['name'] == product_name), None)
         if not product:
             return jsonify({'error': 'Product not found'}), 404
         
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
+            return jsonify({'error': 'User not found'}), 404        
         if user.get('depositBalance', 0) < product['price']:
             return jsonify({'error': 'Insufficient balance'}), 400
         
         # Deduct balance
-        save_user_to_firestore(user_id, {'depositBalance': firestore.Increment(-product['price'])})
+        save_user(user_id, {
+            'depositBalance': user.get('depositBalance', 0) - product['price']
+        })
         
         investment_data = {
             'userId': user_id,
@@ -1198,14 +942,14 @@ def buy_investment():
             'status': 'active',
             'purchaseDate': get_timestamp(),
             'lastClaimDate': get_timestamp(),
-            'timestamp': firestore.SERVER_TIMESTAMP
+            'timestamp': get_timestamp()
         }
         
-        investment_id = add_investment_to_firestore(investment_data)
+        investment_id = add_document('investments', investment_data)
         
         return jsonify({
             'success': True,
-            'message': f'Successfully purchased {product_name}',
+            'message': f'Purchased {product_name}',
             'investment': {**investment_data, 'id': investment_id}
         }), 201
         
@@ -1215,15 +959,16 @@ def buy_investment():
 @app.route('/api/investment/<user_id>', methods=['GET'])
 def get_investments(user_id):
     try:
-        investments = get_investments_from_firestore(user_id)
+        investments = get_collection('investments', {'userId': user_id})
+        active_investments = [i for i in investments if i.get('status') == 'active']
         
-        for inv in investments:
+        for inv in active_investments:
             purchase_date = datetime.fromisoformat(inv.get('purchaseDate', get_timestamp()))
             days_elapsed = (datetime.now() - purchase_date).days
             inv['daysLeft'] = max(0, inv.get('duration', 120) - days_elapsed)
             inv['progress'] = min(100, (days_elapsed / inv.get('duration', 120)) * 100)
         
-        return jsonify({'success': True, 'investments': investments})
+        return jsonify({'success': True, 'investments': active_investments})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1231,7 +976,7 @@ def get_investments(user_id):
 # API: DAILY CLAIMS
 # ============================================
 @app.route('/api/daily/claim', methods=['POST'])
-def claim_daily_earnings():
+def claim_daily():
     try:
         data = request.json
         user_id = data.get('userId')
@@ -1243,18 +988,11 @@ def claim_daily_earnings():
         if is_weekend():
             return jsonify({'error': 'Cannot claim on weekends'}), 403
         
-        # Get investment
-        inv_ref = db_firestore.collection('investments').document(investment_id)
-        inv_doc = inv_ref.get()
+        investments = get_collection('investments')
+        investment = next((i for i in investments if i.get('id') == investment_id), None)
         
-        if not inv_doc.exists:
+        if not investment:
             return jsonify({'error': 'Investment not found'}), 404
-        
-        investment = inv_doc.to_dict()
-        
-        last_claim = datetime.fromisoformat(investment.get('lastClaimDate', '2000-01-01'))
-        if last_claim.date() == datetime.now().date():
-            return jsonify({'error': 'Already claimed today'}), 400
         
         if investment.get('isFixed'):
             earnings = investment['dailyEarnings']
@@ -1262,13 +1000,17 @@ def claim_daily_earnings():
             earnings = (investment['amount'] * investment['dailyEarnings']) / 100
         
         # Update investment
-        update_investment_in_firestore(investment_id, {
-            'totalEarned': firestore.Increment(earnings),
+        update_document('investments', investment_id, {
+            'totalEarned': investment.get('totalEarned', 0) + earnings,
             'lastClaimDate': get_timestamp()
         })
         
         # Update user balance
-        save_user_to_firestore(user_id, {'taskEarnings': firestore.Increment(earnings)})
+        user = get_user(user_id)
+        if user:
+            save_user(user_id, {
+                'taskEarnings': user.get('taskEarnings', 0) + earnings
+            })
         
         return jsonify({
             'success': True,
@@ -1280,21 +1022,23 @@ def claim_daily_earnings():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/daily/check/<user_id>', methods=['GET'])
-def check_daily_status(user_id):
+def check_daily(user_id):
     try:
         if is_weekend():
-            return jsonify({'canClaim': False, 'reason': 'Weekend - no claims allowed', 'isWeekend': True})
+            return jsonify({'canClaim': False, 'reason': 'Weekend', 'isWeekend': True})
         return jsonify({'canClaim': True, 'isWeekend': False})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: NOTIFICATIONS (Using Firebase)
+# API: NOTIFICATIONS
 # ============================================
 @app.route('/api/notifications/<user_id>', methods=['GET'])
 def get_notifications(user_id):
     try:
-        notifications = get_notifications_from_firestore(user_id)
+        notifications = get_collection('notifications', {'userId': user_id})
+        notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
         unread_count = len([n for n in notifications if not n.get('read', False)])
         
         return jsonify({
@@ -1306,23 +1050,17 @@ def get_notifications(user_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/notifications/read-all', methods=['POST'])
-def mark_all_notifications_read():
+def mark_all_read():
     try:
         data = request.json
         user_id = data.get('userId')
         
-        # Get all unread notifications
-        notif_ref = db_firestore.collection('notifications')
-        query = notif_ref.where('userId', '==', user_id).where('read', '==', False)
-        docs = query.stream()
+        notifications = get_collection('notifications', {'userId': user_id})
+        for notif in notifications:
+            if not notif.get('read', False):
+                update_document('notifications', notif['id'], {'read': True})
         
-        # Mark all as read
-        batch = db_firestore.batch()
-        for doc in docs:
-            batch.update(doc.reference, {'read': True})
-        batch.commit()
-        
-        return jsonify({'success': True, 'message': 'All notifications marked as read'})
+        return jsonify({'success': True, 'message': 'All marked as read'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1332,65 +1070,46 @@ def mark_all_notifications_read():
 @app.route('/api/security/<user_id>', methods=['GET'])
 def get_security_code(user_id):
     try:
-        user = get_user_from_firestore(user_id)
+        user = get_user(user_id)
         if user and user.get('securityCode'):
             return jsonify({'success': True, 'code': user['securityCode']})
         
-        # Generate new one if doesn't exist
         new_code = generate_security_code()
-        save_user_to_firestore(user_id, {'securityCode': new_code})
+        save_user(user_id, {'securityCode': new_code})
         return jsonify({'success': True, 'code': new_code})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/security/reset', methods=['POST'])
-def reset_security_code():
+def reset_security():
     try:
         data = request.json
         user_id = data.get('userId')
-        
         new_code = generate_security_code()
-        save_user_to_firestore(user_id, {'securityCode': new_code})
-        
+        save_user(user_id, {'securityCode': new_code})
         return jsonify({'success': True, 'newCode': new_code})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# API: ADMIN
+# API: ADMIN STATS
 # ============================================
 @app.route('/api/admin/stats', methods=['GET'])
-def get_admin_stats():
+def admin_stats():
     try:
-        users = get_all_users_from_firestore()
-        deposits = get_deposits_from_firestore()
-        withdrawals = get_withdrawals_from_firestore()
-        referrals = get_referrals_from_firestore()
-        
-        total_users = len(users)
-        total_deposits = sum(d['amount'] for d in deposits if d.get('status') == 'approved')
-        total_withdrawals = sum(w['amount'] for w in withdrawals if w.get('status') == 'completed')
-        total_referrals = len(referrals)
-        
-        # Get bonuses
-        bonuses_ref = db_firestore.collection('referral_bonuses')
-        bonus_docs = bonuses_ref.stream()
-        total_bonuses = sum(doc.to_dict().get('bonusAmount', 0) for doc in bonus_docs)
-        
-        # Active investments
-        inv_ref = db_firestore.collection('investments')
-        inv_query = inv_ref.where('status', '==', 'active')
-        active_investments = len(list(inv_query.stream()))
+        users = get_all_users()
+        deposits = get_collection('deposits')
+        withdrawals = get_collection('withdrawals')
+        referrals = get_collection('referrals')
         
         return jsonify({
             'success': True,
             'stats': {
-                'totalUsers': total_users,
-                'totalDeposits': total_deposits,
-                'totalWithdrawals': total_withdrawals,
-                'activeInvestments': active_investments,
-                'totalReferrals': total_referrals,
-                'totalReferralBonusesPaid': round(total_bonuses, 2),
+                'totalUsers': len(users),
+                'totalDeposits': sum(d.get('amount', 0) for d in deposits if d.get('status') == 'approved'),
+                'totalWithdrawals': sum(w.get('amount', 0) for w in withdrawals if w.get('status') == 'completed'),
+                'activeInvestments': len(get_collection('investments', {'status': 'active'})),
+                'totalReferrals': len(referrals),
                 'pendingDeposits': len([d for d in deposits if d.get('status') == 'pending']),
                 'pendingWithdrawals': len([w for w in withdrawals if w.get('status') == 'pending'])
             }
@@ -1418,13 +1137,11 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print("=" * 60)
-    print("🚀 SAFE Platform Server v3.0 - Firebase Edition")
-    print(f"📍 Running on port: {port}")
-    print(f"🗄️  Database: Firebase Firestore")
-    print(f"📱 Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
-    print(f"💳 Wallet: {WALLET_ADDRESS}")
-    print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}% of first deposit")
-    print(f"⭐ Referral Points: {REFERRAL_POINTS}")
+    print("🚀 SAFE Platform v3.0 - Firebase REST API")
+    print(f"📍 Port: {port}")
+    print(f"🗄️  Database: Firebase Firestore (REST)")
+    print(f"📱 Telebirr: {TELEBIRR_NUMBER}")
+    print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}%")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=False)
