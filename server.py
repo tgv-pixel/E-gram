@@ -139,54 +139,88 @@ def rtdb_request(method, path, data=None):
 # ============================================
 
 def get_user(user_id):
-    """Get user from Firestore"""
+    """Get user from Firestore - with RTDB fallback"""
     if not user_id:
         return None
+    
+    # First try Firestore
     result = firestore_request('GET', f'users/{user_id}')
     if result and 'fields' in result:
-        return firestore_to_dict(result['fields'])
+        user_data = firestore_to_dict(result['fields'])
+        user_data['userId'] = user_id
+        return user_data
+    
+    # Fallback to RTDB
+    rtdb_result = rtdb_request('GET', f'users/{user_id}')
+    if rtdb_result:
+        rtdb_result['userId'] = user_id
+        return rtdb_result
+    
     return None
 
 def save_user(user_id, user_data):
-    """Save/Update user in Firestore"""
+    """Save/Update user in both Firestore and RTDB"""
     if not user_id:
         return False
     
-    firestore_data = dict_to_firestore(user_data)
+    # Always ensure email and name are preserved
+    existing_user = get_user(user_id) or {}
     
-    # Remove userId from data if present (it's the document ID)
-    if 'userId' in firestore_data:
-        del firestore_data['userId']
+    # Merge with existing data to prevent losing fields
+    merged_data = {**existing_user, **user_data}
+    merged_data.pop('userId', None)  # Remove userId from data to save
     
-    # Always use PATCH (works for both create and update)
+    firestore_data = dict_to_firestore(merged_data)
+    
+    # Save to Firestore
     result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
     
-    # Also save basic info to RTDB for quick access
+    # Also save to RTDB for quick access (always include email and name)
     rtdb_data = {
-        'email': user_data.get('email', ''),
-        'fullName': user_data.get('fullName', ''),
-        'referralCode': user_data.get('referralCode', ''),
-        'referredBy': user_data.get('referredBy'),
-        'status': user_data.get('status', 'active'),
-        'depositBalance': user_data.get('depositBalance', 0),
-        'taskEarnings': user_data.get('taskEarnings', 0),
-        'points': user_data.get('points', 0)
+        'email': merged_data.get('email', ''),
+        'fullName': merged_data.get('fullName', ''),
+        'firstName': merged_data.get('firstName', ''),
+        'lastName': merged_data.get('lastName', ''),
+        'referralCode': merged_data.get('referralCode', ''),
+        'referredBy': merged_data.get('referredBy'),
+        'status': merged_data.get('status', 'active'),
+        'depositBalance': merged_data.get('depositBalance', 0),
+        'taskEarnings': merged_data.get('taskEarnings', 0),
+        'points': merged_data.get('points', 0),
+        'referralCount': merged_data.get('referralCount', 0)
     }
     rtdb_request('PUT', f'users/{user_id}', rtdb_data)
     
     return result is not None
 
 def get_all_users():
-    """Get all users from Firestore"""
+    """Get all users from Firestore and RTDB combined"""
+    users = {}
+    
+    # Get from Firestore
     result = firestore_request('GET', 'users')
     if result and 'documents' in result:
-        users = {}
         for doc in result['documents']:
             user_id = doc['name'].split('/')[-1]
             fields = doc.get('fields', {})
-            users[user_id] = firestore_to_dict(fields)
-        return users
-    return {}
+            user_data = firestore_to_dict(fields)
+            user_data['userId'] = user_id
+            users[user_id] = user_data
+    
+    # Also check RTDB for any users not in Firestore
+    rtdb_result = rtdb_request('GET', 'users')
+    if rtdb_result:
+        for user_id, user_data in rtdb_result.items():
+            if user_id not in users:
+                user_data['userId'] = user_id
+                users[user_id] = user_data
+            else:
+                # Merge RTDB data (fill missing fields)
+                for key, value in user_data.items():
+                    if key not in users[user_id] or users[user_id].get(key) is None:
+                        users[user_id][key] = value
+    
+    return users
 
 def add_document(collection, data, doc_id=None):
     """Add document to Firestore collection"""
@@ -208,21 +242,18 @@ def get_collection(collection, filters=None):
             data = firestore_to_dict(doc.get('fields', {}))
             data['id'] = doc['name'].split('/')[-1]
             
-            # Apply filters (basic)
             if filters:
                 match = True
                 for key, value in filters.items():
-                    if key in data:
-                        actual_value = data[key]
-                        # Handle different types for comparison
-                        if isinstance(value, (int, float)) and isinstance(actual_value, (int, float)):
-                            if actual_value != value:
-                                match = False
-                                break
-                        elif str(actual_value).lower() != str(value).lower():
+                    actual_value = data.get(key)
+                    if actual_value is None:
+                        match = False
+                        break
+                    if isinstance(value, (int, float)) and isinstance(actual_value, (int, float)):
+                        if actual_value != value:
                             match = False
                             break
-                    else:
+                    elif str(actual_value).lower() != str(value).lower():
                         match = False
                         break
                 if not match:
@@ -253,8 +284,6 @@ def add_notification(user_id, message, notif_type, extra_data=None):
     
     doc_id = generate_id()
     add_document('notifications', notif_data, doc_id)
-    
-    # Also save to RTDB for real-time updates
     rtdb_request('PUT', f'notifications/{user_id}/{doc_id}', notif_data)
 
 # ============================================
@@ -323,11 +352,10 @@ def dict_to_firestore(data):
                     values.append({'mapValue': {'fields': dict_to_firestore(v)}})
                 elif isinstance(v, str):
                     values.append({'stringValue': v})
-                elif isinstance(v, (int, float)):
-                    if isinstance(v, int):
-                        values.append({'integerValue': v})
-                    else:
-                        values.append({'doubleValue': v})
+                elif isinstance(v, int):
+                    values.append({'integerValue': v})
+                elif isinstance(v, float):
+                    values.append({'doubleValue': v})
                 else:
                     values.append({'stringValue': str(v)})
             result[key] = {'arrayValue': {'values': values}}
@@ -344,15 +372,12 @@ def index():
 
 @app.route('/<path:path>')
 def serve_static(path):
-    # Check if file exists
     if os.path.exists(path):
         return send_from_directory('.', path)
-    # Check if .html version exists
     if '.' not in path:
         html_path = f"{path}.html"
         if os.path.exists(html_path):
             return send_from_directory('.', html_path)
-    # Default to index.html
     return send_from_directory('.', 'index.html')
 
 # ============================================
@@ -398,13 +423,31 @@ def create_user():
     try:
         data = request.json
         user_id = data.get('userId')
+        email = data.get('email', '').strip()
+        full_name = data.get('fullName', '').strip()
         
         if not user_id:
             return jsonify({'success': False, 'error': 'User ID required'}), 400
         
+        if not email:
+            return jsonify({'success': False, 'error': 'Email required'}), 400
+        
         # Check if user exists
         existing = get_user(user_id)
         if existing:
+            # Update existing user with any new info
+            update_data = {}
+            if not existing.get('email') and email:
+                update_data['email'] = email
+            if not existing.get('fullName') and full_name:
+                update_data['fullName'] = full_name
+            if not existing.get('firstName') and data.get('firstName'):
+                update_data['firstName'] = data.get('firstName')
+            
+            if update_data:
+                save_user(user_id, update_data)
+                existing.update(update_data)
+            
             return jsonify({
                 'success': True,
                 'message': 'User already exists',
@@ -418,9 +461,9 @@ def create_user():
         
         user_data = {
             'userId': user_id,
-            'email': data.get('email', ''),
-            'fullName': data.get('fullName', ''),
-            'firstName': data.get('firstName', data.get('fullName', '').split(' ')[0] if data.get('fullName') else ''),
+            'email': email,
+            'fullName': full_name,
+            'firstName': data.get('firstName', full_name.split(' ')[0] if full_name else ''),
             'lastName': data.get('lastName', ''),
             'phone': data.get('phone', ''),
             'referralCode': referral_code,
@@ -439,20 +482,18 @@ def create_user():
             'lastLogin': get_timestamp()
         }
         
-        # Save to Firestore
         if save_user(user_id, user_data):
             # Handle referral
             referred_by = data.get('referredBy')
             if referred_by:
                 referrer = get_user(referred_by)
                 if referrer:
-                    # Create referral record
                     referral_data = {
                         'referrerId': referred_by,
                         'referrerName': referrer.get('fullName', referrer.get('email', referred_by)),
                         'referredUserId': user_id,
-                        'referredEmail': data.get('email', ''),
-                        'referredName': data.get('fullName', ''),
+                        'referredEmail': email,
+                        'referredName': full_name,
                         'bonusEarned': 0,
                         'pointsAwarded': 0,
                         'status': 'pending_first_deposit',
@@ -460,15 +501,13 @@ def create_user():
                     }
                     add_document('referrals', referral_data)
                     
-                    # Update referrer count
-                    current_count = referrer.get('referralCount', 0)
+                    current_count = referrer.get('referralCount', 0) or 0
                     save_user(referred_by, {'referralCount': current_count + 1})
                     
-                    # Notify referrer
                     add_notification(referred_by, 
-                        f"🎉 {data.get('fullName', 'New user')} joined using your referral link!", 
+                        f"🎉 {full_name or 'New user'} joined using your referral link!", 
                         'referral_signup',
-                        {'referredUserId': user_id, 'referredName': data.get('fullName', '')})
+                        {'referredUserId': user_id, 'referredName': full_name})
             
             return jsonify({
                 'success': True,
@@ -489,6 +528,10 @@ def get_user_api(user_id):
     try:
         user = get_user(user_id)
         if user:
+            # ALWAYS ensure email and name are present
+            user['email'] = user.get('email', '')
+            user['fullName'] = user.get('fullName', user.get('firstName', 'User'))
+            user['firstName'] = user.get('firstName', user.get('fullName', 'User'))
             user['referralLink'] = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
             user['totalBalance'] = (user.get('depositBalance', 0) or 0) + (user.get('taskEarnings', 0) or 0)
             user['userId'] = user_id
@@ -504,6 +547,8 @@ def get_user_balance(user_id):
         if user:
             return jsonify({
                 'success': True,
+                'email': user.get('email', ''),
+                'fullName': user.get('fullName', ''),
                 'depositBalance': user.get('depositBalance', 0) or 0,
                 'taskEarnings': user.get('taskEarnings', 0) or 0,
                 'totalBalance': (user.get('depositBalance', 0) or 0) + (user.get('taskEarnings', 0) or 0),
@@ -532,7 +577,6 @@ def update_user_balance(user_id):
         if value is None:
             return jsonify({'success': False, 'error': 'Value required'}), 400
         
-        # Allowed fields to update
         allowed_fields = [
             'depositBalance', 'taskEarnings', 'points', 
             'referralCount', 'referralBonus', 'totalReferralPoints',
@@ -546,12 +590,10 @@ def update_user_balance(user_id):
                 'error': f'Invalid field. Allowed: {", ".join(allowed_fields)}'
             }), 400
         
-        # Get existing user
         user = get_user(user_id)
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
-        # Convert value to appropriate type based on field
         try:
             if field in ['depositBalance', 'taskEarnings', 'referralBonus', 'totalReferralPoints']:
                 value = float(value)
@@ -564,13 +606,11 @@ def update_user_balance(user_id):
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': f'Invalid value type for {field}'}), 400
         
-        # Update the field
         update_data = {field: value}
         
         if save_user(user_id, update_data):
             print(f"✅ Updated {user_id}: {field} = {value}")
             
-            # Log the change
             try:
                 log_data = {
                     'userId': user_id,
@@ -605,21 +645,31 @@ def get_all_users_api():
         users = get_all_users()
         users_list = []
         for uid, data in users.items():
-            users_list.append({
+            # ALWAYS include email and fullName - these are required by all pages
+            user_entry = {
                 'userId': uid,
                 'email': data.get('email', ''),
-                'fullName': data.get('fullName', ''),
-                'firstName': data.get('firstName', ''),
+                'fullName': data.get('fullName', data.get('firstName', 'User')),
+                'firstName': data.get('firstName', data.get('fullName', '').split(' ')[0] if data.get('fullName') else ''),
+                'lastName': data.get('lastName', ''),
                 'depositBalance': data.get('depositBalance', 0) or 0,
                 'taskEarnings': data.get('taskEarnings', 0) or 0,
                 'points': data.get('points', 0) or 0,
                 'referralCount': data.get('referralCount', 0) or 0,
                 'referralCode': data.get('referralCode', ''),
+                'referredBy': data.get('referredBy'),
                 'status': data.get('status', 'active'),
                 'createdAt': data.get('createdAt', ''),
-                'firstDepositCompleted': data.get('firstDepositCompleted', False)
-            })
-        return jsonify({'success': True, 'users': users_list, 'total': len(users_list)})
+                'firstDepositCompleted': data.get('firstDepositCompleted', False),
+                'securityCode': data.get('securityCode', '')
+            }
+            users_list.append(user_entry)
+        
+        return jsonify({
+            'success': True, 
+            'users': users_list, 
+            'total': len(users_list)
+        })
     except Exception as e:
         print(f"Error getting all users: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -636,22 +686,41 @@ def login_user():
         if not email:
             return jsonify({'success': False, 'error': 'Email required'}), 400
         
-        # Search all users for matching email
         users = get_all_users()
         
         for uid, user_data in users.items():
-            if user_data.get('email', '').lower().strip() == email:
+            stored_email = (user_data.get('email') or '').lower().strip()
+            if stored_email == email:
                 # Update last login
                 save_user(uid, {'lastLogin': get_timestamp()})
-                user_data['userId'] = uid
-                user_data['referralLink'] = f"{request.host_url}?ref={user_data.get('referralCode', uid)}"
-                user_data['totalBalance'] = (user_data.get('depositBalance', 0) or 0) + (user_data.get('taskEarnings', 0) or 0)
+                
+                # Build complete user response
+                user_response = {
+                    'userId': uid,
+                    'email': user_data.get('email', email),
+                    'fullName': user_data.get('fullName', user_data.get('firstName', 'User')),
+                    'firstName': user_data.get('firstName', ''),
+                    'lastName': user_data.get('lastName', ''),
+                    'phone': user_data.get('phone', ''),
+                    'depositBalance': user_data.get('depositBalance', 0) or 0,
+                    'taskEarnings': user_data.get('taskEarnings', 0) or 0,
+                    'points': user_data.get('points', 0) or 0,
+                    'referralCount': user_data.get('referralCount', 0) or 0,
+                    'referralCode': user_data.get('referralCode', ''),
+                    'referredBy': user_data.get('referredBy'),
+                    'securityCode': user_data.get('securityCode', ''),
+                    'firstDepositCompleted': user_data.get('firstDepositCompleted', False),
+                    'status': user_data.get('status', 'active'),
+                    'referralLink': f"{request.host_url}?ref={user_data.get('referralCode', uid)}",
+                    'totalBalance': (user_data.get('depositBalance', 0) or 0) + (user_data.get('taskEarnings', 0) or 0)
+                }
+                
                 return jsonify({
                     'success': True,
                     'message': 'Login successful',
-                    'user': user_data,
-                    'referralCode': user_data.get('referralCode'),
-                    'securityCode': user_data.get('securityCode')
+                    'user': user_response,
+                    'referralCode': user_response['referralCode'],
+                    'securityCode': user_response['securityCode']
                 })
         
         return jsonify({'success': False, 'error': 'Email not found. Please register first.'}), 404
@@ -670,7 +739,6 @@ def validate_referral(code):
         if not code:
             return jsonify({'success': True, 'valid': False, 'message': 'No code provided'})
         
-        # Search all users for matching referral code
         users = get_all_users()
         
         for uid, user_data in users.items():
@@ -679,19 +747,18 @@ def validate_referral(code):
                     'success': True,
                     'valid': True,
                     'referrerId': uid,
-                    'referrerName': user_data.get('firstName', user_data.get('fullName', 'User')),
+                    'referrerName': user_data.get('fullName', user_data.get('firstName', 'User')),
                     'referrerEmail': user_data.get('email', ''),
                     'referralCode': code
                 })
         
-        # Also check if code is a user ID
         user = get_user(code)
         if user:
             return jsonify({
                 'success': True,
                 'valid': True,
                 'referrerId': code,
-                'referrerName': user.get('firstName', user.get('fullName', 'User')),
+                'referrerName': user.get('fullName', user.get('firstName', 'User')),
                 'referrerEmail': user.get('email', ''),
                 'referralCode': user.get('referralCode', code)
             })
@@ -716,7 +783,6 @@ def get_referral_stats(user_id):
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
-        # Get all referrals for this user
         all_referrals = get_collection('referrals')
         user_referrals = [r for r in all_referrals if r.get('referrerId') == user_id]
         
@@ -724,7 +790,6 @@ def get_referral_stats(user_id):
         active_referrals = len([r for r in user_referrals if r.get('status') == 'active'])
         pending_referrals = len([r for r in user_referrals if r.get('status') == 'pending_first_deposit'])
         
-        # Calculate bonuses
         total_bonus = sum(r.get('bonusEarned', 0) or 0 for r in user_referrals)
         total_points = sum(r.get('pointsAwarded', 0) or 0 for r in user_referrals)
         
@@ -785,7 +850,7 @@ def submit_deposit():
         deposit_data = {
             'userId': user_id,
             'userEmail': user.get('email', ''),
-            'userName': user.get('fullName', ''),
+            'userName': user.get('fullName', user.get('firstName', 'User')),
             'amount': amount,
             'method': method,
             'reference': reference,
@@ -797,7 +862,6 @@ def submit_deposit():
         
         deposit_id = add_document('deposits', deposit_data)
         
-        # Notify user
         add_notification(user_id, 
             f'💰 Deposit of {amount} USDT submitted via {method}. Pending approval.', 
             'deposit',
@@ -846,7 +910,6 @@ def get_all_deposits():
 @app.route('/api/deposit/<deposit_id>/approve', methods=['POST'])
 def approve_deposit(deposit_id):
     try:
-        # Get deposit
         deposits = get_collection('deposits')
         deposit = next((d for d in deposits if d.get('id') == deposit_id), None)
         
@@ -857,13 +920,11 @@ def approve_deposit(deposit_id):
         amount = deposit.get('amount', 0)
         is_first_deposit = deposit.get('isFirstDeposit', False)
         
-        # Update deposit status
         update_document('deposits', deposit_id, {
             'status': 'approved',
             'approvedAt': get_timestamp()
         })
         
-        # Update user balance
         user = get_user(user_id)
         if user:
             current_balance = user.get('depositBalance', 0) or 0
@@ -874,7 +935,6 @@ def approve_deposit(deposit_id):
             if is_first_deposit and not user.get('firstDepositCompleted', False):
                 update_data['firstDepositCompleted'] = True
                 
-                # Process referral bonus
                 referred_by = user.get('referredBy')
                 if referred_by:
                     referrer = get_user(referred_by)
@@ -882,7 +942,6 @@ def approve_deposit(deposit_id):
                         bonus_amount = calculate_referral_bonus(amount)
                         points_awarded = round(amount * REFERRAL_POINTS_PERCENTAGE / 100, 2)
                         
-                        # Update referrer
                         ref_deposit_balance = referrer.get('depositBalance', 0) or 0
                         ref_bonus = referrer.get('referralBonus', 0) or 0
                         ref_points = referrer.get('points', 0) or 0
@@ -895,7 +954,6 @@ def approve_deposit(deposit_id):
                             'points': ref_points + points_awarded
                         })
                         
-                        # Update referral record
                         all_referrals = get_collection('referrals')
                         for ref in all_referrals:
                             if ref.get('referrerId') == referred_by and ref.get('referredUserId') == user_id:
@@ -907,13 +965,11 @@ def approve_deposit(deposit_id):
                                 })
                                 break
                         
-                        # Notifications
                         add_notification(referred_by,
                             f"🎉 Referral Bonus! {user.get('fullName', 'User')} deposited ${amount}. You earned ${bonus_amount} + {points_awarded} points!",
                             'referral_bonus',
                             {'amount': bonus_amount, 'points': points_awarded})
                 
-                # Welcome bonus for new user
                 user_points = user.get('points', 0) or 0
                 update_data['points'] = user_points + 0.5
                 
@@ -924,7 +980,6 @@ def approve_deposit(deposit_id):
             
             save_user(user_id, update_data)
         
-        # Notify user
         add_notification(user_id,
             f'✅ Deposit of {amount} USDT approved! Funds added to your balance.',
             'deposit_approved',
@@ -987,7 +1042,6 @@ def submit_withdrawal():
         if amount > total_balance:
             return jsonify({'success': False, 'error': 'Insufficient balance'}), 400
         
-        # Deduct from balance (taskEarnings first, then depositBalance)
         task_earnings = user.get('taskEarnings', 0) or 0
         deposit_balance = user.get('depositBalance', 0) or 0
         
@@ -1000,7 +1054,6 @@ def submit_withdrawal():
                 'depositBalance': deposit_balance - remaining
             })
         
-        # Convert details to string if it's a dict
         if isinstance(details, dict):
             details_str = json.dumps(details)
         else:
@@ -1009,7 +1062,7 @@ def submit_withdrawal():
         withdrawal_data = {
             'userId': user_id,
             'userEmail': user.get('email', ''),
-            'userName': user.get('fullName', ''),
+            'userName': user.get('fullName', user.get('firstName', 'User')),
             'amount': amount,
             'method': method,
             'details': details_str,
@@ -1088,7 +1141,6 @@ def reject_withdrawal(withdrawal_id):
         withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
         
         if withdrawal:
-            # Refund amount to depositBalance
             user = get_user(withdrawal.get('userId'))
             if user:
                 current_balance = user.get('depositBalance', 0) or 0
@@ -1140,7 +1192,6 @@ def buy_investment():
         if user_balance < product['price']:
             return jsonify({'success': False, 'error': 'Insufficient deposit balance'}), 400
         
-        # Deduct balance
         save_user(user_id, {
             'depositBalance': user_balance - product['price']
         })
@@ -1221,20 +1272,17 @@ def claim_daily():
         if investment.get('status') != 'active':
             return jsonify({'success': False, 'error': 'Investment is not active'}), 400
         
-        # Calculate earnings
         if investment.get('isFixed'):
             earnings = float(investment.get('dailyEarnings', 0))
         else:
             earnings = (float(investment.get('amount', 0)) * float(investment.get('dailyEarnings', 0))) / 100
         
-        # Update investment
         total_earned = (investment.get('totalEarned', 0) or 0) + earnings
         update_document('investments', investment_id, {
             'totalEarned': total_earned,
             'lastClaimDate': get_timestamp()
         })
         
-        # Update user balance
         user = get_user(user_id)
         if user:
             current_earnings = user.get('taskEarnings', 0) or 0
@@ -1391,33 +1439,37 @@ if __name__ == '__main__':
     print("=" * 60)
     print("🚀 SAFE Platform v3.0 - Firebase REST API")
     print(f"📍 Port: {port}")
-    print(f"🗄️  Database: Firebase Firestore (REST)")
+    print(f"🗄️  Database: Firebase Firestore + RTDB (REST API)")
     print(f"📱 Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
     print(f"💎 Wallet: {WALLET_ADDRESS}")
     print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}%")
     print(f"💰 Min Deposit: ${MIN_DEPOSIT} | Min Withdraw: ${MIN_WITHDRAW}")
     print("=" * 60)
-    print("📡 API Endpoints:")
-    print("   POST /api/user/create          - Create user")
-    print("   POST /api/user/login           - Login by email")
-    print("   GET  /api/user/<id>            - Get user")
-    print("   GET  /api/user/<id>/balance    - Get user balance")
-    print("   POST /api/user/<id>/update     - Update user (Balance Manager)")
-    print("   GET  /api/users/all            - Get all users")
-    print("   POST /api/deposit              - Submit deposit")
-    print("   GET  /api/deposit/all          - Get all deposits")
-    print("   POST /api/deposit/<id>/approve - Approve deposit")
-    print("   POST /api/deposit/<id>/reject  - Reject deposit")
-    print("   POST /api/withdraw             - Submit withdrawal")
-    print("   GET  /api/withdraw/all         - Get all withdrawals")
-    print("   POST /api/withdraw/<id>/approve- Approve withdrawal")
-    print("   POST /api/withdraw/<id>/reject - Reject withdrawal")
-    print("   GET  /api/referral/all         - Get all referrals")
-    print("   GET  /api/referral/check/<code>- Validate referral")
-    print("   GET  /api/referral/stats/<id>  - Referral stats")
-    print("   GET  /api/notifications/<id>   - Get notifications")
-    print("   POST /api/notifications/read-all- Mark all read")
-    print("   GET  /api/admin/stats          - Admin dashboard stats")
+    print("📡 All API Endpoints Ready:")
+    print("   ✅ POST /api/user/create")
+    print("   ✅ POST /api/user/login")
+    print("   ✅ GET  /api/user/<id>")
+    print("   ✅ POST /api/user/<id>/update")
+    print("   ✅ GET  /api/users/all")
+    print("   ✅ POST /api/deposit")
+    print("   ✅ GET  /api/deposit/all")
+    print("   ✅ POST /api/deposit/<id>/approve")
+    print("   ✅ POST /api/deposit/<id>/reject")
+    print("   ✅ POST /api/withdraw")
+    print("   ✅ GET  /api/withdraw/all")
+    print("   ✅ POST /api/withdraw/<id>/approve")
+    print("   ✅ POST /api/withdraw/<id>/reject")
+    print("   ✅ GET  /api/referral/all")
+    print("   ✅ GET  /api/referral/check/<code>")
+    print("   ✅ GET  /api/referral/stats/<id>")
+    print("   ✅ GET  /api/products")
+    print("   ✅ POST /api/investment/buy")
+    print("   ✅ GET  /api/investment/<id>")
+    print("   ✅ POST /api/daily/claim")
+    print("   ✅ GET  /api/notifications/<id>")
+    print("   ✅ POST /api/notifications/read-all")
+    print("   ✅ GET  /api/security/<id>")
+    print("   ✅ GET  /api/admin/stats")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=True)
