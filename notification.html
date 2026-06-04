@@ -64,6 +64,7 @@
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .nav-actions {
@@ -86,20 +87,6 @@
         .nav-btn:hover {
             background: var(--light);
             color: var(--primary);
-        }
-
-        .badge {
-            position: absolute;
-            top: 0;
-            right: 2px;
-            background: var(--danger);
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            min-width: 18px;
-            text-align: center;
-            font-weight: 700;
         }
 
         .container {
@@ -181,6 +168,27 @@
             transform: none;
         }
 
+        .btn-refresh {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-refresh:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
         .filter-tabs {
             display: flex;
             background: white;
@@ -231,7 +239,6 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: all 0.3s;
             border-left: 4px solid transparent;
-            cursor: pointer;
         }
 
         .notification-item:hover {
@@ -248,11 +255,16 @@
             opacity: 0.7;
         }
 
-        .notification-item.type-referral { border-left-color: var(--success); }
+        .notification-item.type-referral_signup { border-left-color: #17a2b8; }
+        .notification-item.type-referral_bonus { border-left-color: var(--success); }
+        .notification-item.type-welcome_bonus { border-left-color: #6f42c1; }
         .notification-item.type-deposit { border-left-color: #17a2b8; }
+        .notification-item.type-deposit_approved { border-left-color: var(--success); }
+        .notification-item.type-deposit_rejected { border-left-color: var(--danger); }
         .notification-item.type-withdrawal { border-left-color: var(--warning); }
+        .notification-item.type-withdrawal_approved { border-left-color: var(--success); }
+        .notification-item.type-withdrawal_rejected { border-left-color: var(--danger); }
         .notification-item.type-system { border-left-color: #6f42c1; }
-        .notification-item.type-referral_bonus { border-left-color: #28a745; }
 
         .notification-header {
             display: flex;
@@ -276,9 +288,14 @@
             text-align: center;
         }
 
-        .type-referral i, .type-referral_bonus i { color: var(--success); }
+        .type-referral_signup i { color: #17a2b8; }
+        .type-referral_bonus i, .type-welcome_bonus i { color: var(--success); }
         .type-deposit i { color: #17a2b8; }
+        .type-deposit_approved i { color: var(--success); }
+        .type-deposit_rejected i { color: var(--danger); }
         .type-withdrawal i { color: var(--warning); }
+        .type-withdrawal_approved i { color: var(--success); }
+        .type-withdrawal_rejected i { color: var(--danger); }
         .type-system i { color: #6f42c1; }
 
         .notification-time {
@@ -291,7 +308,7 @@
             font-size: 0.85em;
             color: var(--gray);
             line-height: 1.5;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .notification-message .amount {
@@ -304,40 +321,23 @@
             font-weight: 600;
         }
 
-        .notification-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .read-btn {
-            background: none;
-            border: 1px solid #e1e5e9;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.75em;
-            cursor: pointer;
-            color: var(--gray);
-            transition: all 0.3s;
-        }
-
-        .read-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: var(--primary);
             display: inline-block;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
 
         .notification-item.read .status-dot {
             background: #ddd;
+            animation: none;
         }
 
         .empty-state {
@@ -397,6 +397,7 @@
             z-index: 1000;
             animation: slideUp 0.3s ease;
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            white-space: nowrap;
         }
 
         @keyframes slideUp {
@@ -424,12 +425,12 @@
 <body>
     <!-- Top Navigation -->
     <nav class="top-nav">
-        <a href="/home" class="back-btn">
+        <a href="home.html" class="back-btn">
             <i class="fas fa-arrow-left"></i>
         </a>
         <span class="nav-brand">Notifications</span>
         <div class="nav-actions">
-            <a href="/home" class="nav-btn">
+            <a href="home.html" class="nav-btn">
                 <i class="fas fa-home"></i>
             </a>
         </div>
@@ -450,10 +451,13 @@
             </div>
         </div>
 
-        <!-- Mark All Read Button -->
+        <!-- Action Bar -->
         <div class="action-bar">
             <button class="btn-mark-all" id="markAllBtn" onclick="markAllAsRead()" disabled>
-                <i class="fas fa-check-double"></i> Mark All as Read
+                <i class="fas fa-check-double"></i> Mark All Read
+            </button>
+            <button class="btn-refresh" onclick="refreshNotifications()">
+                <i class="fas fa-sync-alt"></i>
             </button>
         </div>
 
@@ -468,8 +472,8 @@
             <button class="filter-tab" onclick="filterNotifications('referral')">
                 Referrals <span class="count" id="countReferral">0</span>
             </button>
-            <button class="filter-tab" onclick="filterNotifications('system')">
-                System <span class="count" id="countSystem">0</span>
+            <button class="filter-tab" onclick="filterNotifications('withdrawal')">
+                Withdrawals <span class="count" id="countWithdrawal">0</span>
             </button>
         </div>
 
@@ -490,7 +494,9 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
-        // Firebase Config
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
             authDomain: "webapp-fc856.firebaseapp.com",
@@ -500,70 +506,58 @@
             appId: "1:892830607693:web:a3a886c142586665fc2f04"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // ============================================
+        // CONFIGURATION
+        // ============================================
         const API_BASE = window.location.origin;
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
         let currentUser = null;
         let allNotifications = [];
         let currentFilter = 'all';
 
         // ============================================
-        // INITIALIZATION
+        // AUTH CHECK
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUser = {
-                        userId: user.uid,
-                        email: user.email,
-                        firstName: user.displayName || user.email?.split('@')[0] || 'User'
-                    };
-                    
-                    // Also check localStorage
-                    const storedUser = localStorage.getItem('currentUser');
-                    if (storedUser) {
-                        try {
-                            const parsed = JSON.parse(storedUser);
-                            currentUser = { ...currentUser, ...parsed };
-                        } catch (e) {}
-                    }
-                    
-                    document.getElementById('userInfo').textContent = 
-                        `User: ${currentUser.firstName || currentUser.email}`;
-                    
-                    await loadNotifications();
-                } else {
-                    // Check localStorage fallback
-                    const storedUser = localStorage.getItem('currentUser');
-                    if (storedUser) {
-                        try {
-                            currentUser = JSON.parse(storedUser);
-                            document.getElementById('userInfo').textContent = 
-                                `User: ${currentUser.firstName || currentUser.email}`;
-                            await loadNotifications();
-                        } catch (e) {
-                            window.location.href = '/';
-                        }
-                    } else {
-                        window.location.href = '/';
-                    }
-                }
-            });
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            console.log('👤 Logged in:', currentUser.uid);
+            
+            document.getElementById('userInfo').textContent = 
+                `User: ${user.email?.split('@')[0] || 'User'}`;
+            
+            await loadNotifications();
         });
 
         // ============================================
         // LOAD NOTIFICATIONS FROM SERVER
         // ============================================
         async function loadNotifications() {
-            if (!currentUser || !currentUser.userId) return;
+            if (!currentUser) return;
 
             try {
-                const response = await fetch(`${API_BASE}/api/notifications/${currentUser.userId}`);
+                const response = await fetch(`${API_BASE}/api/notifications/${currentUser.uid}`);
                 const data = await response.json();
 
                 if (data.success) {
                     allNotifications = data.notifications || [];
+                    
+                    // Sort by timestamp descending
+                    allNotifications.sort((a, b) => {
+                        const dateA = new Date(a.timestamp || 0);
+                        const dateB = new Date(b.timestamp || 0);
+                        return dateB - dateA;
+                    });
                     
                     // Update counts
                     updateCounts();
@@ -595,20 +589,28 @@
         }
 
         // ============================================
+        // REFRESH NOTIFICATIONS
+        // ============================================
+        async function refreshNotifications() {
+            showToast('🔄 Refreshing...');
+            await loadNotifications();
+        }
+
+        // ============================================
         // UPDATE COUNTS
         // ============================================
         function updateCounts() {
             const counts = {
                 all: allNotifications.length,
-                deposit: allNotifications.filter(n => n.type && (n.type.includes('deposit'))).length,
-                referral: allNotifications.filter(n => n.type && (n.type.includes('referral'))).length,
-                system: allNotifications.filter(n => n.type && (n.type.includes('system') || !n.type.includes('deposit') && !n.type.includes('referral'))).length
+                deposit: allNotifications.filter(n => n.type && n.type.includes('deposit')).length,
+                referral: allNotifications.filter(n => n.type && n.type.includes('referral')).length,
+                withdrawal: allNotifications.filter(n => n.type && n.type.includes('withdrawal')).length
             };
 
             document.getElementById('countAll').textContent = counts.all;
             document.getElementById('countDeposit').textContent = counts.deposit;
             document.getElementById('countReferral').textContent = counts.referral;
-            document.getElementById('countSystem').textContent = counts.system;
+            document.getElementById('countWithdrawal').textContent = counts.withdrawal;
         }
 
         // ============================================
@@ -623,7 +625,7 @@
                 filtered = allNotifications.filter(n => {
                     if (currentFilter === 'deposit') return n.type && n.type.includes('deposit');
                     if (currentFilter === 'referral') return n.type && n.type.includes('referral');
-                    if (currentFilter === 'system') return n.type && !n.type.includes('deposit') && !n.type.includes('referral');
+                    if (currentFilter === 'withdrawal') return n.type && n.type.includes('withdrawal');
                     return true;
                 });
             }
@@ -635,17 +637,16 @@
                 return;
             }
 
-            container.innerHTML = filtered.map((notif, index) => {
+            container.innerHTML = filtered.map(notif => {
                 const isRead = notif.read || false;
                 const date = notif.timestamp ? new Date(notif.timestamp) : new Date();
                 const timeStr = formatTime(date);
                 const typeInfo = getTypeInfo(notif);
                 
                 return `
-                    <div class="notification-item ${isRead ? 'read' : 'unread'} type-${typeInfo.type}" 
-                         onclick="markAsRead(${index})">
+                    <div class="notification-item ${isRead ? 'read' : 'unread'} type-${typeInfo.cssClass}">
                         <div class="notification-header">
-                            <div class="notification-type type-${typeInfo.type}">
+                            <div class="notification-type type-${typeInfo.cssClass}">
                                 <i class="${typeInfo.icon}"></i>
                                 ${typeInfo.label}
                                 ${!isRead ? '<span class="status-dot"></span>' : ''}
@@ -655,14 +656,6 @@
                         <div class="notification-message">
                             ${formatMessage(notif.message, notif)}
                         </div>
-                        ${!isRead ? `
-                            <div class="notification-footer">
-                                <span style="font-size: 0.7em; color: var(--primary);">● New</span>
-                                <button class="read-btn" onclick="event.stopPropagation(); markAsRead(${index})">
-                                    <i class="fas fa-check"></i> Mark Read
-                                </button>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -674,26 +667,26 @@
         function getTypeInfo(notif) {
             const type = notif.type || 'system';
             
-            if (type.includes('referral_bonus')) {
-                return { type: 'referral_bonus', icon: 'fas fa-gift', label: 'Referral Bonus' };
-            } else if (type.includes('referral_signup')) {
-                return { type: 'referral', icon: 'fas fa-user-plus', label: 'New Referral' };
-            } else if (type.includes('referral_welcome')) {
-                return { type: 'referral', icon: 'fas fa-star', label: 'Welcome Bonus' };
-            } else if (type.includes('deposit_approved')) {
-                return { type: 'deposit', icon: 'fas fa-check-circle', label: 'Deposit Approved' };
-            } else if (type.includes('deposit_rejected')) {
-                return { type: 'deposit', icon: 'fas fa-times-circle', label: 'Deposit Rejected' };
-            } else if (type.includes('deposit')) {
-                return { type: 'deposit', icon: 'fas fa-arrow-down', label: 'Deposit' };
-            } else if (type.includes('withdrawal_approved')) {
-                return { type: 'withdrawal', icon: 'fas fa-check-circle', label: 'Withdrawal Approved' };
-            } else if (type.includes('withdrawal_rejected')) {
-                return { type: 'withdrawal', icon: 'fas fa-times-circle', label: 'Withdrawal Rejected' };
-            } else if (type.includes('withdrawal')) {
-                return { type: 'withdrawal', icon: 'fas fa-arrow-up', label: 'Withdrawal' };
+            if (type === 'referral_signup') {
+                return { cssClass: 'referral_signup', icon: 'fas fa-user-plus', label: 'New Referral' };
+            } else if (type === 'referral_bonus') {
+                return { cssClass: 'referral_bonus', icon: 'fas fa-gift', label: 'Referral Bonus' };
+            } else if (type === 'welcome_bonus') {
+                return { cssClass: 'welcome_bonus', icon: 'fas fa-star', label: 'Welcome Bonus' };
+            } else if (type === 'deposit') {
+                return { cssClass: 'deposit', icon: 'fas fa-arrow-down', label: 'Deposit Pending' };
+            } else if (type === 'deposit_approved') {
+                return { cssClass: 'deposit_approved', icon: 'fas fa-check-circle', label: 'Deposit Approved' };
+            } else if (type === 'deposit_rejected') {
+                return { cssClass: 'deposit_rejected', icon: 'fas fa-times-circle', label: 'Deposit Rejected' };
+            } else if (type === 'withdrawal') {
+                return { cssClass: 'withdrawal', icon: 'fas fa-arrow-up', label: 'Withdrawal Pending' };
+            } else if (type === 'withdrawal_approved') {
+                return { cssClass: 'withdrawal_approved', icon: 'fas fa-check-circle', label: 'Withdrawal Approved' };
+            } else if (type === 'withdrawal_rejected') {
+                return { cssClass: 'withdrawal_rejected', icon: 'fas fa-times-circle', label: 'Withdrawal Rejected' };
             } else {
-                return { type: 'system', icon: 'fas fa-bell', label: 'System' };
+                return { cssClass: 'system', icon: 'fas fa-bell', label: 'System' };
             }
         }
 
@@ -703,91 +696,53 @@
         function formatMessage(message, notif) {
             if (!message) return 'No message';
             
+            // Escape HTML first
+            const div = document.createElement('div');
+            div.textContent = message;
+            let formatted = div.innerHTML;
+            
             // Highlight amounts
-            let formatted = message.replace(/(\d+\.?\d*\s*(?:USDT|Birr|points?))/gi, 
+            formatted = formatted.replace(/(\d+\.?\d*\s*(?:USDT|Birr|points?))/gi, 
                 '<span class="amount">$1</span>');
             
-            // Highlight names/emails
-            formatted = formatted.replace(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?=\s(?:made|joined|from))/g,
+            // Highlight names
+            formatted = formatted.replace(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?=\s(?:made|joined|from|deposited))/g,
                 '<span class="highlight">$1</span>');
             
             return formatted;
         }
 
         // ============================================
-        // MARK AS READ
-        // ============================================
-        async function markAsRead(index) {
-            if (!currentUser || !currentUser.userId) return;
-            
-            try {
-                // Get the actual notification from filtered list
-                let filtered = allNotifications;
-                if (currentFilter !== 'all') {
-                    filtered = allNotifications.filter(n => {
-                        if (currentFilter === 'deposit') return n.type && n.type.includes('deposit');
-                        if (currentFilter === 'referral') return n.type && n.type.includes('referral');
-                        if (currentFilter === 'system') return n.type && !n.type.includes('deposit') && !n.type.includes('referral');
-                        return true;
-                    });
-                }
-                
-                const notif = filtered[index];
-                if (!notif) return;
-                
-                // Find in all notifications and mark as read
-                const allIndex = allNotifications.findIndex(n => 
-                    n.timestamp === notif.timestamp && n.message === notif.message
-                );
-                
-                if (allIndex !== -1) {
-                    allNotifications[allIndex].read = true;
-                }
-                
-                // Call API to mark as read
-                await fetch(`${API_BASE}/api/notification/read`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUser.userId,
-                        index: allIndex
-                    })
-                });
-                
-                // Reload notifications
-                await loadNotifications();
-                
-                showToast('✅ Marked as read');
-                
-            } catch (err) {
-                console.error('Error marking as read:', err);
-            }
-        }
-
-        // ============================================
-        // MARK ALL AS READ
+        // MARK ALL AS READ VIA SERVER API
         // ============================================
         async function markAllAsRead() {
-            if (!currentUser || !currentUser.userId) return;
+            if (!currentUser) return;
+            
+            const btn = document.getElementById('markAllBtn');
+            btn.disabled = true;
             
             try {
-                await fetch(`${API_BASE}/api/notifications/read-all`, {
+                const response = await fetch(`${API_BASE}/api/notifications/read-all`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: currentUser.userId
+                        userId: currentUser.uid
                     })
                 });
                 
-                // Mark all as read locally
-                allNotifications.forEach(n => n.read = true);
+                const data = await response.json();
                 
-                await loadNotifications();
-                showToast('✅ All notifications marked as read');
+                if (data.success) {
+                    showToast('✅ All notifications marked as read');
+                    await loadNotifications();
+                } else {
+                    throw new Error('Failed');
+                }
                 
             } catch (err) {
                 console.error('Error marking all as read:', err);
                 showToast('❌ Error marking all as read');
+                btn.disabled = false;
             }
         }
 
@@ -800,7 +755,7 @@
             // Update active tab
             document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
             const tabButtons = document.querySelectorAll('.filter-tab');
-            const tabIndex = { all: 0, deposit: 1, referral: 2, system: 3 };
+            const tabIndex = { all: 0, deposit: 1, referral: 2, withdrawal: 3 };
             if (tabButtons[tabIndex[filter]]) {
                 tabButtons[tabIndex[filter]].classList.add('active');
             }
@@ -847,10 +802,16 @@
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.style.display = 'block';
+            toast.style.opacity = '1';
             
             clearTimeout(window._toastTimeout);
             window._toastTimeout = setTimeout(() => {
-                toast.style.display = 'none';
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => { 
+                    toast.style.display = 'none'; 
+                    toast.style.transition = '';
+                }, 300);
             }, 3000);
         }
 
@@ -858,10 +819,11 @@
         // GLOBAL EXPORTS
         // ============================================
         window.filterNotifications = filterNotifications;
-        window.markAsRead = markAsRead;
         window.markAllAsRead = markAllAsRead;
+        window.refreshNotifications = refreshNotifications;
 
-        console.log('✅ Notifications page ready');
+        console.log('✅ Notifications page ready - Using server API');
+        console.log('🔗 API Base:', API_BASE);
     </script>
 </body>
 </html>
