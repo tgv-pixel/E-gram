@@ -290,6 +290,33 @@
             box-shadow: none !important;
         }
 
+        .buy-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .buy-btn .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        .buy-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .buy-btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Active Products Section */
         .active-section {
             margin-top: 25px;
@@ -445,6 +472,23 @@
             font-weight: 600;
         }
 
+        /* Loading */
+        .loading-box {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+        }
+
+        .spinner-big {
+            width: 35px;
+            height: 35px;
+            border: 3px solid #e1e5e9;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .container {
@@ -473,9 +517,9 @@
 
         <!-- Balance -->
         <div class="balance-card">
-            <div class="balance-label">Your Balance</div>
+            <div class="balance-label">Deposit Balance</div>
             <div class="balance-amount" id="depositBalance">0.00</div>
-            <div class="balance-sub">USDT</div>
+            <div class="balance-sub">USDT (For Investment)</div>
         </div>
 
         <!-- Category Tabs -->
@@ -491,140 +535,9 @@
         <!-- Alert -->
         <div id="alertMessage" class="alert"></div>
 
-        <!-- Basic Products -->
-        <div id="basic-products" class="products-container active">
-            <div class="product-card basic">
-                <div class="product-header">
-                    <div class="product-name">Level 1</div>
-                    <div class="product-price">30 USDT</div>
-                </div>
-                <span class="roi-badge">480% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 144 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('Level 1', 30, 4, 120, false, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-
-            <div class="product-card basic">
-                <div class="product-header">
-                    <div class="product-name">Level 2</div>
-                    <div class="product-price">50 USDT</div>
-                </div>
-                <span class="roi-badge">480% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 240 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('Level 2', 50, 4, 120, false, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-
-            <div class="product-card basic">
-                <div class="product-header">
-                    <div class="product-name">Level 3</div>
-                    <div class="product-price">100 USDT</div>
-                </div>
-                <span class="roi-badge">480% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Daily 4% interest</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 120 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: 480 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('Level 3', 100, 4, 120, false, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- VIP Products -->
-        <div id="vip-products" class="products-container">
-            <div class="product-card vip">
-                <div class="vip-badge">VIP</div>
-                <div class="product-header">
-                    <div class="product-name">VIP 1</div>
-                    <div class="product-price">300 USDT</div>
-                </div>
-                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 15 USDT daily</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 1,950 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('VIP 1', 300, 15, 130, true, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-
-            <div class="product-card vip">
-                <div class="vip-badge">VIP</div>
-                <div class="product-header">
-                    <div class="product-name">VIP 2</div>
-                    <div class="product-price">500 USDT</div>
-                </div>
-                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 25 USDT daily</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 3,250 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('VIP 2', 500, 25, 130, true, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-
-            <div class="product-card vip">
-                <div class="vip-badge">VIP</div>
-                <div class="product-header">
-                    <div class="product-name">VIP 3</div>
-                    <div class="product-price">1000 USDT</div>
-                </div>
-                <span class="roi-badge" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">650% Total Return</span>
-                <div class="features-list">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> Fixed 50 USDT daily</div>
-                    <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: 130 days</div>
-                    <div class="feature-item highlight"><i class="fas fa-crown"></i> Total: 6,500 USDT</div>
-                </div>
-                <div class="buy-options">
-                    <button class="buy-btn balance" onclick="buyProduct('VIP 3', 1000, 50, 130, true, 'balance')">
-                        <i class="fas fa-wallet"></i> Buy Now
-                    </button>
-                    <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Products loaded via API -->
+        <div id="basic-products" class="products-container active"></div>
+        <div id="vip-products" class="products-container"></div>
 
         <!-- Active Products -->
         <div class="active-section">
@@ -650,47 +563,152 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDK (ES Module - matching other pages) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
-    <script>
-        // Firebase Configuration
+        // ============================================
+        // FIREBASE CONFIG
+        // ============================================
         const firebaseConfig = {
-  apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
-  authDomain: "webapp-fc856.firebaseapp.com",
-  projectId: "webapp-fc856",
-  storageBucket: "webapp-fc856.firebasestorage.app",
-  messagingSenderId: "892830607693",
-  appId: "1:892830607693:web:a3a886c142586665fc2f04",
-  measurementId: "G-BR4FLD1N6F"
-};
+            apiKey: "AIzaSyD4t4GUzN1xkyia0o3zx9i2cX2004Epv7A",
+            authDomain: "webapp-fc856.firebaseapp.com",
+            projectId: "webapp-fc856",
+            storageBucket: "webapp-fc856.appspot.com",
+            messagingSenderId: "892830607693",
+            appId: "1:892830607693:web:a3a886c142586665fc2f04"
+        };
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_BASE = window.location.origin;
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
         let currentUser = null;
         let userDepositBalance = 0;
+        let productsList = [];
+        let activeInvestments = [];
 
-        // Auth Check
-        auth.onAuthStateChanged((user) => {
+        // ============================================
+        // PRODUCTS DATA (matches server.py)
+        // ============================================
+        const DEFAULT_PRODUCTS = [
+            { name: 'Level 1', price: 30, dailyEarnings: 4, duration: 120, isFixed: false, category: 'basic' },
+            { name: 'Level 2', price: 50, dailyEarnings: 4, duration: 120, isFixed: false, category: 'basic' },
+            { name: 'Level 3', price: 100, dailyEarnings: 4, duration: 120, isFixed: false, category: 'basic' },
+            { name: 'VIP 1', price: 300, dailyEarnings: 15, duration: 130, isFixed: true, category: 'vip' },
+            { name: 'VIP 2', price: 500, dailyEarnings: 25, duration: 130, isFixed: true, category: 'vip' },
+            { name: 'VIP 3', price: 1000, dailyEarnings: 50, duration: 130, isFixed: true, category: 'vip' }
+        ];
+
+        // ============================================
+        // AUTH CHECK
+        // ============================================
+        onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
             currentUser = user;
-            loadUserData();
-            loadActiveProducts();
+            console.log('👤 Logged in:', currentUser.uid);
+            
+            await loadProducts();
+            await loadUserData();
+            await loadActiveInvestments();
         });
 
-        // Load User Balance
+        // ============================================
+        // LOAD PRODUCTS FROM SERVER
+        // ============================================
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/products`);
+                const data = await response.json();
+                
+                if (data.success && data.products) {
+                    productsList = data.products;
+                } else {
+                    productsList = DEFAULT_PRODUCTS;
+                }
+                
+                renderProducts();
+            } catch (err) {
+                console.error('Error loading products, using defaults:', err);
+                productsList = DEFAULT_PRODUCTS;
+                renderProducts();
+            }
+        }
+
+        // ============================================
+        // RENDER PRODUCTS
+        // ============================================
+        function renderProducts() {
+            const basicProducts = productsList.filter(p => p.category === 'basic');
+            const vipProducts = productsList.filter(p => p.category === 'vip');
+            
+            document.getElementById('basic-products').innerHTML = basicProducts.map(p => createProductCard(p, 'basic')).join('');
+            document.getElementById('vip-products').innerHTML = vipProducts.map(p => createProductCard(p, 'vip')).join('');
+        }
+
+        function createProductCard(product, type) {
+            const totalReturn = product.isFixed 
+                ? product.dailyEarnings * product.duration 
+                : (product.price * product.dailyEarnings / 100) * product.duration;
+            
+            const roiPercent = ((totalReturn / product.price) * 100).toFixed(0);
+            const dailyDisplay = product.isFixed 
+                ? `${product.dailyEarnings} USDT daily` 
+                : `${product.dailyEarnings}% daily`;
+            
+            const vipBadgeHTML = type === 'vip' ? '<div class="vip-badge">VIP</div>' : '';
+            const roiBadgeStyle = type === 'vip' 
+                ? 'style="background: linear-gradient(135deg, #ffc107, #fd7e14);"' 
+                : '';
+            
+            return `
+                <div class="product-card ${type}">
+                    ${vipBadgeHTML}
+                    <div class="product-header">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">${product.price} USDT</div>
+                    </div>
+                    <span class="roi-badge" ${roiBadgeStyle}>${roiPercent}% Total Return</span>
+                    <div class="features-list">
+                        <div class="feature-item"><i class="fas fa-check-circle"></i> ${dailyDisplay}</div>
+                        <div class="feature-item"><i class="fas fa-calendar-check"></i> Duration: ${product.duration} days</div>
+                        <div class="feature-item highlight"><i class="fas fa-coins"></i> Total: ${totalReturn.toFixed(0)} USDT</div>
+                    </div>
+                    <div class="buy-options">
+                        <button class="buy-btn balance" id="buy-btn-${product.name.replace(/\s+/g, '-')}" 
+                            onclick="buyProduct('${product.name}', ${product.price}, ${product.dailyEarnings}, ${product.duration}, ${product.isFixed})">
+                            <span class="spinner"></span>
+                            <span class="btn-text"><i class="fas fa-wallet"></i> Buy Now</span>
+                        </button>
+                        <button class="buy-btn deposit" onclick="window.location.href='deposit.html'">
+                            <i class="fas fa-plus-circle"></i> Deposit
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        // ============================================
+        // LOAD USER BALANCE FROM SERVER
+        // ============================================
         async function loadUserData() {
             try {
-                const doc = await db.collection('users').doc(currentUser.uid).get();
-                if (doc.exists) {
-                    userDepositBalance = doc.data().depositBalance || 0;
+                const response = await fetch(`${API_BASE}/api/user/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    userDepositBalance = data.user.depositBalance || 0;
                     document.getElementById('depositBalance').textContent = userDepositBalance.toFixed(2);
                 }
             } catch (error) {
@@ -698,11 +716,73 @@
             }
         }
 
-        // Switch Category
+        // ============================================
+        // LOAD ACTIVE INVESTMENTS FROM SERVER
+        // ============================================
+        async function loadActiveInvestments() {
+            const container = document.getElementById('activeProducts');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/investment/${currentUser.uid}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error('Failed to load investments');
+                }
+                
+                activeInvestments = data.investments || [];
+                
+                if (activeInvestments.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-active">
+                            <i class="fas fa-box-open" style="font-size: 40px; color: #dee2e6; margin-bottom: 10px;"></i>
+                            <p>No active investments yet</p>
+                        </div>`;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                activeInvestments.forEach(inv => {
+                    const daysLeft = inv.daysLeft || 0;
+                    const progress = inv.progress || 0;
+                    const dailyDisplay = inv.isFixed 
+                        ? `${inv.dailyEarnings} USDT` 
+                        : `${inv.dailyEarnings}%`;
+                    const totalEarned = inv.totalEarned || 0;
+                    const amount = inv.amount || 0;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'active-item';
+                    item.innerHTML = `
+                        <div class="name">${inv.productName} - ${amount} USDT</div>
+                        <div class="details">
+                            <span>Daily: ${dailyDisplay}</span>
+                            <span>Days left: ${daysLeft}</span>
+                        </div>
+                        <div class="details">
+                            <span>Earned: ${totalEarned.toFixed(2)} USDT</span>
+                            <span>Progress: ${progress.toFixed(0)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+                
+            } catch (error) {
+                console.error('Error loading active products:', error);
+                container.innerHTML = '<div class="no-active">Error loading investments</div>';
+            }
+        }
+
+        // ============================================
+        // SWITCH CATEGORY
+        // ============================================
         function switchCategory(category) {
             document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.products-container').forEach(cont => cont.classList.remove('active'));
-
+            
             if (category === 'basic') {
                 document.querySelector('.category-tab:nth-child(1)').classList.add('active');
                 document.getElementById('basic-products').classList.add('active');
@@ -712,125 +792,100 @@
             }
         }
 
-        // Buy Product
-        async function buyProduct(name, price, dailyEarnings, duration, isFixed, method) {
+        // ============================================
+        // BUY PRODUCT VIA SERVER API
+        // ============================================
+        async function buyProduct(name, price, dailyEarnings, duration, isFixed) {
             if (!currentUser) return;
-
+            
             // Check balance
             if (userDepositBalance < price) {
                 document.getElementById('neededAmount').textContent = `${price} USDT`;
                 document.getElementById('insufficientModal').classList.add('show');
                 return;
             }
-
+            
             // Confirm purchase
             if (!confirm(`Purchase ${name} for ${price} USDT?\n\nEarn ${isFixed ? dailyEarnings + ' USDT' : dailyEarnings + '%'} daily for ${duration} days.`)) {
                 return;
             }
-
+            
+            // Show loading on button
+            const btnId = `buy-btn-${name.replace(/\s+/g, '-')}`;
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('loading');
+            }
+            
             try {
-                // Deduct from balance
-                await db.collection('users').doc(currentUser.uid).update({
-                    depositBalance: firebase.firestore.FieldValue.increment(-price)
+                // Call server API
+                const response = await fetch(`${API_BASE}/api/investment/buy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.uid,
+                        productName: name
+                    })
                 });
-
-                // Create investment
-                await db.collection('investments').add({
-                    userId: currentUser.uid,
-                    productName: name,
-                    amount: price,
-                    dailyEarnings: dailyEarnings,
-                    duration: duration,
-                    isFixed: isFixed,
-                    totalEarned: 0,
-                    status: 'active',
-                    purchaseDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastClaimDate: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
+                
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Purchase failed');
+                }
+                
+                console.log('✅ Purchase successful:', result);
+                
                 showAlert(`Successfully purchased ${name}! Start claiming daily earnings.`, 'success');
-
-                // Refresh
+                
+                // Refresh data
                 await loadUserData();
-                await loadActiveProducts();
-
+                await loadActiveInvestments();
+                
             } catch (error) {
                 console.error('Purchase error:', error);
-                showAlert('Error processing purchase. Please try again.', 'danger');
-            }
-        }
-
-        // Load Active Products
-        async function loadActiveProducts() {
-            const container = document.getElementById('activeProducts');
-
-            try {
-                const snapshot = await db.collection('investments')
-                    .where('userId', '==', currentUser.uid)
-                    .where('status', '==', 'active')
-                    .orderBy('purchaseDate', 'desc')
-                    .get();
-
-                if (snapshot.empty) {
-                    container.innerHTML = `
-                        <div class="no-active">
-                            <i class="fas fa-box-open" style="font-size: 40px; color: #dee2e6; margin-bottom: 10px;"></i>
-                            <p>No active investments yet</p>
-                        </div>`;
-                    return;
+                showAlert('Error: ' + (error.message || 'Purchase failed. Please try again.'), 'danger');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
                 }
-
-                container.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const inv = doc.data();
-                    const purchaseDate = inv.purchaseDate.toDate();
-                    const daysElapsed = Math.floor((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-                    const daysLeft = Math.max(0, inv.duration - daysElapsed);
-                    const progress = Math.min(100, (daysElapsed / inv.duration) * 100);
-                    const dailyAmount = inv.isFixed ? `${inv.dailyEarnings} USDT` : `${inv.dailyEarnings}%`;
-
-                    const item = document.createElement('div');
-                    item.className = 'active-item';
-                    item.innerHTML = `
-                        <div class="name">${inv.productName} - ${inv.amount} USDT</div>
-                        <div class="details">
-                            <span>Daily: ${dailyAmount}</span>
-                            <span>Days left: ${daysLeft}</span>
-                        </div>
-                        <div class="details">
-                            <span>Earned: ${(inv.totalEarned || 0).toFixed(2)} USDT</span>
-                            <span>Progress: ${progress.toFixed(0)}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress}%"></div>
-                        </div>
-                    `;
-                    container.appendChild(item);
-                });
-
-            } catch (error) {
-                console.error('Error loading active products:', error);
-                container.innerHTML = '<div class="no-active">Error loading investments</div>';
             }
         }
 
-        // Show Alert
+        // ============================================
+        // SHOW ALERT
+        // ============================================
         function showAlert(message, type) {
             const alert = document.getElementById('alertMessage');
             alert.textContent = message;
             alert.className = `alert alert-${type} show`;
-            setTimeout(() => alert.classList.remove('show'), 4000);
+            setTimeout(() => alert.classList.remove('show'), 5000);
         }
 
-        // Close Modal
+        // ============================================
+        // CLOSE MODAL
+        // ============================================
         function closeModal() {
             document.getElementById('insufficientModal').classList.remove('show');
         }
+
+        // ============================================
+        // GLOBAL EXPORTS
+        // ============================================
+        window.switchCategory = switchCategory;
+        window.buyProduct = buyProduct;
+        window.closeModal = closeModal;
 
         // Close modal on outside click
         document.getElementById('insufficientModal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
+
+        console.log('✅ Product page ready - Using server API');
+        console.log('🔗 API Base:', API_BASE);
+        console.log('📦 Products loaded from server');
     </script>
 </body>
 </html>
