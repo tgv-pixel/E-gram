@@ -108,10 +108,39 @@
             padding: 15px;
         }
 
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+            color: white;
+            padding: 18px 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 20px rgba(111, 66, 193, 0.25);
+        }
+
+        .balance-card .balance-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-card .balance-amount {
+            font-size: 30px;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        .balance-card .balance-sub {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Info Card */
         .info-card {
             background: white;
             border-radius: 15px;
-            padding: 20px;
+            padding: 18px;
             margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
@@ -144,6 +173,7 @@
             color: #1b5e20;
         }
 
+        /* Deposit Card */
         .deposit-card {
             background: white;
             border-radius: 15px;
@@ -165,6 +195,7 @@
             color: var(--primary);
         }
 
+        /* Method Selector */
         .method-selector {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -221,6 +252,7 @@
             margin-top: 3px;
         }
 
+        /* Form */
         .form-group {
             margin-bottom: 16px;
         }
@@ -233,8 +265,7 @@
             color: var(--dark);
         }
 
-        .form-group input,
-        .form-group select {
+        .form-group input {
             width: 100%;
             padding: 12px 14px;
             border: 2px solid #e1e5e9;
@@ -245,8 +276,7 @@
             background: #fafafa;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus {
             border-color: var(--primary);
             background: white;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -291,63 +321,7 @@
             font-size: 1.1em;
         }
 
-        .image-upload-area {
-            border: 2px dashed #e1e5e9;
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #fafafa;
-            margin-bottom: 10px;
-        }
-
-        .image-upload-area:hover {
-            border-color: var(--primary);
-            background: #f8f9ff;
-        }
-
-        .image-upload-area.has-image {
-            border-color: var(--success);
-            background: #f0fff4;
-        }
-
-        .image-upload-area i {
-            font-size: 2.5em;
-            color: #ccc;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .image-upload-area.has-image i {
-            color: var(--success);
-        }
-
-        .image-upload-area .upload-text {
-            font-size: 0.85em;
-            color: var(--gray);
-        }
-
-        .image-upload-area .file-name {
-            font-weight: 600;
-            color: var(--success);
-            font-size: 0.8em;
-            margin-top: 5px;
-            word-break: break-all;
-        }
-
-        .image-preview {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 8px;
-            margin-top: 10px;
-            display: none;
-        }
-
-        .image-preview.show {
-            display: block;
-        }
-
+        /* Payment Info */
         .payment-info {
             background: linear-gradient(135deg, #fff9e6, #fff3cd);
             border: 1px solid #ffc107;
@@ -398,6 +372,7 @@
             background: var(--primary-dark);
         }
 
+        /* Submit Button */
         .submit-btn {
             width: 100%;
             padding: 14px;
@@ -449,6 +424,7 @@
             to { transform: rotate(360deg); }
         }
 
+        /* History */
         .history-card {
             background: white;
             border-radius: 15px;
@@ -477,6 +453,7 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            font-weight: 700;
         }
 
         .history-status.pending {
@@ -515,32 +492,66 @@
             color: #aaa;
         }
 
-        .login-prompt {
+        /* Alert */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-top: 12px;
+            font-size: 0.85em;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .empty-state {
             text-align: center;
-            padding: 40px 20px;
-        }
-
-        .login-prompt i {
-            font-size: 3em;
-            color: var(--warning);
-            margin-bottom: 15px;
-        }
-
-        .login-prompt p {
+            padding: 30px;
             color: var(--gray);
-            margin-bottom: 20px;
         }
 
-        .login-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: var(--primary);
-            color: white;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
+        .empty-state i {
+            font-size: 2.5em;
+            opacity: 0.4;
+            margin-bottom: 10px;
         }
 
+        .loading-box {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner-big {
+            width: 35px;
+            height: 35px;
+            border: 3px solid #e1e5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 25px;
@@ -563,31 +574,9 @@
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
-        .loading-box {
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner-big {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e1e5e9;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 30px;
-            color: var(--gray);
-        }
-
-        .empty-state i {
-            font-size: 2.5em;
-            opacity: 0.4;
-            margin-bottom: 10px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 480px) {
@@ -615,33 +604,40 @@
 <body>
     <!-- Top Navigation -->
     <nav class="top-nav">
-        <a href="/home" class="back-btn">
+        <a href="home.html" class="back-btn">
             <i class="fas fa-arrow-left"></i>
         </a>
         <span class="nav-brand">Deposit</span>
         <div class="nav-actions">
-            <a href="/notification" class="nav-btn">
+            <a href="notification.html" class="nav-btn">
                 <i class="fas fa-bell"></i>
                 <span class="badge" id="notificationBadge" style="display:none;">0</span>
             </a>
-            <a href="/home" class="nav-btn">
+            <a href="home.html" class="nav-btn">
                 <i class="fas fa-home"></i>
             </a>
         </div>
     </nav>
 
     <div class="container">
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-label">Deposit Balance</div>
+            <div class="balance-amount" id="depositBalance">0.00</div>
+            <div class="balance-sub">USDT (For Investment)</div>
+        </div>
+
         <!-- Info Card -->
         <div class="info-card">
             <h3>💰 Make a Deposit</h3>
-            <p>Choose your preferred payment method and submit proof of payment. Admin will verify and approve your deposit.</p>
+            <p>Choose your preferred payment method and submit your transaction reference. Admin will verify and approve your deposit.</p>
             <div class="rate-info">
                 <i class="fas fa-exchange-alt"></i> 
                 <strong>1 USDT = 150 Birr</strong> (Telebirr only)
             </div>
         </div>
 
-        <!-- Deposit Form (Hidden if not logged in) -->
+        <!-- Deposit Form -->
         <div id="depositFormContainer">
             <div class="deposit-card">
                 <div class="card-title">
@@ -665,7 +661,7 @@
                 </div>
 
                 <!-- Amount Input -->
-                <div class="form-group" id="amountGroup">
+                <div class="form-group">
                     <label id="amountLabel">Amount (USDT)</label>
                     <div class="input-with-symbol">
                         <span class="symbol">$</span>
@@ -673,7 +669,7 @@
                     </div>
                 </div>
 
-                <!-- Conversion Display -->
+                <!-- Conversion Display (Telebirr) -->
                 <div class="conversion-display" id="conversionDisplay">
                     <span>You will pay: <span class="converted-amount" id="convertedAmount">0 Birr</span></span>
                 </div>
@@ -714,18 +710,12 @@
 
                 <!-- Transaction Reference -->
                 <div class="form-group">
-                    <label id="referenceLabel">Transaction Reference / Hash</label>
+                    <label id="referenceLabel">Transaction Reference</label>
                     <input type="text" id="transactionRef" placeholder="Enter transaction reference or hash">
                 </div>
 
-                <!-- Image Upload -->
-                <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('proofImage').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <span class="upload-text">Click to upload payment screenshot</span>
-                    <span class="file-name" id="fileNameDisplay"></span>
-                    <img class="image-preview" id="imagePreview">
-                </div>
-                <input type="file" id="proofImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+                <!-- Alert -->
+                <div id="alertBox" class="alert"></div>
 
                 <!-- Submit -->
                 <button class="submit-btn" id="submitBtn" onclick="submitDeposit()">
@@ -735,14 +725,14 @@
             </div>
         </div>
 
-        <!-- Login Prompt (Shown if not logged in) -->
+        <!-- Login Prompt -->
         <div id="loginPromptContainer" style="display:none;">
             <div class="deposit-card">
-                <div class="login-prompt">
+                <div class="empty-state">
                     <i class="fas fa-user-lock"></i>
                     <h3>Login Required</h3>
                     <p>You need to be logged in to make a deposit.</p>
-                    <a href="/" class="login-btn">Go to Login</a>
+                    <a href="index.html" style="display:inline-block;margin-top:12px;padding:12px 30px;background:var(--primary);color:white;border-radius:8px;text-decoration:none;font-weight:600;">Go to Login</a>
                 </div>
             </div>
         </div>
@@ -799,105 +789,35 @@
         // ============================================
         let currentUser = null;
         let selectedMethod = 'telebirr';
-        let proofImageFile = null;
-        let proofImageDataUrl = null;
         let isLoggedIn = false;
 
         // ============================================
-        // INITIALIZATION
+        // AUTH CHECK
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Deposit page initializing...');
-            
-            // Listen for Firebase auth state changes
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    // User is signed in with Firebase
-                    console.log('✅ Firebase user authenticated:', user.email);
-                    currentUser = {
-                        userId: user.uid,
-                        email: user.email,
-                        firstName: user.displayName || user.email?.split('@')[0] || 'User'
-                    };
-                    isLoggedIn = true;
-                    
-                    // Save to localStorage for backup
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
-                    // Ensure user exists in backend
-                    await ensureUserInBackend(currentUser);
-                    
-                    showDepositForm();
-                    await loadDepositHistory();
-                    await loadNotifications();
-                    
-                } else {
-                    // No Firebase user - check localStorage backup
-                    console.log('⚠️ No Firebase user, checking localStorage...');
-                    await checkLocalStorageFallback();
-                }
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log('✅ Firebase user authenticated:', user.email);
+                currentUser = {
+                    userId: user.uid,
+                    email: user.email,
+                    fullName: user.displayName || user.email?.split('@')[0] || 'User'
+                };
+                isLoggedIn = true;
                 
-                updatePaymentDisplay();
-            });
+                showDepositForm();
+                await loadUserBalance();
+                await loadDepositHistory();
+                await loadNotifications();
+                
+            } else {
+                console.log('⚠️ No Firebase user');
+                isLoggedIn = false;
+                currentUser = null;
+                showLoginPrompt();
+            }
+            
+            updatePaymentDisplay();
         });
-
-        // ============================================
-        // ENSURE USER EXISTS IN BACKEND
-        // ============================================
-        async function ensureUserInBackend(user) {
-            try {
-                // Check if user exists in backend
-                const checkResponse = await fetch(`${API_BASE}/api/user/${user.userId}`);
-                
-                if (!checkResponse.ok) {
-                    // User doesn't exist, create them
-                    console.log('📝 Creating user in backend...');
-                    await fetch(`${API_BASE}/api/user/create`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: user.userId,
-                            email: user.email,
-                            firstName: user.firstName
-                        })
-                    });
-                    console.log('✅ User created in backend');
-                }
-            } catch (err) {
-                console.error('Error ensuring user in backend:', err);
-            }
-        }
-
-        // ============================================
-        // FALLBACK: Check localStorage if Firebase fails
-        // ============================================
-        async function checkLocalStorageFallback() {
-            const storedUser = localStorage.getItem('currentUser');
-            
-            if (storedUser) {
-                try {
-                    const userData = JSON.parse(storedUser);
-                    if (userData && userData.userId) {
-                        currentUser = userData;
-                        isLoggedIn = true;
-                        console.log('✅ User found in localStorage:', userData.email);
-                        
-                        showDepositForm();
-                        await loadDepositHistory();
-                        await loadNotifications();
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Failed to parse stored user');
-                }
-            }
-            
-            // No user found anywhere
-            isLoggedIn = false;
-            currentUser = null;
-            showLoginPrompt();
-            console.log('❌ User not authenticated');
-        }
 
         // ============================================
         // SHOW/HIDE SECTIONS
@@ -916,6 +836,25 @@
                     <i class="fas fa-user-lock"></i>
                     <p>Please login to view deposit history</p>
                 </div>`;
+        }
+
+        // ============================================
+        // LOAD USER BALANCE FROM SERVER
+        // ============================================
+        async function loadUserBalance() {
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/${currentUser.userId}/balance`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('depositBalance').textContent = 
+                        (data.depositBalance || 0).toFixed(2);
+                }
+            } catch (err) {
+                console.error('Error loading balance:', err);
+            }
         }
 
         // ============================================
@@ -973,41 +912,11 @@
         }
 
         // ============================================
-        // HANDLE IMAGE UPLOAD
-        // ============================================
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('Image too large. Max 5MB.');
-                return;
-            }
-
-            if (!file.type.startsWith('image/')) {
-                showToast('Please select an image file.');
-                return;
-            }
-
-            proofImageFile = file;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                proofImageDataUrl = e.target.result;
-                document.getElementById('imagePreview').src = e.target.result;
-                document.getElementById('imagePreview').classList.add('show');
-                document.getElementById('fileNameDisplay').textContent = file.name;
-                document.getElementById('imageUploadArea').classList.add('has-image');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // ============================================
-        // SUBMIT DEPOSIT
+        // SUBMIT DEPOSIT VIA SERVER API
         // ============================================
         async function submitDeposit() {
             if (!isLoggedIn || !currentUser) {
-                showToast('Please login first');
+                showAlert('Please login first', 'error');
                 return;
             }
 
@@ -1017,24 +926,25 @@
 
             // Validate amount
             if (!amount || amount < MIN_DEPOSIT_USDT) {
-                showToast(`Minimum deposit is $${MIN_DEPOSIT_USDT} USDT`);
+                showAlert(`Minimum deposit is $${MIN_DEPOSIT_USDT} USDT`, 'error');
                 return;
             }
 
             // Validate reference
             if (!transactionRef) {
-                showToast('Please enter transaction reference/hash');
+                showAlert('Please enter transaction reference/hash', 'error');
                 return;
             }
 
             // Validate crypto hash format
             if (selectedMethod === 'crypto') {
                 if (!/^[a-fA-F0-9]{64}$/.test(transactionRef)) {
-                    showToast('Invalid TRC20 transaction hash (should be 64 characters)');
+                    showAlert('Invalid TRC20 transaction hash (should be 64 hex characters)', 'error');
                     return;
                 }
             }
 
+            // Disable button
             btn.disabled = true;
             btn.classList.add('loading');
 
@@ -1045,9 +955,7 @@
                     userId: currentUser.userId,
                     amount: amount,
                     method: selectedMethod,
-                    reference: transactionRef,
-                    userEmail: currentUser.email || '',
-                    userName: currentUser.firstName || currentUser.email || 'User'
+                    reference: transactionRef
                 };
 
                 // Submit to Flask backend
@@ -1063,9 +971,10 @@
                     throw new Error(apiData.error || 'Failed to submit deposit');
                 }
 
-                console.log('✅ Deposit saved to server:', apiData);
+                console.log('✅ Deposit submitted:', apiData);
 
-                showToast('✅ Deposit submitted! Waiting for admin approval.');
+                showAlert('✅ Deposit submitted successfully! Waiting for admin approval.', 'success');
+                showToast('✅ Deposit submitted! Pending approval.');
                 
                 // Show first deposit bonus message
                 if (apiData.isFirstDeposit) {
@@ -1074,13 +983,16 @@
                     }, 3000);
                 }
                 
+                // Reset form
                 resetForm();
+                
+                // Refresh data
+                await loadUserBalance();
                 await loadDepositHistory();
-                await loadNotifications();
 
             } catch (error) {
                 console.error('❌ Deposit error:', error);
-                showToast('Error: ' + (error.message || 'Failed to submit deposit'));
+                showAlert('Error: ' + (error.message || 'Failed to submit deposit'), 'error');
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('loading');
@@ -1093,25 +1005,18 @@
         function resetForm() {
             document.getElementById('depositAmount').value = '';
             document.getElementById('transactionRef').value = '';
-            document.getElementById('proofImage').value = '';
-            document.getElementById('imagePreview').classList.remove('show');
-            document.getElementById('imagePreview').src = '';
-            document.getElementById('fileNameDisplay').textContent = '';
-            document.getElementById('imageUploadArea').classList.remove('has-image');
-            proofImageFile = null;
-            proofImageDataUrl = null;
             document.getElementById('convertedAmount').textContent = '0 Birr';
             document.getElementById('telebirrAmount').textContent = '0 Birr';
             document.getElementById('cryptoAmount').textContent = '0 USDT';
         }
 
         // ============================================
-        // LOAD DEPOSIT HISTORY
+        // LOAD DEPOSIT HISTORY FROM SERVER
         // ============================================
         async function loadDepositHistory() {
             const container = document.getElementById('depositHistory');
             
-            if (!isLoggedIn || !currentUser || !currentUser.userId) {
+            if (!isLoggedIn || !currentUser) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-user-lock"></i>
@@ -1154,11 +1059,11 @@
                     item.innerHTML = `
                         <div class="history-status ${statusClass}">${statusIcon}</div>
                         <div class="history-info">
-                            <div class="history-amount">${methodIcon} $${d.amount} USDT${birrInfo}</div>
+                            <div class="history-amount">${methodIcon} $${parseFloat(d.amount).toFixed(2)} USDT${birrInfo}</div>
                             <div class="history-detail">${d.method === 'telebirr' ? 'Telebirr' : 'Crypto'} · Ref: ${d.reference || 'N/A'}</div>
                             <div class="history-date">${date.toLocaleString()}</div>
-                            ${d.referralBonusPaid ? '<div class="history-detail" style="color: var(--success);">🎉 Referral bonus paid!</div>' : ''}
                             ${d.isFirstDeposit && d.status === 'approved' ? '<div class="history-detail" style="color: var(--primary);">⭐ First Deposit Bonus</div>' : ''}
+                            ${d.referralBonusPaid ? '<div class="history-detail" style="color: var(--success);">🎉 Referral bonus paid!</div>' : ''}
                         </div>`;
                     container.appendChild(item);
                 });
@@ -1177,7 +1082,7 @@
         // LOAD NOTIFICATIONS
         // ============================================
         async function loadNotifications() {
-            if (!isLoggedIn || !currentUser || !currentUser.userId) return;
+            if (!isLoggedIn || !currentUser) return;
             
             try {
                 const response = await fetch(`${API_BASE}/api/notifications/${currentUser.userId}`);
@@ -1185,7 +1090,7 @@
                 
                 if (data.success && data.unreadCount > 0) {
                     const badge = document.getElementById('notificationBadge');
-                    badge.textContent = data.unreadCount;
+                    badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
                     badge.style.display = 'block';
                 }
             } catch (err) {
@@ -1201,7 +1106,6 @@
             navigator.clipboard.writeText(text).then(() => {
                 showToast('✅ Copied!');
             }).catch(() => {
-                // Fallback for older browsers
                 const input = document.createElement('input');
                 input.value = text;
                 document.body.appendChild(input);
@@ -1210,6 +1114,16 @@
                 document.body.removeChild(input);
                 showToast('✅ Copied!');
             });
+        }
+
+        // ============================================
+        // SHOW ALERT
+        // ============================================
+        function showAlert(message, type) {
+            const alert = document.getElementById('alertBox');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 5000);
         }
 
         // ============================================
@@ -1237,11 +1151,11 @@
         // ============================================
         window.selectMethod = selectMethod;
         window.updateConversion = updateConversion;
-        window.handleImageUpload = handleImageUpload;
         window.submitDeposit = submitDeposit;
         window.copyText = copyText;
 
         console.log('✅ Deposit page ready');
+        console.log('🔗 API Base:', API_BASE);
         console.log('💱 Rate: 1 USDT = 150 Birr (Telebirr)');
         console.log('👤 Admin approval required for deposits');
     </script>
