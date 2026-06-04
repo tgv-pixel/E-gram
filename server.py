@@ -156,7 +156,7 @@ def save_user(user_id, user_data):
     # Check if user exists
     existing = get_user(user_id)
     if existing:
-        # Update
+        # Update - merge with existing data
         result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
     else:
         # Create
@@ -212,11 +212,9 @@ def get_collection(collection, filters=None):
                 skip = False
                 for key, value in filters.items():
                     if key in data:
-                        if isinstance(data[key], dict):
-                            actual_value = data[key].get('stringValue') or data[key].get('integerValue')
-                        else:
-                            actual_value = data[key]
-                        if actual_value != value:
+                        actual_value = data[key]
+                        # Convert both to string for comparison
+                        if str(actual_value) != str(value):
                             skip = True
                             break
                 if skip:
@@ -475,6 +473,83 @@ def get_user_balance(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ============================================
+# API: USER BALANCE UPDATE (for Balance Manager)
+# ============================================
+@app.route('/api/user/<user_id>/update', methods=['POST'])
+def update_user_balance(user_id):
+    """Update user balance fields - Used by Balance Manager admin page"""
+    try:
+        data = request.json
+        field = data.get('field')
+        value = data.get('value')
+        
+        if not field:
+            return jsonify({'error': 'Field name required'}), 400
+        
+        if value is None:
+            return jsonify({'error': 'Value required'}), 400
+        
+        # Allowed fields to update
+        allowed_fields = [
+            'depositBalance', 'taskEarnings', 'points', 
+            'referralCount', 'referralBonus', 'totalReferralPoints',
+            'status', 'firstDepositCompleted', 'phone', 'fullName', 'email'
+        ]
+        
+        if field not in allowed_fields:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid field. Allowed fields: {", ".join(allowed_fields)}'
+            }), 400
+        
+        # Get existing user
+        user = get_user(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Convert value to appropriate type based on field
+        if field in ['depositBalance', 'taskEarnings', 'referralBonus', 'totalReferralPoints']:
+            value = float(value)
+        elif field in ['points', 'referralCount']:
+            value = int(value)
+        elif field == 'firstDepositCompleted':
+            value = bool(value)
+        else:
+            value = str(value)
+        
+        # Update the field
+        update_data = {field: value}
+        
+        if save_user(user_id, update_data):
+            print(f"✅ Updated {user_id}: {field} = {value}")
+            
+            # Log the change
+            log_data = {
+                'userId': user_id,
+                'field': field,
+                'newValue': value,
+                'previousValue': user.get(field, 'N/A'),
+                'timestamp': get_timestamp(),
+                'type': 'admin_update'
+            }
+            add_document('balance_logs', log_data)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Updated {field} to {value}',
+                'userId': user_id,
+                'field': field,
+                'previousValue': user.get(field, 0),
+                'newValue': value
+            })
+        
+        return jsonify({'error': 'Failed to update user'}), 500
+        
+    except Exception as e:
+        print(f"Error updating user balance: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/users/all', methods=['GET'])
 def get_all_users_api():
     try:
@@ -487,6 +562,7 @@ def get_all_users_api():
                 'fullName': data.get('fullName', ''),
                 'depositBalance': data.get('depositBalance', 0),
                 'taskEarnings': data.get('taskEarnings', 0),
+                'points': data.get('points', 0),
                 'referralCount': data.get('referralCount', 0),
                 'status': data.get('status', 'active'),
                 'createdAt': data.get('createdAt', '')
@@ -577,6 +653,18 @@ def get_referral_stats(user_id):
             'referrals': all_referrals[:10]
         })
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
+# API: REFERRAL - ALL
+# ============================================
+@app.route('/api/referral/all', methods=['GET'])
+def get_all_referrals():
+    try:
+        referrals = get_collection('referrals')
+        referrals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'referrals': referrals})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -849,6 +937,15 @@ def get_withdrawals(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/withdraw/all', methods=['GET'])
+def get_all_withdrawals():
+    try:
+        withdrawals = get_collection('withdrawals')
+        withdrawals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'withdrawals': withdrawals})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/withdraw/<withdrawal_id>/approve', methods=['POST'])
 def approve_withdrawal(withdrawal_id):
     try:
@@ -923,6 +1020,7 @@ def buy_investment():
         user = get_user(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404        
+        
         if user.get('depositBalance', 0) < product['price']:
             return jsonify({'error': 'Insufficient balance'}), 400
         
@@ -1118,6 +1216,18 @@ def admin_stats():
         return jsonify({'error': str(e)}), 500
 
 # ============================================
+# API: WITHDRAW ALL (for admin)
+# ============================================
+@app.route('/api/withdraw/all', methods=['GET'])
+def get_all_withdrawals_admin():
+    try:
+        withdrawals = get_collection('withdrawals')
+        withdrawals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'withdrawals': withdrawals})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
 # ERROR HANDLERS
 # ============================================
 @app.errorhandler(404)
@@ -1142,6 +1252,16 @@ if __name__ == '__main__':
     print(f"🗄️  Database: Firebase Firestore (REST)")
     print(f"📱 Telebirr: {TELEBIRR_NUMBER}")
     print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}%")
+    print(f"💰 Balance Manager: /balance-manager.html")
+    print("=" * 60)
+    print("📡 API Endpoints:")
+    print("   POST /api/user/<id>/update  - Update user balance (Balance Manager)")
+    print("   GET  /api/users/all         - Get all users")
+    print("   GET  /api/user/<id>         - Get single user")
+    print("   POST /api/deposit/<id>/approve  - Approve deposit")
+    print("   POST /api/deposit/<id>/reject   - Reject deposit")
+    print("   POST /api/withdraw/<id>/approve - Approve withdrawal")
+    print("   POST /api/withdraw/<id>/reject  - Reject withdrawal")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=False)
