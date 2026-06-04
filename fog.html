@@ -668,8 +668,8 @@
             <div class="search-box">
                 <input type="text" class="search-input" id="searchInput" 
                     placeholder="Search by User ID, Email, or Name..." 
-                    oninput="window.filterUsers()">
-                <button class="search-btn" onclick="window.loadAllUsers()">
+                    oninput="filterUsers()">
+                <button class="search-btn" onclick="loadAllUsers()">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -702,7 +702,7 @@
                     <span id="userEmail">---</span>
                     <div class="user-id">ID: <span id="userIdDisplay">---</span></div>
                 </div>
-                <button class="close-edit-btn" onclick="window.closeEditUser()">
+                <button class="close-edit-btn" onclick="closeEditUser()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -713,10 +713,10 @@
                     <label>Deposit Balance</label>
                     <div class="value" id="depositValue">0.00</div>
                     <div class="balance-actions">
-                        <button class="btn-action add" onclick="window.openModal('depositBalance', 'add')">
+                        <button class="btn-action add" onclick="openModal('depositBalance', 'add')">
                             <i class="fas fa-plus"></i> Add
                         </button>
-                        <button class="btn-action sub" onclick="window.openModal('depositBalance', 'sub')">
+                        <button class="btn-action sub" onclick="openModal('depositBalance', 'sub')">
                             <i class="fas fa-minus"></i> Deduct
                         </button>
                     </div>
@@ -727,10 +727,10 @@
                     <label>Earnings Balance</label>
                     <div class="value" id="earningValue">0.00</div>
                     <div class="balance-actions">
-                        <button class="btn-action add" onclick="window.openModal('taskEarnings', 'add')">
+                        <button class="btn-action add" onclick="openModal('taskEarnings', 'add')">
                             <i class="fas fa-plus"></i> Add
                         </button>
-                        <button class="btn-action sub" onclick="window.openModal('taskEarnings', 'sub')">
+                        <button class="btn-action sub" onclick="openModal('taskEarnings', 'sub')">
                             <i class="fas fa-minus"></i> Deduct
                         </button>
                     </div>
@@ -741,10 +741,10 @@
                     <label>Points</label>
                     <div class="value" id="pointsValue">0</div>
                     <div class="balance-actions">
-                        <button class="btn-action add" onclick="window.openModal('points', 'add')">
+                        <button class="btn-action add" onclick="openModal('points', 'add')">
                             <i class="fas fa-plus"></i> Add
                         </button>
-                        <button class="btn-action sub" onclick="window.openModal('points', 'sub')">
+                        <button class="btn-action sub" onclick="openModal('points', 'sub')">
                             <i class="fas fa-minus"></i> Deduct
                         </button>
                     </div>
@@ -772,13 +772,13 @@
             <h3 id="modalTitle">Adjust Balance</h3>
             <div class="modal-sub" id="modalSub">---</div>
             <div class="current-value">Current: <span id="modalCurrent">0</span></div>
-            <input type="number" id="modalAmount" placeholder="Enter amount" step="0.01" min="0.01" oninput="window.updatePreview()">
+            <input type="number" id="modalAmount" placeholder="Enter amount" step="0.01" min="0.01" oninput="updatePreview()">
             <div class="preview">
                 New value: <span class="new-val" id="modalPreview">---</span>
             </div>
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="window.closeModal()">Cancel</button>
-                <button class="btn-confirm" id="modalConfirmBtn" onclick="window.confirmAdjust()">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmAdjust()">
                     <i class="fas fa-check"></i> Confirm
                 </button>
             </div>
@@ -816,7 +816,7 @@
         });
 
         // ============================================
-        // LOAD ALL USERS
+        // LOAD ALL USERS (Uses: GET /api/users/all)
         // ============================================
         async function loadAllUsers() {
             const container = document.getElementById('usersListContainer');
@@ -870,7 +870,6 @@
                 return;
             }
 
-            // Show first 50
             const displayUsers = users.slice(0, 50);
 
             container.innerHTML = displayUsers.map(u => {
@@ -879,7 +878,7 @@
                 const userId = u.userId || '';
 
                 return `
-                    <div class="user-list-item ${isSelected ? 'selected' : ''}" onclick="window.selectUser('${escAttr(userId)}')" id="user-item-${escAttr(userId)}">
+                    <div class="user-list-item ${isSelected ? 'selected' : ''}" onclick="selectUser('${escAttr(userId)}')" id="user-item-${escAttr(userId)}">
                         <div class="user-list-avatar">${escHtml(initial)}</div>
                         <div class="user-list-info">
                             <div class="user-list-name">${escHtml(u.fullName || 'Unknown')}</div>
@@ -911,7 +910,7 @@
         }
 
         // ============================================
-        // SELECT USER (Click from list)
+        // SELECT USER (Uses: GET /api/user/<userId>)
         // ============================================
         async function selectUser(userId) {
             if (!userId) {
@@ -945,7 +944,7 @@
                 }
             } catch (err) {
                 console.error('Select user error:', err);
-                showToast('❌ Error loading user. Make sure the API endpoint exists.');
+                showToast('❌ Error loading user. Check console for details.');
             }
         }
 
@@ -987,7 +986,6 @@
             currentUserData = null;
             currentUserId = null;
             
-            // Remove selection highlight
             document.querySelectorAll('.user-list-item').forEach(el => el.classList.remove('selected'));
         }
 
@@ -1060,7 +1058,7 @@
         }
 
         // ============================================
-        // CONFIRM ADJUST
+        // CONFIRM ADJUST (Uses: save_user() via server endpoint)
         // ============================================
         async function confirmAdjust() {
             const amount = parseFloat(document.getElementById('modalAmount').value);
@@ -1091,14 +1089,29 @@
             confirmBtn.disabled = true;
 
             try {
+                // Use the save_user function pattern from server.py
+                // The server doesn't have a /api/user/<id>/update endpoint,
+                // so we need to create a custom endpoint or use the existing save_user function
+                
+                // Solution: Create a direct update via a new endpoint that mimics save_user
                 const updateData = {};
                 updateData[currentField] = newValue;
-
+                
+                // We'll use the same structure save_user expects
                 const response = await fetch(`${API_BASE}/api/user/${encodeURIComponent(currentUserId)}/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
+                    body: JSON.stringify({
+                        field: currentField,
+                        value: newValue,
+                        userId: currentUserId
+                    })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
 
                 const data = await response.json();
 
@@ -1106,7 +1119,8 @@
                     // Update local data
                     currentUserData[currentField] = newValue;
                     
-                    // Refresh display                    document.getElementById('depositValue').textContent = 
+                    // Refresh display
+                    document.getElementById('depositValue').textContent = 
                         '$' + (currentUserData.depositBalance || 0).toFixed(2);
                     document.getElementById('earningValue').textContent = 
                         '$' + (currentUserData.taskEarnings || 0).toFixed(2);
@@ -1136,7 +1150,7 @@
                     closeModal();
                     loadHistory(currentUserId);
                     
-                    // Refresh the list to show updated balances
+                    // Refresh the list
                     const query = document.getElementById('searchInput').value.trim().toLowerCase();
                     const filteredUsers = query ? allUsers.filter(u => 
                         (u.userId && u.userId.toLowerCase().includes(query)) ||
@@ -1154,7 +1168,7 @@
 
             } catch (err) {
                 console.error('Update error:', err);
-                showToast('❌ Network error. Check if server has POST /api/user/:id/update endpoint');
+                showToast('❌ Error: ' + err.message + '. Make sure the server has the update endpoint.');
             } finally {
                 confirmBtn.innerHTML = originalHtml;
                 confirmBtn.disabled = false;
@@ -1270,24 +1284,11 @@
             return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        // ============================================
-        // GLOBAL EXPORTS (for onclick handlers)
-        // ============================================
-        window.selectUser = selectUser;
-        window.closeEditUser = closeEditUser;
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        window.confirmAdjust = confirmAdjust;
-        window.updatePreview = updatePreview;
-        window.filterUsers = filterUsers;
-        window.loadAllUsers = loadAllUsers;
-
         console.log('✅ Balance Manager ready');
         console.log('🔗 API Base:', API_BASE);
-        console.log('💡 Make sure these API endpoints exist:');
-        console.log('   GET  /api/users/all');
-        console.log('   GET  /api/user/:userId');
-        console.log('   POST /api/user/:userId/update');
+        console.log('📡 Required server endpoint:');
+        console.log('   POST /api/user/<userId>/update');
+        console.log('   Body: { "field": "depositBalance", "value": 100, "userId": "xxx" }');
     </script>
 </body>
-    </html>
+</html>
