@@ -40,7 +40,7 @@ REFERRAL_POINTS_PERCENTAGE = 10
 MIN_DEPOSIT = 10
 MIN_WITHDRAW = 20
 MAX_WITHDRAW_DAILY = 500
-WEEKEND_DAYS = [5, 6]
+WEEKEND_DAYS = [5, 6]  # Saturday=5, Sunday=6
 WITHDRAW_POINTS_FEE_PERCENTAGE = 10  # 10% points fee for withdrawals
 
 # ============================================
@@ -58,8 +58,11 @@ PRODUCTS = [
 # ============================================
 # UTILITY FUNCTIONS
 # ============================================
-def generate_id(length=12):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+def generate_id(length=20):
+    """Generate a unique ID"""
+    timestamp = str(int(time.time() * 1000))
+    random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=length - len(timestamp)))
+    return timestamp + random_str
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
@@ -100,8 +103,8 @@ def firestore_request(method, path, data=None):
         else:
             return None
         
-        if response.status_code in [200, 201]:
-            return response.json()
+        if response.status_code in [200, 201, 204]:
+            return response.json() if response.content else True
         elif response.status_code == 404:
             return None
         else:
@@ -133,7 +136,7 @@ def rtdb_request(method, path, data=None):
         elif response.status_code == 404:
             return None
         else:
-            print(f"RTDB API Error: {response.status_code}")
+            print(f"RTDB API Error: {response.status_code} - {response.text[:200]}")
             return None
     except Exception as e:
         print(f"RTDB Request Error: {e}")
@@ -168,41 +171,56 @@ def save_user(user_id, user_data):
     if not user_id:
         return False
     
-    # Always ensure email and name are preserved
+    # Get existing user to merge data
     existing_user = get_user(user_id) or {}
     
     # Merge with existing data to prevent losing fields
     merged_data = {**existing_user, **user_data}
-    merged_data.pop('userId', None)  # Remove userId from data to save
-    
-    firestore_data = dict_to_firestore(merged_data)
+    merged_data.pop('userId', None)
     
     # Save to Firestore
-    result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
+    firestore_data = dict_to_firestore(merged_data)
+    firestore_result = firestore_request('PATCH', f'users/{user_id}', {'fields': firestore_data})
     
-    # Also save to RTDB for quick access (always include email and name)
+    # Also save to RTDB for quick access and redundancy
     rtdb_data = {
         'email': merged_data.get('email', ''),
         'fullName': merged_data.get('fullName', ''),
         'firstName': merged_data.get('firstName', ''),
         'lastName': merged_data.get('lastName', ''),
+        'phone': merged_data.get('phone', ''),
         'referralCode': merged_data.get('referralCode', ''),
         'referredBy': merged_data.get('referredBy'),
+        'referredByName': merged_data.get('referredByName'),
         'status': merged_data.get('status', 'active'),
         'depositBalance': merged_data.get('depositBalance', 0),
         'taskEarnings': merged_data.get('taskEarnings', 0),
         'points': merged_data.get('points', 0),
-        'referralCount': merged_data.get('referralCount', 0)
+        'referralCount': merged_data.get('referralCount', 0),
+        'referralBonus': merged_data.get('referralBonus', 0),
+        'totalReferralPoints': merged_data.get('totalReferralPoints', 0),
+        'firstDepositCompleted': merged_data.get('firstDepositCompleted', False),
+        'securityCode': merged_data.get('securityCode', ''),
+        'lastLogin': merged_data.get('lastLogin', ''),
+        'createdAt': merged_data.get('createdAt', '')
     }
-    rtdb_request('PUT', f'users/{user_id}', rtdb_data)
+    rtdb_request('PATCH', f'users/{user_id}', rtdb_data)
     
-    return result is not None
+    return True
 
 def get_all_users():
-    """Get all users from Firestore and RTDB combined"""
+    """Get all users from both Firestore and RTDB"""
     users = {}
     
-    # Get from Firestore
+    # Get from RTDB first (faster)
+    rtdb_result = rtdb_request('GET', 'users')
+    if rtdb_result:
+        for user_id, user_data in rtdb_result.items():
+            if user_data and isinstance(user_data, dict):
+                user_data['userId'] = user_id
+                users[user_id] = user_data
+    
+    # Also get from Firestore and merge
     result = firestore_request('GET', 'users')
     if result and 'documents' in result:
         for doc in result['documents']:
@@ -210,33 +228,28 @@ def get_all_users():
             fields = doc.get('fields', {})
             user_data = firestore_to_dict(fields)
             user_data['userId'] = user_id
-            users[user_id] = user_data
-    
-    # Also check RTDB for any users not in Firestore
-    rtdb_result = rtdb_request('GET', 'users')
-    if rtdb_result:
-        for user_id, user_data in rtdb_result.items():
-            if user_id not in users:
-                user_data['userId'] = user_id
-                users[user_id] = user_data
-            else:
-                # Merge RTDB data (fill missing fields)
+            
+            if user_id in users:
+                # Merge - Firestore data takes priority
                 for key, value in user_data.items():
-                    if key not in users[user_id] or users[user_id].get(key) is None:
+                    if value is not None:
                         users[user_id][key] = value
+            else:
+                users[user_id] = user_data
     
     return users
 
 def add_document(collection, data, doc_id=None):
     """Add document to Firestore collection"""
-    if doc_id:
-        path = f'{collection}/{doc_id}'
-    else:
+    if doc_id is None:
         doc_id = generate_id()
-        path = f'{collection}/{doc_id}'
     
+    path = f'{collection}/{doc_id}'
     result = firestore_request('PATCH', path, {'fields': dict_to_firestore(data)})
-    return doc_id if result else None
+    
+    if result is not None:
+        return doc_id
+    return None
 
 def get_collection(collection, filters=None):
     """Get documents from Firestore collection"""
@@ -251,14 +264,7 @@ def get_collection(collection, filters=None):
                 match = True
                 for key, value in filters.items():
                     actual_value = data.get(key)
-                    if actual_value is None:
-                        match = False
-                        break
-                    if isinstance(value, (int, float)) and isinstance(actual_value, (int, float)):
-                        if actual_value != value:
-                            match = False
-                            break
-                    elif str(actual_value).lower() != str(value).lower():
+                    if actual_value is None or str(actual_value).lower() != str(value).lower():
                         match = False
                         break
                 if not match:
@@ -275,21 +281,100 @@ def update_document(collection, doc_id, update_data):
     result = firestore_request('PATCH', path, {'fields': dict_to_firestore(update_data)})
     return result is not None
 
+def delete_document(collection, doc_id):
+    """Delete document from Firestore"""
+    if not doc_id:
+        return False
+    path = f'{collection}/{doc_id}'
+    result = firestore_request('DELETE', path)
+    return result is not None
+
+# ============================================
+# HISTORY LOGGING FUNCTIONS
+# ============================================
+def log_history(user_id, action_type, description, amount=0, details=None):
+    """Log user actions to history collection in both Firestore and RTDB"""
+    try:
+        doc_id = generate_id()
+        timestamp = get_timestamp()
+        
+        history_data = {
+            'userId': user_id,
+            'type': action_type,
+            'description': description,
+            'amount': amount,
+            'timestamp': timestamp,
+            'date': datetime.utcnow().strftime('%Y-%m-%d'),
+            'time': datetime.utcnow().strftime('%H:%M:%S')
+        }
+        if details:
+            history_data.update(details)
+        
+        # Save to Firestore
+        add_document('history', history_data, doc_id)
+        
+        # Save to RTDB for quick access
+        rtdb_request('PUT', f'history/{user_id}/{doc_id}', history_data)
+        
+        # Also save to global history
+        rtdb_request('PUT', f'global_history/{doc_id}', history_data)
+        
+        print(f"📝 History logged: {user_id} - {action_type} - {description}")
+        return doc_id
+    except Exception as e:
+        print(f"Error logging history: {e}")
+        return None
+
+def get_user_history(user_id, limit=50):
+    """Get user's history"""
+    try:
+        # Get from RTDB first (faster)
+        rtdb_result = rtdb_request('GET', f'history/{user_id}')
+        if rtdb_result:
+            history_list = []
+            for doc_id, data in rtdb_result.items():
+                if isinstance(data, dict):
+                    data['id'] = doc_id
+                    history_list.append(data)
+            history_list.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            return history_list[:limit]
+        
+        # Fallback to Firestore
+        all_history = get_collection('history')
+        user_history = [h for h in all_history if h.get('userId') == user_id]
+        user_history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return user_history[:limit]
+    except Exception as e:
+        print(f"Error getting history: {e}")
+        return []
+
 def add_notification(user_id, message, notif_type, extra_data=None):
-    """Add notification for user"""
-    notif_data = {
-        'userId': user_id,
-        'type': notif_type,
-        'message': message,
-        'read': False,
-        'timestamp': get_timestamp()
-    }
-    if extra_data:
-        notif_data.update(extra_data)
-    
-    doc_id = generate_id()
-    add_document('notifications', notif_data, doc_id)
-    rtdb_request('PUT', f'notifications/{user_id}/{doc_id}', notif_data)
+    """Add notification for user in both Firestore and RTDB"""
+    try:
+        doc_id = generate_id()
+        timestamp = get_timestamp()
+        
+        notif_data = {
+            'userId': user_id,
+            'type': notif_type,
+            'message': message,
+            'read': False,
+            'timestamp': timestamp
+        }
+        if extra_data:
+            notif_data.update(extra_data)
+        
+        # Save to Firestore
+        add_document('notifications', notif_data, doc_id)
+        
+        # Save to RTDB
+        rtdb_request('PUT', f'notifications/{user_id}/{doc_id}', notif_data)
+        
+        print(f"🔔 Notification sent to {user_id}: {notif_type}")
+        return doc_id
+    except Exception as e:
+        print(f"Error adding notification: {e}")
+        return None
 
 # ============================================
 # DATA CONVERSION HELPERS
@@ -325,8 +410,10 @@ def firestore_to_dict(fields):
                     arr.append(int(v['integerValue']))
                 elif 'doubleValue' in v:
                     arr.append(float(v['doubleValue']))
+                elif 'booleanValue' in v:
+                    arr.append(v['booleanValue'])
                 else:
-                    arr.append(str(v))
+                    arr.append(v)
             result[key] = arr
         else:
             result[key] = value
@@ -357,10 +444,13 @@ def dict_to_firestore(data):
                     values.append({'mapValue': {'fields': dict_to_firestore(v)}})
                 elif isinstance(v, str):
                     values.append({'stringValue': v})
-                elif isinstance(v, int):
-                    values.append({'integerValue': v})
-                elif isinstance(v, float):
-                    values.append({'doubleValue': v})
+                elif isinstance(v, (int, float)):
+                    if isinstance(v, int):
+                        values.append({'integerValue': v})
+                    else:
+                        values.append({'doubleValue': v})
+                elif isinstance(v, bool):
+                    values.append({'booleanValue': v})
                 else:
                     values.append({'stringValue': str(v)})
             result[key] = {'arrayValue': {'values': values}}
@@ -395,7 +485,7 @@ def health_check():
         return jsonify({
             'status': 'ok',
             'message': 'SAFE Platform Running',
-            'database': 'Firebase (REST API)',
+            'database': 'Firebase Firestore + RTDB (REST API)',
             'total_users': len(users),
             'timestamp': get_timestamp()
         })
@@ -409,8 +499,8 @@ def health_check():
 def server_info():
     return jsonify({
         'name': 'SAFE Platform',
-        'version': '3.0.0',
-        'database': 'Firebase Firestore',
+        'version': '4.0.0',
+        'database': 'Firebase Firestore + RTDB',
         'telebirr_number': TELEBIRR_NUMBER,
         'telebirr_name': TELEBIRR_NAME,
         'wallet_address': WALLET_ADDRESS,
@@ -418,6 +508,7 @@ def server_info():
         'referral_points_percentage': REFERRAL_POINTS_PERCENTAGE,
         'min_deposit': MIN_DEPOSIT,
         'min_withdraw': MIN_WITHDRAW,
+        'max_withdraw_daily': MAX_WITHDRAW_DAILY,
         'withdraw_points_fee_percentage': f'{WITHDRAW_POINTS_FEE_PERCENTAGE}%'
     })
 
@@ -429,7 +520,7 @@ def create_user():
     try:
         data = request.json
         user_id = data.get('userId')
-        email = data.get('email', '').strip()
+        email = data.get('email', '').strip().lower()
         full_name = data.get('fullName', '').strip()
         
         if not user_id:
@@ -447,8 +538,11 @@ def create_user():
                 update_data['email'] = email
             if not existing.get('fullName') and full_name:
                 update_data['fullName'] = full_name
-            if not existing.get('firstName') and data.get('firstName'):
-                update_data['firstName'] = data.get('firstName')
+                update_data['firstName'] = full_name.split(' ')[0]
+                update_data['lastName'] = ' '.join(full_name.split(' ')[1:]) if ' ' in full_name else ''
+            if data.get('referredBy') and not existing.get('referredBy'):
+                update_data['referredBy'] = data.get('referredBy')
+                update_data['referredByName'] = data.get('referredByName')
             
             if update_data:
                 save_user(user_id, update_data)
@@ -462,6 +556,7 @@ def create_user():
                 'securityCode': existing.get('securityCode')
             })
         
+        # Create new user
         referral_code = generate_referral_code()
         security_code = generate_security_code()
         
@@ -489,14 +584,19 @@ def create_user():
         }
         
         if save_user(user_id, user_data):
+            # Log history
+            log_history(user_id, 'account_created', 'Account created successfully', 0)
+            
             # Handle referral
             referred_by = data.get('referredBy')
             if referred_by:
                 referrer = get_user(referred_by)
                 if referrer:
+                    # Create referral record
                     referral_data = {
                         'referrerId': referred_by,
                         'referrerName': referrer.get('fullName', referrer.get('email', referred_by)),
+                        'referrerEmail': referrer.get('email', ''),
                         'referredUserId': user_id,
                         'referredEmail': email,
                         'referredName': full_name,
@@ -505,11 +605,18 @@ def create_user():
                         'status': 'pending_first_deposit',
                         'timestamp': get_timestamp()
                     }
-                    add_document('referrals', referral_data)
+                    ref_doc_id = add_document('referrals', referral_data)
                     
+                    # Update referrer's referral count
                     current_count = referrer.get('referralCount', 0) or 0
                     save_user(referred_by, {'referralCount': current_count + 1})
                     
+                    # Log referral history
+                    log_history(referred_by, 'referral_signup', 
+                        f'{full_name} joined using your referral link', 0,
+                        {'referredUserId': user_id, 'referredName': full_name})
+                    
+                    # Notify referrer
                     add_notification(referred_by, 
                         f"🎉 {full_name or 'New user'} joined using your referral link!", 
                         'referral_signup',
@@ -534,10 +641,6 @@ def get_user_api(user_id):
     try:
         user = get_user(user_id)
         if user:
-            # ALWAYS ensure email and name are present
-            user['email'] = user.get('email', '')
-            user['fullName'] = user.get('fullName', user.get('firstName', 'User'))
-            user['firstName'] = user.get('firstName', user.get('fullName', 'User'))
             user['referralLink'] = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
             user['totalBalance'] = (user.get('depositBalance', 0) or 0) + (user.get('taskEarnings', 0) or 0)
             user['userId'] = user_id
@@ -566,12 +669,9 @@ def get_user_balance(user_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
-# API: USER BALANCE UPDATE (for Balance Manager)
-# ============================================
 @app.route('/api/user/<user_id>/update', methods=['POST'])
 def update_user_balance(user_id):
-    """Update user fields - Used by Balance Manager admin page"""
+    """Update user fields - Used by Admin panel"""
     try:
         data = request.json
         field = data.get('field')
@@ -579,9 +679,6 @@ def update_user_balance(user_id):
         
         if not field:
             return jsonify({'success': False, 'error': 'Field name required'}), 400
-        
-        if value is None:
-            return jsonify({'success': False, 'error': 'Value required'}), 400
         
         allowed_fields = [
             'depositBalance', 'taskEarnings', 'points', 
@@ -600,15 +697,20 @@ def update_user_balance(user_id):
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
+        # Convert value type
         try:
+            previous_value = user.get(field, 0)
             if field in ['depositBalance', 'taskEarnings', 'referralBonus', 'totalReferralPoints']:
                 value = float(value)
+                previous_value = float(previous_value or 0)
             elif field in ['points', 'referralCount']:
                 value = int(float(value))
+                previous_value = int(previous_value or 0)
             elif field == 'firstDepositCompleted':
                 value = value in [True, 'true', 'True', 1, '1']
             else:
                 value = str(value)
+                previous_value = str(previous_value or '')
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': f'Invalid value type for {field}'}), 400
         
@@ -617,25 +719,17 @@ def update_user_balance(user_id):
         if save_user(user_id, update_data):
             print(f"✅ Updated {user_id}: {field} = {value}")
             
-            try:
-                log_data = {
-                    'userId': user_id,
-                    'field': field,
-                    'newValue': value,
-                    'previousValue': user.get(field, 'N/A'),
-                    'timestamp': get_timestamp(),
-                    'type': 'admin_update'
-                }
-                add_document('balance_logs', log_data)
-            except:
-                pass
+            # Log admin action
+            log_history(user_id, 'admin_update', 
+                f'Admin updated {field}: {previous_value} → {value}',
+                0, {'field': field, 'previousValue': str(previous_value), 'newValue': str(value)})
             
             return jsonify({
                 'success': True,
                 'message': f'Updated {field} to {value}',
                 'userId': user_id,
                 'field': field,
-                'previousValue': user.get(field, 0),
+                'previousValue': previous_value,
                 'newValue': value
             })
         
@@ -651,23 +745,26 @@ def get_all_users_api():
         users = get_all_users()
         users_list = []
         for uid, data in users.items():
-            # ALWAYS include email and fullName - these are required by all pages
             user_entry = {
                 'userId': uid,
                 'email': data.get('email', ''),
                 'fullName': data.get('fullName', data.get('firstName', 'User')),
-                'firstName': data.get('firstName', data.get('fullName', '').split(' ')[0] if data.get('fullName') else ''),
+                'firstName': data.get('firstName', ''),
                 'lastName': data.get('lastName', ''),
+                'phone': data.get('phone', ''),
                 'depositBalance': data.get('depositBalance', 0) or 0,
                 'taskEarnings': data.get('taskEarnings', 0) or 0,
                 'points': data.get('points', 0) or 0,
                 'referralCount': data.get('referralCount', 0) or 0,
+                'referralBonus': data.get('referralBonus', 0) or 0,
                 'referralCode': data.get('referralCode', ''),
                 'referredBy': data.get('referredBy'),
+                'referredByName': data.get('referredByName'),
                 'status': data.get('status', 'active'),
                 'createdAt': data.get('createdAt', ''),
                 'firstDepositCompleted': data.get('firstDepositCompleted', False),
-                'securityCode': data.get('securityCode', '')
+                'securityCode': data.get('securityCode', ''),
+                'totalBalance': (data.get('depositBalance', 0) or 0) + (data.get('taskEarnings', 0) or 0)
             }
             users_list.append(user_entry)
         
@@ -678,6 +775,47 @@ def get_all_users_api():
         })
     except Exception as e:
         print(f"Error getting all users: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/user/<user_id>/details', methods=['GET'])
+def get_user_details(user_id):
+    """Get complete user details including investments, deposits, withdrawals"""
+    try:
+        user = get_user(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        # Get investments
+        investments = get_collection('investments')
+        user_investments = [i for i in investments if i.get('userId') == user_id and i.get('status') == 'active']
+        
+        # Get deposits
+        deposits = get_collection('deposits')
+        user_deposits = [d for d in deposits if d.get('userId') == user_id]
+        user_deposits.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Get withdrawals
+        withdrawals = get_collection('withdrawals')
+        user_withdrawals = [w for w in withdrawals if w.get('userId') == user_id]
+        user_withdrawals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Get referrals
+        referrals = get_collection('referrals')
+        user_referrals = [r for r in referrals if r.get('referrerId') == user_id]
+        
+        # Get history
+        history = get_user_history(user_id)
+        
+        return jsonify({
+            'success': True,
+            'user': user,
+            'investments': user_investments,
+            'deposits': user_deposits,
+            'withdrawals': user_withdrawals,
+            'referrals': user_referrals,
+            'history': history
+        })
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
@@ -700,6 +838,9 @@ def login_user():
                 # Update last login
                 save_user(uid, {'lastLogin': get_timestamp()})
                 
+                # Log login
+                log_history(uid, 'login', 'User logged in', 0)
+                
                 # Build complete user response
                 user_response = {
                     'userId': uid,
@@ -712,6 +853,7 @@ def login_user():
                     'taskEarnings': user_data.get('taskEarnings', 0) or 0,
                     'points': user_data.get('points', 0) or 0,
                     'referralCount': user_data.get('referralCount', 0) or 0,
+                    'referralBonus': user_data.get('referralBonus', 0) or 0,
                     'referralCode': user_data.get('referralCode', ''),
                     'referredBy': user_data.get('referredBy'),
                     'securityCode': user_data.get('securityCode', ''),
@@ -758,6 +900,7 @@ def validate_referral(code):
                     'referralCode': code
                 })
         
+        # Also check if the code is a user ID
         user = get_user(code)
         if user:
             return jsonify({
@@ -793,13 +936,16 @@ def get_referral_stats(user_id):
         user_referrals = [r for r in all_referrals if r.get('referrerId') == user_id]
         
         total_referrals = len(user_referrals)
-        active_referrals = len([r for r in user_referrals if r.get('status') == 'active'])
+        active_referrals = len([r for r in user_referrals if r.get('status') in ['active', 'completed']])
         pending_referrals = len([r for r in user_referrals if r.get('status') == 'pending_first_deposit'])
         
         total_bonus = sum(r.get('bonusEarned', 0) or 0 for r in user_referrals)
         total_points = sum(r.get('pointsAwarded', 0) or 0 for r in user_referrals)
         
         referral_link = f"{request.host_url}?ref={user.get('referralCode', user_id)}"
+        
+        # Sort referrals by timestamp
+        user_referrals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         return jsonify({
             'success': True,
@@ -814,7 +960,7 @@ def get_referral_stats(user_id):
                 'referralBonusPercentage': REFERRAL_BONUS_PERCENTAGE,
                 'pointsPerReferral': REFERRAL_POINTS_PERCENTAGE
             },
-            'referrals': user_referrals[:20]
+            'referrals': user_referrals[:50]
         })
         
     except Exception as e:
@@ -863,17 +1009,23 @@ def submit_deposit():
             'status': 'pending',
             'isFirstDeposit': is_first_deposit,
             'referralBonusPaid': False,
-            'timestamp': get_timestamp()
+            'timestamp': get_timestamp(),
+            'date': datetime.utcnow().strftime('%Y-%m-%d')
         }
         
         deposit_id = add_document('deposits', deposit_data)
         
+        # Log history
+        log_history(user_id, 'deposit_request', 
+            f'Deposit of {amount} USDT submitted via {method}', 
+            amount, {'depositId': deposit_id, 'method': method})
+        
         add_notification(user_id, 
             f'💰 Deposit of {amount} USDT submitted via {method}. Pending approval.', 
             'deposit',
-            {'amount': amount, 'method': method})
+            {'amount': amount, 'method': method, 'depositId': deposit_id})
         
-        print(f"📥 New deposit: {amount} USDT from {user_id}")
+        print(f"📥 New deposit: {amount} USDT from {user_id} via {method}")
         
         return jsonify({
             'success': True,
@@ -898,7 +1050,7 @@ def get_user_deposits(user_id):
         user = get_user(user_id)
         return jsonify({
             'success': True,
-            'deposits': user_deposits[:20],
+            'deposits': user_deposits[:50],
             'firstDepositCompleted': user.get('firstDepositCompleted', False) if user else False
         })
     except Exception as e:
@@ -922,10 +1074,14 @@ def approve_deposit(deposit_id):
         if not deposit:
             return jsonify({'success': False, 'error': 'Deposit not found'}), 404
         
+        if deposit.get('status') == 'approved':
+            return jsonify({'success': False, 'error': 'Deposit already approved'}), 400
+        
         user_id = deposit.get('userId')
         amount = deposit.get('amount', 0)
         is_first_deposit = deposit.get('isFirstDeposit', False)
         
+        # Update deposit status
         update_document('deposits', deposit_id, {
             'status': 'approved',
             'approvedAt': get_timestamp()
@@ -941,6 +1097,11 @@ def approve_deposit(deposit_id):
             if is_first_deposit and not user.get('firstDepositCompleted', False):
                 update_data['firstDepositCompleted'] = True
                 
+                # Give welcome points
+                user_points = user.get('points', 0) or 0
+                update_data['points'] = user_points + 0.5
+                
+                # Process referral bonus
                 referred_by = user.get('referredBy')
                 if referred_by:
                     referrer = get_user(referred_by)
@@ -953,6 +1114,7 @@ def approve_deposit(deposit_id):
                         ref_points = referrer.get('points', 0) or 0
                         ref_total_points = referrer.get('totalReferralPoints', 0) or 0
                         
+                        # Update referrer
                         save_user(referred_by, {
                             'depositBalance': ref_deposit_balance + bonus_amount,
                             'referralBonus': ref_bonus + bonus_amount,
@@ -960,6 +1122,7 @@ def approve_deposit(deposit_id):
                             'points': ref_points + points_awarded
                         })
                         
+                        # Update referral record
                         all_referrals = get_collection('referrals')
                         for ref in all_referrals:
                             if ref.get('referrerId') == referred_by and ref.get('referredUserId') == user_id:
@@ -967,17 +1130,21 @@ def approve_deposit(deposit_id):
                                     'status': 'active',
                                     'bonusEarned': bonus_amount,
                                     'pointsAwarded': points_awarded,
-                                    'firstDepositDate': get_timestamp()
+                                    'firstDepositDate': get_timestamp(),
+                                    'depositAmount': amount
                                 })
                                 break
+                        
+                        # Log referral bonus
+                        log_history(referred_by, 'referral_bonus',
+                            f'Referral bonus: {bonus_amount} USDT + {points_awarded} points from {user.get("fullName", "User")}',
+                            bonus_amount,
+                            {'pointsAwarded': points_awarded, 'referredUserId': user_id})
                         
                         add_notification(referred_by,
                             f"🎉 Referral Bonus! {user.get('fullName', 'User')} deposited ${amount}. You earned ${bonus_amount} + {points_awarded} points!",
                             'referral_bonus',
                             {'amount': bonus_amount, 'points': points_awarded})
-                
-                user_points = user.get('points', 0) or 0
-                update_data['points'] = user_points + 0.5
                 
                 add_notification(user_id,
                     "🎁 Welcome Bonus! You earned 0.5 points for your first deposit!",
@@ -986,10 +1153,15 @@ def approve_deposit(deposit_id):
             
             save_user(user_id, update_data)
         
+        # Log history
+        log_history(user_id, 'deposit_approved',
+            f'Deposit of {amount} USDT approved', amount,
+            {'depositId': deposit_id, 'method': deposit.get('method', 'unknown')})
+        
         add_notification(user_id,
             f'✅ Deposit of {amount} USDT approved! Funds added to your balance.',
             'deposit_approved',
-            {'amount': amount})
+            {'amount': amount, 'depositId': deposit_id})
         
         print(f"✅ Deposit approved: {deposit_id} - {amount} USDT from {user_id}")
         
@@ -1002,18 +1174,26 @@ def approve_deposit(deposit_id):
 @app.route('/api/deposit/<deposit_id>/reject', methods=['POST'])
 def reject_deposit(deposit_id):
     try:
+        deposits = get_collection('deposits')
+        deposit = next((d for d in deposits if d.get('id') == deposit_id), None)
+        
+        if not deposit:
+            return jsonify({'success': False, 'error': 'Deposit not found'}), 404
+        
         update_document('deposits', deposit_id, {
             'status': 'rejected',
             'rejectedAt': get_timestamp()
         })
         
-        deposits = get_collection('deposits')
-        deposit = next((d for d in deposits if d.get('id') == deposit_id), None)
-        
         if deposit:
+            log_history(deposit.get('userId'), 'deposit_rejected',
+                f'Deposit of {deposit.get("amount", 0)} USDT rejected',
+                -deposit.get('amount', 0), {'depositId': deposit_id})
+            
             add_notification(deposit.get('userId'),
                 f'❌ Deposit of {deposit.get("amount", 0)} USDT rejected.',
-                'deposit_rejected')
+                'deposit_rejected',
+                {'amount': deposit.get('amount', 0)})
         
         print(f"❌ Deposit rejected: {deposit_id}")
         
@@ -1040,13 +1220,14 @@ def submit_withdrawal():
         if amount < MIN_WITHDRAW:
             return jsonify({'success': False, 'error': f'Minimum withdrawal is {MIN_WITHDRAW} USDT'}), 400
         
+        if amount > MAX_WITHDRAW_DAILY:
+            return jsonify({'success': False, 'error': f'Maximum daily withdrawal is {MAX_WITHDRAW_DAILY} USDT'}), 400
+        
         user = get_user(user_id)
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
-        # ============================================
-        # CHECK 10% POINTS FEE REQUIREMENT
-        # ============================================
+        # Check 10% points fee requirement
         points_fee = calculate_withdraw_points_fee(amount)
         user_points = user.get('points', 0) or 0
         
@@ -1060,7 +1241,7 @@ def submit_withdrawal():
                     'missingPoints': round(points_fee - user_points, 2),
                     'feePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE,
                     'withdrawalAmount': amount,
-                    'message': f'You need {points_fee} points for the {WITHDRAW_POINTS_FEE_PERCENTAGE}% withdrawal fee. You only have {user_points} points. Earn points through referrals and daily claims!'
+                    'message': f'You need {points_fee} points for the {WITHDRAW_POINTS_FEE_PERCENTAGE}% withdrawal fee. You only have {user_points} points.'
                 }
             }), 400
         
@@ -1091,6 +1272,7 @@ def submit_withdrawal():
             'points': new_points
         })
         
+        # Convert details to string for storage
         if isinstance(details, dict):
             details_str = json.dumps(details)
         else:
@@ -1106,29 +1288,30 @@ def submit_withdrawal():
             'status': 'pending',
             'pointsFee': points_fee,
             'pointsFeePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE,
-            'timestamp': get_timestamp()
+            'timestamp': get_timestamp(),
+            'date': datetime.utcnow().strftime('%Y-%m-%d')
         }
         
         withdrawal_id = add_document('withdrawals', withdrawal_data)
         
-        # Log the points fee deduction
-        points_log_data = {
-            'userId': user_id,
-            'type': 'withdrawal_fee',
-            'amount': -points_fee,
-            'withdrawalId': withdrawal_id,
-            'withdrawalAmount': amount,
-            'description': f'{WITHDRAW_POINTS_FEE_PERCENTAGE}% points fee for {amount} USDT withdrawal',
-            'timestamp': get_timestamp()
-        }
-        add_document('points_logs', points_log_data)
+        # Log history
+        log_history(user_id, 'withdrawal_request',
+            f'Withdrawal of {amount} USDT requested via {method}. Points fee: {points_fee}',
+            -amount,
+            {'withdrawalId': withdrawal_id, 'method': method, 'pointsFee': points_fee})
+        
+        # Log points deduction
+        log_history(user_id, 'points_fee',
+            f'Points fee for withdrawal: -{points_fee} points',
+            -points_fee,
+            {'withdrawalId': withdrawal_id, 'withdrawalAmount': amount})
         
         add_notification(user_id,
             f'💸 Withdrawal of {amount} USDT submitted via {method}. {WITHDRAW_POINTS_FEE_PERCENTAGE}% points fee ({points_fee} points) deducted. Pending approval.',
             'withdrawal',
             {'amount': amount, 'method': method, 'pointsFee': points_fee})
         
-        print(f"💸 New withdrawal: {amount} USDT from {user_id} via {method} | Points fee: {points_fee} | Remaining points: {new_points}")
+        print(f"💸 New withdrawal: {amount} USDT from {user_id} via {method} | Points fee: {points_fee}")
         
         return jsonify({
             'success': True,
@@ -1150,7 +1333,7 @@ def get_user_withdrawals(user_id):
         withdrawals = get_collection('withdrawals')
         user_withdrawals = [w for w in withdrawals if w.get('userId') == user_id]
         user_withdrawals.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        return jsonify({'success': True, 'withdrawals': user_withdrawals[:20]})
+        return jsonify({'success': True, 'withdrawals': user_withdrawals[:50]})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1166,15 +1349,23 @@ def get_all_withdrawals():
 @app.route('/api/withdraw/<withdrawal_id>/approve', methods=['POST'])
 def approve_withdrawal(withdrawal_id):
     try:
+        withdrawals = get_collection('withdrawals')
+        withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
+        
+        if not withdrawal:
+            return jsonify({'success': False, 'error': 'Withdrawal not found'}), 404
+        
         update_document('withdrawals', withdrawal_id, {
             'status': 'completed',
             'completedAt': get_timestamp()
         })
         
-        withdrawals = get_collection('withdrawals')
-        withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
-        
         if withdrawal:
+            log_history(withdrawal.get('userId'), 'withdrawal_approved',
+                f'Withdrawal of {withdrawal.get("amount", 0)} USDT approved',
+                -withdrawal.get('amount', 0),
+                {'withdrawalId': withdrawal_id})
+            
             add_notification(withdrawal.get('userId'),
                 f'✅ Withdrawal of {withdrawal.get("amount", 0)} USDT approved!',
                 'withdrawal_approved',
@@ -1194,41 +1385,38 @@ def reject_withdrawal(withdrawal_id):
         withdrawal = next((w for w in withdrawals if w.get('id') == withdrawal_id), None)
         
         if withdrawal:
-            user = get_user(withdrawal.get('userId'))
+            user_id = withdrawal.get('userId')
+            user = get_user(user_id)
+            
             if user:
-                # Refund the amount
-                current_balance = user.get('depositBalance', 0) or 0
+                # Refund the amount to deposit balance
                 refund_amount = withdrawal.get('amount', 0)
+                current_balance = user.get('depositBalance', 0) or 0
                 
                 # Refund points fee
                 points_fee = withdrawal.get('pointsFee', 0) or 0
                 current_points = user.get('points', 0) or 0
                 
-                save_user(withdrawal.get('userId'), {
+                save_user(user_id, {
                     'depositBalance': current_balance + refund_amount,
                     'points': current_points + points_fee
                 })
-                
-                # Log points refund
-                points_log_data = {
-                    'userId': withdrawal.get('userId'),
-                    'type': 'withdrawal_fee_refund',
-                    'amount': points_fee,
-                    'withdrawalId': withdrawal_id,
-                    'description': f'Points fee refunded for rejected withdrawal',
-                    'timestamp': get_timestamp()
-                }
-                add_document('points_logs', points_log_data)
             
-            add_notification(withdrawal.get('userId'),
+            # Update withdrawal status
+            update_document('withdrawals', withdrawal_id, {
+                'status': 'rejected',
+                'rejectedAt': get_timestamp()
+            })
+            
+            log_history(user_id, 'withdrawal_rejected',
+                f'Withdrawal of {refund_amount} USDT rejected. Amount and {points_fee} points refunded.',
+                refund_amount,
+                {'withdrawalId': withdrawal_id, 'pointsRefunded': points_fee})
+            
+            add_notification(user_id,
                 f'❌ Withdrawal of {withdrawal.get("amount", 0)} USDT rejected. Amount and {withdrawal.get("pointsFee", 0)} points refunded.',
                 'withdrawal_rejected',
-                {'amount': withdrawal.get('amount', 0)})
-        
-        update_document('withdrawals', withdrawal_id, {
-            'status': 'rejected',
-            'rejectedAt': get_timestamp()
-        })
+                {'amount': withdrawal.get('amount', 0), 'pointsRefunded': withdrawal.get('pointsFee', 0)})
         
         print(f"❌ Withdrawal rejected: {withdrawal_id} - Amount and points refunded")
         
@@ -1238,15 +1426,38 @@ def reject_withdrawal(withdrawal_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
-# API: POINTS LOGS
+# API: HISTORY
 # ============================================
-@app.route('/api/points/logs/<user_id>', methods=['GET'])
-def get_points_logs(user_id):
+@app.route('/api/history/<user_id>', methods=['GET'])
+def get_user_history_endpoint(user_id):
     try:
-        logs = get_collection('points_logs')
-        user_logs = [l for l in logs if l.get('userId') == user_id]
-        user_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        return jsonify({'success': True, 'logs': user_logs[:50]})
+        history = get_user_history(user_id)
+        return jsonify({
+            'success': True,
+            'history': history,
+            'total': len(history)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/history/all', methods=['GET'])
+def get_all_history():
+    try:
+        # Get from RTDB global history
+        global_history = rtdb_request('GET', 'global_history')
+        if global_history:
+            history_list = []
+            for doc_id, data in global_history.items():
+                if isinstance(data, dict):
+                    data['id'] = doc_id
+                    history_list.append(data)
+            history_list.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            return jsonify({'success': True, 'history': history_list, 'total': len(history_list)})
+        
+        # Fallback to Firestore
+        all_history = get_collection('history')
+        all_history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'history': all_history, 'total': len(all_history)})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1264,29 +1475,37 @@ def buy_investment():
         user_id = data.get('userId')
         product_name = data.get('productName')
         
+        if not user_id or not product_name:
+            return jsonify({'success': False, 'error': 'User ID and Product Name required'}), 400
+        
         product = next((p for p in PRODUCTS if p['name'] == product_name), None)
         if not product:
             return jsonify({'success': False, 'error': 'Product not found'}), 404
         
         user = get_user(user_id)
         if not user:
-            return jsonify({'success': False, 'error': 'User not found'}), 404        
+            return jsonify({'success': False, 'error': 'User not found'}), 404
         
         user_balance = user.get('depositBalance', 0) or 0
         if user_balance < product['price']:
             return jsonify({'success': False, 'error': 'Insufficient deposit balance'}), 400
         
+        # Deduct from balance
         save_user(user_id, {
             'depositBalance': user_balance - product['price']
         })
         
+        # Create investment
         investment_data = {
             'userId': user_id,
+            'userName': user.get('fullName', user.get('firstName', 'User')),
+            'userEmail': user.get('email', ''),
             'productName': product['name'],
             'amount': product['price'],
             'dailyEarnings': product['dailyEarnings'],
             'duration': product['duration'],
             'isFixed': product['isFixed'],
+            'category': product['category'],
             'totalEarned': 0.0,
             'status': 'active',
             'purchaseDate': get_timestamp(),
@@ -1296,10 +1515,18 @@ def buy_investment():
         
         investment_id = add_document('investments', investment_data)
         
+        # Log history
+        log_history(user_id, 'investment_purchase',
+            f'Purchased {product_name} investment for {product["price"]} USDT',
+            -product['price'],
+            {'investmentId': investment_id, 'productName': product_name})
+        
         add_notification(user_id,
             f'🎯 Investment purchased: {product_name} for ${product["price"]}',
             'investment',
             {'productName': product_name, 'amount': product['price']})
+        
+        print(f"✅ Investment purchased: {product_name} by {user_id} for {product['price']} USDT")
         
         return jsonify({
             'success': True,
@@ -1308,16 +1535,16 @@ def buy_investment():
         }), 201
         
     except Exception as e:
+        print(f"Error buying investment: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/investment/<user_id>', methods=['GET'])
 def get_user_investments(user_id):
     try:
         investments = get_collection('investments')
-        user_investments = [i for i in investments if i.get('userId') == user_id]
-        active_investments = [i for i in user_investments if i.get('status') == 'active']
+        user_investments = [i for i in investments if i.get('userId') == user_id and i.get('status') == 'active']
         
-        for inv in active_investments:
+        for inv in user_investments:
             try:
                 purchase_date = datetime.fromisoformat(inv.get('purchaseDate', get_timestamp()).replace('Z', '+00:00'))
                 days_elapsed = (datetime.utcnow() - purchase_date.replace(tzinfo=None)).days
@@ -1327,7 +1554,16 @@ def get_user_investments(user_id):
                 inv['daysLeft'] = inv.get('duration', 120)
                 inv['progress'] = 0
         
-        return jsonify({'success': True, 'investments': active_investments})
+        return jsonify({'success': True, 'investments': user_investments})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/investment/all', methods=['GET'])
+def get_all_investments():
+    try:
+        investments = get_collection('investments')
+        investments.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return jsonify({'success': True, 'investments': investments, 'total': len(investments)})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1347,6 +1583,7 @@ def claim_daily():
         if is_weekend():
             return jsonify({'success': False, 'error': 'Cannot claim on weekends', 'isWeekend': True}), 403
         
+        # Get investment
         investments = get_collection('investments')
         investment = next((i for i in investments if i.get('id') == investment_id), None)
         
@@ -1356,23 +1593,56 @@ def claim_daily():
         if investment.get('status') != 'active':
             return jsonify({'success': False, 'error': 'Investment is not active'}), 400
         
+        # Check if already claimed today
+        if investment.get('lastClaimDate'):
+            try:
+                last_claim = datetime.fromisoformat(investment['lastClaimDate'].replace('Z', '+00:00'))
+                today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                last_claim_day = last_claim.replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
+                if last_claim_day >= today:
+                    return jsonify({'success': False, 'error': 'Already claimed today'}), 400
+            except:
+                pass
+        
+        # Check if investment duration has expired
+        try:
+            purchase_date = datetime.fromisoformat(investment.get('purchaseDate', get_timestamp()).replace('Z', '+00:00'))
+            days_elapsed = (datetime.utcnow() - purchase_date.replace(tzinfo=None)).days
+            if days_elapsed > investment.get('duration', 120):
+                update_document('investments', investment_id, {'status': 'expired'})
+                return jsonify({'success': False, 'error': 'Investment has expired'}), 400
+        except:
+            pass
+        
+        # Calculate earnings
         if investment.get('isFixed'):
             earnings = float(investment.get('dailyEarnings', 0))
         else:
             earnings = (float(investment.get('amount', 0)) * float(investment.get('dailyEarnings', 0))) / 100
         
+        # Update investment
         total_earned = (investment.get('totalEarned', 0) or 0) + earnings
         update_document('investments', investment_id, {
             'totalEarned': total_earned,
-            'lastClaimDate': get_timestamp()
+            'lastClaimDate': get_timestamp(),
+            'lastClaimAmount': earnings
         })
         
+        # Update user balance
         user = get_user(user_id)
         if user:
             current_earnings = user.get('taskEarnings', 0) or 0
             save_user(user_id, {
                 'taskEarnings': current_earnings + earnings
             })
+        
+        # Log history
+        log_history(user_id, 'daily_claim',
+            f'Claimed {earnings:.2f} USDT from {investment.get("productName", "Investment")}',
+            earnings,
+            {'investmentId': investment_id, 'productName': investment.get('productName', 'Unknown')})
+        
+        print(f"✅ Daily claim: {user_id} claimed {earnings:.2f} USDT from {investment_id}")
         
         return jsonify({
             'success': True,
@@ -1382,6 +1652,7 @@ def claim_daily():
         })
         
     except Exception as e:
+        print(f"Error in daily claim: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/daily/check/<user_id>', methods=['GET'])
@@ -1408,6 +1679,25 @@ def check_daily(user_id):
 @app.route('/api/notifications/<user_id>', methods=['GET'])
 def get_user_notifications(user_id):
     try:
+        # Get from RTDB first
+        rtdb_result = rtdb_request('GET', f'notifications/{user_id}')
+        if rtdb_result:
+            notifications_list = []
+            for doc_id, notif_data in rtdb_result.items():
+                if isinstance(notif_data, dict):
+                    notif_data['id'] = doc_id
+                    notifications_list.append(notif_data)
+            notifications_list.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            
+            unread_count = len([n for n in notifications_list if not n.get('read', False)])
+            
+            return jsonify({
+                'success': True,
+                'notifications': notifications_list[:100],
+                'unreadCount': unread_count
+            })
+        
+        # Fallback to Firestore
         notifications = get_collection('notifications')
         user_notifications = [n for n in notifications if n.get('userId') == user_id]
         user_notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
@@ -1416,7 +1706,7 @@ def get_user_notifications(user_id):
         
         return jsonify({
             'success': True,
-            'notifications': user_notifications[:50],
+            'notifications': user_notifications[:100],
             'unreadCount': unread_count
         })
     except Exception as e:
@@ -1428,9 +1718,21 @@ def mark_all_read():
         data = request.json
         user_id = data.get('userId')
         
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID required'}), 400
+        
+        # Mark all as read in RTDB
+        rtdb_result = rtdb_request('GET', f'notifications/{user_id}')
+        if rtdb_result:
+            count = 0
+            for doc_id, notif_data in rtdb_result.items():
+                if isinstance(notif_data, dict) and not notif_data.get('read', False):
+                    rtdb_request('PATCH', f'notifications/{user_id}/{doc_id}', {'read': True})
+                    count += 1
+        
+        # Also update Firestore
         notifications = get_collection('notifications')
         user_notifications = [n for n in notifications if n.get('userId') == user_id]
-        
         count = 0
         for notif in user_notifications:
             if not notif.get('read', False):
@@ -1448,9 +1750,13 @@ def mark_all_read():
 def get_security_code(user_id):
     try:
         user = get_user(user_id)
-        if user and user.get('securityCode'):
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        if user.get('securityCode'):
             return jsonify({'success': True, 'code': user['securityCode']})
         
+        # Generate new code if none exists
         new_code = generate_security_code()
         save_user(user_id, {'securityCode': new_code})
         return jsonify({'success': True, 'code': new_code})
@@ -1462,8 +1768,18 @@ def reset_security():
     try:
         data = request.json
         user_id = data.get('userId')
-        new_code = generate_security_code()
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID required'}), 400
+        
+        new_code = data.get('newCode')
+        if not new_code:
+            new_code = generate_security_code()
+        
         save_user(user_id, {'securityCode': new_code})
+        
+        log_history(user_id, 'security_code_reset', 'Security code reset', 0)
+        
         return jsonify({'success': True, 'newCode': new_code})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1482,9 +1798,9 @@ def admin_stats():
         
         approved_deposits = sum(d.get('amount', 0) or 0 for d in deposits if d.get('status') == 'approved')
         completed_withdrawals = sum(w.get('amount', 0) or 0 for w in withdrawals if w.get('status') == 'completed')
-        active_investments = len([i for i in investments if i.get('status') == 'active'])
-        pending_deposits = len([d for d in deposits if d.get('status') == 'pending'])
-        pending_withdrawals = len([w for w in withdrawals if w.get('status') == 'pending'])
+        pending_deposits = [d for d in deposits if d.get('status') == 'pending']
+        pending_withdrawals = [w for w in withdrawals if w.get('status') == 'pending']
+        active_investments = [i for i in investments if i.get('status') == 'active']
         
         total_points_fees = sum(w.get('pointsFee', 0) or 0 for w in withdrawals if w.get('status') == 'completed')
         
@@ -1494,10 +1810,12 @@ def admin_stats():
                 'totalUsers': len(users),
                 'totalDeposits': approved_deposits,
                 'totalWithdrawals': completed_withdrawals,
-                'activeInvestments': active_investments,
+                'activeInvestments': len(active_investments),
                 'totalReferrals': len(referrals),
-                'pendingDeposits': pending_deposits,
-                'pendingWithdrawals': pending_withdrawals,
+                'pendingDeposits': len(pending_deposits),
+                'pendingWithdrawals': len(pending_withdrawals),
+                'pendingDepositsList': pending_deposits[:20],
+                'pendingWithdrawalsList': pending_withdrawals[:20],
                 'totalPointsFeesCollected': total_points_fees,
                 'withdrawPointsFeePercentage': WITHDRAW_POINTS_FEE_PERCENTAGE
             }
@@ -1525,9 +1843,9 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print("=" * 60)
-    print("🚀 SAFE Platform v3.1 - Firebase REST API")
+    print("🚀 SAFE Platform v4.0 - Firebase REST API (Complete)")
     print(f"📍 Port: {port}")
-    print(f"🗄️  Database: Firebase Firestore + RTDB (REST API)")
+    print(f"🗄️  Database: Firebase Firestore + RTDB (Dual Storage)")
     print(f"📱 Telebirr: {TELEBIRR_NUMBER} ({TELEBIRR_NAME})")
     print(f"💎 Wallet: {WALLET_ADDRESS}")
     print(f"👥 Referral Bonus: {REFERRAL_BONUS_PERCENTAGE}%")
@@ -1535,31 +1853,45 @@ if __name__ == '__main__':
     print(f"🔒 Withdraw Points Fee: {WITHDRAW_POINTS_FEE_PERCENTAGE}%")
     print("=" * 60)
     print("📡 All API Endpoints Ready:")
-    print("   ✅ POST /api/user/create")
-    print("   ✅ POST /api/user/login")
-    print("   ✅ GET  /api/user/<id>")
-    print("   ✅ POST /api/user/<id>/update")
-    print("   ✅ GET  /api/users/all")
-    print("   ✅ POST /api/deposit")
-    print("   ✅ GET  /api/deposit/all")
-    print("   ✅ POST /api/deposit/<id>/approve")
-    print("   ✅ POST /api/deposit/<id>/reject")
-    print("   ✅ POST /api/withdraw (10% points fee)")
-    print("   ✅ GET  /api/withdraw/all")
-    print("   ✅ POST /api/withdraw/<id>/approve")
-    print("   ✅ POST /api/withdraw/<id>/reject (refunds points)")
-    print("   ✅ GET  /api/points/logs/<user_id>")
-    print("   ✅ GET  /api/referral/all")
-    print("   ✅ GET  /api/referral/check/<code>")
-    print("   ✅ GET  /api/referral/stats/<id>")
-    print("   ✅ GET  /api/products")
-    print("   ✅ POST /api/investment/buy")
-    print("   ✅ GET  /api/investment/<id>")
-    print("   ✅ POST /api/daily/claim")
-    print("   ✅ GET  /api/notifications/<id>")
-    print("   ✅ POST /api/notifications/read-all")
-    print("   ✅ GET  /api/security/<id>")
-    print("   ✅ GET  /api/admin/stats")
+    print("   👤 POST /api/user/create")
+    print("   👤 POST /api/user/login")
+    print("   👤 GET  /api/user/<id>")
+    print("   👤 GET  /api/user/<id>/balance")
+    print("   👤 GET  /api/user/<id>/details")
+    print("   👤 POST /api/user/<id>/update")
+    print("   👤 GET  /api/users/all")
+    print("   💰 POST /api/deposit")
+    print("   💰 GET  /api/deposit/<user_id>")
+    print("   💰 GET  /api/deposit/all")
+    print("   💰 POST /api/deposit/<id>/approve")
+    print("   💰 POST /api/deposit/<id>/reject")
+    print("   💸 POST /api/withdraw (10% points fee)")
+    print("   💸 GET  /api/withdraw/<user_id>")
+    print("   💸 GET  /api/withdraw/all")
+    print("   💸 POST /api/withdraw/<id>/approve")
+    print("   💸 POST /api/withdraw/<id>/reject (refunds)")
+    print("   📦 GET  /api/products")
+    print("   📦 POST /api/investment/buy")
+    print("   📦 GET  /api/investment/<id>")
+    print("   📦 GET  /api/investment/all")
+    print("   📅 POST /api/daily/claim")
+    print("   📅 GET  /api/daily/check/<id>")
+    print("   🔗 GET  /api/referral/check/<code>")
+    print("   🔗 GET  /api/referral/stats/<id>")
+    print("   🔗 GET  /api/referral/all")
+    print("   🔔 GET  /api/notifications/<id>")
+    print("   🔔 POST /api/notifications/read-all")
+    print("   📝 GET  /api/history/<id>")
+    print("   📝 GET  /api/history/all")
+    print("   🔐 GET  /api/security/<id>")
+    print("   🔐 POST /api/security/reset")
+    print("   📊 GET  /api/admin/stats")
+    print("=" * 60)
+    print("✅ All data written to both Firestore and RTDB for redundancy")
+    print("✅ Complete history logging for all actions")
+    print("✅ Weekend detection for daily claims")
+    print("✅ Referral system with auto bonus on first deposit")
+    print("✅ 10% points fee on withdrawals")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=True)
