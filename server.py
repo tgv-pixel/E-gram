@@ -34,7 +34,7 @@ RTDB_BASE_URL = f"https://webapp-fc856-default-rtdb.firebaseio.com"
 # ============================================
 TELEBIRR_NUMBER = '0949399753'
 TELEBIRR_NAME = 'Abinet'
-WALLET_ADDRESS = 'TK3RviHLX31oC6qNdfaF9Wuh8JJ4bQqAXu'
+WALLET_ADDRESS = 'UQB37g1e9sANIvwdJd3mmxtqveSBae0y-bpqX7DXQPH3c9Lb'
 REFERRAL_BONUS_PERCENTAGE = 10
 REFERRAL_POINTS_PERCENTAGE = 10
 MIN_DEPOSIT = 10
